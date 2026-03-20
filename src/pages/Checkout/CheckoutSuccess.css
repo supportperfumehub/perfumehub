@@ -1,0 +1,150 @@
+.checkout-success-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    overflow: hidden;
+}
+
+.success-content {
+    max-width: 600px;
+    animation: premiumFadeIn 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.success-icon-wrapper {
+    margin-bottom: 30px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.success-icon-bg {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0) 70%);
+    border-radius: 50%;
+    animation: pulseGold 2s infinite;
+}
+
+.premium-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #D4AF37;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.premium-divider {
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+    margin: 20px auto;
+}
+
+.premium-message {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 25px;
+    font-family: 'Montserrat', sans-serif;
+    line-height: 1.8;
+}
+
+.order-id-box {
+    margin-top: 10px;
+    padding: 15px 30px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    background: rgba(212, 175, 55, 0.05);
+    display: inline-block;
+}
+
+.order-id-label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #D4AF37;
+    letter-spacing: 3px;
+    margin-bottom: 5px;
+}
+
+.order-id-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+.redirect-footer {
+    position: absolute;
+    bottom: 50px;
+    width: 100%;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.redirect-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+}
+
+.progress-container {
+    width: 200px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar {
+    position: absolute;
+    height: 100%;
+    background: #D4AF37;
+    left: 0;
+    top: 0;
+    animation: loadingBar 5s linear forwards;
+}
+
+@keyframes premiumFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulseGold {
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 0.2; }
+    100% { transform: scale(1); opacity: 0.5; }
+}
+
+@keyframes loadingBar {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+@media (max-width: 768px) {
+    .premium-title { font-size: 2rem; }
+    .premium-message { font-size: 1rem; }
+    .order-id-value { font-size: 1.2rem; }
+}

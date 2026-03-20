@@ -1,0 +1,434 @@
+.home-page {
+    width: 100%;
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    height: 90vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center; /* Center the hero-content box vertically */
+    justify-content: center;
+    color: var(--color-white);
+    text-align: center;
+    overflow: hidden;
+    /* Removed margin-top: -85px; which caused the header overlap distraction */
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../../assets/premium_perfume_banner.png');
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+    /* Slight zoom effect */
+    animation: slowZoom 20s linear infinite alternate;
+}
+
+@keyframes slowZoom {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(30, 20, 10, 0.8) 0%, rgba(10, 10, 10, 0.6) 50%, rgba(65, 45, 10, 0.8) 100%);
+    z-index: -1;
+}
+
+.hero-content {
+    max-width: 800px;
+    padding-top: 50px; /* Reduced since the hero container is no longer pulled up */
+    z-index: 1;
+}
+
+.hero-subtitle {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--color-gold);
+    margin-bottom: 20px;
+}
+
+.hero-title {
+    font-size: 4.5rem;
+    color: var(--color-white);
+    margin-bottom: 25px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.hero-text {
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+/* Categories Grid */
+.category-grid-wrapper {
+    position: relative;
+    margin-top: 40px;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    /* 2 rows: each card is ~300px tall + 20px gap */
+    max-height: 9999px;
+}
+
+.category-grid-wrapper.collapsed {
+    /* approx 2 rows: (card height ~300px) * 2 + gap 20px */
+    max-height: 640px;
+}
+
+.category-grid-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(to bottom, transparent, var(--color-white, #FAFAFA));
+    pointer-events: none;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.categories-view-more {
+    margin-top: 24px;
+}
+
+.category-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    display: block;
+    aspect-ratio: 3/4;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-normal);
+}
+
+.category-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.category-image {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.category-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.category-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.1) 100%);
+    transition: background var(--transition-normal);
+}
+
+.category-card:hover .category-image img {
+    transform: scale(1.1);
+}
+
+.category-card:hover .category-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.2) 100%);
+}
+
+.category-title {
+    position: absolute;
+    bottom: 25px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: var(--color-white);
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    z-index: 2;
+    transition: transform var(--transition-fast);
+}
+
+.category-card:hover .category-title {
+    transform: translateY(-5px);
+    color: var(--color-gold);
+}
+
+/* Products Grid */
+.products-grid-wrapper {
+    position: relative;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    max-height: 9999px;
+}
+
+.products-grid-wrapper.collapsed {
+    /* ~2 rows of product cards: card ~380px tall + 30px gap */
+    max-height: 820px;
+}
+
+.products-grid-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 140px;
+    background: linear-gradient(to bottom, transparent, var(--color-white, #FAFAFA));
+    pointer-events: none;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.section-view-more {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.section-view-more .btn {
+    margin-left: 0 !important;
+}
+
+/* Section Header */
+.section-header {
+    margin-bottom: 50px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.section-subtitle {
+    color: var(--color-text-light);
+    font-size: 1rem;
+}
+
+
+/* Brand Story Section */
+.brand-story-section {
+    padding: 100px 0;
+    background-color: var(--color-gray);
+}
+
+.brand-story-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.brand-story-image {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: #fff;
+}
+
+.brand-story-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    transform: scale(1.22);
+    transition: transform var(--transition-slow);
+}
+
+.brand-story-image:hover img {
+    transform: scale(1.27);
+}
+
+.brand-story-content h2 {
+    font-size: 2.5rem;
+    margin: 15px 0 25px;
+}
+
+.brand-story-content p {
+    color: var(--color-text-light);
+    margin-bottom: 30px;
+    font-size: 1.05rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .hero-title {
+        font-size: 3.5rem;
+    }
+
+    .brand-story-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .brand-story-image {
+        order: -1;
+    }
+
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-grid-wrapper.collapsed {
+        max-height: 900px;
+    }
+}
+
+/* ── Mobile: horizontal swipeable carousels ── */
+@media (max-width: 768px) {
+    .hero-content {
+        padding-top: 40px;
+    }
+
+    .hero-title {
+        font-size: 2.2rem;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        padding: 0 20px;
+    }
+
+    .hero-text {
+        font-size: 1rem;
+        padding: 0 20px;
+    }
+
+    /* Categories: tidy 2-column grid on mobile */
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .category-card {
+        aspect-ratio: 3/4;
+    }
+
+    .category-grid-wrapper.collapsed {
+        max-height: 640px;
+        overflow: hidden;
+    }
+
+    .category-grid-fade {
+        display: block;
+        /* restore fade */
+    }
+
+    /* Products: 2-column grid, scroll vertically */
+    .products-grid-wrapper.collapsed {
+        max-height: 780px;
+        overflow: hidden;
+    }
+
+    .products-grid-fade {
+        display: block;
+        /* keep the fade visible */
+    }
+
+    /* Section Spacing on Mobile */
+    .section {
+        padding: 60px 0;
+    }
+
+    .section-header {
+        margin-bottom: 30px;
+    }
+
+    /* Restore View More / View Less on mobile */
+    .section-view-more {
+        display: flex;
+        margin-top: 15px;
+    }
+
+    /* 2 equal columns, normal vertical scroll */
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 15px;
+        padding-bottom: 0;
+        padding-right: 0;
+        overflow-x: unset;
+    }
+
+    /* Reset scroll-snap (not needed for grid) */
+    .products-grid .product-card {
+        flex: unset;
+        min-width: unset;
+        scroll-snap-align: unset;
+    }
+
+
+    /* Slightly smaller text inside compact cards */
+    .products-grid .product-name {
+        font-size: 0.85rem;
+    }
+
+    .products-grid .product-brand {
+        font-size: 0.7rem;
+    }
+
+    .products-grid .product-type {
+        font-size: 0.72rem;
+        margin-bottom: 8px;
+    }
+
+    .products-grid .product-price {
+        font-size: 0.9rem;
+    }
+
+    .products-grid .product-old-price {
+        font-size: 0.75rem;
+    }
+
+    .products-grid .product-savings-pill {
+        font-size: 0.65rem;
+    }
+
+    .products-grid .product-info {
+        padding: 12px 4px;
+    }
+}

@@ -1,0 +1,61 @@
+.promotion-bar {
+    background-color: #1a1a1a; /* Matte Black */
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d4af37; /* Luxury Gold */
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    overflow: hidden;
+    position: fixed; /* Keep it fixed at the top */
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1001; /* Above Navbar */
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.promotion-bar.scrolled {
+    transform: translateY(-100%); /* Slide up and away */
+}
+
+.promotion-content {
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+    text-align: center;
+    width: 100%;
+}
+
+.promotion-content p {
+    margin: 0;
+    padding: 0 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Luxury hover effect */
+.promotion-bar:hover {
+    color: #f9e29c; /* Brighten gold on hover */
+    cursor: default;
+}
+
+@media (max-width: 768px) {
+    .promotion-bar {
+        height: 32px;
+        font-size: 0.7rem;
+    }
+}

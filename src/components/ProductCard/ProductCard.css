@@ -1,0 +1,532 @@
+.product-card {
+    background-color: var(--color-white);
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px; /* Curvy box design */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.product-image-container {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    background-color: #f8f8f8;
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    border-radius: 20px 20px 0 0; /* Match curvy top */
+}
+
+/* ── Swiper ── */
+.swiper-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.swiper-scroll-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.swiper-scroll-track::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.product-image,
+.swiper-img {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover !important;
+    object-position: center top !important;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    transition: transform var(--transition-slow);
+}
+
+.product-card:hover .product-image,
+.product-card:hover .swiper-img {
+    transform: scale(1.05);
+}
+
+/* Arrow buttons */
+.swiper-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.88);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.25s ease, background 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    color: #1a1a1a;
+}
+
+.product-card:hover .swiper-arrow {
+    opacity: 1;
+}
+
+.swiper-arrow:hover {
+    background: var(--color-gold, #c8a951);
+    color: #fff;
+}
+
+.swiper-prev {
+    left: 8px;
+}
+
+.swiper-next {
+    right: 8px;
+}
+
+/* RTL swap */
+[dir="rtl"] .swiper-prev {
+    left: auto;
+    right: 8px;
+}
+
+[dir="rtl"] .swiper-next {
+    right: auto;
+    left: 8px;
+}
+
+/* Dot indicators */
+.swiper-dots {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    z-index: 5;
+}
+
+.swiper-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.swiper-dot.active {
+    background: var(--color-gold, #c8a951);
+    transform: scale(1.4);
+}
+
+
+
+/* ── Badges ── */
+.product-badge {
+    position: absolute;
+    top: 15px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+    border-radius: 3px;
+}
+
+/* New Arrival badge – gold */
+.premium-badge {
+    background-color: var(--color-gold);
+    color: var(--color-white);
+    left: 15px;
+    top: 45px;
+}
+
+[dir="rtl"] .premium-badge {
+    left: auto;
+    right: 15px;
+}
+
+/* Sale / Discount badge – vivid red with pulse */
+.sale-badge {
+    background-color: #e21c3d;
+    color: #fff;
+    right: 15px;
+    box-shadow: 0 0 0 0 rgba(226, 28, 61, 0.5);
+    animation: badgePulse 2s infinite;
+}
+
+[dir="rtl"] .sale-badge {
+    right: auto;
+    left: 15px;
+}
+
+@keyframes badgePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(226, 28, 61, 0.45);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(226, 28, 61, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(226, 28, 61, 0);
+    }
+}
+
+/* Out of Stock badge – dark */
+.out-of-stock-badge {
+    background-color: var(--color-black, #000);
+    color: #fff;
+    right: 15px;
+}
+
+[dir="rtl"] .out-of-stock-badge {
+    right: auto;
+    left: 15px;
+}
+
+/* ── Overlay & cart ── */
+.product-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(10, 10, 10, 0.8), transparent);
+    transform: translateY(100%);
+    transition: transform var(--transition-normal);
+    display: flex;
+    justify-content: center;
+    z-index: 2;
+}
+
+.product-card:hover .product-overlay {
+    transform: translateY(0);
+}
+
+.wishlist-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 10;
+    background-color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    color: var(--color-text-light, #666);
+    transition: all 0.3s ease;
+}
+
+[dir="rtl"] .wishlist-btn {
+    left: auto;
+    right: 15px;
+}
+
+.wishlist-btn:hover {
+    color: var(--color-gold);
+    transform: scale(1.1);
+}
+
+.wishlist-btn.active {
+    color: #e21c3d;
+}
+
+.quick-add {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    width: 90% !important;
+    background: #1a1a1a !important; /* Matte Black background (overrides gradients) */
+    color: #fff !important; /* White text/icon */
+    border: none !important;
+    border-radius: 50px !important; /* Curvy / Pill shape */
+    padding: 14px 25px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+    cursor: pointer !important;
+}
+
+.quick-add:hover,
+.button.btn.quick-add:hover,
+.btn-primary.quick-add:hover {
+    background: #000 !important; /* Solid Black on hover */
+    color: #fff !important; /* Keep white text */
+    border: none !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Green state after adding to cart */
+.btn-success.quick-add,
+.btn-success.quick-add:hover {
+    background-color: #28a745 !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.4) !important;
+}
+
+/* Red state for Out of Stock */
+.quick-add.out-of-stock,
+.quick-add.out-of-stock:hover {
+    background: #e21c3d !important;
+    color: #fff !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 0.9;
+}
+
+/* ── Product Info ── */
+.product-info {
+    padding: 12px 10px;
+    text-align: center;
+}
+
+.product-brand {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.product-name {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.product-type {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-bottom: 15px;
+}
+
+/* ── Price row ── */
+.product-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Normal price */
+.product-price {
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--color-black);
+    transition: color 0.3s;
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.01em;
+}
+
+/* Sale price – bold red with glow */
+.product-price.price-sale {
+    color: #e21c3d;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* Old / original price */
+.product-old-price {
+    font-size: 0.88rem;
+    color: var(--color-text-light);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* "Save X QAR" pill */
+.product-savings-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(226, 28, 61, 0.1);
+    color: #e21c3d;
+    border: 1px solid rgba(226, 28, 61, 0.25);
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* ── Mobile: clean 2-col grid cards ── */
+@media (max-width: 768px) {
+
+    /* Hide swiper arrows — touch swipe is enough */
+    .swiper-arrow {
+        display: none;
+    }
+
+    /* Slightly lower dots on mobile since button is smaller */
+    .swiper-dots {
+        bottom: 50px;
+    }
+
+    /* Smaller dot indicators */
+    .swiper-dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* Remove dark overlay — show a tiny cart circle pinned bottom-right */
+    .product-overlay {
+        background: none;
+        padding: 0;
+        bottom: 6px;
+        left: auto;
+        right: 6px;
+        width: auto;
+        transform: translateY(0);
+        justify-content: flex-end;
+    }
+
+    [dir="rtl"] .product-overlay {
+        right: auto;
+        left: 6px;
+    }
+
+    /* Small circular cart icon button */
+    .quick-add {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        border-radius: 50% !important; /* Circular */
+        padding: 0 !important;
+        gap: 0 !important;
+        font-size: 0 !important;
+        letter-spacing: 0 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+        display: flex !important;
+    }
+
+    .quick-add svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    /* Always hide text on mobile — icon only */
+    .quick-add span {
+        display: none;
+    }
+
+    /* Tighter badges so they don't clash */
+    .product-badge {
+        font-size: 0.62rem;
+        padding: 3px 6px;
+        top: 8px;
+    }
+
+    .premium-badge {
+        left: 42px;
+    }
+
+    [dir="rtl"] .premium-badge {
+        left: auto;
+        right: 42px;
+    }
+
+    .sale-badge,
+    .out-of-stock-badge {
+        right: 8px;
+    }
+
+    [dir="rtl"] .sale-badge,
+    [dir="rtl"] .out-of-stock-badge {
+        right: auto;
+        left: 8px;
+    }
+
+    /* Wishlist btn slightly smaller */
+    .wishlist-btn {
+        width: 28px;
+        height: 28px;
+        top: 8px;
+        left: 8px;
+    }
+
+    [dir="rtl"] .wishlist-btn {
+        left: auto;
+        right: 8px;
+    }
+
+    /* Compact card info */
+    .product-card {
+        border-radius: 16px !important;
+    }
+
+    .product-image-container {
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    .product-info {
+        padding: 8px 6px;
+    }
+
+    .product-name {
+        font-size: 0.82rem;
+        margin-bottom: 3px;
+    }
+
+    .product-brand {
+        font-size: 0.68rem;
+        margin-bottom: 3px;
+    }
+
+    .product-type {
+        font-size: 0.68rem;
+        margin-bottom: 8px;
+    }
+
+    .product-price {
+        font-size: 0.88rem;
+    }
+
+    .product-price.price-sale {
+        font-size: 0.88rem;
+    }
+
+    .product-old-price {
+        font-size: 0.72rem;
+    }
+
+    .product-savings-pill {
+        font-size: 0.62rem;
+        padding: 1px 6px;
+    }
+
+    .product-price-row {
+        gap: 4px;
+    }
+}
