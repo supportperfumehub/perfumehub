@@ -4,13 +4,23 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('perfumehub_user');
-        return savedUser ? JSON.parse(savedUser) : null;
+        try {
+            const savedUser = localStorage.getItem('perfumehub_user');
+            return savedUser ? JSON.parse(savedUser) : null;
+        } catch (error) {
+            console.error('Failed to parse user from localStorage:', error);
+            return null;
+        }
     });
 
     const [isAdmin, setIsAdmin] = useState(() => {
-        const savedIsAdmin = localStorage.getItem('perfumehub_isAdmin');
-        return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
+        try {
+            const savedIsAdmin = localStorage.getItem('perfumehub_isAdmin');
+            return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
+        } catch (error) {
+            console.error('Failed to parse isAdmin from localStorage:', error);
+            return false;
+        }
     });
 
     useEffect(() => {

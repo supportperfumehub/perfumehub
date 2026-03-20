@@ -6,8 +6,13 @@ export const ShopContext = createContext();
 export const ShopProvider = ({ children }) => {
     // Initial products from localStorage or mock data
     const [products, setProducts] = useState(() => {
-        const savedProducts = localStorage.getItem('perfumehub_products');
-        return savedProducts ? JSON.parse(savedProducts) : mockProducts;
+        try {
+            const savedProducts = localStorage.getItem('perfumehub_products');
+            return savedProducts ? JSON.parse(savedProducts) : mockProducts;
+        } catch (error) {
+            console.error('Failed to parse products from localStorage:', error);
+            return mockProducts;
+        }
     });
     const [loading, setLoading] = useState(true);
     const [backups, setBackups] = useState([]);
@@ -16,8 +21,13 @@ export const ShopProvider = ({ children }) => {
     const [orders, setOrders] = useState([]);
 
     const [coupons, setCoupons] = useState(() => {
-        const savedCoupons = localStorage.getItem('perfumehub_coupons');
-        return savedCoupons ? JSON.parse(savedCoupons) : [
+        try {
+            const savedCoupons = localStorage.getItem('perfumehub_coupons');
+            if (savedCoupons) return JSON.parse(savedCoupons);
+        } catch (error) {
+            console.error('Failed to parse coupons from localStorage:', error);
+        }
+        return [
             { id: 1, code: 'WELCOME10', discountType: 'percentage', discountValue: 10, expiryDate: '2026-12-31', isActive: true, usageCount: 0, usageLimit: 100, usedBy: [] },
             { id: 2, code: 'FREESHIP', discountType: 'percentage', discountValue: 5, expiryDate: '2026-06-30', isActive: true, usageCount: 0, usageLimit: 50, usedBy: [] },
             { id: 3, code: 'SUPER90', discountType: 'percentage', discountValue: 90, expiryDate: '2027-12-31', isActive: true, usageCount: 0, usageLimit: 10, usedBy: [] }

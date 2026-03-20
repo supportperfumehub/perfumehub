@@ -4,8 +4,13 @@ export const WishlistContext = createContext();
 
 export const WishlistProvider = ({ children }) => {
     const [wishlistItems, setWishlistItems] = useState(() => {
-        const savedWishlist = localStorage.getItem('perfumehub_wishlist');
-        return savedWishlist ? JSON.parse(savedWishlist) : [];
+        try {
+            const savedWishlist = localStorage.getItem('perfumehub_wishlist');
+            return savedWishlist ? JSON.parse(savedWishlist) : [];
+        } catch (error) {
+            console.error('Failed to parse wishlist from localStorage:', error);
+            return [];
+        }
     });
 
     useEffect(() => {
