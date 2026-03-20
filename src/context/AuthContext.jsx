@@ -38,8 +38,11 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             // Hardcoded admin check for local simulation, or handle via backend roles
-            if (email === 'admin@perfumehub.com' && password === 'admin123') {
-                const adminUser = { email, name: 'Admin User' };
+            const cleanEmail = email.trim().toLowerCase();
+            const cleanPass = password.trim();
+
+            if (cleanEmail === 'admin@perfumehub.com' && cleanPass === 'admin123') {
+                const adminUser = { email: cleanEmail, name: 'Admin User' };
                 setUser(adminUser);
                 setIsAdmin(true);
                 return { success: true };
