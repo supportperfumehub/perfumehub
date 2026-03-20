@@ -150,7 +150,7 @@ const ProductCard = ({ product, isRTL }) => {
                 <h3 className="product-name">
                     <Link to={`/product/${product.id}`}>{product.name}</Link>
                 </h3>
-                <p className="product-type">{product.type} - {Array.isArray(product.size) ? product.size[0] : product.size}</p>
+                <p className="product-type">{product.type} - {Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size}</p>
                 <div className={`product-price-row ${product.discount > 0 ? 'has-discount' : ''}`}>
                     <span className={`product-price ${product.discount > 0 ? 'price-sale' : ''}`}>
                         {Math.round(product.price)} {t('common.currency')}
