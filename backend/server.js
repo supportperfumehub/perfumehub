@@ -580,3 +580,5 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Keep process alive if app.listen fails to do so for some reason (debug)
 setInterval(() => {}, 1000000);
+
+export { app };
