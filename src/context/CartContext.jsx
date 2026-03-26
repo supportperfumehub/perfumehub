@@ -4,13 +4,8 @@ export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState(() => {
-        try {
-            const savedCart = localStorage.getItem('perfumehub_cart');
-            return savedCart ? JSON.parse(savedCart) : [];
-        } catch (error) {
-            console.error('Failed to parse cart from localStorage:', error);
-            return [];
-        }
+        const savedCart = localStorage.getItem('perfumehub_cart');
+        return savedCart ? JSON.parse(savedCart) : [];
     });
 
     useEffect(() => {

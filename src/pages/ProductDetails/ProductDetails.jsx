@@ -23,6 +23,8 @@ const ProductDetails = () => {
     const [orderStatus, setOrderStatus] = useState(null);
     const [addedToCart, setAddedToCart] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const DESCRIPTION_LIMIT = 200;
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -150,25 +152,6 @@ const ProductDetails = () => {
                                 </div>
                             )}
                         </div>
-
-                        <div className="product-description-section animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                            <h3 className="section-title">{isRTL ? 'وصف المنتج' : 'Product Description'}</h3>
-                            <p className="description-text">{product.description || t('product.no_description')}</p>
-                        </div>
-
-                        <div className="product-authenticity-note animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                            <p>
-                                {isRTL 
-                                    ? 'ملاحظة: قد يختلف شكل العبوة والتغليف بناءً على تحديثات المصنع، ولكننا نضمن أن جميع المنتجات أصلية 100% ومن مصادرها الرسمية.'
-                                    : 'Note: Product packaging and presentation may vary based on manufacturer updates. We guarantee that all products are 100% authentic and sourced from official channels.'}
-                            </p>
-                            <div className="product-status-tag">
-                                <strong>{t('product.status')}</strong>
-                                <span className={`status-indicator ${product.stock === 0 ? 'out-of-stock' : 'in-stock'}`}>
-                                    {product.stock === 0 ? t('product.out_of_stock') : t('product.in_stock')}
-                                </span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -260,6 +243,14 @@ const ProductDetails = () => {
                     {/* Olfactory pyramid already shows the notes. Description removed as per user request to avoid overlap. */}
 
                     <div className="purchase-actions">
+                        <div className="quantity-selector-wrapper">
+                            <div className="quantity-selector">
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock === 0}>-</button>
+                                <span className="qty-value">{quantity}</span>
+                                <button onClick={() => setQuantity(Math.min((product.stock !== undefined ? product.stock : 10), quantity + 1))} disabled={product.stock === 0}>+</button>
+                            </div>
+                        </div>
+
                         <div className="options-card">
                             <div className="gift-wrap-option">
                                 <div className="gift-wrap-content">
@@ -283,12 +274,6 @@ const ProductDetails = () => {
                         </div>
 
                         <div className="action-buttons-group">
-                            <div className="quantity-selector">
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock === 0}>-</button>
-                                <span className="qty-value">{quantity}</span>
-                                <button onClick={() => setQuantity(Math.min((product.stock !== undefined ? product.stock : 10), quantity + 1))} disabled={product.stock === 0}>+</button>
-                            </div>
-
                             <button
                                 className={`btn add-to-cart-large ${addedToCart ? 'btn-success' : ''}`}
                                 disabled={product.stock === 0}
@@ -309,17 +294,17 @@ const ProductDetails = () => {
                                     <><ShoppingBag size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.add_to_cart')}</>
                                 )}
                             </button>
-                        </div>
 
-                        <button
-                            className="btn-buy-now"
-                            disabled={product.stock === 0}
-                            onClick={() => {
-                                navigate('/checkout', { state: { product, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice } });
-                            }}
-                        >
-                            {t('product.buy_now')}
-                        </button>
+                            <button
+                                className="btn-buy-now"
+                                disabled={product.stock === 0}
+                                onClick={() => {
+                                    navigate('/checkout', { state: { product, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice } });
+                                }}
+                            >
+                                {t('product.buy_now')}
+                            </button>
+                        </div>
 
                         <div className="action-row-meta">
                             <div
@@ -334,6 +319,39 @@ const ProductDetails = () => {
                                 <Share2 size={20} />
                                 <span>{t('product.share')}</span>
                             </div>
+                        </div>
+
+                        <div className="product-authenticity-note animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                            <p>
+                                {isRTL 
+                                    ? 'ملاحظة: قد يختلف شكل العبوة والتغليف بناءً على تحديثات المصنع، ولكننا نضمن أن جميع المنتجات أصلية 100% ومن مصادرها الرسمية.'
+                                    : 'Note: Product packaging and presentation may vary based on manufacturer updates. We guarantee that all products are 100% authentic and sourced from official channels.'}
+                            </p>
+                            <div className="product-status-tag">
+                                <strong>{t('product.status')}</strong>
+                                <span className={`status-indicator ${product.stock === 0 ? 'out-of-stock' : 'in-stock'}`}>
+                                    {product.stock === 0 ? t('product.out_of_stock') : t('product.in_stock')}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="product-description-section animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                            <h3 className="section-title">{isRTL ? 'وصف المنتج' : 'Product Description'}</h3>
+                            <p className="description-text">
+                                {product.description ? (
+                                    (product.description.length > DESCRIPTION_LIMIT && !isDescriptionExpanded)
+                                        ? `${product.description.substring(0, DESCRIPTION_LIMIT)}...`
+                                        : product.description
+                                ) : t('product.no_description')}
+                            </p>
+                            {product.description && product.description.length > DESCRIPTION_LIMIT && (
+                                <button 
+                                    className="read-more-btn"
+                                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                >
+                                    {isDescriptionExpanded ? t('product.read_less') : t('product.read_more')}
+                                </button>
+                            )}
                         </div>
 
                         <div className="trust-badges-grid-right animate-fade-in" style={{ animationDelay: '0.4s' }}>

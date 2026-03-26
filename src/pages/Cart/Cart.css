@@ -233,6 +233,12 @@ html[dir="rtl"] .cart-title {
     .cart-summary {
         position: static;
         margin-top: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    
+    .cart-items-wrapper {
+        padding: 0 16px;
     }
 }
 

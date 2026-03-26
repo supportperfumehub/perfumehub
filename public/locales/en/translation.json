@@ -5,7 +5,6 @@
     "men": "Men",
     "women": "Women",
     "arabic": "Arabic",
-    "brands": "Brands",
     "ai_advisor": "AI Advisor",
     "login": "Login",
     "logout": "Logout",
@@ -31,8 +30,9 @@
     "subtitle": "Explore our wide range of fragrance collections",
     "men": "Men's Perfumes",
     "women": "Women's Perfumes",
+    "unisex": "Unisex Perfumes",
     "arabic": "Arabic Collection",
-    "brands": "All Brands"
+    "all_perfumes": "All Perfumes"
   },
   "featured": {
     "title": "Featured Perfumes",
@@ -84,6 +84,8 @@
     "fast_shipping_desc": "Same day delivery in Qatar",
     "easy_returns": "Easy Returns",
     "easy_returns_desc": "7-day hassle-free policy",
+    "read_more": "Read More",
+    "read_less": "Read Less",
     "status": "Status:",
     "in_stock": "In Stock",
     "out_of_stock": "Out of Stock",
@@ -96,7 +98,7 @@
   },
   "promotion": {
     "welcome": "Use code WELCOME10 for 10% off your first luxury scent",
-    "delivery": "Free Premium Delivery on all orders over 999 {{currency}}",
+    "delivery": "Free Delivery in Qatar",
     "golden": "Special Offer: Code GOLDEN20 for an extra 20% discount"
   },
   "search": {
@@ -123,7 +125,7 @@
     "p1_2": "Domestic delivery (within Qatar) typically takes 2 to 4 business days.",
     "h2": "2. Shipping Costs",
     "p2_1": "Shipping costs depend on the delivery location and the size of the order.",
-    "p2_2": "We offer free shipping on orders over 999 {{currency}}.",
+    "p2_2": "We offer free delivery in Qatar.",
     "h3": "3. Shipment Tracking",
     "p3_1": "Once your order is shipped, you will receive an email containing your tracking number to track the status of your shipment."
   },
@@ -182,7 +184,7 @@
     "total": "Total",
     "checkout": "Checkout",
     "secure_payment": "Secure Payment",
-    "free_delivery_threshold": "Free Delivery over 999 QAR",
+    "free_delivery_threshold": "Free Delivery in Qatar",
     "coupon_applied": "Coupon applied! {{value}} off",
     "coupon_already_used": "You have already used this coupon",
     "coupon_limit_reached": "Sorry, this coupon has reached its usage limit",
@@ -201,7 +203,24 @@
     "payment_method": "Payment Method",
     "order_summary": "Order Summary",
     "total": "Total",
-    "confirm_order": "Confirm Order"
+    "confirm_order": "Confirm Order",
+    "credit_card": "Credit Card",
+    "cod": "Cash on Delivery",
+    "whatsapp": "Confirm via WhatsApp",
+    "whatsapp_desc": "Send your order details directly for faster confirmation",
+    "recommended": "Recommended",
+    "qty": "Qty",
+    "cities": {
+      "doha": "Doha",
+      "rayyan": "Al Rayyan",
+      "wakrah": "Al Wakrah",
+      "khor": "Al Khor",
+      "lusail": "Lusail",
+      "salal": "Umm Salal",
+      "sheehaniya": "Al Sheehaniya",
+      "shamal": "Madinat ash Shamal",
+      "mesaieed": "Mesaieed"
+    }
   },
   "footer": {
     "description": "Your premier destination for luxury perfumes in Qatar. Discover our exclusive collection today.",
@@ -219,7 +238,6 @@
     "shipping_policy": "Shipping Policy",
     "all_perfumes": "All Perfumes",
     "arabic_perfumes": "Arabic Perfumes",
-    "brands": "Brands",
     "rights_reserved": "All rights reserved."
   }
 }

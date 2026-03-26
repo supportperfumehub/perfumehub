@@ -46,7 +46,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         { name: t('navbar.men'), path: '/category/men' },
         { name: t('navbar.women'), path: '/category/women' },
         { name: t('navbar.arabic'), path: '/category/arabic' },
-        { name: t('navbar.brands'), path: '/brands' },
         { name: t('navbar.ai_advisor'), path: '/ai-advisor' }
     ];
 
@@ -63,6 +62,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                 <Link to="/" className="navbar-logo" onClick={(e) => handleHomeClick(e, '/')}>
                     <img src={logo} alt="PerfumeHub Logo" className="logo-image" />
                 </Link>
+
+                {/* Mobile Menu Backdrop (Click outside to close) */}
+                {isMobileMenuOpen && (
+                    <div className="navbar-backdrop" onClick={() => setIsMobileMenuOpen(false)}></div>
+                )}
 
                 {/* Desktop Navigation */}
                 <nav className={`navbar-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>

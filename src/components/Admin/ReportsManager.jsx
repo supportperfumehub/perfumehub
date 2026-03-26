@@ -8,25 +8,32 @@ const ReportsManager = ({ isRTL }) => {
     const [editingStock, setEditingStock] = useState({}); // { productId: value }
     const [stockSearchTerm, setStockSearchTerm] = useState('');
 
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-    const totalOrders = orders.length;
+    const activeOrders = orders.filter(o => o.status?.toLowerCase() !== 'cancelled');
+    
+    const totalRevenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalOrders = activeOrders.length;
 
     // Calculate total units sold
-    const totalUnitsSold = orders.reduce((total, order) => {
+    const totalUnitsSold = activeOrders.reduce((total, order) => {
         return total + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
     }, 0);
 
-    // Today's Sales calculation
+    // Today's Sales calculation - ensure YYYY-MM-DD match
     const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter(order => order.date === today);
+    const todayOrders = activeOrders.filter(order => {
+        // Handle both YYYY-MM-DD and any server ISO strings
+        const orderDate = order.date?.includes('T') ? order.date.split('T')[0] : order.date;
+        return orderDate === today;
+    });
     const todaySales = todayOrders.length;
     const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
 
     const outOfStockList = products.filter(p => p.stock === 0);
     const outOfStockProducts = outOfStockList.length;
 
-    // For demo purposes, we'll assume 4 registered customers as per CustomersManager
-    const totalCustomers = 4;
+    // Dynamic customer count from active orders (unique email or phone)
+    const uniqueCustomers = new Set(activeOrders.map(o => o.email?.toLowerCase() || o.phone || o.customerName));
+    const totalCustomers = uniqueCustomers.size || 0;
 
     const lowStockList = products.filter(p => p.stock !== undefined && p.stock < 20);
     const lowStockProducts = lowStockList.length;
@@ -256,7 +263,7 @@ const ReportsManager = ({ isRTL }) => {
             {/* Drill-down Modal */}
             {activeDrillDown && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setActiveDrillDown(null)}>
-                    <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '600px', maxHeight: '80vh', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: 'min(600px, 95vw)', maxHeight: '90vh', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ margin: 0 }}>
                                 {activeDrillDown === 'revenue' && (isRTL ? 'تفاصيل الإيرادات' : 'Revenue Details')}
@@ -360,12 +367,12 @@ const ReportsManager = ({ isRTL }) => {
                                         { name: 'Ahmed Ali', email: 'ahmed@example.com', orders: 0 },
                                         { name: 'Sara Khan', email: 'sara@example.com', orders: 1 }
                                     ].map((customer, idx) => (
-                                        <div key={idx} style={{ padding: '12px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-                                            <div>
+                                        <div key={idx} style={{ padding: '12px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div style={{ flex: '1 0 150px' }}>
                                                 <div style={{ fontWeight: 'bold' }}>{customer.name}</div>
-                                                <div style={{ fontSize: '0.85em', color: '#666' }}>{customer.email}</div>
+                                                <div style={{ fontSize: '0.85em', color: '#666', wordBreak: 'break-word' }}>{customer.email}</div>
                                             </div>
-                                            <div style={{ fontSize: '0.9em' }}>{customer.orders} {isRTL ? 'طلبات' : 'orders'}</div>
+                                            <div style={{ fontSize: '0.9em', whiteSpace: 'nowrap' }}>{customer.orders} {isRTL ? 'طلبات' : 'orders'}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -383,32 +390,31 @@ const ReportsManager = ({ isRTL }) => {
                                                 p.brand.toLowerCase().includes(stockSearchTerm.toLowerCase())
                                             )
                                             .map(product => (
-                                                <div key={product.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                                                <div style={{ flex: 1 }}>
+                                                <div key={product.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                                                <div style={{ flex: '1 0 160px' }}>
                                                     <div style={{ fontWeight: 'bold' }}>{product.name}</div>
                                                     <div style={{ fontSize: '0.85em', color: '#666' }}>{product.brand}</div>
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                        <span style={{ fontSize: '0.75em', color: '#888', marginBottom: '2px' }}>{isRTL ? 'المخزون الحالي' : 'Current Stock'}</span>
+                                                        <span style={{ fontSize: '0.75em', color: '#888', marginBottom: '2px' }}>{isRTL ? 'المخزون' : 'Stock'}</span>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             value={editingStock[product.id] !== undefined ? editingStock[product.id] : product.stock}
                                                             onChange={(e) => setEditingStock({ ...editingStock, [product.id]: parseInt(e.target.value) })}
-                                                            style={{ width: '60px', padding: '5px', borderRadius: '4px', border: '1px solid #ccc', textAlign: 'center' }}
+                                                            style={{ width: '50px', padding: '5px', borderRadius: '4px', border: '1px solid #ccc', textAlign: 'center' }}
                                                         />
                                                     </div>
                                                     <button
                                                         onClick={() => {
                                                             const newStock = editingStock[product.id] !== undefined ? editingStock[product.id] : product.stock;
                                                             updateProduct(product.id, { ...product, stock: newStock });
-                                                            // Clear edit state for this product
                                                             const newEditingStock = { ...editingStock };
                                                             delete newEditingStock[product.id];
                                                             setEditingStock(newEditingStock);
                                                         }}
-                                                        style={{ backgroundColor: 'var(--color-gold)', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em', height: 'fit-content', marginTop: '18px' }}
+                                                        style={{ backgroundColor: 'var(--color-gold)', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em', height: 'fit-content', marginTop: '14px' }}
                                                     >
                                                         {isRTL ? 'تحديث' : 'Update'}
                                                     </button>

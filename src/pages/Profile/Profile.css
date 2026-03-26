@@ -4,7 +4,8 @@
 
 .profile-header {
     background-color: var(--color-gray);
-    padding: 60px 0;
+    padding-top: 60px;
+    padding-bottom: 60px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 

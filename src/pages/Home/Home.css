@@ -114,9 +114,12 @@
 }
 
 .category-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    max-width: 1400px;
+    margin: 40px auto 0;
 }
 
 .categories-view-more {
@@ -128,6 +131,7 @@
     border-radius: 8px;
     overflow: hidden;
     display: block;
+    flex: 0 0 calc(25% - 22.5px);
     aspect-ratio: 3/4;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
@@ -242,14 +246,18 @@
 }
 
 .section-subtitle {
-    color: var(--color-text-light);
-    font-size: 1rem;
+    color: var(--color-gold);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 5px;
 }
 
 
 /* Brand Story Section */
 .brand-story-section {
-    padding: 100px 0;
+    padding-top: 100px;
+    padding-bottom: 100px;
     background-color: var(--color-gray);
 }
 
@@ -309,7 +317,11 @@
     }
 
     .category-grid {
-        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .category-card {
+        flex: 0 0 calc(50% - 10px);
     }
 
     .category-grid-wrapper.collapsed {
@@ -339,11 +351,12 @@
 
     /* Categories: tidy 2-column grid on mobile */
     .category-grid {
-        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+        padding: 0 5px;
     }
 
     .category-card {
+        flex: 0 0 calc(50% - 6px);
         aspect-ratio: 3/4;
     }
 
@@ -370,7 +383,8 @@
 
     /* Section Spacing on Mobile */
     .section {
-        padding: 60px 0;
+        padding-top: 60px;
+        padding-bottom: 60px;
     }
 
     .section-header {
@@ -389,8 +403,7 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         margin-top: 15px;
-        padding-bottom: 0;
-        padding-right: 0;
+        padding: 0 5px;
         overflow-x: unset;
     }
 

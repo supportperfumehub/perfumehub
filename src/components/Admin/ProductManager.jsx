@@ -16,6 +16,7 @@ const ProductManager = ({ isRTL }) => {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('default');
     const [isSkuAuto, setIsSkuAuto] = useState(true);
     const [confirmModal, setConfirmModal] = useState({ 
         isOpen: false, 
@@ -45,6 +46,7 @@ const ProductManager = ({ isRTL }) => {
 
     const [formData, setFormData] = useState(initialFormState);
     const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '' });
+    const [customCatInput, setCustomCatInput] = useState('');
 
     const handleVariantInputChange = (e) => {
         const { name, value } = e.target;
@@ -169,6 +171,23 @@ const ProductManager = ({ isRTL }) => {
                 return { ...prev, category: [...currentCategories, categoryValue] };
             }
         });
+    };
+
+    const addCustomCategory = () => {
+        if (!customCatInput.trim()) return;
+        
+        const newCats = customCatInput
+            .split(',')
+            .map(c => c.trim())
+            .filter(c => c && !formData.category?.includes(c.toLowerCase()));
+            
+        if (newCats.length > 0) {
+            setFormData(prev => ({ 
+                ...prev, 
+                category: [...(prev.category || []), ...newCats.map(c => c.toLowerCase())] 
+            }));
+            setCustomCatInput('');
+        }
     };
 
     const availableCategories = [
@@ -335,23 +354,40 @@ const ProductManager = ({ isRTL }) => {
         <div className="manager-content">
             <div className="manager-header">
                 <h2>{isRTL ? 'إدارة المنتجات' : 'Product Management'}</h2>
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div className="manager-header-actions">
                     {!showForm && (
-                        <div className="admin-search-container">
-                            <input
-                                type="text"
-                                placeholder={isRTL ? 'ابحث عن منتج أو ماركة...' : 'Search product or brand...'}
-                                className="form-control admin-search-input"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <div className="admin-search-icon">
-                                <Search size={18} />
+                        <div>
+                            <div className="admin-search-container">
+                                <input
+                                    type="text"
+                                    placeholder={isRTL ? 'ابحث عن منتج أو ماركة...' : 'Search product or brand...'}
+                                    className="form-control admin-search-input"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <div className="admin-search-icon">
+                                    <Search size={18} />
+                                </div>
                             </div>
+                            <select 
+                                className="form-control" 
+                                value={sortBy} 
+                                onChange={(e) => setSortBy(e.target.value)}
+                                style={{ height: '44px', minWidth: '150px' }}
+                            >
+                                <option value="default">{isRTL ? 'الترتيب الافتراضي' : 'Default Sort'}</option>
+                                <option value="newest">{isRTL ? 'مضاف حديثاً' : 'Newly Added (Newest First)'}</option>
+                                <option value="name-asc">{isRTL ? 'الاسم (أ-ي)' : 'Name (A-Z)'}</option>
+                                <option value="name-desc">{isRTL ? 'الاسم (ي-أ)' : 'Name (Z-A)'}</option>
+                                <option value="price-asc">{isRTL ? 'السعر (من الأقل للأعلى)' : 'Price (Low to High)'}</option>
+                                <option value="price-desc">{isRTL ? 'السعر (من الأعلى للأقل)' : 'Price (High to Low)'}</option>
+                                <option value="stock-asc">{isRTL ? 'المخزون (من الأقل للأعلى)' : 'Stock (Low to High)'}</option>
+                                <option value="stock-desc">{isRTL ? 'المخزون (من الأعلى للأقل)' : 'Stock (High to Low)'}</option>
+                            </select>
                         </div>
                     )}
                     {!showForm && (
-                        <button className="btn btn-gold" onClick={() => setShowForm(true)} style={{ height: '44px', display: 'flex', alignItems: 'center' }}>
+                        <button className="btn btn-gold" onClick={() => setShowForm(true)} style={{ height: '44px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                             <Plus size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />
                             {isRTL ? 'إضافة منتج جديد' : 'Add New Product'}
                         </button>
@@ -539,7 +575,12 @@ const ProductManager = ({ isRTL }) => {
                         <div className="form-group">
                             <label>{isRTL ? 'الفئات' : 'Categories'}</label>
                             <div className="category-pills" style={{ marginBottom: '10px' }}>
-                                {availableCategories.map(cat => (
+                                {[
+                                    ...availableCategories,
+                                    ...(formData.category || [])
+                                        .filter(val => !availableCategories.find(ac => ac.value === val))
+                                        .map(val => ({ value: val, label: val.charAt(0).toUpperCase() + val.slice(1) }))
+                                ].map(cat => (
                                     <button
                                         type="button"
                                         key={cat.value}
@@ -550,21 +591,29 @@ const ProductManager = ({ isRTL }) => {
                                     </button>
                                 ))}
                             </div>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                placeholder={isRTL ? 'إضافة فئات مخصصة (افصل بينها بفاصلة)...' : 'Add custom categories (comma-separated)...'}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        const newCats = e.target.value.split(',').map(c => c.trim().toLowerCase()).filter(c => c && !formData.category.includes(c));
-                                        if (newCats.length > 0) {
-                                            setFormData(prev => ({ ...prev, category: [...(prev.category || []), ...newCats] }));
-                                            e.target.value = '';
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    placeholder={isRTL ? 'إضافة فئات مخصصة (افصل بينها بفاصلة)...' : 'Add custom categories (comma-separated)...'}
+                                    value={customCatInput}
+                                    onChange={(e) => setCustomCatInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            addCustomCategory();
                                         }
-                                    }
-                                }}
-                            />
+                                    }}
+                                />
+                                <button 
+                                    type="button" 
+                                    className="btn btn-gold" 
+                                    onClick={addCustomCategory}
+                                    style={{ height: '44px', padding: '0 20px', whiteSpace: 'nowrap' }}
+                                >
+                                    {isRTL ? 'إضافة' : 'ADD'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="form-group">
@@ -637,8 +686,8 @@ const ProductManager = ({ isRTL }) => {
                             </label>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '15px' }}>
-                            <button type="submit" className="btn btn-gold" style={{ flex: 1, height: '50px', fontSize: '1.1rem' }}>
+                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                            <button type="submit" className="btn btn-gold" style={{ flex: '1 0 200px', height: '50px', fontSize: '1.1rem' }}>
                                 {editingId ? (isRTL ? 'حفظ التغييرات' : 'Save Changes') : (isRTL ? 'إضافة المنتج النهائي' : 'Add Product')}
                             </button>
                             <button type="button" className="btn btn-outline" onClick={cancelEdit} style={{ flex: '0 0 100px', height: '50px' }}>
@@ -662,11 +711,22 @@ const ProductManager = ({ isRTL }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {products
+                        {[...products]
+                            .map((p, index) => ({ ...p, originalIndex: index }))
                             .filter(product =>
                                 product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 product.brand.toLowerCase().includes(searchTerm.toLowerCase())
                             )
+                            .sort((a, b) => {
+                                if (sortBy === 'newest') return b.originalIndex - a.originalIndex;
+                                if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+                                if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+                                if (sortBy === 'price-asc') return a.price - b.price;
+                                if (sortBy === 'price-desc') return b.price - a.price;
+                                if (sortBy === 'stock-asc') return (a.stock || 0) - (b.stock || 0);
+                                if (sortBy === 'stock-desc') return (b.stock || 0) - (a.stock || 0);
+                                return a.originalIndex - b.originalIndex; // default
+                            })
                             .map(product => (
                                 <tr key={product.id}>
                                     <td>

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { mockProducts } from '../src/data/mockData.js';
 
 dotenv.config();
 
@@ -31,77 +32,7 @@ async function syncData() {
     if (force) console.log('FORCE MODE: Overwriting existing data.');
     else console.log('SAFE MODE: Skipping existing products to protect manual changes.');
 
-    // Products from mockData.js
-    const mockProducts = [
-        { 
-            name: "Sauvage Eau de Parfum", 
-            brand: "Dior", 
-            type: "Eau de Parfum", 
-            size: "100ml / 3.4 oz", 
-            price: 520, 
-            oldPrice: 580, 
-            discount: 10, 
-            isNew: true, 
-            image: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?q=80&w=1000", // Generic luxury bottle
-            category: ["woody", "spicy", "fresh"], 
-            gender: "men", 
-            notes: ["bergamot", "pepper", "lavender", "ambroxan", "sandalwood", "vetiver"], 
-            description: "Bergamot, Sichuan Pepper, Lavender, Ambroxan, Sandalwood, Vetiver.", 
-            vibes: ["bold", "elegant", "mysterious"], 
-            occasions: ["daily", "night"], 
-            stock: 12 
-        },
-        { 
-            name: "Chanel No. 5", 
-            brand: "Chanel", 
-            type: "Eau de Parfum", 
-            size: "100ml / 3.4 oz", 
-            price: 750, 
-            isNew: false, 
-            image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000", // Classic bottle
-            category: ["floral"], 
-            gender: "women", 
-            notes: ["rose", "jasmine", "ylang-ylang", "iris", "vanilla", "sandalwood"], 
-            description: "Ylang-Ylang, Rose, Jasmine, Iris, Sandalwood, Vanilla, Amber.", 
-            vibes: ["elegant", "romantic"], 
-            occasions: ["daily", "night"], 
-            stock: 8 
-        },
-        { 
-            name: "Oud Wood", 
-            brand: "Tom Ford", 
-            type: "Eau de Parfum", 
-            size: "50ml / 1.7 oz", 
-            price: 1050, 
-            isNew: true, 
-            image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=1000", // Dark luxury bottle
-            category: ["arabic", "woody"], 
-            gender: "unisex", 
-            notes: ["oud", "rosewood", "cardamom", "sandalwood", "vetiver", "amber"], 
-            description: "Oud, Rosewood, Cardamom, Chinese Pepper, Sandalwood, Vetiver, Amber.", 
-            vibes: ["mysterious", "elegant"], 
-            occasions: ["night", "daily"], 
-            stock: 5 
-        },
-        { 
-            name: "Baccarat Rouge 540", 
-            brand: "Maison Francis Kurkdjian", 
-            type: "Eau de Parfum", 
-            size: "70ml / 2.4 oz", 
-            price: 1250, 
-            oldPrice: 1400, 
-            discount: 11, 
-            isNew: true, 
-            image: "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?q=80&w=1000", // Golden bottle
-            category: ["arabic", "floral", "spicy"], 
-            gender: "unisex", 
-            notes: ["saffron", "jasmine", "amberwood", "cedar", "fir resin"], 
-            description: "Saffron, Jasmine, Amberwood, Cedar, Fir Resin, Ambergris.", 
-            vibes: ["mysterious", "elegant", "romantic"], 
-            occasions: ["night", "daily"], 
-            stock: 3 
-        }
-    ];
+    // Products from mockData.js are now imported directly at the top
 
     // Coupons from ShopContext.jsx
     const mockCoupons = [
@@ -220,6 +151,15 @@ async function syncExternalData() {
         console.log(`Found ${items.length} external fragrances.`);
 
         for (const p of items) {
+            // Check for explicit conflicting fuzzy duplicates
+            const normalizedName = p.name.toLowerCase();
+            if (normalizedName.includes('chanel') && normalizedName.includes('no') && normalizedName.includes('5')) {
+                continue;
+            }
+            if (normalizedName.includes('opium') && (normalizedName.includes('black') || p.brand.toLowerCase().includes('ysl') || p.brand.toLowerCase().includes('laurent'))) {
+                continue;
+            }
+
             if (nameToId.has(p.name) && !force) {
                 // We could check more but skipping is safer to protect manual edits
                 continue;

@@ -48,7 +48,7 @@ const Contact = () => {
                         <div className="info-icon"><MapPin size={24} /></div>
                         <div>
                             <h4>{isRTL ? 'عنواننا' : 'Our Address'}</h4>
-                            <p>Doha, Qatar<br />123 Perfume Street, West Bay</p>
+                            <p className="premium-location">Souq al Jabor Doha Qatar.</p>
                         </div>
                     </div>
 
@@ -56,7 +56,10 @@ const Contact = () => {
                         <div className="info-icon"><Phone size={24} /></div>
                         <div>
                             <h4>{isRTL ? 'رقم الهاتف' : 'Phone Number'}</h4>
-                            <p>+974 1234 5678</p>
+                            <p><a href="tel:+97430301901">+974 3030 1901</a></p>
+                            <p><a href="https://wa.me/97430301901" target="_blank" rel="noopener noreferrer" className="whatsapp-link">
+                                WhatsApp: {isRTL ? 'دردش معنا' : 'Chat with us'}
+                            </a></p>
                         </div>
                     </div>
 

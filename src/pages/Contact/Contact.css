@@ -63,6 +63,29 @@
     line-height: 1.6;
 }
 
+.info-item p a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.info-item p a:hover {
+    color: var(--color-primary);
+}
+
+.whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #25D366 !important;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.whatsapp-link:hover {
+    text-decoration: underline !important;
+}
+
 .contact-form {
     background-color: var(--color-background-alt);
     padding: 2.5rem;

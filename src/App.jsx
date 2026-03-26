@@ -45,10 +45,11 @@ function App() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('active');
+            observer.unobserve(entry.target); // Stop observing once revealed for performance
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: window.innerWidth < 768 ? 0.05 : 0.1 }
     );
 
     const timer = setTimeout(() => {

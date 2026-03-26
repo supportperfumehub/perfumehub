@@ -79,7 +79,7 @@ const Cart = () => {
     };
 
     const cartTotalAfterDiscount = getCartTotal() - (getCartTotal() * (discount / 100));
-    const shippingCost = cartTotalAfterDiscount > 999 ? 0 : 30;
+    const shippingCost = 0;
     const finalTotal = cartTotalAfterDiscount + shippingCost;
 
     return (

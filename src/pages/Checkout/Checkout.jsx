@@ -28,11 +28,25 @@ const Checkout = () => {
         city: 'Doha',
         pincode: '',
     });
-    const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+    const [paymentMethod, setPaymentMethod] = useState('WhatsApp Confirmation');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [couponCode, setCouponCode] = useState(orderData?.couponCode || '');
     const [discount, setDiscount] = useState(orderData?.discount || 0);
+    const [userIP, setUserIP] = useState('');
+
+    useEffect(() => {
+        const fetchIP = async () => {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                setUserIP(data.ip);
+            } catch (err) {
+                console.error("Failed to fetch IP:", err);
+            }
+        };
+        fetchIP();
+    }, []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -59,7 +73,7 @@ const Checkout = () => {
     /* ── Shared totals ── */
     const baseSubtotal = isCartMode ? cartSubtotal : singleSubtotal;
     const cartTotalAfterDiscount = baseSubtotal - (baseSubtotal * (discount / 100));
-    const shippingCost = cartTotalAfterDiscount > 999 ? 0 : 30;
+    const shippingCost = 0;
     const total = cartTotalAfterDiscount + (isCartMode ? 0 : giftWrapCost) + shippingCost;
 
     /* ── Coupon ── */
@@ -74,7 +88,9 @@ const Checkout = () => {
             new Date(c.expiryDate) >= now &&
             (!c.usageLimit || (c.usageCount || 0) < c.usageLimit) &&
             (!formData.email || !c.usedBy || !c.usedBy.includes(formData.email.toLowerCase())) &&
-            (!user || !c.usedBy || !c.usedBy.includes(user.email.toLowerCase()))
+            (!user || !c.usedBy || !c.usedBy.includes(user.email.toLowerCase())) &&
+            (!formData.phone || !c.usedByPhones || !c.usedByPhones.includes(formData.phone.trim())) &&
+            (!userIP || !c.usedByIPs || !c.usedByIPs.includes(userIP))
         );
 
         if (validCoupon) {
@@ -93,7 +109,9 @@ const Checkout = () => {
             const coupon = coupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase());
             const isLimitReached = coupon && coupon.usageLimit && (coupon.usageCount >= coupon.usageLimit);
             const isAlreadyUsed = (formData.email && coupon && coupon.usedBy && coupon.usedBy.includes(formData.email.toLowerCase())) ||
-                (user && coupon && coupon.usedBy && coupon.usedBy.includes(user.email.toLowerCase()));
+                (user && coupon && coupon.usedBy && coupon.usedBy.includes(user.email.toLowerCase())) ||
+                (formData.phone && coupon && coupon.usedByPhones && coupon.usedByPhones.includes(formData.phone.trim())) ||
+                (userIP && coupon && coupon.usedByIPs && coupon.usedByIPs.includes(userIP));
 
             setDiscount(0);
             if (isAlreadyUsed) {
@@ -122,7 +140,7 @@ const Checkout = () => {
             return;
         }
 
-        // Final Coupon Check before placing order (Crucial for guest users or email changes)
+        // Final Coupon Check
         if (discount > 0 && couponCode) {
             const now = new Date();
             const finalCouponCheck = coupons.find(c =>
@@ -131,7 +149,9 @@ const Checkout = () => {
                 new Date(c.expiryDate) >= now &&
                 (!c.usageLimit || (c.usageCount || 0) < c.usageLimit) &&
                 (!formData.email || !c.usedBy || !c.usedBy.includes(formData.email.toLowerCase())) &&
-                (!user || !c.usedBy || !c.usedBy.includes(user.email.toLowerCase()))
+                (!user || !c.usedBy || !c.usedBy.includes(user.email.toLowerCase())) &&
+                (!formData.phone || !c.usedByPhones || !c.usedByPhones.includes(formData.phone.trim())) &&
+                (!userIP || !c.usedByIPs || !c.usedByIPs.includes(userIP))
             );
 
             if (!finalCouponCheck) {
@@ -143,99 +163,95 @@ const Checkout = () => {
         }
 
         setIsSubmitting(true);
-        const shippingAddress = `${isRTL ? 'مبنى' : 'Bldg'} ${formData.building}, ${isRTL ? 'شارع' : 'St'} ${formData.street}, ${isRTL ? 'منطقة' : 'Zone'} ${formData.zone}, ${formData.city}${formData.pincode ? `, ${formData.pincode}` : ''}`;
+        const shippingAddress = `${isRTL ? 'مبنى' : 'Building'} ${formData.building}, ${isRTL ? 'شارع' : 'Street'} ${formData.street}, ${isRTL ? 'منطقة' : 'Zone'} ${formData.zone}, ${formData.city}${formData.pincode ? `, ${formData.pincode}` : ''}`;
 
-        // Helper to send data to Formspree
-        const sendToFormspree = async () => {
-            const itemsSummary = isCartMode
-                ? cartItems.map(item => `- ${item.product.name} (${item.product.brand})${item.selectedSize ? ` Size: ${item.selectedSize}` : ''} x${item.quantity}`).join('\n')
-                : `- ${singleProduct.name} (${singleProduct.brand})${singleSize || (singleProduct.size && (Array.isArray(singleProduct.size) ? singleProduct.size[0] : singleProduct.size)) ? ` Size: ${singleSize || (Array.isArray(singleProduct.size) ? singleProduct.size[0] : singleProduct.size)}` : ''} x${singleQty}`;
+        let allSuccess = true;
+        let generatedOrderId = `ORD-${Date.now()}`;
 
-            const formspreePayload = {
-                "Full Name": formData.fullName,
-                "Email": formData.email || 'N/A',
-                "Phone": formData.phone,
-                "Zone": formData.zone,
-                "Street": formData.street,
-                "Building": formData.building,
-                "City": formData.city,
-                "Pincode": formData.pincode || 'N/A',
-                "Payment Method": paymentMethod,
-                "Order Items": itemsSummary,
-                "Subtotal": `${Math.round(baseSubtotal)} ${t('common.currency') || 'QAR'}`,
-                "Discount": discount > 0 ? `${discount.toFixed(0)}%` : "None",
-                "Shipping": shippingCost === 0 ? "Free" : `${shippingCost} ${t('common.currency') || 'QAR'}`,
-                "Total Amount": `${Math.round(total)} ${t('common.currency') || 'QAR'}`,
-                "Checkout Mode": isCartMode ? "Cart Checkout" : "Direct Buy"
-            };
-
-            try {
-                await fetch("https://formspree.io/f/maqpbaro", {
-                    method: "POST",
-                    headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(formspreePayload)
-                });
-            } catch (error) {
-                console.error("Formspree submission error:", error);
-            }
-        };
-
+        // 1. PLACE ORDERS (Persist to Database)
         if (isCartMode) {
-            let allSuccess = true;
             for (const item of cartItems) {
                 const ok = await placeOrder(
-                    item.product, 
-                    item.quantity, 
-                    formData.fullName, 
-                    item.isGiftWrapped, 
-                    shippingAddress, 
-                    paymentMethod, 
-                    formData.email, 
+                    item.product,
+                    item.quantity,
+                    formData.fullName,
+                    item.isGiftWrapped,
+                    shippingAddress,
+                    paymentMethod,
+                    formData.email,
                     formData.phone,
                     item.selectedSize,
                     item.selectedPrice
                 );
                 if (!ok) allSuccess = false;
             }
-            if (allSuccess) {
-                await sendToFormspree();
-                if (discount > 0 && couponCode) {
-                    incrementCouponUsage(couponCode, formData.email);
-                }
-                clearCart();
-                setIsSubmitting(false);
-                navigate('/checkout-success', { state: { orderId: `ORD-${Date.now()}` } });
-            } else {
-                setIsSubmitting(false);
-                setError(t('checkout.error_order'));
-            }
         } else {
-            const success = await placeOrder(
-                singleProduct, 
-                singleQty, 
-                formData.fullName, 
-                singleGiftWrap, 
-                shippingAddress, 
-                paymentMethod, 
-                formData.email, 
+            const ok = await placeOrder(
+                singleProduct,
+                singleQty,
+                formData.fullName,
+                singleGiftWrap,
+                shippingAddress,
+                paymentMethod,
+                formData.email,
                 formData.phone,
                 singleSize,
                 orderData.selectedPrice
             );
-            if (success) {
-                await sendToFormspree();
-                if (discount > 0 && couponCode) {
-                    incrementCouponUsage(couponCode, formData.email);
-                }
-                setIsSubmitting(false);
-                navigate('/checkout-success', { state: { orderId: `ORD-${Date.now()}` } });
-            } else {
-                setIsSubmitting(false);
-                setError(isRTL ? 'حدث خطأ أثناء معالجة الطلب.' : 'An error occurred while processing your order.');
+            if (!ok) allSuccess = false;
+        }
+
+        if (allSuccess) {
+            // 2. POST-ORDER LOGIC (Increment, Clear, Formspree)
+            if (discount > 0 && couponCode) {
+                incrementCouponUsage(couponCode, formData.email, formData.phone, userIP);
             }
+            if (isCartMode) clearCart();
+
+            // Send to Formspree in background
+            const itemsSummary = isCartMode
+                ? cartItems.map(item => `- ${item.product.name} (${item.product.brand})${item.selectedSize ? ` Size: ${item.selectedSize}` : ''} x${item.quantity}`).join('\n')
+                : `- ${singleProduct.name} (${singleProduct.brand})${singleSize ? ` Size: ${singleSize}` : ''} x${singleQty}`;
+
+            const formspreePayload = {
+                "Full Name": formData.fullName,
+                "Email": formData.email || 'N/A',
+                "Phone": formData.phone,
+                "Address": shippingAddress,
+                "Payment": paymentMethod,
+                "Items": itemsSummary,
+                "Total": `${Math.round(total)} QAR`,
+                "Coupon": couponCode || "None"
+            };
+
+            fetch("https://formspree.io/f/maqpbaro", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify(formspreePayload)
+            }).catch(e => console.error("Email backup failed", e));
+
+            // 3. WHATSAPP OPENING
+            if (paymentMethod === 'WhatsApp Confirmation') {
+                const whatsappNumber = "97430301901";
+                const itemsText = isCartMode
+                    ? cartItems.map(item => `• ${item.product.name}${item.selectedSize ? ` (${item.selectedSize})` : ''} x${item.quantity}`).join('\n')
+                    : `• ${singleProduct.name}${singleSize ? ` (${singleSize})` : ''} x${singleQty}`;
+
+                const couponText = discount > 0 ? `\n\u{1F3AB} *${isRTL ? 'كوبون:' : 'Coupon:'}* ${couponCode}` : '';
+                const messageText = isRTL
+                    ? `\u{1F6CD} *طلب جديد: ${generatedOrderId}*${couponText}\n\u{1F464} *العميل:* ${formData.fullName}\n\u{1F4CD} *العنوان:* منطقة ${formData.zone}، شارع ${formData.street}، مبنى ${formData.building}، ${formData.city}\n\n*المنتجات:*\n${itemsText}\n\n\u{2705} *يرجى تأكيد طلبي.*`
+                    : `\u{1F6CD} *New Order: ${generatedOrderId}*${couponText}\n\u{1F464} *Customer:* ${formData.fullName}\n\u{1F4CD} *Address:* Zone ${formData.zone}, Street ${formData.street}, Building ${formData.building}, ${formData.city}\n\n*Items:*\n${itemsText}\n\n\u{2705} *Please confirm my order.*`;
+
+                const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(messageText)}`;
+                window.open(url, '_blank');
+            }
+
+            // 4. NAVIGATE TO SUCCESS
+            setIsSubmitting(false);
+            navigate('/checkout-success', { state: { orderId: generatedOrderId } });
+        } else {
+            setIsSubmitting(false);
+            setError(t('checkout.error_order'));
         }
     };
 
@@ -311,6 +327,16 @@ const Checkout = () => {
                         <div className="checkout-section">
                             <h3><CreditCard size={20} /> {t('checkout.payment_method')}</h3>
                             <div className="payment-options">
+                                <label className={`payment-option recommended ${paymentMethod === 'WhatsApp Confirmation' ? 'active' : ''}`}>
+                                    <input type="radio" name="paymentMethod" value="WhatsApp Confirmation" checked={paymentMethod === 'WhatsApp Confirmation'} onChange={e => setPaymentMethod(e.target.value)} />
+                                    <div className="payment-option-content">
+                                        <div className="payment-option-header">
+                                            <span>{t('checkout.whatsapp')}</span>
+                                            <span className="recommended-badge">{t('checkout.recommended')}</span>
+                                        </div>
+                                        <p className="payment-option-desc">{t('checkout.whatsapp_desc')}</p>
+                                    </div>
+                                </label>
                                 <label className={`payment-option ${paymentMethod === 'Credit Card' ? 'active' : ''}`}>
                                     <input type="radio" name="paymentMethod" value="Credit Card" checked={paymentMethod === 'Credit Card'} onChange={e => setPaymentMethod(e.target.value)} />
                                     <span>{t('checkout.credit_card')}</span>

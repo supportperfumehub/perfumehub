@@ -528,9 +528,10 @@
 .section-subtitle {
     text-align: center;
     color: #d4af37;
-    font-size: 1.5rem;
+    font-size: 0.9rem;
     margin-bottom: 30px;
     letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .external-recs.v2 {

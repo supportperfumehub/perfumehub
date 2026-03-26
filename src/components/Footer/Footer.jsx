@@ -47,15 +47,15 @@ const Footer = ({ isRTL }) => {
                     <ul>
                         <li><Link to="/shop">{t('footer.all_perfumes')}</Link></li>
                         <li><Link to="/category/arabic">{t('footer.arabic_perfumes')}</Link></li>
-                        <li><Link to="/brands">{t('footer.brands')}</Link></li>
                     </ul>
                 </div>
 
                 <div className="footer-contact">
                     <h3>{t('footer.contact_us')}</h3>
-                    <p>Doha, Qatar</p>
+                    <p className="premium-location">Souq al Jabor Doha Qatar.</p>
                     <p>Email: supportperfumehub@gmail.com</p>
-                    <p>Phone: +974 1234 5678</p>
+                    <p>Phone: <a href="tel:+97430301901" style={{ color: 'inherit', textDecoration: 'none' }}>+974 3030 1901</a></p>
+                    <p>WhatsApp: <a href="https://wa.me/97430301901" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: 'bold' }}>Chat with us</a></p>
 
                     <div className="payment-methods">
                         {/* Payment Icons Simulation */}

@@ -4,23 +4,13 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
-        try {
-            const savedUser = localStorage.getItem('perfumehub_user');
-            return savedUser ? JSON.parse(savedUser) : null;
-        } catch (error) {
-            console.error('Failed to parse user from localStorage:', error);
-            return null;
-        }
+        const savedUser = localStorage.getItem('perfumehub_user');
+        return savedUser ? JSON.parse(savedUser) : null;
     });
 
     const [isAdmin, setIsAdmin] = useState(() => {
-        try {
-            const savedIsAdmin = localStorage.getItem('perfumehub_isAdmin');
-            return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
-        } catch (error) {
-            console.error('Failed to parse isAdmin from localStorage:', error);
-            return false;
-        }
+        const savedIsAdmin = localStorage.getItem('perfumehub_isAdmin');
+        return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
     });
 
     useEffect(() => {
@@ -38,11 +28,8 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             // Hardcoded admin check for local simulation, or handle via backend roles
-            const cleanEmail = email.trim().toLowerCase();
-            const cleanPass = password.trim();
-
-            if (cleanEmail === 'admin@perfumehub.com' && cleanPass === 'admin123') {
-                const adminUser = { email: cleanEmail, name: 'Admin User' };
+            if (email === 'admin@perfumehub.com' && password === 'admin123') {
+                const adminUser = { email, name: 'Admin User' };
                 setUser(adminUser);
                 setIsAdmin(true);
                 return { success: true };

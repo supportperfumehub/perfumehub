@@ -11,6 +11,7 @@ const SearchBar = ({ isRTL }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     const wrapperRef = useRef(null);
     const inputRef = useRef(null);
     const navigate = useNavigate();
@@ -32,9 +33,11 @@ const SearchBar = ({ isRTL }) => {
             if (!prev) {
                 // Focus input after it appears
                 setTimeout(() => inputRef.current?.focus(), 50);
+                setIsFocused(true);
             } else {
                 setQuery('');
                 setResults([]);
+                setIsFocused(false);
             }
             return !prev;
         });
@@ -49,20 +52,46 @@ const SearchBar = ({ isRTL }) => {
             return;
         }
 
-        const lowercaseQuery = value.toLowerCase();
-        const filtered = mockProducts.filter(product => (
-            product.name.toLowerCase().includes(lowercaseQuery) ||
-            product.brand.toLowerCase().includes(lowercaseQuery) ||
-            (product.category && product.category.some(cat => cat.toLowerCase().includes(lowercaseQuery))) ||
-            product.type.toLowerCase().includes(lowercaseQuery)
-        ));
-        setResults(filtered.slice(0, 5));
+        const lowercaseQuery = value.trim().toLowerCase();
+        const filtered = (mockProducts || []).filter(product => {
+            if (!product) return false;
+            
+            const name = (product.name || '').toLowerCase();
+            const brand = (product.brand || '').toLowerCase();
+            const description = (product.description || '').toLowerCase();
+            const type = (product.type || '').toLowerCase();
+            const topNotes = (product.topNotes || '').toLowerCase();
+            const middleNotes = (product.middleNotes || '').toLowerCase();
+            const baseNotes = (product.baseNotes || '').toLowerCase();
+            
+            // Handle categories (can be array or string)
+            const category = Array.isArray(product.category) 
+                ? product.category.join(' ').toLowerCase() 
+                : (product.category || '').toLowerCase();
+            
+            // Handle tags/notes array if present
+            const notes = Array.isArray(product.notes)
+                ? product.notes.join(' ').toLowerCase()
+                : (product.notes || '').toLowerCase();
+
+            return name.includes(lowercaseQuery) ||
+                   brand.includes(lowercaseQuery) ||
+                   description.includes(lowercaseQuery) ||
+                   type.includes(lowercaseQuery) ||
+                   topNotes.includes(lowercaseQuery) ||
+                   middleNotes.includes(lowercaseQuery) ||
+                   baseNotes.includes(lowercaseQuery) ||
+                   category.includes(lowercaseQuery) ||
+                   notes.includes(lowercaseQuery);
+        });
+        setResults(filtered.slice(0, 10));
     };
 
     const handleResultClick = (id) => {
         setIsOpen(false);
         setQuery('');
         setResults([]);
+        setIsFocused(false);
         navigate(`/product/${id}`);
     };
 
@@ -77,7 +106,10 @@ const SearchBar = ({ isRTL }) => {
         <div className={`search-bar-wrapper ${isOpen ? 'search-open' : ''}`} ref={wrapperRef}>
             <button
                 className="search-toggle-btn"
-                onClick={handleToggle}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggle();
+                }}
                 aria-label="Toggle search"
             >
                 {isOpen ? <X size={20} /> : <Search size={20} />}
@@ -94,6 +126,7 @@ const SearchBar = ({ isRTL }) => {
                         value={query}
                         onChange={handleSearch}
                         dir={isRTL ? 'rtl' : 'ltr'}
+                        onFocus={() => setIsFocused(true)}
                     />
                 </form>
             </div>

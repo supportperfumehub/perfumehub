@@ -118,7 +118,8 @@
 
 .footer-bottom {
     text-align: center;
-    padding: 25px 0;
+    padding-top: 25px;
+    padding-bottom: 25px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     color: #888;
     font-size: 0.85rem;
@@ -128,6 +129,7 @@
 @media (max-width: 992px) {
     .footer-container {
         grid-template-columns: 1fr 1fr;
+        padding: 0 20px;
     }
 }
 

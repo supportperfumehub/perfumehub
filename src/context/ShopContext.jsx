@@ -4,16 +4,8 @@ import { mockProducts } from '../data/mockData';
 export const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
-    // Initial products from localStorage or mock data
-    const [products, setProducts] = useState(() => {
-        try {
-            const savedProducts = localStorage.getItem('perfumehub_products');
-            return savedProducts ? JSON.parse(savedProducts) : mockProducts;
-        } catch (error) {
-            console.error('Failed to parse products from localStorage:', error);
-            return mockProducts;
-        }
-    });
+    // Initial products start with mock data, then fetch fresh from DB
+    const [products, setProducts] = useState(mockProducts);
     const [loading, setLoading] = useState(true);
     const [backups, setBackups] = useState([]);
 
@@ -21,13 +13,8 @@ export const ShopProvider = ({ children }) => {
     const [orders, setOrders] = useState([]);
 
     const [coupons, setCoupons] = useState(() => {
-        try {
-            const savedCoupons = localStorage.getItem('perfumehub_coupons');
-            if (savedCoupons) return JSON.parse(savedCoupons);
-        } catch (error) {
-            console.error('Failed to parse coupons from localStorage:', error);
-        }
-        return [
+        const savedCoupons = localStorage.getItem('perfumehub_coupons');
+        return savedCoupons ? JSON.parse(savedCoupons) : [
             { id: 1, code: 'WELCOME10', discountType: 'percentage', discountValue: 10, expiryDate: '2026-12-31', isActive: true, usageCount: 0, usageLimit: 100, usedBy: [] },
             { id: 2, code: 'FREESHIP', discountType: 'percentage', discountValue: 5, expiryDate: '2026-06-30', isActive: true, usageCount: 0, usageLimit: 50, usedBy: [] },
             { id: 3, code: 'SUPER90', discountType: 'percentage', discountValue: 90, expiryDate: '2027-12-31', isActive: true, usageCount: 0, usageLimit: 10, usedBy: [] }
@@ -40,7 +27,7 @@ export const ShopProvider = ({ children }) => {
     // Fetch products from database
     const fetchProducts = async () => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
         try {
             setLoading(true);
@@ -124,7 +111,7 @@ export const ShopProvider = ({ children }) => {
                         customerName: o.customer_name,
                         shippingAddress: o.shipping_address,
                         paymentMethod: o.payment_method,
-                        date: o.created_at ? new Date(o.created_at).toLocaleDateString() : 'N/A',
+                        date: o.created_at ? o.created_at.split('T')[0] : 'N/A',
                         items: typeof o.items === 'string' ? JSON.parse(o.items || '[]') : o.items
                     }));
                     setOrders(mappedOrders);
@@ -151,7 +138,9 @@ export const ShopProvider = ({ children }) => {
                         isActive: c.is_active,
                         usageCount: c.usage_count || 0,
                         usageLimit: c.usage_limit || 1000,
-                        usedBy: c.used_by || []
+                        usedBy: c.used_by || [],
+                        usedByPhones: c.used_by_phones || [],
+                        usedByIPs: c.used_by_ips || []
                     }));
                     setCoupons(mappedCoupons);
                 }
@@ -448,7 +437,7 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const incrementCouponUsage = async (code, email = null) => {
+    const incrementCouponUsage = async (code, email = null, phone = null, ip = null) => {
         const coupon = coupons.find(c => c.code.toUpperCase() === code.toUpperCase());
         if (!coupon) return;
 
@@ -457,19 +446,39 @@ export const ShopProvider = ({ children }) => {
             ? [...usedBy, email.toLowerCase()]
             : usedBy;
 
+        const usedByPhones = coupon.usedByPhones || [];
+        const updatedUsedByPhones = phone && !usedByPhones.includes(phone.trim())
+            ? [...usedByPhones, phone.trim()]
+            : usedByPhones;
+
+        const usedByIPs = coupon.usedByIPs || [];
+        const updatedUsedByIPs = ip && !usedByIPs.includes(ip)
+            ? [...usedByIPs, ip]
+            : usedByIPs;
+
         const updatedCoupon = {
             ...coupon,
             usageCount: (coupon.usageCount || 0) + 1,
-            usedBy: updatedUsedBy
+            usedBy: updatedUsedBy,
+            usedByPhones: updatedUsedByPhones,
+            usedByIPs: updatedUsedByIPs
         };
 
         setCoupons(prev => prev.map(c => c.id === coupon.id ? updatedCoupon : c));
 
         try {
+            // Map camelCase back to snake_case for Supabase if needed
+            const supabasePayload = {
+                usage_count: updatedCoupon.usageCount,
+                used_by: updatedCoupon.usedBy,
+                used_by_phones: updatedCoupon.usedByPhones,
+                used_by_ips: updatedCoupon.usedByIPs
+            };
+
             await fetch(`/api/coupons/${coupon.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedCoupon)
+                body: JSON.stringify(supabasePayload)
             });
         } catch (error) {
             console.error('Error incrementing coupon usage:', error);
@@ -517,7 +526,7 @@ export const ShopProvider = ({ children }) => {
                         customerName: customerName,
                         email: email,
                         phone: phone,
-                        total: totalAmount,
+                        total: total,
                         shippingAddress: shippingAddress,
                         paymentMethod: paymentMethod,
                         items: orderItems
@@ -544,7 +553,7 @@ export const ShopProvider = ({ children }) => {
                 email: email,
                 phone: phone,
                 date: new Date().toISOString().split('T')[0],
-                total: totalAmount,
+                total: total,
                 status: 'Pending',
                 items: orderItems,
                 shippingAddress: shippingAddress,

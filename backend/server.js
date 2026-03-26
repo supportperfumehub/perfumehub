@@ -6,11 +6,10 @@ import { supabase } from './supabaseClient.js';
 dotenv.config();
 
 const app = express();
-export { app }; // Export for Netlify Functions
 const PORT = process.env.PORT || 3000;
 
 // Timeout wrapper for Supabase queries
-const withTimeout = (promise, ms = 5000) => {
+const withTimeout = (promise, ms = 15000) => {
     return Promise.race([
         promise,
         new Promise((_, reject) => 
@@ -574,12 +573,10 @@ app.post('/api/orders', async (req, res) => {
     }
 })();
 
-if (process.env.NODE_ENV !== 'production' && !process.env.NETLIFY) {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server is running on port ${PORT}`);
-        console.log(`Frontend should be available at http://localhost:5173`);
-    });
-}
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Frontend should be available at http://localhost:5173`);
+});
 
 // Keep process alive if app.listen fails to do so for some reason (debug)
 setInterval(() => {}, 1000000);

@@ -6,7 +6,8 @@
     z-index: 1000;
     transform: translateY(35px); /* Start below promotion bar */
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease, padding 0.4s ease;
-    padding: 20px 0;
+    padding-top: 20px;
+    padding-bottom: 20px;
     background-color: transparent;
     color: var(--color-white);
     will-change: transform, background-color;
@@ -14,7 +15,8 @@
 
 .navbar.scrolled {
     background-color: var(--color-black);
-    padding: 15px 0;
+    padding-top: 15px;
+    padding-bottom: 15px;
     box-shadow: var(--shadow-md);
     transform: translateY(0) !important; /* Slide to top */
 }
@@ -66,6 +68,7 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     position: relative;
+    white-space: nowrap;
 }
 
 .navbar-links a::after {
@@ -163,12 +166,13 @@
 @media (max-width: 768px) {
     .navbar {
         transform: translateY(32px); /* Mobile promotion bar height */
-        padding: 12px 0;
+        padding-top: 12px;
+        padding-bottom: 12px;
     }
 
     .navbar-container {
         justify-content: flex-start;
-        padding: 0 10px;
+        padding: 0 16px;
         gap: 15px;
     }
 
@@ -199,8 +203,8 @@
 
     .navbar-icons {
         margin-left: auto;
-        gap: 18px;
-        min-width: 0; /* Allow shrinking */
+        gap: 20px;
+        min-width: 0;
     }
 
     [dir="rtl"] .navbar-icons {
@@ -271,20 +275,39 @@
         color: var(--color-gold);
         flex-shrink: 0;
     }
+
+    /* Backdrop Overlay */
+    .navbar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 }
 
 @media (max-width: 480px) {
     .navbar.scrolled {
-        padding: 10px 0;
+        padding-top: 10px;
+        padding-bottom: 10px;
         transform: translateY(0) !important;
     }
     .navbar-container {
-        padding: 0 8px;
-        gap: 8px;
+        padding: 0 16px;
+        gap: 10px;
     }
 
     .navbar-icons {
-        gap: 8px;
+        gap: 12px;
     }
 
     .logo-image {

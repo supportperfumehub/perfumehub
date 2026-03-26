@@ -124,12 +124,13 @@ const OrderManager = ({ isRTL }) => {
                         </div>
                     </div>
 
-                    <div className="filter-group" style={{ display: 'flex', gap: '10px' }}>
-                        {['All', 'Pending', 'Processing', 'Shipped', 'Delivered'].map(status => (
+                    <div className="filter-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
                             <button 
                                 key={status}
                                 className={`category-pill ${statusFilter === status ? 'active' : ''}`}
                                 onClick={() => setStatusFilter(status)}
+                                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
                             >
                                 {translateStatus(status)}
                             </button>
@@ -142,10 +143,10 @@ const OrderManager = ({ isRTL }) => {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th style={{ width: '40%' }}>{isRTL ? 'العميل' : 'Customer'}</th>
-                            <th>{isRTL ? 'عدد الطلبات' : 'Orders'}</th>
-                            <th>{isRTL ? 'إجمالي المشتريات' : 'Total Spend'}</th>
-                            <th>{isRTL ? 'آخر حالة' : 'Latest Status'}</th>
+                            <th style={{ width: isRTL ? 'auto' : '30%' }}>{isRTL ? 'العميل' : 'Customer'}</th>
+                            <th>{isRTL ? 'الطلبات' : 'Orders'}</th>
+                            <th>{isRTL ? 'الإجمالي' : 'Total'}</th>
+                            <th className="hide-mobile">{isRTL ? 'آخر حالة' : 'Latest Status'}</th>
                             <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
@@ -172,19 +173,29 @@ const OrderManager = ({ isRTL }) => {
                                         </td>
                                         <td>{group.orders.length} {isRTL ? 'طلبات' : 'Orders'}</td>
                                         <td><strong>{totalSpent.toFixed(2)} {isRTL ? 'ر.ق' : 'QAR'}</strong></td>
-                                        <td>
+                                        <td className="hide-mobile">
                                             <span className={`status-badge ${getStatusClass(latestOrder.status)}`}>
                                                 {translateStatus(latestOrder.status)}
                                             </span>
                                         </td>
-                                        <td style={{ textAlign: 'center' }}>
+                                        <td style={{ textAlign: 'center', padding: '10px 5px' }}>
                                             <button 
                                                 className="admin-action-btn edit-btn" 
                                                 onClick={() => toggleCustomerExpand(customerKey)}
-                                                style={{ border: '1px solid #3498db', padding: '5px 15px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                                style={{ 
+                                                    border: '1px solid #3498db', 
+                                                    padding: '6px 10px', 
+                                                    borderRadius: '4px', 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '5px',
+                                                    fontSize: '0.85rem',
+                                                    margin: 0
+                                                }}
                                             >
-                                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                                {isExpanded ? (isRTL ? 'إخفاء الكل' : 'Hide All') : (isRTL ? 'عرض الكل' : 'View All')}
+                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                <span className="hide-mobile">{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
+                                                <span className="show-mobile-only">{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
                                             </button>
                                         </td>
                                     </tr>

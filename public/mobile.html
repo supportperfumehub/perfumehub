@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PerfumeHub Mobile Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e; /* Dark IDE background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .phone-container {
+            position: relative;
+            width: 390px;
+            height: 844px;
+            background-color: #000;
+            border-radius: 50px;
+            box-shadow: 
+                0 0 0 10px #2a2a2a, /* Outer border */
+                0 0 0 11px #1a1a1a, /* Inner gap */
+                0 0 20px rgba(0,0,0,0.5), /* Drop shadow */
+                inset 0 0 0 2px #3a3a3a; /* Inner reflection */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Dynamic Island */
+        .dynamic-island {
+            position: absolute;
+            top: 10px;
+            width: 120px;
+            height: 35px;
+            background-color: #000;
+            border-radius: 20px;
+            z-index: 100;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: white; /* Base background before iframe loads */
+        }
+        
+        .header-title {
+            position: absolute;
+            top: -40px;
+            color: #888;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div style="position: relative;">
+        <div class="header-title">PerfumeHub - iPhone 15 Pro Preview</div>
+        <div class="phone-container">
+            <div class="dynamic-island"></div>
+            <!-- Load the local app inside the iframe -->
+            <iframe class="screen" src="/"></iframe>
+        </div>
+    </div>
+</body>
+</html>

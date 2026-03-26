@@ -30,15 +30,21 @@ const Home = () => {
             image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800'
         },
         {
+            id: 'unisex',
+            title: t('categories.unisex', 'Unisex Perfumes'),
+            link: '/category/unisex',
+            image: 'https://images.unsplash.com/photo-1557170334-a9632e77c6e4?auto=format&fit=crop&q=80&w=800'
+        },
+        {
             id: 'arabic',
             title: t('categories.arabic'),
             link: '/category/arabic',
             image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=800'
         },
         {
-            id: 'brands',
-            title: t('categories.brands'),
-            link: '/brands',
+            id: 'all',
+            title: t('categories.all_perfumes'),
+            link: '/shop',
             image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=800'
         }
     ];
@@ -79,9 +85,9 @@ const Home = () => {
                     </p>
                 </div>
 
-                <div className={`category-grid-wrapper${showAllCategories ? '' : ' collapsed'}`}>
+                <div className="category-grid-wrapper">
                     <div className="category-grid">
-                        {categories.map(category => (
+                        {categories.slice(0, showAllCategories ? categories.length : 4).map(category => (
                             <Link key={category.id} to={category.link} className="category-card">
                                 <div className="category-image">
                                     <img src={category.image} alt={category.title} />
@@ -91,7 +97,6 @@ const Home = () => {
                             </Link>
                         ))}
                     </div>
-                    {!showAllCategories && <div className="category-grid-fade"></div>}
                 </div>
 
                 <div className="text-center categories-view-more">

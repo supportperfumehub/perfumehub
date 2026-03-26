@@ -11,6 +11,16 @@ const Layout = ({ isRTL, toggleLanguage }) => {
     const { toast, showToast } = useContext(ShopContext);
     const location = useLocation();
     const isHomePage = location.pathname === '/';
+    const [pageTransition, setPageTransition] = React.useState('page-fade-active');
+
+    React.useEffect(() => {
+        setPageTransition('page-fade-enter');
+        const timer = setTimeout(() => {
+            setPageTransition('page-fade-active');
+            window.scrollTo(0, 0); // Smooth reposition on page change
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [location.pathname]);
 
     return (
         <div className="app-layout">
@@ -22,7 +32,7 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 onHide={() => showToast('', toast.type)}
             />
             <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />
-            <main className="main-content" style={{ minHeight: '80vh' }}>
+            <main className={`main-content ${pageTransition}`} style={{ minHeight: '80vh' }}>
                 <Outlet context={{ isRTL }} />
             </main>
             <Footer isRTL={isRTL} />

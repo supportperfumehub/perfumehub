@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Sparkles } from 'lucide-react';
 import './CheckoutSuccess.css';
@@ -6,32 +6,17 @@ import './CheckoutSuccess.css';
 const CheckoutSuccess = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [timeLeft, setTimeLeft] = useState(5);
 
     const orderId = location.state?.orderId || `ORD-${Date.now().toString().slice(-10)}`;
 
     useEffect(() => {
         window.scrollTo(0, 0);
-
         // Hide navigation/header/footer if possible by setting body overflow
         document.body.style.overflow = 'hidden';
-
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    navigate('/');
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
         return () => {
-            clearInterval(timer);
             document.body.style.overflow = 'auto';
         };
-    }, [navigate]);
+    }, []);
 
     return (
         <div className="checkout-success-page">
@@ -41,26 +26,32 @@ const CheckoutSuccess = () => {
                     <CheckCircle size={80} color="#D4AF37" strokeWidth={1} style={{ position: 'relative', zIndex: 1 }} />
                 </div>
                 
-                <h1 className="premium-title">Order Confirmed</h1>
+                <h1 className="premium-title">Order Processing</h1>
                 <div className="premium-divider"></div>
                 
                 <p className="premium-message">
-                    Your luxury selection has been reserved.<br />
+                    Your luxury selection is now being carefully processed.<br />
+                    Our administrative team will verify and update your order status shortly.<br />
                     Prepare for a journey of scent and sophistication.
                 </p>
 
                 <div className="order-id-box">
-                    <span className="order-id-label">Tracking Number</span>
+                    <span className="order-id-label">Internal Reference</span>
                     <span className="order-id-value">{orderId}</span>
                 </div>
+
+                <button 
+                    className="btn btn-gold success-home-btn" 
+                    onClick={() => navigate('/')}
+                    style={{ marginTop: '30px', padding: '12px 40px', fontSize: '0.9rem', letterSpacing: '2px' }}
+                >
+                    RETURN TO GALLERY
+                </button>
             </div>
 
             <div className="redirect-footer">
-                <div className="redirect-text">
-                    REDIRECTING TO HOME IN {timeLeft} SECONDS
-                </div>
-                <div className="progress-container">
-                    <div className="progress-bar"></div>
+                <div className="redirect-text" style={{ opacity: 0.7 }}>
+                    YOUR SELECTION IS SAVED AND PROTECTED
                 </div>
             </div>
             

@@ -42,8 +42,8 @@ const FAQ = () => {
         {
           q: isRTL ? 'هل التوصيل مجاني؟' : 'Is delivery free?',
           a: isRTL 
-            ? 'نعم، نوفر توصيلاً مجانياً لجميع الطلبات التي تزيد قيمتها عن 999 ريال قطري.' 
-            : 'Yes, we provide free delivery for all orders exceeding 999 QAR.'
+            ? 'نعم، نوفر توصيلاً مجانياً لجميع الطلبات داخل قطر.' 
+            : 'Yes, we provide free delivery for all orders within Qatar.'
         }
       ]
     },

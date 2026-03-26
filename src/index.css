@@ -30,10 +30,6 @@
   padding: 0;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 body {
   font-family: var(--font-body);
   background-color: var(--color-white);
@@ -41,6 +37,15 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS */
 }
 
 /* Typography */
@@ -79,16 +84,24 @@ ul {
 .container {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
 }
 
 .section {
-  padding: 80px 0;
+  padding-top: 80px;
+  padding-bottom: 80px;
 }
 
 @media (max-width: 768px) {
   .section {
-    padding: 60px 0;
+    padding-top: 50px;
+    padding-bottom: 50px;
   }
 }
 
@@ -171,11 +184,47 @@ ul {
 /* Scroll Reveal Classes */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform: translateY(30px) translateZ(0); /* translateZ(0) triggers GPU acceleration */
+  transition: all var(--transition-normal) cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: opacity, transform;
 }
 
 .reveal.active {
   opacity: 1;
+  transform: translateY(0) translateZ(0);
+}
+
+/* Mobile Smoothing Improvements */
+@media (max-width: 768px) {
+  :root {
+    --transition-fast: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --transition-normal: 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --transition-slow: 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .reveal {
+    transition-duration: 0.5s;
+    transform: translateY(20px) translateZ(0); /* Less vertical movement on mobile */
+  }
+}
+
+/* Global Page Transition */
+.page-fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-fade-active {
+  opacity: 1;
   transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Premium Text Styles */
+.premium-location {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+  color: var(--color-gold-dark);
 }

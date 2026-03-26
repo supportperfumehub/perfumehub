@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import { ShopContext } from '../../context/ShopContext';
-import { SlidersHorizontal, Search } from 'lucide-react';
+import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
 import './Shop.css';
 
 // Import category banners
@@ -24,13 +24,15 @@ const Shop = () => {
     const { products: mockProducts } = useContext(ShopContext);
 
     const [products, setProducts] = useState(mockProducts);
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [selectedBrands, setSelectedBrands] = useState([]);
     const [sortType, setSortType] = useState('default');
     const [searchQuery, setSearchQuery] = useState('');
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
     const [activeGender, setActiveGender] = useState('all');
     const [brandSearch, setBrandSearch] = useState('');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
 
     useEffect(() => {
         let result = [...mockProducts];
@@ -64,8 +66,8 @@ const Shop = () => {
         }
 
         // Filter by brand
-        if (activeFilter !== 'all') {
-            result = result.filter(p => p.brand.toLowerCase() === activeFilter.toLowerCase());
+        if (selectedBrands.length > 0) {
+            result = result.filter(p => selectedBrands.includes(p.brand.toLowerCase()));
         }
 
         // Sort products
@@ -78,14 +80,23 @@ const Shop = () => {
         }
 
         setProducts(result);
-    }, [type, activeFilter, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
+    }, [type, selectedBrands, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [type]);
 
-    const handleFilter = (filterType) => {
-        setActiveFilter(filterType);
+    const handleFilter = (brandName) => {
+        if (brandName === 'all') {
+            setSelectedBrands([]);
+        } else {
+            const lowerBrand = brandName.toLowerCase();
+            setSelectedBrands(prev => 
+                prev.includes(lowerBrand) 
+                    ? prev.filter(b => b !== lowerBrand) 
+                    : [...prev, lowerBrand]
+            );
+        }
     };
 
     const getPageTitle = () => {
@@ -96,6 +107,16 @@ const Shop = () => {
             'arabic': isRTL ? 'عطور عربية' : 'Arabic Collection',
         };
         return titles[type] || (isRTL ? 'التسوق' : 'Shop');
+    };
+
+    const handleResetFilters = () => {
+        setSearchQuery('');
+        setMinPrice('');
+        setMaxPrice('');
+        setActiveGender('all');
+        setSelectedBrands([]);
+        setBrandSearch('');
+        setShowResetModal(false);
     };
 
     const getHeaderBanner = () => {
@@ -129,9 +150,40 @@ const Shop = () => {
                 </div>
             </div>
 
+            <div className="container mobile-filter-bar">
+                <button className="mobile-filter-btn" onClick={() => setIsFilterOpen(true)}>
+                    <SlidersHorizontal size={18} />
+                    {isRTL ? 'تصفية المنتجات' : 'Filter Products'}
+                </button>
+            </div>
+
+            <div className={`sidebar-backdrop ${isFilterOpen ? 'active' : ''}`} onClick={() => setIsFilterOpen(false)} />
+
             <div className="container shop-container section">
-                <div className="shop-sidebar">
-                    <div className="filter-block">
+                <div className={`shop-sidebar ${isFilterOpen ? 'mobile-open' : ''}`}>
+                    <div className="sidebar-mobile-header">
+                        <h3>{isRTL ? 'تصفية النتائج' : 'Filter Products'}</h3>
+                        <div className="header-actions">
+                            <button className="reset-btn-mobile" onClick={() => setShowResetModal(true)}>
+                                <RotateCcw size={16} />
+                                {isRTL ? 'إعادة تعيين' : 'Reset'}
+                            </button>
+                            <button className="close-sidebar" onClick={() => setIsFilterOpen(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="sidebar-header-desktop pc-only">
+                         <h3>{isRTL ? 'تصفية' : 'Filters'}</h3>
+                         <button className="reset-btn-desktop" onClick={() => setShowResetModal(true)}>
+                            <RotateCcw size={14} />
+                            {isRTL ? 'مسح الكل' : 'Reset All'}
+                         </button>
+                    </div>
+
+                    <div className="sidebar-content-area">
+                        <div className="filter-block">
                         <h3 className="filter-title">
                             {isRTL ? 'بحث' : 'Search'}
                         </h3>
@@ -199,6 +251,14 @@ const Shop = () => {
                                         {isRTL ? 'نسائي' : 'Women'}
                                     </button>
                                 </li>
+                                <li>
+                                    <button
+                                        className={activeGender === 'unisex' ? 'active' : ''}
+                                        onClick={() => setActiveGender('unisex')}
+                                    >
+                                        {isRTL ? 'للجنسين' : 'Unisex'}
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -227,7 +287,7 @@ const Shop = () => {
                                 {!brandSearch && (
                                     <li>
                                         <button
-                                            className={activeFilter === 'all' ? 'active' : ''}
+                                            className={selectedBrands.length === 0 ? 'active' : ''}
                                             onClick={() => handleFilter('all')}
                                         >
                                             {isRTL ? 'الكل' : 'All Brands'}
@@ -239,7 +299,7 @@ const Shop = () => {
                                     .map(brand => (
                                         <li key={brand}>
                                             <button
-                                                className={activeFilter === brand.toLowerCase() ? 'active' : ''}
+                                                className={selectedBrands.includes(brand.toLowerCase()) ? 'active' : ''}
                                                 onClick={() => handleFilter(brand.toLowerCase())}
                                             >
                                                 <span className="brand-dot"></span>
@@ -250,6 +310,13 @@ const Shop = () => {
                                 }
                             </ul>
                         </div>
+                    </div>
+                    </div>
+
+                    <div className="filter-mobile-footer mobile-only">
+                        <button className="apply-filters-btn" onClick={() => setIsFilterOpen(false)}>
+                            {isRTL ? 'تم' : 'Done'}
+                        </button>
                     </div>
                 </div>
 
@@ -281,6 +348,31 @@ const Shop = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Reset Confirmation Modal */}
+            {showResetModal && (
+                <div className="reset-modal-overlay">
+                    <div className="reset-modal-content">
+                        <div className="reset-modal-icon">
+                            <RotateCcw size={32} />
+                        </div>
+                        <h2>{isRTL ? 'مسح التصفية؟' : 'Clear All Filters?'}</h2>
+                        <p>
+                            {isRTL 
+                                ? 'سيتم مسح جميع خيارات البحث والتصفية التي اخترتها.' 
+                                : 'This will reset all your search and filter preferences.'}
+                        </p>
+                        <div className="reset-modal-actions">
+                            <button className="reset-cancel-btn" onClick={() => setShowResetModal(false)}>
+                                {isRTL ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button className="reset-confirm-btn" onClick={handleResetFilters}>
+                                {isRTL ? 'مسح الكل' : 'Reset All'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

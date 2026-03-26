@@ -132,6 +132,48 @@ html[dir="rtl"] .checkout-page .section-title {
     color: #444;
 }
 
+.payment-option.recommended {
+    border-color: rgba(37, 211, 102, 0.3);
+    background: rgba(37, 211, 102, 0.02);
+}
+
+.payment-option.recommended.active {
+    border-color: #25D366;
+    background: rgba(37, 211, 102, 0.05);
+}
+
+.payment-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.payment-option-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.recommended-badge {
+    background: #25D366;
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.payment-option-desc {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0;
+    font-weight: 400;
+}
+
 /* Sidebar & Summary */
 .checkout-sidebar {
     position: sticky;
@@ -259,10 +301,12 @@ html[dir="rtl"] .checkout-page .section-title {
 @media (max-width: 992px) {
     .checkout-container {
         grid-template-columns: 1fr;
+        padding: 0 16px;
     }
     
     .checkout-sidebar {
         position: static;
+        padding: 0 16px;
     }
 }
 

@@ -36,7 +36,7 @@
 }
 
 .search-bar-expand.expanded {
-    width: 260px;
+    width: 220px; /* Slightly reduced on desktop to allow more room for navigation links */
 }
 
 .search-bar-form {
@@ -209,8 +209,8 @@
 /* Responsive */
 @media (max-width: 992px) {
     .search-bar-wrapper {
-        margin: 10px 0;
-        width: 100%;
+        margin: 0;
+        width: auto;
     }
 
     .search-bar-expand {
@@ -218,14 +218,22 @@
     }
 
     .search-bar-expand.expanded {
-        width: 100%;
+        width: 180px;
     }
 
     .search-dropdown {
-        width: 100%;
-        position: static;
-        border-radius: 8px;
-        margin-top: 8px;
-        animation: none;
+        width: 100vw;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background-color: #111111;
+        border-radius: 0;
+        border-right: none;
+        border-left: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        z-index: 10000;
+        animation: fadeInDown 0.3s ease forwards;
+        margin-top: 0;
     }
 }
