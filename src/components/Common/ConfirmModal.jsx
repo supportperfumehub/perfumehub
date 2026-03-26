@@ -1,3 +1,5 @@
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Trash2, RotateCcw, Archive } from 'lucide-react';
 import './ConfirmModal.css';
 
@@ -16,7 +18,14 @@ const ConfirmModal = ({
     isPremium = false,
     iconType = 'alert' // 'alert', 'trash', 'restore', 'archive'
 }) => {
-    if (!isOpen) return null;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!isOpen || !mounted) return null;
 
     const getIcon = () => {
         const size = isPremium ? 36 : 32;
@@ -28,7 +37,7 @@ const ConfirmModal = ({
         }
     };
 
-    return (
+    const modalContent = (
         <div 
             className={`confirm-modal-overlay animate-fade-in ${isPremium ? 'premium-matte-overlay' : ''}`} 
             onClick={onClose}
@@ -38,7 +47,7 @@ const ConfirmModal = ({
                 onClick={(e) => e.stopPropagation()}
                 style={style}
             >
-                <button className="confirm-modal-close" onClick={onClose}>
+                <button type="button" className="confirm-modal-close" onClick={onClose}>
                     <X size={20} />
                 </button>
                 
@@ -63,6 +72,9 @@ const ConfirmModal = ({
             </div>
         </div>
     );
+
+    const modalRoot = document.getElementById('modal-root');
+    return modalRoot ? createPortal(modalContent, modalRoot) : null;
 };
 
 export default ConfirmModal;
