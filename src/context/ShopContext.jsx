@@ -250,9 +250,14 @@ export const ShopProvider = ({ children }) => {
     };
 
     const deleteProduct = async (id) => {
-        // Optimistic update
+        if (!id) {
+            console.error('deleteProduct called without ID');
+            return;
+        }
+
+        // Optimistic update: use string conversion for robust ID comparison
         const previousProducts = [...products];
-        setProducts(prevProducts => prevProducts.filter(p => p.id !== id));
+        setProducts(prevProducts => prevProducts.filter(p => p.id.toString() !== id.toString()));
 
         try {
             const response = await fetch(`/api/products/${id}`, {
@@ -263,11 +268,13 @@ export const ShopProvider = ({ children }) => {
                 await fetchBackups();
             } else {
                 setProducts(previousProducts);
-                showToast('Failed to delete from database', 'error');
+                const errData = await response.json().catch(() => ({}));
+                showToast(`Failed to delete: ${errData.error || 'Database error'}`, 'error');
             }
         } catch (error) {
             setProducts(previousProducts);
             showToast('Network error: Changes reverted!', 'error');
+            console.error('Delete error:', error);
         }
     };
 
@@ -416,8 +423,9 @@ export const ShopProvider = ({ children }) => {
     };
 
     const deleteCoupon = async (id) => {
+        if (!id) return;
         const previousCoupons = [...coupons];
-        setCoupons(prev => prev.filter(c => c.id !== id));
+        setCoupons(prev => prev.filter(c => c.id.toString() !== id.toString()));
 
         try {
             const response = await fetch(`/api/coupons/${id}`, {

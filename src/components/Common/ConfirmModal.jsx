@@ -53,10 +53,10 @@ const ConfirmModal = ({
                 </div>
 
                 <div className="confirm-modal-footer">
-                    <button className="btn-modal btn-cancel" onClick={onClose}>
+                    <button type="button" className="btn-modal btn-cancel" onClick={onClose}>
                         {cancelText || (isRTL ? 'إلغاء' : 'Cancel')}
                     </button>
-                    <button className={`btn-modal btn-confirm ${variant} ${isPremium ? 'premium-confirm' : ''}`} onClick={onConfirm}>
+                    <button type="button" className={`btn-modal btn-confirm ${variant} ${isPremium ? 'premium-confirm' : ''}`} onClick={(e) => { e.stopPropagation(); onConfirm(); }}>
                         {confirmText || (isRTL ? 'تأكيد' : 'Confirm')}
                     </button>
                 </div>

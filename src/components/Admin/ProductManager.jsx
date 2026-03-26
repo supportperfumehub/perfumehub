@@ -387,7 +387,7 @@ const ProductManager = ({ isRTL }) => {
                         </div>
                     )}
                     {!showForm && (
-                        <button className="btn btn-gold" onClick={() => setShowForm(true)} style={{ height: '44px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                        <button type="button" className="btn btn-gold" onClick={() => setShowForm(true)} style={{ height: '44px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                             <Plus size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />
                             {isRTL ? 'إضافة منتج جديد' : 'Add New Product'}
                         </button>
@@ -781,10 +781,20 @@ const ProductManager = ({ isRTL }) => {
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="admin-action-btn edit-btn" onClick={() => handleEdit(product)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                        <button 
+                                            type="button" 
+                                            className="admin-action-btn edit-btn" 
+                                            onClick={(e) => { e.stopPropagation(); handleEdit(product); }} 
+                                            title={isRTL ? 'تعديل' : 'Edit'}
+                                        >
                                             <Edit size={18} />
                                         </button>
-                                        <button className="admin-action-btn delete-btn" onClick={() => handleDelete(product.id, product.name)} title={isRTL ? 'حذف' : 'Delete'}>
+                                        <button 
+                                            type="button" 
+                                            className="admin-action-btn delete-btn" 
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
+                                            title={isRTL ? 'حذف' : 'Delete'}
+                                        >
                                             <Trash2 size={18} />
                                         </button>
                                     </td>
