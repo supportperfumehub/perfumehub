@@ -184,39 +184,41 @@ ul {
 /* Scroll Reveal Classes */
 .reveal {
   opacity: 0;
-  transform: translateY(30px) translateZ(0); /* translateZ(0) triggers GPU acceleration */
+  transform: translateY(30px) translate3d(0,0,0); /* translate3d triggers GPU layer */
   transition: all var(--transition-normal) cubic-bezier(0.25, 0.8, 0.25, 1);
-  will-change: opacity, transform;
+  will-change: transform, opacity;
 }
 
 .reveal.active {
   opacity: 1;
-  transform: translateY(0) translateZ(0);
+  transform: translateY(0) translate3d(0,0,0);
 }
 
 /* Mobile Smoothing Improvements */
 @media (max-width: 768px) {
   :root {
-    --transition-fast: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-    --transition-normal: 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
-    --transition-slow: 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --transition-fast: 0.2s ease-out;
+    --transition-normal: 0.35s ease-out;
+    --transition-slow: 0.5s ease-out;
   }
 
   .reveal {
-    transition-duration: 0.5s;
-    transform: translateY(20px) translateZ(0); /* Less vertical movement on mobile */
+    transition-duration: 0.4s;
+    transition-timing-function: ease-out;
+    transform: translateY(20px) translate3d(0,0,0); /* Less vertical movement on mobile */
   }
 }
 
 /* Global Page Transition */
 .page-fade-enter {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(10px) translate3d(0,0,0);
+  will-change: transform, opacity;
 }
 
 .page-fade-active {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) translate3d(0,0,0);
   transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 

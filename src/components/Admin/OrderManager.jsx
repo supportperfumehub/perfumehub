@@ -2,7 +2,7 @@ import React, { useContext, useState, useMemo } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { Search, ChevronDown, ChevronUp, User, Package, Clock, CheckCircle, Truck, Phone, Mail, MapPin } from 'lucide-react';
 
-const OrderManager = ({ isRTL }) => {
+const OrderManager = ({ isRTL, shopId }) => {
     const { orders, updateOrderStatus } = useContext(ShopContext);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -34,8 +34,26 @@ const OrderManager = ({ isRTL }) => {
 
     // ── Grouping, Filtering & Sorting Logic ──
     const groupedOrders = useMemo(() => {
+        // 0. If shopId is provided (vendor view), filter orders to only those containing this shop's products
+        let relevantOrders = orders;
+        if (shopId) {
+            relevantOrders = orders.filter(order => {
+                // Check shop_ids array on the order
+                if (order.shop_ids && Array.isArray(order.shop_ids) && order.shop_ids.includes(shopId)) {
+                    return true;
+                }
+                // Fallback: check individual items for shop_id match
+                if (order.items && Array.isArray(order.items)) {
+                    return order.items.some(item => 
+                        item.shop_id === shopId || (item.product && item.product.shop_id === shopId)
+                    );
+                }
+                return false;
+            });
+        }
+
         // 1. Filter by status and search term
-        const filtered = orders.filter(order => {
+        const filtered = relevantOrders.filter(order => {
             const matchesStatus = statusFilter === 'All' || order.status.toLowerCase() === statusFilter.toLowerCase();
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch = 
@@ -83,7 +101,7 @@ const OrderManager = ({ isRTL }) => {
         });
 
         return Object.values(groups);
-    }, [orders, statusFilter, searchTerm]);
+    }, [orders, statusFilter, searchTerm, shopId]);
 
     const toggleCustomerExpand = (email) => {
         setExpandedCustomers(prev => ({ ...prev, [email]: !prev[email] }));
@@ -277,7 +295,10 @@ const OrderManager = ({ isRTL }) => {
                                 <td colSpan="5" className="text-center" style={{ padding: '40px' }}>
                                     <div style={{ opacity: 0.5 }}>
                                         <Package size={48} style={{ marginBottom: '10px' }} />
-                                        <div>{isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found'}</div>
+                                        <div>{shopId 
+                                            ? (isRTL ? 'لم تصل طلبات لمنتجات متجرك بعد' : 'No orders yet for your shop products')
+                                            : (isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found')}
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

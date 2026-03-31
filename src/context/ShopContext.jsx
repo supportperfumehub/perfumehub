@@ -1,9 +1,12 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { mockProducts } from '../data/mockData';
+import { AuthContext } from './AuthContext';
 
 export const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
+    const { user, isVendor } = useContext(AuthContext);
+
     // Initial products start with mock data, then fetch fresh from DB
     const [products, setProducts] = useState(mockProducts);
     const [loading, setLoading] = useState(true);
@@ -31,7 +34,12 @@ export const ShopProvider = ({ children }) => {
 
         try {
             setLoading(true);
-            const response = await fetch('/api/products', { signal: controller.signal });
+            let url = '/api/products';
+            if (isVendor && user?.shop_id) {
+                url += `?shop_id=${user.shop_id}`;
+            }
+
+            const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
             
             if (response.ok) {
@@ -53,6 +61,7 @@ export const ShopProvider = ({ children }) => {
                             oldPrice: p.old_price,
                             type: p.type,
                             isNew: p.is_new,
+                            isFeatured: p.is_featured,
                             notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
                             vibes: typeof p.vibes === 'string' ? JSON.parse(p.vibes || '[]') : (p.vibes || []),
                             occasions: typeof p.occasions === 'string' ? JSON.parse(p.occasions || '[]') : (p.occasions || []),
@@ -101,7 +110,12 @@ export const ShopProvider = ({ children }) => {
 
     const fetchOrders = async () => {
         try {
-            const response = await fetch('/api/orders');
+            let url = '/api/orders';
+            if (isVendor && user?.shop_id) {
+                url += `?shop_id=${user.shop_id}`;
+            }
+
+            const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
                 if (Array.isArray(data)) {
@@ -163,11 +177,15 @@ export const ShopProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        fetchProducts();
-        fetchOrders();
-        fetchCoupons();
-        fetchBackups();
-    }, []);
+        // Debounce slightly to wait for auth state on mount
+        const timer = setTimeout(() => {
+            fetchProducts();
+            fetchOrders();
+            fetchCoupons();
+            fetchBackups();
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [isVendor, user?.shop_id]);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_products', JSON.stringify(products));
@@ -355,7 +373,7 @@ export const ShopProvider = ({ children }) => {
 
     // Products categorization for Home and Shop views
     const safeProducts = Array.isArray(products) ? products : [];
-    const featuredProducts = safeProducts.slice(0, 4);
+    const featuredProducts = safeProducts.filter(p => p?.isFeatured);
     const newArrivals = safeProducts.filter(p => p?.isNew);
     const mensProducts = safeProducts.filter(p => p?.gender === 'men');
     const womensProducts = safeProducts.filter(p => p?.gender === 'women');

@@ -50,6 +50,7 @@ const ImageSwiper = ({ images, name }) => {
                         alt={`${name} - ${idx + 1}`}
                         className="product-image swiper-img"
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'; }}
                     />
                 ))}

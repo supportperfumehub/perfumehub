@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useOutletContext, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Store } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { ShopContext } from '../../context/ShopContext';
 import './Login.css';
@@ -12,7 +12,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const { login, register } = useContext(AuthContext);
+    const { user, login, register } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,7 +30,9 @@ const Login = () => {
             const result = await login(email, password);
             if (result.success) {
                 showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
-                const origin = location.state?.from?.pathname || (email === 'admin@perfumehub.com' ? '/admin' : '/');
+                const role = result.user?.role;
+                const origin = location.state?.from?.pathname
+                    || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
                 navigate(origin);
             } else {
                 setError(result.message);
@@ -147,7 +149,32 @@ const Login = () => {
                     </button>
                 </form>
 
-                <div className="login-footer text-center animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                {/* Vendor CTA */}
+                <div className="vendor-cta animate-slide-up" style={{ animationDelay: '0.35s' }}>
+                    <div className="vendor-cta-inner">
+                        <Store size={16} className="vendor-cta-icon" />
+                        <span>{isRTL ? 'هل أنت صاحب متجر؟' : 'Are you a shop owner?'}</span>
+                    </div>
+                    <div className="vendor-cta-links">
+                        {user && (user.role === 'vendor' || user.role === 'admin') ? (
+                            <Link to="/vendor" className="vendor-link vendor-link-highlight">
+                                {isRTL ? 'لوحة التحكم' : 'Vendor Dashboard'}
+                            </Link>
+                        ) : (
+                            <>
+                                <Link to="/vendor-signup" className="vendor-link">
+                                    {isRTL ? 'تسجيل دخول البائع' : 'Vendor Login'}
+                                </Link>
+                                <span className="vendor-divider">·</span>
+                                <Link to="/vendor-signup" className="vendor-link vendor-link-highlight">
+                                    {isRTL ? 'سجّل متجرك' : 'Register Your Shop'}
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <div className="login-footer text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
                      <p className="copyright">&copy; {new Date().getFullYear()} PerfumeHub Luxury</p>
                 </div>
             </div>

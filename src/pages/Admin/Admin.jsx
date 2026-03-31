@@ -6,6 +6,7 @@ import CouponsManager from '../../components/Admin/CouponsManager';
 import CustomersManager from '../../components/Admin/CustomersManager';
 import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
+import ShopsManager from '../../components/Admin/ShopsManager';
 import './Admin.css';
 
 const Admin = () => {
@@ -52,6 +53,12 @@ const Admin = () => {
                         {isRTL ? 'العملاء' : 'Customers'}
                     </button>
                     <button
+                        className={`admin-tab-btn ${activeTab === 'shops' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('shops')}
+                    >
+                        {isRTL ? 'المتاجر' : 'Shops'}
+                    </button>
+                    <button
                         className={`admin-tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
                         onClick={() => setActiveTab('reports')}
                     >
@@ -71,6 +78,7 @@ const Admin = () => {
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} />}
                     {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
                     {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
+                    {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
                     {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                 </div>

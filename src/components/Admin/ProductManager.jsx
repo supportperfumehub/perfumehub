@@ -11,7 +11,7 @@ const typeCodes = {
     'Eau Fraîche': 'EF'
 };
 
-const ProductManager = ({ isRTL }) => {
+const ProductManager = ({ isRTL, shopId }) => {
     const { products, addProduct, updateProduct, deleteProduct } = useContext(ShopContext);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -39,9 +39,11 @@ const ProductManager = ({ isRTL }) => {
         middleNotes: '',
         baseNotes: '',
         isNew: false,
+        isFeatured: false,
         stock: 10,
         sku: '',
-        description: ''
+        description: '',
+        shop_id: shopId || null
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -281,6 +283,7 @@ const ProductManager = ({ isRTL }) => {
             ...formData,
             size: formData.size,
             image: filteredImages.length === 1 ? filteredImages[0] : filteredImages,
+            isFeatured: formData.isFeatured,
             price: basePrice,
             oldPrice: baseOldPrice,
             discount: baseDiscount,
@@ -289,7 +292,8 @@ const ProductManager = ({ isRTL }) => {
             description: formData.description?.trim() || '',
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
-            baseNotes: formData.baseNotes?.trim() || ''
+            baseNotes: formData.baseNotes?.trim() || '',
+            shop_id: shopId || null
         };
         delete productData.images;
 
@@ -316,6 +320,7 @@ const ProductManager = ({ isRTL }) => {
             ...product,
             size: sanitizedSizes,
             images: imageArray,
+            isFeatured: product.isFeatured || false,
             sku: product.sku || '',
             description: product.description || '',
             topNotes: product.topNotes || '',
@@ -674,17 +679,32 @@ const ProductManager = ({ isRTL }) => {
                             </button>
                         </div>
 
-                        {/* Section 7: Final Options */}
-                        <div className="premium-marking-section">
-                            <div className="marking-label-group">
-                                <label htmlFor="isNew">{isRTL ? 'تمييز كـ "وصل حديثاً"' : 'Mark as New Arrival'}</label>
-                                <span className="marking-desc">{isRTL ? 'سيظهر في قسم الوصل حديثاً' : 'Will appear in New Arrivals section'}</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" name="isNew" id="isNew" checked={formData.isNew} onChange={handleInputChange} />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
+                        {/* Section 7: Final Options (Admin Only - not for vendors) */}
+                        {!shopId && (
+                            <>
+                                <div className="premium-marking-section">
+                                    <div className="marking-label-group">
+                                        <label htmlFor="isNew">{isRTL ? 'تمييز كـ "وصل حديثاً"' : 'Mark as New Arrival'}</label>
+                                        <span className="marking-desc">{isRTL ? 'سيظهر في قسم الوصل حديثاً' : 'Will appear in New Arrivals section'}</span>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input type="checkbox" name="isNew" id="isNew" checked={formData.isNew} onChange={handleInputChange} />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div className="premium-marking-section">
+                                    <div className="marking-label-group">
+                                        <label htmlFor="isFeatured">{isRTL ? 'تمييز كـ "منتج مميز"' : 'Mark as Featured Product'}</label>
+                                        <span className="marking-desc">{isRTL ? 'سيظهر في شريط الواجهة' : 'Will appear in the Featured sliding banner'}</span>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input type="checkbox" name="isFeatured" id="isFeatured" checked={formData.isFeatured} onChange={handleInputChange} />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </>
+                        )}
 
                         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                             <button type="submit" className="btn btn-gold" style={{ flex: '1 0 200px', height: '50px', fontSize: '1.1rem' }}>
@@ -713,10 +733,11 @@ const ProductManager = ({ isRTL }) => {
                     <tbody>
                         {[...products]
                             .map((p, index) => ({ ...p, originalIndex: index }))
-                            .filter(product =>
-                                product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                product.brand.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
+                            .filter(product => {
+                                if (shopId && product.shop_id !== shopId) return false;
+                                return product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                       product.brand.toLowerCase().includes(searchTerm.toLowerCase());
+                            })
                             .sort((a, b) => {
                                 if (sortBy === 'newest') return b.originalIndex - a.originalIndex;
                                 if (sortBy === 'name-asc') return a.name.localeCompare(b.name);

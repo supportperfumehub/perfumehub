@@ -49,10 +49,14 @@ app.use((req, res, next) => {
 // Get all products
 app.get('/api/products', async (req, res) => {
     try {
-        const query = supabase
+        let query = supabase
             .from('products')
             .select('*')
             .order('created_at', { ascending: false });
+
+        if (req.query.shop_id) {
+            query = query.eq('shop_id', req.query.shop_id);
+        }
 
         const { data, error } = await withTimeout(query);
 
@@ -91,10 +95,10 @@ app.get('/api/products/:id', async (req, res) => {
 // Create product
 app.post('/api/products', async (req, res) => {
     const { 
-        name, brand, type, size, price, oldPrice, discount, isNew, 
+        name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
         image, category, gender, description, sku, stock,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes
+        topNotes, middleNotes, baseNotes, shop_id
     } = req.body;
 
     try {
@@ -109,6 +113,7 @@ app.post('/api/products', async (req, res) => {
                 old_price: oldPrice,
                 discount,
                 is_new: isNew,
+                is_featured: isFeatured,
                 image,
                 category,
                 gender,
@@ -122,7 +127,8 @@ app.post('/api/products', async (req, res) => {
                 seasons: seasons || [],
                 top_notes: topNotes || null,
                 middle_notes: middleNotes || null,
-                base_notes: baseNotes || null
+                base_notes: baseNotes || null,
+                shop_id: shop_id || null
             }])
             .select();
 
@@ -138,10 +144,10 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
     const { id } = req.params;
     const { 
-        name, brand, type, size, price, oldPrice, discount, isNew, 
+        name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
         image, category, gender, description, sku, stock,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes
+        topNotes, middleNotes, baseNotes, shop_id
     } = req.body;
 
     try {
@@ -156,6 +162,7 @@ app.put('/api/products/:id', async (req, res) => {
                 old_price: oldPrice,
                 discount,
                 is_new: isNew,
+                is_featured: isFeatured,
                 image,
                 category,
                 gender,
@@ -169,7 +176,8 @@ app.put('/api/products/:id', async (req, res) => {
                 seasons: seasons || undefined,
                 top_notes: topNotes !== undefined ? topNotes : undefined,
                 middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-                base_notes: baseNotes !== undefined ? baseNotes : undefined
+                base_notes: baseNotes !== undefined ? baseNotes : undefined,
+                shop_id: shop_id !== undefined ? shop_id : undefined
             })
             .eq('id', id)
             .select();
@@ -444,13 +452,17 @@ app.delete('/api/backups/:id', async (req, res) => {
     }
 });
 
-// Get all orders (for Admin)
+// Get all orders (for Admin / Vendor)
 app.get('/api/orders', async (req, res) => {
     try {
-        const query = supabase
+        let query = supabase
             .from('orders')
             .select('*')
             .order('created_at', { ascending: false });
+
+        if (req.query.shop_id) {
+            query = query.contains('shop_ids', [req.query.shop_id]);
+        }
 
         const { data, error } = await withTimeout(query);
 
@@ -492,11 +504,11 @@ app.put('/api/orders/:id/status', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     console.log('--- SIGNUP REQUEST RECEIVED ---');
     console.log('Body:', req.body);
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     try {
         const { data, error } = await supabase
             .from('customers')
-            .insert([{ name, email, password }])
+            .insert([{ name, email, password, role: role || 'customer' }])
             .select();
 
         if (error) {
@@ -539,6 +551,17 @@ app.post('/api/auth/login', async (req, res) => {
 // Create order
 app.post('/api/orders', async (req, res) => {
     const { customerName, email, phone, total, shippingAddress, paymentMethod, items } = req.body;
+    
+    // Extract unique shop_ids from items (assuming item.product.shop_id or item.shop_id exists)
+    const shopIdsSet = new Set();
+    if (items && Array.isArray(items)) {
+        items.forEach(item => {
+            const shopId = item.shop_id || (item.product && item.product.shop_id);
+            if (shopId) shopIdsSet.add(shopId);
+        });
+    }
+    const shop_ids = Array.from(shopIdsSet);
+
     try {
         const { data, error } = await supabase
             .from('orders')
@@ -549,7 +572,8 @@ app.post('/api/orders', async (req, res) => {
                 total,
                 shipping_address: shippingAddress,
                 payment_method: paymentMethod,
-                items
+                items,
+                shop_ids: shop_ids
             }])
             .select();
 
@@ -557,6 +581,206 @@ app.post('/api/orders', async (req, res) => {
         res.status(201).json({ id: data[0].id, message: 'Order created successfully' });
     } catch (error) {
         console.error('Error creating order:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// User Profile fetch to get fresh roles/shop details
+app.get('/api/users/:id', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('customers')
+            .select('*, shops:shop_id(*)')
+            .eq('id', req.params.id)
+            .single();
+
+        if (error) throw error;
+        
+        // Remove password before sending
+        if (data && data.password) delete data.password;
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// --------------------------------------------------------------------------
+// Shops / Vendor API Routes
+// --------------------------------------------------------------------------
+
+// Get all shops (public route optionally supports status=active)
+app.get('/api/shops', async (req, res) => {
+    try {
+        let query = supabase.from('shops').select('*, customers!shops_owner_id_fkey(name, email)');
+        
+        if (req.query.status) {
+            query = query.eq('status', req.query.status);
+        }
+
+        const { data, error } = await withTimeout(query);
+        if (error) throw error;
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching shops:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Register a shop
+app.post('/api/shops', async (req, res) => {
+    const { owner_id, name, address, latitude, longitude, logo_url, images } = req.body;
+    try {
+        // Create shop with pending status
+        const { data: shop, error: shopError } = await supabase
+            .from('shops')
+            .insert([{ owner_id, name, address, latitude, longitude, logo_url, images: images || [], status: 'pending' }])
+            .select()
+            .single();
+
+        if (shopError) throw shopError;
+
+        // Optionally link back to customer
+        await supabase
+            .from('customers')
+            .update({ shop_id: shop.id })
+            .eq('id', owner_id);
+
+        res.status(201).json({ shop, message: 'Shop application submitted' });
+    } catch (error) {
+        console.error('Error creating shop:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Create a complete Vendor + Shop (Admin or Guest self-registration)
+app.post('/api/shops/manual', async (req, res) => {
+    const { ownerName, ownerEmail, ownerPassword, shopName, address, latitude, longitude, images, adminCreated } = req.body;
+    
+    // If admin created: role=vendor, status=active
+    // If guest self-registration: role=customer (upgraded on approval), status=pending
+    const userRole = adminCreated ? 'vendor' : 'customer';
+    const shopStatus = adminCreated ? 'active' : 'pending';
+
+    try {
+        // 1. Create the user
+        const { data: user, error: userError } = await supabase
+            .from('customers')
+            .insert([{ name: ownerName, email: ownerEmail, password: ownerPassword, role: userRole }])
+            .select()
+            .single();
+
+        if (userError) throw userError;
+
+        // 2. Create the shop
+        const { data: shop, error: shopError } = await supabase
+            .from('shops')
+            .insert([{ 
+                owner_id: user.id, 
+                name: shopName, 
+                address: address, 
+                latitude: latitude, 
+                longitude: longitude, 
+                images: images || [],
+                status: shopStatus 
+            }])
+            .select()
+            .single();
+
+        if (shopError) throw shopError;
+
+        // 3. Update user with shop_id
+        await supabase
+            .from('customers')
+            .update({ shop_id: shop.id })
+            .eq('id', user.id);
+
+        res.status(201).json({ message: adminCreated ? 'Vendor added successfully' : 'Vendor request submitted', shop });
+    } catch (error) {
+        if (error.code === '23505') { // Unique violation usually email
+            return res.status(400).json({ error: 'Email already exists' });
+        }
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+// Update a shop (User settings or Admin Approval)
+app.put('/api/shops/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, address, latitude, longitude, logo_url, images, status } = req.body;
+    try {
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (address !== undefined) updateData.address = address;
+        if (latitude !== undefined) updateData.latitude = latitude;
+        if (longitude !== undefined) updateData.longitude = longitude;
+        if (logo_url !== undefined) updateData.logo_url = logo_url;
+        if (images !== undefined) updateData.images = images;
+        if (status !== undefined) updateData.status = status; // Typically only admin changes this
+
+        const { data, error } = await supabase
+            .from('shops')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        
+        // If status changed to active, ensure owner has role='vendor'
+        if (status === 'active' && data.owner_id) {
+            await supabase
+                .from('customers')
+                .update({ role: 'vendor' })
+                .eq('id', data.owner_id);
+        } else if (status === 'suspended' || status === 'rejected') {
+            await supabase
+                .from('customers')
+                .update({ role: 'customer' })
+                .eq('id', data.owner_id);
+        }
+
+        res.json({ shop: data, message: 'Shop updated successfully' });
+    } catch (error) {
+        console.error('Error updating shop:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Delete a shop (Admin only)
+app.delete('/api/shops/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Get shop to find owner
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('owner_id')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        // Delete the shop
+        const { error: deleteError } = await supabase
+            .from('shops')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Reset owner role to customer
+        if (shop.owner_id) {
+            await supabase
+                .from('customers')
+                .update({ role: 'customer', shop_id: null })
+                .eq('id', shop.owner_id);
+        }
+
+        res.json({ message: 'Shop deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting shop:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

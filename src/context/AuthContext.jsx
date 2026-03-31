@@ -13,6 +13,11 @@ export const AuthProvider = ({ children }) => {
         return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
     });
 
+    const [isVendor, setIsVendor] = useState(() => {
+        const savedIsVendor = localStorage.getItem('perfumehub_isVendor');
+        return savedIsVendor ? JSON.parse(savedIsVendor) : false;
+    });
+
     useEffect(() => {
         if (user) {
             localStorage.setItem('perfumehub_user', JSON.stringify(user));
@@ -25,14 +30,19 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('perfumehub_isAdmin', JSON.stringify(isAdmin));
     }, [isAdmin]);
 
+    useEffect(() => {
+        localStorage.setItem('perfumehub_isVendor', JSON.stringify(isVendor));
+    }, [isVendor]);
+
     const login = async (email, password) => {
         try {
             // Hardcoded admin check for local simulation, or handle via backend roles
             if (email === 'admin@perfumehub.com' && password === 'admin123') {
-                const adminUser = { email, name: 'Admin User' };
+                const adminUser = { email, name: 'Admin User', role: 'admin' };
                 setUser(adminUser);
                 setIsAdmin(true);
-                return { success: true };
+                setIsVendor(false);
+                return { success: true, user: adminUser };
             }
 
             const response = await fetch('/api/auth/login', {
@@ -44,9 +54,14 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
 
             if (response.ok) {
-                setUser(data.user);
-                setIsAdmin(false);
-                return { success: true };
+                // Fetch full user data to get role and shop info
+                const userResponse = await fetch(`/api/users/${data.user.id}`);
+                const fullUser = userResponse.ok ? await userResponse.json() : data.user;
+
+                setUser(fullUser);
+                setIsAdmin(fullUser.role === 'admin' || data.user.email === 'admin@perfumehub.com');
+                setIsVendor(fullUser.role === 'vendor');
+                return { success: true, user: fullUser };
             } else {
                 return { success: false, message: data.error || 'Login failed' };
             }
@@ -80,12 +95,14 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         setIsAdmin(false);
+        setIsVendor(false);
     };
 
     const value = {
         user,
         isAuthenticated: !!user,
         isAdmin,
+        isVendor,
         login,
         register,
         logout

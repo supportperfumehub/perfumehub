@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Mail, Phone, MapPin, Package, Clock, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Package, Clock, CheckCircle, Store } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import './Profile.css';
 
 const Profile = () => {
@@ -59,6 +60,28 @@ const Profile = () => {
                                 <span>{profileData.address}</span>
                             </div>
                         </div>
+                        
+                        {user && user.role === 'customer' && (
+                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
+                                <Link to="/vendor-signup" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                                    <Store size={18} />
+                                    {isRTL ? 'كن بائعاً معنا' : 'Become a Vendor'}
+                                </Link>
+                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '10px' }}>
+                                    {isRTL ? 'ابدأ ببيع منتجاتك الخاصة' : 'Start selling your own products'}
+                                </p>
+                            </div>
+                        )}
+                        {user && (user.role === 'vendor' || user.role === 'admin') && (
+                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
+                                <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                                    <Store size={18} />
+                                    {isRTL ? 'لوحة تحكم البائع' : 'Go to Dashboard'}
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
 
