@@ -131,25 +131,27 @@ const NearestShopFinder = ({ isRTL }) => {
                 {displayedShops.length > 0 ? (
                     displayedShops.map((shop) => (
                         <div key={shop.id} className="shop-card">
-                            <div className="shop-header">
-                                <div className="shop-logo">
-                                    {(shop.images?.[0] || shop.logo_url) 
-                                        ? <img src={shop.images?.[0] || shop.logo_url} alt={shop.name} /> 
-                                        : <Store size={30} color="#ccc" />}
-                                </div>
+                            <div className="shop-image-container">
+                                {(shop.images?.[0] || shop.logo_url) 
+                                    ? <img src={shop.images?.[0] || shop.logo_url} alt={shop.name} /> 
+                                    : <Store size={40} color="#ddd" />}
+                            </div>
+                            <div className="shop-content">
                                 <div className="shop-info">
                                     <h3>{shop.name}</h3>
-                                    <p className="shop-address"><MapPin size={12} /> {shop.address}</p>
+                                    <p className="shop-address"><MapPin size={14} /> {shop.address}</p>
                                 </div>
+                                
+                                {location && shop.distance !== Infinity && (
+                                    <div className="shop-distance">
+                                        <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
+                                    </div>
+                                )}
+
+                                <button className="btn btn-outline shop-visit-btn">
+                                    {isRTL ? 'زيارة المتجر' : 'Visit Shop'}
+                                </button>
                             </div>
-                            {location && shop.distance !== Infinity && (
-                                <div className="shop-distance">
-                                    <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
-                                </div>
-                            )}
-                            <button className="btn btn-outline shop-visit-btn">
-                                {isRTL ? 'زيارة المتجر' : 'Visit Shop'}
-                            </button>
                         </div>
                     ))
                 ) : (

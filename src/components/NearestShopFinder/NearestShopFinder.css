@@ -88,75 +88,91 @@ html[dir="rtl"] .shop-search-box .search-icon {
 .shop-card {
     background: #fff;
     border: 1px solid #eee;
-    padding: 20px;
-    border-radius: 12px;
+    padding: 12px;
+    border-radius: 20px;
     transition: transform 0.3s, box-shadow 0.3s;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .shop-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    border-color: rgba(200, 169, 81, 0.3);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    border-color: rgba(200, 169, 81, 0.4);
 }
 
-.shop-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.shop-logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: #f9f9f9;
+.shop-image-container {
+    width: 100%;
+    height: 200px;
+    border-radius: 18px;
+    background: #fdfdfd;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    flex-shrink: 0;
-    border: 1px solid #eee;
+    position: relative;
+    border: 1px solid #f0f0f0;
 }
 
-.shop-logo img {
+.shop-image-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.shop-card:hover .shop-image-container img {
+    transform: scale(1.05);
+}
+
+.shop-content {
+    padding: 15px 10px 5px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.shop-info {
+    margin-bottom: 15px;
+    text-align: center;
 }
 
 .shop-info h3 {
-    margin: 0 0 5px 0;
-    font-size: 1.1rem;
-    color: #333;
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    color: #1a1a1a;
+    font-family: var(--font-heading);
 }
 
 .shop-address {
-    margin: 0;
-    font-size: 0.85rem;
+    margin: 0 auto;
+    font-size: 0.9rem;
     color: #666;
     display: flex;
-    align-items: flex-start;
-    gap: 5px;
-    line-height: 1.4;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 90%;
 }
 
 .shop-distance {
-    background: rgba(200, 169, 81, 0.1);
-    color: var(--color-gold);
-    padding: 8px 15px;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    background: rgba(200, 169, 81, 0.08);
+    color: var(--color-gold-dark);
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 0.85rem;
     text-align: center;
     margin-bottom: 15px;
+    font-weight: 500;
 }
 
 .shop-visit-btn {
     margin-top: auto;
     width: 100%;
-    border-radius: 8px;
+    border-radius: 12px;
+    height: 48px;
+    font-weight: 600;
 }
 
 .no-shops-found {
