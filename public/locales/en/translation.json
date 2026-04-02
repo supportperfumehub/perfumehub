@@ -17,6 +17,10 @@
     "lang_toggle_en": "English (EN)",
     "lang_toggle_ar": "Arabic (AR)"
   },
+  "home": {
+    "intro_title": "The Essence of Luxury",
+    "intro_text": "Welcome to PerfumeHub, your premier destination for the world's most exquisite fragrances. Explore a curated collection where timeless tradition meets modern sophistication."
+  },
   "hero": {
     "subtitle": "EXQUISITE FRAGRANCES",
     "title": "Discover Your Signature Scent",

@@ -42,17 +42,13 @@ const Home = () => {
 
     return (
         <div className="home-page">
-            {/* Top Quick Navigation (Alternative Options) */}
-            <div className="quick-category-nav container animate-fade-in">
-                <Link to="/category/men" className="quick-nav-chip">{t('categories.men')}</Link>
-                <Link to="/category/women" className="quick-nav-chip">{t('categories.women')}</Link>
-                <Link to="/category/unisex" className="quick-nav-chip">{t('categories.unisex')}</Link>
-                <Link to="/category/arabic" className="quick-nav-chip">{t('categories.arabic')}</Link>
-                <Link to="/shop" className="quick-nav-chip">{isRTL ? 'وصلنا حديثاً' : 'New Arrivals'}</Link>
-                <Link to="/ai-advisor" className="quick-nav-chip advisor-chip">
-                    <span className="chip-sparkle">✨</span> {t('hero.scent_advisor')}
-                </Link>
-            </div>
+            {/* Site Introduction Section */}
+            <section className="home-intro container animate-fade-in">
+                <div className="home-intro-content">
+                    <h1 className="home-intro-title">{t('home.intro_title')}</h1>
+                    <p className="home-intro-text">{t('home.intro_text')}</p>
+                </div>
+            </section>
 
             {/* Featured Products as the New Hero (Discover Banners) */}
             {shuffledFeatured.length > 0 && (
