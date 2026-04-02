@@ -50,7 +50,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     ];
 
     return (
-        <header className={`navbar ${isScrolled || !isHomePage ? 'scrolled' : ''}`}>
+        <header className={`navbar ${isScrolled || !isHomePage ? 'scrolled' : ''} ${isHomePage && !isScrolled ? 'light-nav' : ''}`}>
             <div className="container navbar-container">
 
                 {/* Mobile Menu Toggle */}

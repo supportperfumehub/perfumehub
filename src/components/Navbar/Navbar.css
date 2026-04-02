@@ -21,6 +21,28 @@
     transform: translateY(0) !important; /* Slide to top */
 }
 
+/* Light Theme for Navbar at the top of Home Page */
+.navbar.light-nav {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--color-black, #111) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.navbar.light-nav .logo-image {
+    filter: none; /* No inversion for light mode logo if it's already dark */
+}
+
+.navbar.light-nav .navbar-links a,
+.navbar.light-nav .icon-btn {
+    color: #333 !important;
+}
+
+.navbar.light-nav .icon-btn:hover {
+    color: var(--color-gold) !important;
+}
+
 .navbar-container {
     display: flex;
     justify-content: space-between;
