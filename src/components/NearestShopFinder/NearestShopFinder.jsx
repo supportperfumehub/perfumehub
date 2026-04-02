@@ -100,33 +100,6 @@ const NearestShopFinder = ({ isRTL }) => {
                 </p>
             </div>
 
-            <div className="shop-finder-controls">
-                <button 
-                    className={`btn btn-gold location-btn ${loadingLocation ? 'loading' : ''}`} 
-                    onClick={detectLocation}
-                >
-                    <Navigation size={18} />
-                    {loadingLocation 
-                        ? (isRTL ? 'جاري التحديد...' : 'Detecting...') 
-                        : (isRTL ? 'تحديد موقعي التلقائي' : 'Auto Detect Location')}
-                </button>
-                <div className="shop-search-divider">
-                    <span>{isRTL ? 'أو' : 'OR'}</span>
-                </div>
-                <div className="shop-search-box">
-                    <input 
-                        type="text" 
-                        placeholder={isRTL ? 'ابحث بالمدينة، المنطقة، أو اسم المتجر...' : 'Search by city, area, or shop name...'} 
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            if (e.target.value) setLocation(null); // Clear location sorting if user types
-                        }}
-                    />
-                    <Search className="search-icon" size={20} />
-                </div>
-            </div>
-
             <div className="shops-grid">
                 {displayedShops.length > 0 ? (
                     displayedShops.map((shop) => (
@@ -160,6 +133,33 @@ const NearestShopFinder = ({ isRTL }) => {
                         <p>{isRTL ? 'لم يتم العثور على متاجر' : 'No shops found nearby or matching criteria.'}</p>
                     </div>
                 )}
+            </div>
+
+            <div className="shop-finder-controls">
+                <button 
+                    className={`btn btn-gold location-btn ${loadingLocation ? 'loading' : ''}`} 
+                    onClick={detectLocation}
+                >
+                    <Navigation size={18} />
+                    {loadingLocation 
+                        ? (isRTL ? 'جاري التحديد...' : 'Detecting...') 
+                        : (isRTL ? 'تحديد موقعي التلقائي' : 'Auto Detect Location')}
+                </button>
+                <div className="shop-search-divider">
+                    <span>{isRTL ? 'أو' : 'OR'}</span>
+                </div>
+                <div className="shop-search-box">
+                    <input 
+                        type="text" 
+                        placeholder={isRTL ? 'ابحث بالمدينة، المنطقة، أو اسم المتجر...' : 'Search by city, area, or shop name...'} 
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            if (e.target.value) setLocation(null);
+                        }}
+                    />
+                    <Search className="search-icon" size={20} />
+                </div>
             </div>
         </section>
     );

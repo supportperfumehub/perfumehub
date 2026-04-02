@@ -74,44 +74,21 @@ const Home = () => {
 
     return (
         <div className="home-page">
-            {/* Hero Section */}
-            <section className="hero">
-                <div className="hero-background"></div>
-                <div className="hero-overlay"></div>
-                <div className="container hero-content text-center animate-fade-in">
-                    <span className="hero-subtitle">
-                        {t('hero.subtitle')}
-                    </span>
-                    <h1 className="hero-title">
-                        {t('hero.title')}
-                    </h1>
-                    <p className="hero-text">
-                        {t('hero.text')}
-                    </p>
-                    <div className="hero-buttons">
-                        <Link to="/shop" className="btn btn-gold">
-                            {t('hero.shop_now')}
-                        </Link>
-                        <Link to="/ai-advisor" className="btn btn-outline" style={{ color: '#fff', borderColor: '#fff' }}>
-                            {t('hero.scent_advisor')}
-                        </Link>
-                    </div>
-                </div>
-            </section>
+            {/* Top Quick Navigation (Alternative Options) */}
+            <div className="quick-category-nav container animate-fade-in">
+                <Link to="/category/men" className="quick-nav-chip">{t('categories.men')}</Link>
+                <Link to="/category/women" className="quick-nav-chip">{t('categories.women')}</Link>
+                <Link to="/category/unisex" className="quick-nav-chip">{t('categories.unisex')}</Link>
+                <Link to="/category/arabic" className="quick-nav-chip">{t('categories.arabic')}</Link>
+                <Link to="/shop" className="quick-nav-chip">{isRTL ? 'وصلنا حديثاً' : 'New Arrivals'}</Link>
+                <Link to="/ai-advisor" className="quick-nav-chip advisor-chip">
+                    <span className="chip-sparkle">✨</span> {t('hero.scent_advisor')}
+                </Link>
+            </div>
 
-            {/* Nearest Shop Finder */}
-            <NearestShopFinder isRTL={isRTL} />
-
-            {/* Featured Products */}
+            {/* Featured Products as the New Hero (Discover Banners) */}
             {shuffledFeatured.length > 0 && (
-                <section className="section container" style={{ animation: 'fadeIn 0.8s ease-out', paddingTop: '40px' }}>
-                    <div className="section-header text-center" style={{ marginBottom: '10px' }}>
-                        <h2 className="section-title">{t('featured.title')}</h2>
-                        <p className="section-subtitle">
-                            {t('featured.subtitle')}
-                        </p>
-                    </div>
-
+                <section className="hero-slider-section container" style={{ animation: 'fadeIn 1s ease-out' }}>
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
                             {shuffledFeatured.map((product) => (
@@ -125,7 +102,7 @@ const Home = () => {
                                             src={Array.isArray(product.image) ? product.image[0] : product.image} 
                                             alt={product.name} 
                                             className="featured-slide-img" 
-                                            loading="lazy"
+                                            loading="eager"
                                             decoding="async"
                                         />
                                     </div>
@@ -149,10 +126,10 @@ const Home = () => {
 
                         {shuffledFeatured.length > 1 && (
                             <>
-                                <button className="slider-btn slider-prev" onClick={prevSlide}>
+                                <button className="slider-btn slider-prev" onClick={prevSlide} aria-label="Previous Slide">
                                     <ChevronLeft size={24} />
                                 </button>
-                                <button className="slider-btn slider-next" onClick={nextSlide}>
+                                <button className="slider-btn slider-next" onClick={nextSlide} aria-label="Next Slide">
                                     <ChevronRight size={24} />
                                 </button>
                                 <div className="slider-dots">
@@ -169,6 +146,9 @@ const Home = () => {
                     </div>
                 </section>
             )}
+
+            {/* Nearest Shop Finder */}
+            <NearestShopFinder isRTL={isRTL} />
 
             {/* Shop By Categories */}
             <section className="section container reveal">
