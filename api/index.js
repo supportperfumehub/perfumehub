@@ -23,15 +23,31 @@ app.use(express.json());
 // Main logical routes...
 // (I will include all the API endpoints from server.js to ensure full compatibility)
 
-// Debug Route
+// Debug Route to check table accessibility
 app.get('/api/debug/schema', async (req, res) => {
     try {
+        console.log("Debug schema request received");
         const { data, error } = await supabase.from('customers').select('*').limit(1);
-        if (error) return res.status(500).json({ error: 'Database check failed', details: error });
+        if (error) {
+            console.error("Supabase Error:", error);
+            return res.status(500).json({ error: 'Database check failed', details: error, message: error.message });
+        }
         res.json({ message: 'Table accessible', data });
     } catch (err) {
-        res.status(500).json({ error: 'System error', details: err.message });
+        console.error("System Error:", err);
+        res.status(500).json({ error: 'System error', details: err.message, stack: err.stack });
     }
+});
+
+// Debug Route to check Env Vars visibility on Vercel
+app.get('/api/debug/env', (req, res) => {
+    res.json({
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        urlPrefix: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 10) : 'none',
+        nodeEnv: process.env.NODE_ENV
+    });
 });
 
 // Products
@@ -43,7 +59,8 @@ app.get('/api/products', async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (/api/products):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -56,7 +73,8 @@ app.get('/api/products/:id', async (req, res) => {
         }
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (/api/products/:id):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -77,7 +95,8 @@ app.post('/api/products', async (req, res) => {
         if (error) throw error;
         res.status(201).json({ id: data[0].id, message: 'Product created' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (POST /api/products):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -92,7 +111,8 @@ app.post('/api/auth/register', async (req, res) => {
         }
         res.status(201).json({ user: data[0], message: 'Success' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (/api/auth/register):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -103,7 +123,8 @@ app.post('/api/auth/login', async (req, res) => {
         if (error) return res.status(401).json({ error: 'Invalid credentials' });
         res.json({ user: data, message: 'Login successful' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (/api/auth/login):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -116,7 +137,8 @@ app.get('/api/shops', async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (/api/shops):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
@@ -132,7 +154,8 @@ app.post('/api/orders', async (req, res) => {
         if (error) throw error;
         res.status(201).json({ id: data[0].id });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("API Error (POST /api/orders):", error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
