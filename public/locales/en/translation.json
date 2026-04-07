@@ -21,6 +21,12 @@
     "intro_title": "The Essence of Luxury",
     "intro_text": "Welcome to PerfumeHub"
   },
+  "ai_advisor_banner": {
+    "tagline": "Powered by Artificial Intelligence",
+    "title": "Find Your Perfect Match",
+    "description": "Let our advanced AI analyze your preferences and suggest the ideal fragrance tailored just for you.",
+    "button": "Try AI Scent Advisor"
+  },
   "hero": {
     "subtitle": "EXQUISITE FRAGRANCES",
     "title": "Discover Your Signature Scent",

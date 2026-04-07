@@ -219,6 +219,23 @@ const Home = () => {
                 </div>
             </section>
 
+            {/* AI Advisor Banner */}
+            <section className="ai-advisor-banner-section reveal">
+                <div className="ai-advisor-banner-container container">
+                    <div className="ai-advisor-banner" style={{backgroundImage: "url('/assets/ai_advisor_bg.png')"}}>
+                        <div className="ai-advisor-overlay"></div>
+                        <div className="ai-advisor-content">
+                            <span className="ai-advisor-tagline">{t('ai_advisor_banner.tagline')}</span>
+                            <h2 className="ai-advisor-title">{t('ai_advisor_banner.title')}</h2>
+                            <p className="ai-advisor-text">{t('ai_advisor_banner.description')}</p>
+                            <Link to="/ai-advisor" className="btn btn-gold ai-advisor-btn">
+                                {t('ai_advisor_banner.button')}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Brand Story Snippet */}
             <section className="brand-story-section reveal">
                 <div className="brand-story-container container">
