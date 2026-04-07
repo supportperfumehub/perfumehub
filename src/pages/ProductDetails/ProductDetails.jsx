@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
-import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check } from 'lucide-react';
+import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store } from 'lucide-react';
 import './ProductDetails.css';
 
 const ProductDetails = () => {
@@ -249,6 +249,18 @@ const ProductDetails = () => {
                                 <span className="qty-value">{quantity}</span>
                                 <button onClick={() => setQuantity(Math.min((product.stock !== undefined ? product.stock : 10), quantity + 1))} disabled={product.stock === 0}>+</button>
                             </div>
+                            <button
+                                className="btn-reserve-store"
+                                onClick={() => {
+                                    const message = isRTL 
+                                        ? `مرحباً، أود حجز المنتج التالى في المتجر:\n${product.name}`
+                                        : `Hello, I would like to reserve the following product in store:\n${product.name}`;
+                                    window.open(`https://wa.me/97430301901?text=${encodeURIComponent(message)}`, '_blank');
+                                }}
+                            >
+                                <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
+                                <Store size={16} className="reserve-btn-icon" />
+                            </button>
                         </div>
 
                         <div className="options-card">

@@ -34,7 +34,7 @@
     filter: none; /* No inversion for light mode logo if it's already dark */
 }
 
-.navbar.light-nav .navbar-links a,
+.navbar.light-nav .navbar-links:not(.mobile-open) a,
 .navbar.light-nav .icon-btn {
     color: #333 !important;
 }
@@ -81,16 +81,21 @@
 
 .navbar-links {
     display: flex;
-    gap: 30px;
+    gap: 35px;
 }
 
 .navbar-links a {
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 1rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     position: relative;
     white-space: nowrap;
+    transition: opacity 0.3s ease;
+}
+
+.navbar-links a:hover {
+    opacity: 0.8;
 }
 
 .navbar-links a::after {
@@ -265,7 +270,8 @@
     .navbar-links.mobile-open a {
         padding: 15px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        font-size: 1rem;
+        font-size: 1.1rem;
+        color: var(--color-white) !important;
     }
 
     .mobile-only-links {
@@ -281,9 +287,12 @@
         padding: 15px 0;
         background: transparent;
         border: none;
-        color: var(--color-white);
-        font-family: var(--font-body);
-        font-size: 0.95rem;
+        color: var(--color-white) !important;
+        font-family: inherit; /* Inherit from body to match links */
+        font-size: 1.1rem; /* Match mobile links */
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
         cursor: pointer;
         text-align: left;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);

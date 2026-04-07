@@ -12,7 +12,7 @@ import './Home.css';
 const Home = () => {
     const { i18n, t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { featuredProducts, newArrivals, mensProducts, womensProducts } = useContext(ShopContext);
+    const { featuredProducts, newArrivals, mensProducts, womensProducts, loading } = useContext(ShopContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllMens, setShowAllMens] = useState(false);
     const [showAllWomens, setShowAllWomens] = useState(false);
@@ -51,7 +51,7 @@ const Home = () => {
             </section>
 
             {/* Featured Products as the New Hero (Discover Banners) */}
-            {shuffledFeatured.length > 0 && (
+            {shuffledFeatured.length > 0 ? (
                 <section className="hero-slider-section container" style={{ animation: 'fadeIn 1s ease-out' }}>
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
@@ -75,8 +75,20 @@ const Home = () => {
                                         <h3 className="featured-slide-title">{product.name}</h3>
                                         {product.type && <span className="featured-slide-type">{product.type}</span>}
                                         {product.description && <p className="featured-slide-desc" dir="auto">{product.description}</p>}
-                                        <div className="featured-slide-price">
-                                            {product.price} {isRTL ? 'ر.ق' : 'QAR'}
+                                        <div className={`featured-slide-price-row ${product.discount > 0 ? 'has-discount' : ''}`}>
+                                            <span className={`featured-slide-price ${product.discount > 0 ? 'price-sale' : ''}`}>
+                                                {product.price} {isRTL ? 'ر.ق' : 'QAR'}
+                                            </span>
+                                            {product.oldPrice && Number(product.oldPrice) !== Number(product.price) ? (
+                                                <span className="featured-slide-old-price">
+                                                    {Math.round(product.oldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                </span>
+                                            ) : null}
+                                            {product.discount > 0 ? (
+                                                <span className="featured-slide-discount-pill">
+                                                    {isRTL ? `${t('product.sale')} ${product.discount}%` : `${product.discount}% OFF`}
+                                                </span>
+                                            ) : null}
                                         </div>
                                         <div className="featured-slide-actions">
                                             <Link to={`/product/${product.id}`} className="btn btn-gold">
@@ -109,7 +121,13 @@ const Home = () => {
                         )}
                     </div>
                 </section>
-            )}
+            ) : loading ? (
+                <section className="hero-slider-section container">
+                    <div className="featured-slider-container" style={{ minHeight: '450px', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto 40px', borderRadius: '12px' }}>
+                         <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--color-gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    </div>
+                </section>
+            ) : null}
 
             {/* Nearest Shop Finder */}
             <NearestShopFinder isRTL={isRTL} />

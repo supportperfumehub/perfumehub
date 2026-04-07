@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useOutletContext, useParams } from 'react-router-dom';
+import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import { ShopContext } from '../../context/ShopContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
@@ -21,6 +21,8 @@ const POPULAR_BRANDS = [
 const Shop = () => {
     const { isRTL } = useOutletContext();
     const { type } = useParams(); // For category pages
+    const [searchParams] = useSearchParams();
+    const shopIdFilter = searchParams.get('shop_id');
     const { products: mockProducts } = useContext(ShopContext);
 
     const [products, setProducts] = useState(mockProducts);
@@ -42,6 +44,17 @@ const Shop = () => {
             result = result.filter(p =>
                 (p.category && p.category.includes(type)) || p.gender === type
             );
+        }
+
+        // Filter by shop ID
+        if (shopIdFilter) {
+            result = result.filter(p => 
+                String(p.shop_id) === String(shopIdFilter) || 
+                String(p.vendor_id) === String(shopIdFilter)
+            );
+        } else {
+            // Default: Exclude all vendor-specific products from global catalog views
+            result = result.filter(p => !p.shop_id);
         }
 
         // Search Query
@@ -80,7 +93,7 @@ const Shop = () => {
         }
 
         setProducts(result);
-    }, [type, selectedBrands, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
+    }, [type, shopIdFilter, selectedBrands, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
 
     useEffect(() => {
         window.scrollTo(0, 0);

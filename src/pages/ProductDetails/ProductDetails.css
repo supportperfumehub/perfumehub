@@ -223,12 +223,14 @@
     color: #1a1a1a;
     font-family: 'Montserrat', sans-serif;
     letter-spacing: -0.2px;
+    white-space: nowrap; /* Keep value and QAR on the same line */
 }
 
 .old-price {
     font-size: 1.2rem;
     color: #bbb;
     text-decoration: line-through;
+    white-space: nowrap; /* Keep value and QAR on the same line */
 }
 
 .discount-tag {
@@ -239,6 +241,7 @@
     font-weight: 700;
     border-radius: 50px;
     letter-spacing: 1px;
+    white-space: nowrap; /* Prevents text from breaking into 2 lines */
 }
 
 .product-description {
@@ -336,7 +339,11 @@
 }
 
 .quantity-selector-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 10px;
+    width: 100%;
 }
 
 .quantity-selector {
@@ -345,16 +352,18 @@
     background: #f0f0f0;
     border-radius: 12px;
     padding: 3px;
-    height: 50px; /* Reduced from 56px */
+    height: 46px;
+    flex-shrink: 0; /* Don't let it grow or stretch */
+    width: fit-content;
 }
 
 .quantity-selector button {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
     border: none;
     background: transparent;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -364,7 +373,7 @@
 }
 
 .qty-value {
-    width: 40px;
+    width: 36px;
     text-align: center;
     font-weight: 700;
 }
@@ -398,6 +407,48 @@
     background: #222;
     transform: translateY(-2px);
     box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+.btn-reserve-store {
+    flex: 1;
+    height: 46px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Text left, icon right */
+    padding: 0 14px;
+    background: #f8f8f8;
+    color: var(--color-black);
+    border: 1px solid #ddd;
+    min-width: 0; /* allow flex shrinking */
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.reserve-btn-text {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reserve-btn-icon {
+    flex-shrink: 0;
+    margin-left: 8px;
+    opacity: 0.7;
+}
+
+.btn-reserve-store:hover {
+    background: transparent;
+    border-color: var(--color-black);
+    transform: translateY(-2px);
 }
 
 .action-row-meta {
@@ -630,17 +681,21 @@
 
 @media (max-width: 768px) {
     .product-details-page {
-        padding-top: 100px;
+        padding-top: 60px; /* Reduced further from 70px to bring content higher */
         font-size: 0.88rem;
         width: 100% !important;
         overflow-x: hidden;
+    }
+
+    .product-page-top-accent {
+        padding-top: 8px; /* Minimal padding above luxury text */
     }
 
     .details-container {
         display: block !important;
         width: 100% !important;
         margin: 0 !important;
-        padding: 0 16px !important;
+        padding: 5px 16px 16px !important; /* Extremely tight top padding */
         box-sizing: border-box;
     }
 
@@ -669,11 +724,21 @@
     }
 
     .quantity-selector {
-        width: 100%;
-        justify-content: space-between;
+        /* Let the global fit-content and flex rules handle sizing */
     }
 
     .purchase-actions {
         padding: 0 16px;
+    }
+
+    .price-section {
+        flex-wrap: wrap; /* Allows the tag to drop to a new line */
+        gap: 12px;
+    }
+
+    .discount-tag {
+        flex-basis: 100%; /* Force 'Save' tag to its own line on mobile */
+        width: fit-content;
+        margin-top: 5px;
     }
 }

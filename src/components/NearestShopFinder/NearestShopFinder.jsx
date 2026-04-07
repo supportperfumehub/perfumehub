@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Navigation, Search, Store } from 'lucide-react';
 import './NearestShopFinder.css';
@@ -18,6 +19,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 const NearestShopFinder = ({ isRTL }) => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [shops, setShops] = useState([]);
     const [location, setLocation] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -121,7 +123,10 @@ const NearestShopFinder = ({ isRTL }) => {
                                     </div>
                                 )}
 
-                                <button className="btn btn-outline shop-visit-btn">
+                                <button 
+                                    className="btn btn-outline shop-visit-btn"
+                                    onClick={() => navigate(`/shop?shop_id=${shop.id}`)}
+                                >
                                     {isRTL ? 'زيارة المتجر' : 'Visit Shop'}
                                 </button>
                             </div>
