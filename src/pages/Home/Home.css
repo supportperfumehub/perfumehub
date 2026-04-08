@@ -296,6 +296,7 @@
 
 .ai-advisor-title {
     font-size: 3rem;
+    color: #ffffff;
     font-family: var(--font-serif, 'Playfair Display', serif);
     margin-bottom: 20px;
     line-height: 1.2;

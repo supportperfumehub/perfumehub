@@ -5,8 +5,21 @@ import { Helmet } from 'react-helmet-async';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
-import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store } from 'lucide-react';
+import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
 import './ProductDetails.css';
+
+// Haversine formula to calculate distance between two lat/lng pairs in km
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+};
 
 const ProductDetails = () => {
     const { t } = useTranslation();
@@ -24,7 +37,35 @@ const ProductDetails = () => {
     const [addedToCart, setAddedToCart] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const [shopsData, setShopsData] = useState([]);
+    const [relatedShopItems, setRelatedShopItems] = useState([]);
+    const [userLocation, setUserLocation] = useState(null);
     const DESCRIPTION_LIMIT = 200;
+
+    useEffect(() => {
+        const fetchShops = async () => {
+            try {
+                const response = await fetch('/api/shops?status=active');
+                if (response.ok) {
+                    const data = await response.json();
+                    setShopsData(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch shops:", error);
+            }
+        };
+        fetchShops();
+    }, []);
+
+    const detectLocation = () => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+            }, (error) => {
+                console.error("Error getting location:", error);
+            });
+        }
+    };
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -36,6 +77,10 @@ const ProductDetails = () => {
                 ? (typeof foundProduct.size[0] === 'object' ? foundProduct.size[0].name : foundProduct.size[0])
                 : foundProduct.size;
             setSelectedSize(defaultSize);
+
+            // Find shared items dynamically by matching name
+            const related = mockProducts.filter(p => p.name === foundProduct.name);
+            setRelatedShopItems(related);
         }
     }, [id, mockProducts]);
 
@@ -214,6 +259,7 @@ const ProductDetails = () => {
                         </div>
                     )}
 
+
                     {(product.topNotes || product.middleNotes || product.baseNotes) && (
                         <div className="olfactory-pyramid">
                             <h3 className="notes-title">{isRTL ? 'مكونات العطر:' : 'Fragrance Notes:'}</h3>
@@ -252,10 +298,24 @@ const ProductDetails = () => {
                             <button
                                 className="btn-reserve-store"
                                 onClick={() => {
+                                    // Dynamically get the currently selected shop's whatsapp number
+                                    let targetNumber = '97430301901'; // Default PerfumeHub Admin Number
+                                    let targetShopName = isRTL ? 'المتجر الرئيسي' : 'Direct';
+                                    
+                                    if (product.shop_id) {
+                                        const shop = shopsData.find(s => s.id === product.shop_id);
+                                        if (shop) {
+                                            targetShopName = shop.name;
+                                            if (shop.whatsapp_number) {
+                                                targetNumber = shop.whatsapp_number;
+                                            }
+                                        }
+                                    }
+
                                     const message = isRTL 
-                                        ? `مرحباً، أود حجز المنتج التالى في المتجر:\n${product.name}`
-                                        : `Hello, I would like to reserve the following product in store:\n${product.name}`;
-                                    window.open(`https://wa.me/97430301901?text=${encodeURIComponent(message)}`, '_blank');
+                                        ? `مرحباً ${targetShopName}، أود حجز المنتج التالى في المتجر:\n${product.name}`
+                                        : `Hello ${targetShopName}, I would like to reserve the following product in store:\n${product.name}`;
+                                    window.open(`https://wa.me/${targetNumber.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                                 }}
                             >
                                 <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
@@ -346,6 +406,58 @@ const ProductDetails = () => {
                                 </span>
                             </div>
                         </div>
+
+                        {relatedShopItems.length > 1 && shopsData.length > 0 && (
+                            <div className="shop-selection-panel" style={{ marginBottom: '25px', padding: '15px', borderRadius: '10px', backgroundColor: 'var(--bg-light, #f8f9fa)' }}>
+                                <h4 style={{ marginBottom: '12px', fontSize: '1rem', color: 'var(--text-secondary, #666)' }}>
+                                    {isRTL ? 'متاح أيضاً في هذه المتاجر:' : 'Available in these shops:'}
+                                </h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {relatedShopItems.map(item => {
+                                        const isOurShop = !item.shop_id;
+                                        const shopInfo = shopsData.find(s => s.id === item.shop_id);
+                                        if (!isOurShop && !shopInfo) return null; // Shop not active
+                                        
+                                        const isSelected = String(item.id) === String(product.id);
+                                        let shopName = isOurShop ? (isRTL ? 'بيرفيوم هب (المتجر الرئيسي)' : 'PerfumeHub Direct') : shopInfo.name;
+                                        
+                                        let badge = null;
+                                        if (isOurShop) badge = <span className="shop-badge badge-primary">{isRTL ? 'الرئيسي' : 'Direct'}</span>;
+                                        else if (shopInfo.is_recommended) badge = <span className="shop-badge badge-gold">{isRTL ? 'موصى به' : 'Recommended'}</span>;
+
+                                        let distanceStr = "";
+                                        if (userLocation && shopInfo?.latitude && shopInfo?.longitude) {
+                                            const dist = calculateDistance(userLocation.lat, userLocation.lng, shopInfo.latitude, shopInfo.longitude);
+                                            distanceStr = ` (${dist.toFixed(1)} km)`;
+                                        }
+
+                                        return (
+                                            <label key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '10px', border: isSelected ? '2px solid var(--color-gold, #C5A059)' : '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(197, 160, 89, 0.05)' : '#fff', transition: 'all 0.2s' }}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="shopSelection" 
+                                                    checked={isSelected} 
+                                                    onChange={() => navigate(`/product/${item.id}`)}
+                                                    style={{ marginRight: '10px', accentColor: 'var(--color-gold, #C5A059)' }}
+                                                />
+                                                <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <span style={{ fontWeight: isSelected ? '600' : '500', fontSize: '0.95rem' }}>
+                                                        {shopName} <span style={{color: '#888', fontSize: '0.85rem'}}>{distanceStr}</span>
+                                                    </span>
+                                                    {badge}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                {!userLocation && (
+                                    <button className="btn-link" onClick={detectLocation} style={{ marginTop: '12px', fontSize: '0.85rem', padding: '0', background: 'none', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <MapPin size={14} />
+                                        {isRTL ? 'اكتشف المتجر الأقرب إليك' : 'Allow location to find nearest shop'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         <div className="product-description-section animate-fade-in" style={{ animationDelay: '0.2s' }}>
                             <h3 className="section-title">{isRTL ? 'وصف المنتج' : 'Product Description'}</h3>

@@ -12,7 +12,7 @@ const VendorSignup = () => {
     // Guest account fields
     const [guestData, setGuestData] = useState({ ownerName: '', ownerEmail: '', ownerPassword: '' });
     // Shop fields
-    const [formData, setFormData] = useState({ name: '', address: '' });
+    const [formData, setFormData] = useState({ name: '', address: '', whatsapp_number: '' });
     const [photoInputs, setPhotoInputs] = useState(['']);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -57,6 +57,7 @@ const VendorSignup = () => {
                         ownerPassword: guestData.ownerPassword,
                         shopName: formData.name,
                         address: formData.address,
+                        whatsapp_number: formData.whatsapp_number,
                         images
                     })
                 });
@@ -76,6 +77,7 @@ const VendorSignup = () => {
                         owner_id: user.id,
                         name: formData.name,
                         address: formData.address,
+                        whatsapp_number: formData.whatsapp_number,
                         latitude: null,
                         longitude: null,
                         logo_url: images[0] || null,
@@ -234,6 +236,21 @@ const VendorSignup = () => {
                         onChange={(e) => setFormData({...formData, address: e.target.value})}
                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical' }}
                     ></textarea>
+                </div>
+
+                {/* WhatsApp Number */}
+                <div style={{ marginBottom: '18px' }}>
+                    <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
+                        {isRTL ? 'رقم الواتساب (مع رمز الدولة)' : 'WhatsApp Number (with country code)'}
+                    </label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="+974..."
+                        value={formData.whatsapp_number}
+                        onChange={(e) => setFormData({...formData, whatsapp_number: e.target.value})}
+                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                    />
                 </div>
 
                 {/* Multiple Photos */}

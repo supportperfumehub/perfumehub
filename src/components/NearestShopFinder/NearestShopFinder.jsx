@@ -124,7 +124,7 @@ const NearestShopFinder = ({ isRTL }) => {
                                 )}
 
                                 <button 
-                                    className="btn btn-outline shop-visit-btn"
+                                    className="shop-visit-btn"
                                     onClick={() => navigate(`/shop?shop_id=${shop.id}`)}
                                 >
                                     {isRTL ? 'زيارة المتجر' : 'Visit Shop'}

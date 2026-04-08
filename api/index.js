@@ -252,13 +252,19 @@ app.get('/api/users/:id', async (req, res) => {
 
 // Shop Manual Registration (Vendor Creation)
 app.post('/api/shops/manual', async (req, res) => {
-    const { ownerName, ownerEmail, ownerPassword, shopName, address, latitude, longitude, images, adminCreated } = req.body;
+    const { ownerName, ownerEmail, ownerPassword, shopName, address, latitude, longitude, images, adminCreated, whatsapp_number, is_recommended } = req.body;
     const userRole = adminCreated ? 'vendor' : 'customer';
     const shopStatus = adminCreated ? 'active' : 'pending';
     try {
         const { data: user, error: userError } = await supabase.from('customers').insert([{ name: ownerName, email: ownerEmail, password: ownerPassword, role: userRole }]).select().single();
         if (userError) throw userError;
-        const { data: shop, error: shopError } = await supabase.from('shops').insert([{ owner_id: user.id, name: shopName, address, latitude, longitude, images: images || [], status: shopStatus }]).select().single();
+        
+        // Define shop payload safely
+        let shopPayload = { owner_id: user.id, name: shopName, address, latitude, longitude, images: images || [], status: shopStatus };
+        if (whatsapp_number !== undefined) shopPayload.whatsapp_number = whatsapp_number;
+        if (is_recommended !== undefined) shopPayload.is_recommended = is_recommended;
+
+        const { data: shop, error: shopError } = await supabase.from('shops').insert([shopPayload]).select().single();
         if (shopError) throw shopError;
         await supabase.from('customers').update({ shop_id: shop.id }).eq('id', user.id);
         res.status(201).json({ message: 'Vendor added successfully', shop });
@@ -270,9 +276,9 @@ app.post('/api/shops/manual', async (req, res) => {
 // Shop Update
 app.put('/api/shops/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, address, latitude, longitude, logo_url, images, status } = req.body;
+    const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended } = req.body;
     try {
-        const updateData = { name, address, latitude, longitude, logo_url, images, status };
+        const updateData = { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended };
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
         const { data, error } = await supabase.from('shops').update(updateData).eq('id', id).select().single();
         if (error) throw error;
