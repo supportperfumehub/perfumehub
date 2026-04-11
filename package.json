@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host --open",
-    "server": "nodemon backend/server.js",
+    "server": "nodemon backend/src/server.js",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "start": "npm run dev:all",
     "mobile": "start chrome --app=http://localhost:5173 --window-size=390,844",

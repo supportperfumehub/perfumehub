@@ -7,82 +7,85 @@ import CustomersManager from '../../components/Admin/CustomersManager';
 import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
 import ShopsManager from '../../components/Admin/ShopsManager';
+import RegionsManager from '../../components/Admin/RegionsManager';
+import { 
+    LayoutDashboard, Package, ShoppingCart, Ticket, 
+    Users, Store, BarChart2, DatabaseBackup, Globe 
+} from 'lucide-react';
 import './Admin.css';
 
 const Admin = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL, user } = useOutletContext();
     const [activeTab, setActiveTab] = useState('products');
 
+    // Assume user object contains the role from context. 
+    // Fallback to 'super_admin' or 'admin' for demo purposes if strictly not set.
+    const role = user?.role || 'super_admin'; 
+
+    const isSuperAdmin = role === 'super_admin' || role === 'admin';
+    const isRegionalAdmin = role === 'regional_admin';
+
+    // Protect Route
+    if (!isSuperAdmin && !isRegionalAdmin) {
+        return <Navigate to="/" replace />;
+    }
+
+    const tabs = [
+        { id: 'products', label: isRTL ? 'إدارة المنتجات' : 'Products', icon: <Package size={20} /> },
+        { id: 'orders', label: isRTL ? 'إدارة الطلبات' : 'Orders', icon: <ShoppingCart size={20} /> },
+        // Regional admins might not control global coupons or recovery
+        ...(isSuperAdmin ? [{ id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> }] : []),
+        { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
+        { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
+        { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
+        ...(isSuperAdmin ? [{ id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> }] : []),
+        ...(isSuperAdmin ? [{ id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }] : []),
+    ];
+
     return (
-        <div className="admin-page">
-            <div className="admin-header text-center">
-                <div className="container">
-                    <h1>{isRTL ? 'لوحة تحكم الإدارة' : 'Admin Dashboard'}</h1>
-                    <p className="admin-subtitle">
-                        {isRTL
-                            ? 'إدارة المنتجات والطلبات بسهولة.'
-                            : 'Manage your products and orders with ease.'}
-                    </p>
+        <div className={`admin-dashboard ${isRTL ? 'rtl' : 'ltr'}`}>
+            {/* Sidebar Navigation */}
+            <aside className="admin-sidebar">
+                <div className="sidebar-header">
+                    <h2>{isRTL ? 'لوحة القيادة' : 'Dashboard'}</h2>
+                    <span className="role-badge">
+                        {isSuperAdmin ? 'Super Admin' : 'Regional Admin'}
+                    </span>
                 </div>
-            </div>
+                
+                <nav className="sidebar-nav">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                            onClick={() => setActiveTab(tab.id)}
+                        >
+                            <span className="nav-icon">{tab.icon}</span>
+                            <span className="nav-label">{tab.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </aside>
 
-            <div className="container section admin-container">
-                <div className="admin-sidebar text-center" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'products' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('products')}
-                    >
-                        {isRTL ? 'إدارة المنتجات' : 'Products'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('orders')}
-                    >
-                        {isRTL ? 'إدارة الطلبات' : 'Orders'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'coupons' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('coupons')}
-                    >
-                        {isRTL ? 'الكوبونات' : 'Coupons'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'customers' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('customers')}
-                    >
-                        {isRTL ? 'العملاء' : 'Customers'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'shops' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('shops')}
-                    >
-                        {isRTL ? 'المتاجر' : 'Shops'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('reports')}
-                    >
-                        {isRTL ? 'التقارير' : 'Reports'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'recovery' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('recovery')}
-                        style={{ borderLeft: isRTL ? 'none' : '2px solid rgba(200,169,81,0.3)', borderRight: isRTL ? '2px solid rgba(200,169,81,0.3)' : 'none', marginLeft: isRTL ? '0' : '10px', marginRight: isRTL ? '10px' : '0' }}
-                    >
-                        {isRTL ? 'الاسترداد' : 'Recovery'}
-                    </button>
-                </div>
+            {/* Main Content Area */}
+            <main className="admin-main">
+                <header className="main-header">
+                    <h1>
+                        {tabs.find(t => t.id === activeTab)?.label}
+                    </h1>
+                </header>
 
-                <div className="admin-content">
+                <div className="main-content-wrapper">
                     {activeTab === 'products' && <ProductManager isRTL={isRTL} />}
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} />}
                     {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
                     {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
+                    {activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
                     {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
