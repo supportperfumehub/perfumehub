@@ -22,6 +22,8 @@ const Layout = ({ isRTL, toggleLanguage }) => {
         return () => clearTimeout(timer);
     }, [location.pathname]);
 
+    const isAdminPath = location.pathname.startsWith('/admin');
+
     return (
         <div className="app-layout">
             {isHomePage && <PromotionBar isRTL={isRTL} />}
@@ -31,12 +33,12 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 visible={toast.visible}
                 onHide={() => showToast('', toast.type)}
             />
-            <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />
-            <main className={`main-content ${pageTransition}`} style={{ minHeight: '80vh' }}>
+            {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
+            <main className={`main-content ${pageTransition}`} style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
                 <Outlet context={{ isRTL }} />
             </main>
-            <Footer isRTL={isRTL} />
-            <WhatsAppWidget isRTL={isRTL} />
+            {!isAdminPath && <Footer isRTL={isRTL} />}
+            {!isAdminPath && <WhatsAppWidget isRTL={isRTL} />}
         </div>
     );
 };
