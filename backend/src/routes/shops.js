@@ -249,4 +249,38 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
     }
 });
 
+// Delete Shop
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    const admin = req.user;
+
+    try {
+        // Find the shop first to check its region
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('region_id')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
+            return res.status(403).json({ error: 'Forbidden: You can only delete shops in your assigned regions.' });
+        }
+
+        // 1. Delete all products associated with the shop
+        await supabase.from('products').delete().eq('shop_id', id);
+
+        // 2. Delete the shop itself
+        const { error: deleteError } = await supabase.from('shops').delete().eq('id', id);
+        
+        if (deleteError) throw deleteError;
+        
+        res.json({ message: 'Shop and its products deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
 export default router;
