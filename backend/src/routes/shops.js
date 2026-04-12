@@ -158,6 +158,44 @@ router.put('/:id/reject', authenticateUser, verifyRole(['super_admin', 'regional
     }
 });
 
+// Admin Update Status (Active/Suspended)
+router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const admin = req.user;
+
+    try {
+        // Find the shop first to check its region
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('region_id, owner_id')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
+            return res.status(403).json({ error: 'Forbidden: You can only update shops in your assigned regions.' });
+        }
+
+        const { data, error } = await supabase.from('shops')
+            .update({ status: status.toUpperCase() })
+            .eq('id', id).select().single();
+            
+        if (error) throw error;
+
+        // If activating, ensure they are a vendor role
+        if (status.toUpperCase() === 'ACTIVE' || status.toUpperCase() === 'APPROVED') {
+            await supabase.from('customers').update({ role: 'vendor' }).eq('id', data.owner_id);
+        }
+
+        res.json({ message: `Shop status updated to ${status}`, shop: data });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
 // Vendor Resubmit
 router.post('/:id/resubmit', authenticateUser, verifyRole(['vendor', 'customer']), async (req, res) => {
     const { id } = req.params;
@@ -174,16 +212,34 @@ router.post('/:id/resubmit', authenticateUser, verifyRole(['vendor', 'customer']
 });
 
 // Update Shop
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id } = req.body;
+    const admin = req.user;
+
     try {
+        // Find the shop first to check its region
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('region_id')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
+            return res.status(403).json({ error: 'Forbidden: You can only update shops in your assigned regions.' });
+        }
+
         const updateData = { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id };
         if (updateData.region_id === '') updateData.region_id = null; // Convert empty string to null
-        else if (updateData.region_id !== undefined) updateData.region_id = parseInt(updateData.region_id);
+        else if (updateData.region_id !== undefined && updateData.region_id !== null) updateData.region_id = parseInt(updateData.region_id);
+        
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
         const { data, error } = await supabase.from('shops').update(updateData).eq('id', id).select().single();
         if (error) throw error;
+        
         if (status === 'active' || status === 'APPROVED') {
             await supabase.from('customers').update({ role: 'vendor' }).eq('id', data.owner_id);
         }

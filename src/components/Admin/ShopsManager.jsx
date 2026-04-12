@@ -63,15 +63,36 @@ const ShopsManager = ({ isRTL }) => {
 
     const updateShopStatus = async (id, status) => {
         try {
-            const response = await fetch(`/api/shops/${id}/approve`, {
+            let endpoint = `/api/shops/${id}/status`;
+            let body = JSON.stringify({ status });
+
+            if (status === 'active' && !regions.find(r => r.id === shops.find(s => s.id === id)?.region_id)) {
+                // Special case for approval of pending shops
+                const targetShop = shops.find(s => s.id === id);
+                if (targetShop?.status === 'pending') {
+                    endpoint = `/api/shops/${id}/approve`;
+                    body = null;
+                }
+            } else if (status === 'rejected') {
+                endpoint = `/api/shops/${id}/reject`;
+                body = JSON.stringify({ rejection_reason: 'Administrative action' });
+            }
+
+            const response = await fetch(endpoint, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
                     ...(user ? { 'x-user-id': user.id } : {})
-                }
+                },
+                body: body
             });
-            if (response.ok) fetchShopsAndRegions();
-            else alert(isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status');
+
+            if (response.ok) {
+                fetchShopsAndRegions();
+            } else {
+                const data = await response.json();
+                alert(data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'));
+            }
         } catch (error) {
             console.error('Error updating shop status:', error);
         }
