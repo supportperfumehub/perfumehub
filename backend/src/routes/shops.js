@@ -269,16 +269,20 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
             return res.status(403).json({ error: 'Forbidden: You can only delete shops in your assigned regions.' });
         }
 
-        // 1. Delete all products associated with the shop
+        // 1. Clear shop_id reference in customers table first (Foreign Key Constraint)
+        await supabase.from('customers').update({ shop_id: null, role: 'customer' }).eq('shop_id', id);
+
+        // 2. Delete all products associated with the shop
         await supabase.from('products').delete().eq('shop_id', id);
 
-        // 2. Delete the shop itself
+        // 3. Delete the shop itself
         const { error: deleteError } = await supabase.from('shops').delete().eq('id', id);
         
         if (deleteError) throw deleteError;
         
         res.json({ message: 'Shop and its products deleted successfully' });
     } catch (error) {
+        console.error('Delete Shop Error:', error);
         res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
