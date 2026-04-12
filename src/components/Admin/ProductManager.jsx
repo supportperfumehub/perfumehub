@@ -637,42 +637,48 @@ const ProductManager = ({ isRTL, shopId }) => {
                         
                         <div className="image-manage-grid">
                             {formData.images.map((url, idx) => (
-                                <div key={idx} className="image-input-card" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+                                <div key={idx} className="image-input-row">
                                     <div 
-                                        style={{ width: '50px', height: '50px', borderRadius: '6px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                                        className="image-preview-box"
                                         onClick={() => document.getElementById(`file-upload-${idx}`).click()}
                                     >
-                                        {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Plus size={20} color="#94a3b8" />}
+                                        {url ? <img src={url} alt="preview" /> : <Plus size={20} color="#94a3b8" />}
                                         <input type="file" id={`file-upload-${idx}`} hidden accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div className="image-url-input-container">
                                         <input 
                                             type="url" 
                                             className="form-control" 
                                             value={url} 
                                             onChange={e => handleImageChange(idx, e.target.value)} 
-                                            placeholder="Image URL" 
-                                            style={{ marginBottom: '4px', padding: '6px 10px', fontSize: '0.85rem' }} 
+                                            placeholder="https://example.com/image.jpg" 
                                         />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.7rem', color: '#cbd5e1', fontWeight: 'bold' }}>{idx === 0 ? (isRTL ? 'الأساسية' : 'MAIN') : (isRTL ? 'إضافية' : 'SUB')}</span>
-                                            <div style={{ display: 'flex', gap: '5px' }}>
-                                                {idx > 0 && <button type="button" onClick={() => moveImage(idx, 'up')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>▲</button>}
-                                                {idx < formData.images.length - 1 && <button type="button" onClick={() => moveImage(idx, 'down')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>▼</button>}
-                                                <X size={14} color="#e74c3c" onClick={() => removeImageField(idx)} style={{ cursor: 'pointer' }} />
+                                        <div className="image-controls">
+                                            <span className={`image-badge ${idx === 0 ? 'main' : 'sub'}`}>
+                                                {idx === 0 ? (isRTL ? 'الأساسية' : 'MAIN') : (isRTL ? 'إضافية' : 'SUB')}
+                                            </span>
+                                            <div className="image-action-btns">
+                                                {idx > 0 && (
+                                                    <button type="button" className="image-action-btn" onClick={() => moveImage(idx, 'up')} title="Move Up">
+                                                        ▲
+                                                    </button>
+                                                )}
+                                                {idx < formData.images.length - 1 && (
+                                                    <button type="button" className="image-action-btn" onClick={() => moveImage(idx, 'down')} title="Move Down">
+                                                        ▼
+                                                    </button>
+                                                )}
+                                                <button type="button" className="image-action-btn danger" onClick={() => removeImageField(idx)} title="Remove Image">
+                                                    <X size={16} />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ))}
-                            <button 
-                                type="button" 
-                                className="image-input-card" 
-                                onClick={addImageField}
-                                style={{ justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', background: 'transparent' }}
-                            >
-                                <Plus size={24} color="var(--color-gold)" />
-                                <span style={{ fontWeight: 600, color: 'var(--color-gold)' }}>{isRTL ? 'إضافة صورة' : 'Add Image'}</span>
+                            <button type="button" className="add-image-btn" onClick={addImageField}>
+                                <Plus size={20} />
+                                <span>{isRTL ? 'إضافة صورة' : 'Add Image'}</span>
                             </button>
                         </div>
 
@@ -707,7 +713,7 @@ const ProductManager = ({ isRTL, shopId }) => {
                             <button type="submit" className="btn btn-gold" style={{ flex: '1 0 200px', height: '50px', fontSize: '1.1rem' }}>
                                 {editingId ? (isRTL ? 'حفظ التغييرات' : 'Save Changes') : (isRTL ? 'إضافة المنتج النهائي' : 'Add Product')}
                             </button>
-                            <button type="button" className="btn btn-outline" onClick={cancelEdit} style={{ flex: '0 0 100px', height: '50px' }}>
+                            <button type="button" className="btn btn-slate" onClick={cancelEdit} style={{ flex: '0 0 100px', height: '50px' }}>
                                 {isRTL ? 'إلغاء' : 'Cancel'}
                             </button>
                         </div>
@@ -722,9 +728,9 @@ const ProductManager = ({ isRTL, shopId }) => {
                             <th>{isRTL ? 'الصورة' : 'Image'}</th>
                             <th>{isRTL ? 'المنتج' : 'Product'}</th>
                             <th>{isRTL ? 'الماركة' : 'Brand'}</th>
-                            <th>{isRTL ? 'السعر' : 'Price'}</th>
-                            <th>{isRTL ? 'المخزون' : 'Stock'}</th>
-                            <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'السعر' : 'Price'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                            <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -772,29 +778,40 @@ const ProductManager = ({ isRTL, shopId }) => {
                                         </small>
                                     </td>
                                     <td>{product.brand}</td>
-                                    <td>
-                                        <div className="price-display-wrapper">
-                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>
+                                    <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
+                                        <div className="price-display-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '100px' }}>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.1rem' }}>
                                                 {product.price} {isRTL ? 'ر.ق' : 'QAR'}
                                             </div>
-                                            {product.oldPrice ? (
-                                                <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85em' }}>
+                                            {product.oldPrice && (
+                                                <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85rem' }}>
                                                     {product.oldPrice} {isRTL ? 'ر.ق' : 'QAR'}
                                                 </div>
-                                            ) : (
-                                                <div style={{ height: '1.2em' }}></div> /* Spacer for alignment */
                                             )}
-                                            {product.discount > 0 ? (
-                                                <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7em', fontWeight: 'bold', width: 'fit-content' }}>
+                                            {product.discount > 0 && (
+                                                <span style={{ 
+                                                    backgroundColor: '#ef4444', 
+                                                    color: 'white', 
+                                                    padding: '4px 8px', 
+                                                    borderRadius: '6px', 
+                                                    fontSize: '0.75rem', 
+                                                    fontWeight: 'bold', 
+                                                    width: 'fit-content',
+                                                    display: 'inline-block',
+                                                    whiteSpace: 'nowrap',
+                                                    marginTop: '2px'
+                                                }}>
                                                     {product.discount}% OFF
                                                 </span>
-                                            ) : (
-                                                <div style={{ height: '1.4em' }}></div> /* Spacer for alignment */
                                             )}
                                         </div>
                                     </td>
-                                    <td>
-                                        <span style={{ fontWeight: 'bold', color: product.stock > 0 ? 'green' : 'red' }}>
+                                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
+                                        <span style={{ 
+                                            fontWeight: '700', 
+                                            color: product.stock > 10 ? '#22c55e' : (product.stock > 0 ? '#f59e0b' : '#ef4444'),
+                                            fontSize: '1.1rem'
+                                        }}>
                                             {product.stock !== undefined ? product.stock : 10}
                                         </span>
                                     </td>

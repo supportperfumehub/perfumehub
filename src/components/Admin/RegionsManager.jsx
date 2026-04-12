@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { PlusCircle, Link, Globe } from 'lucide-react';
+import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus } from 'lucide-react';
+import ConfirmModal from '../Common/ConfirmModal';
 import './RegionsManager.css';
 
 const RegionsManager = ({ isRTL }) => {
@@ -18,6 +19,14 @@ const RegionsManager = ({ isRTL }) => {
     // Assign Admin Form
     const [assignAdminId, setAssignAdminId] = useState('');
     const [assignRegionId, setAssignRegionId] = useState('');
+
+    // Edit/Delete State
+    const [editingRegionId, setEditingRegionId] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({ 
+        isOpen: false, 
+        regionId: null, 
+        regionName: '' 
+    });
 
     useEffect(() => {
         fetchRegions();
@@ -41,8 +50,11 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            const res = await fetch('/api/regions', {
-                method: 'POST',
+            const url = editingRegionId ? `/api/regions/${editingRegionId}` : '/api/regions';
+            const method = editingRegionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: newRegionName,
@@ -51,15 +63,67 @@ const RegionsManager = ({ isRTL }) => {
                 })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create region');
+            if (!res.ok) throw new Error(data.error || 'Failed to process region');
             
-            setSuccessMessage(isRTL ? 'تم إنشاء المنطقة بنجاح' : 'Region created successfully');
+            setSuccessMessage(editingRegionId 
+                ? (isRTL ? 'تم تحديث المنطقة بنجاح' : 'Region updated successfully')
+                : (isRTL ? 'تم إنشاء المنطقة بنجاح' : 'Region created successfully')
+            );
+            
             setNewRegionName('');
             setNewRegionCode('');
             setNewCurrencyCode('');
+            setEditingRegionId(null);
             fetchRegions();
         } catch (err) {
             setError(err.message);
+        }
+    };
+
+    const handleEdit = (region) => {
+        setNewRegionName(region.name);
+        setNewRegionCode(region.code);
+        setNewCurrencyCode(region.currency_code);
+        setEditingRegionId(region.id);
+        setSuccessMessage('');
+        setError('');
+        window.scrollTo(0, 0);
+    };
+
+    const cancelEdit = () => {
+        setNewRegionName('');
+        setNewRegionCode('');
+        setNewCurrencyCode('');
+        setEditingRegionId(null);
+    };
+
+    const handleDelete = (id, name) => {
+        setConfirmModal({
+            isOpen: true,
+            regionId: id,
+            regionName: name
+        });
+    };
+
+    const confirmDelete = async () => {
+        if (!confirmModal.regionId) return;
+        
+        setError(null);
+        setSuccessMessage('');
+        try {
+            const res = await fetch(`/api/regions/${confirmModal.regionId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Failed to delete region');
+            
+            setSuccessMessage(isRTL ? 'تم حذف المنطقة' : 'Region deleted successfully');
+            fetchRegions();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setConfirmModal({ isOpen: false, regionId: null, regionName: '' });
         }
     };
 
@@ -102,9 +166,19 @@ const RegionsManager = ({ isRTL }) => {
 
             <div className="grid-layout">
                 {/* Add New Region */}
-                <div className="card">
-                    <h3>{isRTL ? 'إضافة منطقة جديدة' : 'Add New Region'}</h3>
-                    <form onSubmit={handleCreateRegion} className="region-form">
+                <div className="card" style={{ position: 'relative' }}>
+                        <h3>
+                            {editingRegionId 
+                                ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
+                                : (isRTL ? 'إضافة منطقة جديدة' : 'Add New Region')
+                            }
+                        </h3>
+                        {editingRegionId && (
+                            <button onClick={cancelEdit} className="admin-action-btn" style={{ position: 'absolute', top: '15px', right: isRTL ? 'auto' : '15px', left: isRTL ? '15px' : 'auto' }}>
+                                <X size={18} />
+                            </button>
+                        )}
+                    <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative' }}>
                         <div className="form-group">
                             <label>{isRTL ? 'اسم المنطقة' : 'Region Name'}</label>
                             <input 
@@ -139,9 +213,12 @@ const RegionsManager = ({ isRTL }) => {
                                 />
                             </div>
                         </div>
-                        <button type="submit" className="primary-btn">
-                            <PlusCircle size={18} />
-                            {isRTL ? 'إضافة جغرافية' : 'Create Region'}
+                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '48px', borderRadius: '8px', fontSize: '1rem' }}>
+                            {editingRegionId ? <Edit size={18} /> : <PlusCircle size={18} />}
+                            {editingRegionId 
+                                ? (isRTL ? 'تحديث المنطقة' : 'Update Region') 
+                                : (isRTL ? 'إضافة جغرافية' : 'Create Region')
+                            }
                         </button>
                     </form>
                 </div>
@@ -173,7 +250,7 @@ const RegionsManager = ({ isRTL }) => {
                                 ))}
                             </select>
                         </div>
-                        <button type="submit" className="primary-btn">
+                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '48px', borderRadius: '8px', fontSize: '1rem' }}>
                             <Link size={18} />
                             {isRTL ? 'ربط المشرف' : 'Assign to Region'}
                         </button>
@@ -195,6 +272,7 @@ const RegionsManager = ({ isRTL }) => {
                                     <th>{isRTL ? 'المنطقة' : 'Region'}</th>
                                     <th>{isRTL ? 'الرمز' : 'Code'}</th>
                                     <th>{isRTL ? 'العملة' : 'Currency'}</th>
+                                    <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -204,6 +282,16 @@ const RegionsManager = ({ isRTL }) => {
                                         <td>{region.name}</td>
                                         <td><span className="badge code">{region.code}</span></td>
                                         <td><span className="badge currency">{region.currency_code}</span></td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button className="admin-action-btn edit-btn" onClick={() => handleEdit(region)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button className="admin-action-btn delete-btn" onClick={() => handleDelete(region.id, region.name)} title={isRTL ? 'حذف' : 'Delete'}>
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -211,6 +299,23 @@ const RegionsManager = ({ isRTL }) => {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmDelete}
+                title={isRTL ? 'حذف المنطقة' : 'DELETE REGION'}
+                message={isRTL 
+                    ? `هل أنت متأكد أنك تريد حذف المنطقة "${confirmModal.regionName}"؟ هذا الإجراء قد يفشل إذا كان هناك محلات مرتبطة بها.` 
+                    : `Are you sure you want to permanently delete the region "${confirmModal.regionName}"? This action may fail if there are shops or admins assigned to it.`
+                }
+                confirmText={isRTL ? 'حذف نهائياً' : 'PERMANENTLY DELETE'}
+                cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
+                isRTL={isRTL}
+                variant="danger"
+                isPremium={true}
+                iconType="trash"
+            />
         </div>
     );
 };

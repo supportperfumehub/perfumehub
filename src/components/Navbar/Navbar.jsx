@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut } from 'lucide-react';
+import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store } from 'lucide-react';
 import logo from '../../assets/logo_transparent.png';
 import SearchBar from '../SearchBar/SearchBar';
 import { AuthContext } from '../../context/AuthContext';
@@ -14,7 +14,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
-    const { isAuthenticated, isAdmin, logout } = useContext(AuthContext);
+    const { isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
     const { getCartCount } = useContext(CartContext);
     const { wishlistItems } = useContext(WishlistContext);
 
@@ -95,6 +95,12 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
+                                {isVendor && !isAdmin && (
+                                    <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <Store size={18} />
+                                        <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
+                                    </Link>
+                                )}
                                 <button className="mobile-nav-link" onClick={() => { logout(); setIsMobileMenuOpen(false); }}>
                                     <LogOut size={18} />
                                     <span>{t('navbar.logout')}</span>
@@ -147,6 +153,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         {isAdmin && (
                             <Link to="/admin" className="icon-btn" title={t('navbar.admin')}>
                                 <Settings size={20} />
+                            </Link>
+                        )}
+                        {isVendor && !isAdmin && (
+                            <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
+                                <Store size={20} />
                             </Link>
                         )}
                         

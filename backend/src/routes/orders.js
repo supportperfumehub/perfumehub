@@ -1,11 +1,12 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { withTimeout } from '../utils/timeout.js';
+import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all orders
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     try {
         let query = supabase
             .from('orders')
@@ -13,7 +14,23 @@ router.get('/', async (req, res) => {
             .order('created_at', { ascending: false });
 
         if (req.query.shop_id) {
-            query = query.contains('shop_ids', [req.query.shop_id]);
+            query = query.contains('shop_ids', [parseInt(req.query.shop_id)]);
+        }
+
+        // Enforce Regional Scoping for Regional Admins
+        if (req.user && req.user.role === 'regional_admin') {
+            const { data: shops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', req.user.assignedRegionIds);
+            
+            const shopIds = shops ? shops.map(s => s.id) : [];
+            if (shopIds.length > 0) {
+                // Check if the order contains at least one shop from the admin's regions
+                query = query.overlaps('shop_ids', shopIds);
+            } else {
+                return res.json([]);
+            }
         }
 
         const { data, error } = await withTimeout(query);
@@ -21,6 +38,7 @@ router.get('/', async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
+        console.error('Error fetching orders:', error);
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
         }
@@ -65,10 +83,36 @@ router.post('/', async (req, res) => {
 });
 
 // Update order status
-router.put('/:id/status', async (req, res) => {
+router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
+    const admin = req.user;
+
     try {
+        // Find the order to check shop_ids
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('shop_ids')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !order) return res.status(404).json({ error: 'Order not found' });
+
+        // Scoping check for regional admins
+        if (admin && admin.role === 'regional_admin') {
+            const { data: adminShops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', admin.assignedRegionIds);
+            
+            const adminShopIds = adminShops ? adminShops.map(s => s.id) : [];
+            const hasAccess = order.shop_ids.some(sid => adminShopIds.includes(sid));
+
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this order.' });
+            }
+        }
+
         const { data, error } = await supabase
             .from('orders')
             .update({ status })
@@ -76,8 +120,7 @@ router.put('/:id/status', async (req, res) => {
             .select();
 
         if (error) throw error;
-        if (data.length === 0) return res.status(404).json({ error: 'Order not found' });
-        res.json({ message: 'Order status updated successfully' });
+        res.json({ message: 'Order status updated', order: data[0] });
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ error: 'Internal server error' });

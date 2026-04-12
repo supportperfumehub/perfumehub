@@ -1,11 +1,12 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { withTimeout } from '../utils/timeout.js';
+import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all products
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     try {
         let query = supabase
             .from('products')
@@ -16,16 +17,34 @@ router.get('/', async (req, res) => {
             query = query.eq('shop_id', req.query.shop_id);
         }
 
+        // Enforce Regional Scoping for Regional Admins
+        if (req.user && req.user.role === 'regional_admin') {
+            const { data: shops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', req.user.assignedRegionIds);
+            
+            const shopIds = shops ? shops.map(s => s.id) : [];
+            if (shopIds.length > 0) {
+                query = query.in('shop_id', shopIds);
+            } else if (req.query.shop_id) {
+                // If they asked for a specific shop but they have no shops, block it
+                return res.json([]);
+            } else {
+                // If they have no shops but didn't specify one, only show global products (if any)
+                // or just empty for admin context. Usually we want to show nothing if they have no shops assigned.
+                query = query.is('shop_id', null); 
+            }
+        }
+
         const { data, error } = await withTimeout(query);
 
         if (error) throw error;
         res.json(data);
     } catch (error) {
         if (error.message === 'Database query timed out') {
-            console.error('Products fetch timed out.');
             return res.status(504).json({ error: 'Database timeout' });
         }
-        console.error('Error fetching products:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -51,15 +70,26 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create product
-router.post('/', async (req, res) => {
+router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { 
         name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
         image, category, gender, description, sku, stock,
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, shop_id
     } = req.body;
+    const admin = req.user;
 
     try {
+        // Scoping check
+        if (admin.role === 'regional_admin') {
+            if (!shop_id) return res.status(403).json({ error: 'Regional admins must specify a shop_id' });
+            
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
+            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            }
+        }
+
         const { data, error } = await supabase
             .from('products')
             .insert([{
@@ -82,7 +112,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update product
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
     const { 
         name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
@@ -90,8 +120,23 @@ router.put('/:id', async (req, res) => {
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, shop_id
     } = req.body;
+    const admin = req.user;
 
     try {
+        // Fetch existing product to check ownership
+        const { data: existingProduct } = await supabase.from('products').select('shop_id').eq('id', id).single();
+        if (!existingProduct) return res.status(404).json({ error: 'Product not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin') {
+            if (!existingProduct.shop_id) return res.status(403).json({ error: 'Forbidden: You cannot modify global products.' });
+            
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingProduct.shop_id).single();
+            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            }
+        }
+
         const { data, error } = await supabase
             .from('products')
             .update({
@@ -109,7 +154,6 @@ router.put('/:id', async (req, res) => {
             .select();
 
         if (error) throw error;
-        if (data.length === 0) return res.status(404).json({ error: 'Product not found' });
         res.json({ message: 'Product updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
@@ -118,8 +162,10 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete product (Soft Delete / Archive)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
+    const admin = req.user;
+
     try {
         const { data: product, error: fetchError } = await supabase
             .from('products')
@@ -127,9 +173,16 @@ router.delete('/:id', async (req, res) => {
             .eq('id', id)
             .single();
 
-        if (fetchError) {
-            if (fetchError.code === 'PGRST116') return res.status(404).json({ error: 'Product not found' });
-            throw fetchError;
+        if (fetchError || !product) return res.status(404).json({ error: 'Product not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin') {
+            if (!product.shop_id) return res.status(403).json({ error: 'Forbidden: You cannot delete global products.' });
+            
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', product.shop_id).single();
+            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            }
         }
 
         const { error: backupError } = await supabase
@@ -149,8 +202,6 @@ router.delete('/:id', async (req, res) => {
             .eq('id', id);
 
         if (deleteError) throw deleteError;
-        if (count === 0) return res.status(404).json({ error: 'Product not found' });
-        
         res.json({ message: 'Product archived and deleted successfully' });
     } catch (error) {
         console.error('Error deleting product:', error);

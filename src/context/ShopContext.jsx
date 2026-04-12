@@ -39,7 +39,10 @@ export const ShopProvider = ({ children }) => {
                 url += `?shop_id=${user.shop_id}`;
             }
 
-            const response = await fetch(url, { signal: controller.signal });
+            const response = await fetch(url, { 
+                signal: controller.signal,
+                headers: user ? { 'x-user-id': user.id } : {}
+            });
             clearTimeout(timeoutId);
             
             if (response.ok) {
@@ -115,7 +118,9 @@ export const ShopProvider = ({ children }) => {
                 url += `?shop_id=${user.shop_id}`;
             }
 
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: user ? { 'x-user-id': user.id } : {}
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (Array.isArray(data)) {
@@ -138,7 +143,9 @@ export const ShopProvider = ({ children }) => {
 
     const fetchCoupons = async () => {
         try {
-            const response = await fetch('/api/coupons');
+            const response = await fetch('/api/coupons', {
+                headers: user ? { 'x-user-id': user.id } : {}
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (Array.isArray(data)) {
@@ -166,7 +173,9 @@ export const ShopProvider = ({ children }) => {
 
     const fetchBackups = async () => {
         try {
-            const response = await fetch('/api/backups');
+            const response = await fetch('/api/backups', {
+                headers: user ? { 'x-user-id': user.id } : {}
+            });
             if (response.ok) {
                 const data = await response.json();
                 setBackups(data);

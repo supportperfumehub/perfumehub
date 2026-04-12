@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import { Store, Package, Target, Settings, Save } from 'lucide-react';
+import '../Admin/Admin.css'; // Use the premium admin styles
 
 const VendorPanel = () => {
     const { isRTL } = useOutletContext();
@@ -34,60 +35,69 @@ const VendorPanel = () => {
     if (!shopId) {
         return (
             <div className="container section text-center" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <Store size={64} color="#ccc" style={{ marginBottom: '20px' }} />
-                <h2>{isRTL ? 'إعداد متجرك قيد المعالجة' : 'Your Shop is Pending Setup'}</h2>
-                <p>{isRTL ? 'تواصل مع الإدارة لتفعيل متجرك' : 'Contact admin to activate your shop.'}</p>
+                <Store size={64} color="#c8a951" style={{ marginBottom: '20px' }} />
+                <h2 style={{ color: '#fff' }}>{isRTL ? 'إعداد متجرك قيد المعالجة' : 'Your Shop is Pending Setup'}</h2>
+                <p style={{ color: '#94a3b8' }}>{isRTL ? 'تواصل مع الإدارة لتفعيل متجرك' : 'Contact admin to activate your shop.'}</p>
             </div>
         );
     }
 
+    const tabs = [
+        { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <Package size={20} /> },
+        { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
+        { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> }
+    ];
+
     return (
-        <div className="admin-page">
-            <div className="admin-header text-center">
-                <div className="container">
-                    <h1>{isRTL ? 'لوحة تحكم البائع' : 'Vendor Dashboard'}</h1>
-                    <p className="admin-subtitle">
-                        {isRTL
-                            ? `مرحباً بك في متجرك، ${user.name}`
-                            : `Welcome to your shop, ${user.name}`}
-                    </p>
+        <div className={`admin-dashboard ${isRTL ? 'rtl' : 'ltr'}`}>
+            {/* Sidebar Navigation */}
+            <aside className="admin-sidebar">
+                <div className="sidebar-header">
+                    <h2>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</h2>
+                    <span className="role-badge">
+                        {isRTL ? 'بائع معتمد' : 'Vendor'}
+                    </span>
                 </div>
-            </div>
+                
+                <nav className="sidebar-nav">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                            onClick={() => setActiveTab(tab.id)}
+                        >
+                            <span className="nav-icon">{tab.icon}</span>
+                            <span className="nav-label">{tab.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </aside>
 
-            <div className="container section admin-container">
-                <div className="admin-sidebar text-center" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', marginBottom: '30px' }}>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'products' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('products')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <Package size={16} />
-                        {isRTL ? 'منتجاتي' : 'My Products'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('orders')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <Target size={16} />
-                        {isRTL ? 'طلبات المتجر' : 'Shop Orders'}
-                    </button>
-                    <button
-                        className={`admin-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('settings')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <Settings size={16} />
-                        {isRTL ? 'إعدادات المتجر' : 'Shop Settings'}
-                    </button>
-                </div>
+            {/* Main Content Area */}
+            <main className="admin-main">
+                <header className="main-header">
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h1>{tabs.find(t => t.id === activeTab)?.label}</h1>
+                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
+                            {isRTL
+                                ? `مرحباً بك في متجرك، ${user?.name}`
+                                : `Welcome to your shop, ${user?.name}`}
+                        </p>
+                    </div>
+                </header>
 
-                <div className="admin-content">
+                <div className="main-content-wrapper">
                     {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'settings' && (
-                        <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
-                            <h3 style={{ marginBottom: '20px' }}><Settings size={20} style={{ verticalAlign: 'text-bottom', marginRight: '8px' }}/> {isRTL ? 'إعدادات متجرك' : 'Your Shop Settings'}</h3>
+                        <div className="admin-section">
+                            <div className="manager-header">
+                                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Settings size={24} color="#c8a951" /> 
+                                    {isRTL ? 'إعدادات متجرك' : 'Your Shop Settings'}
+                                </h2>
+                            </div>
+                            
                             {shopData ? (
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
@@ -109,7 +119,7 @@ const VendorPanel = () => {
                                         setSavingSettings(false);
                                     }
                                 }}>
-                                    <div style={{ marginBottom: '15px' }}>
+                                    <div className="form-group" style={{ marginBottom: '24px' }}>
                                         <label className="form-label">{isRTL ? 'رقم الواتساب (لتلقي الطلبات)' : 'WhatsApp Number (For Orders)'}</label>
                                         <input 
                                             type="text" 
@@ -118,30 +128,34 @@ const VendorPanel = () => {
                                             value={shopData.whatsapp_number || ''} 
                                             onChange={(e) => setShopData({...shopData, whatsapp_number: e.target.value})}
                                         />
-                                        <small style={{ color: '#888' }}>{isRTL ? 'الرقم الذي سيتم توجيه العملاء إليه للحجز' : 'The number customers will be redirected to for reservations'}</small>
+                                        <small style={{ color: '#64748b', display: 'block', marginTop: '6px' }}>
+                                            {isRTL ? 'الرقم الذي سيتم توجيه العملاء إليه للحجز' : 'The number customers will be redirected to for reservations'}
+                                        </small>
                                     </div>
-                                    <div style={{ marginBottom: '25px' }}>
+                                    <div className="form-group" style={{ marginBottom: '32px' }}>
                                         <label className="form-label">{isRTL ? 'عنوان المتجر' : 'Shop Address'}</label>
                                         <textarea 
                                             className="form-control" 
+                                            rows="4"
                                             value={shopData.address || ''} 
                                             onChange={(e) => setShopData({...shopData, address: e.target.value})}
                                         />
                                     </div>
                                     <button type="submit" className="btn btn-gold" disabled={savingSettings}>
-                                        <Save size={16} style={{ display: 'inline', marginRight: '6px' }}/>
+                                        <Save size={18} />
                                         {savingSettings ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
                                     </button>
                                 </form>
                             ) : (
-                                <p>{isRTL ? 'جاري تحميل البيانات...' : 'Loading...'}</p>
+                                <p style={{ color: '#94a3b8' }}>{isRTL ? 'جاري تحميل البيانات...' : 'Loading...'}</p>
                             )}
                         </div>
                     )}
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
 
 export default VendorPanel;
+

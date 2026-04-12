@@ -10,19 +10,37 @@ export const authenticateUser = async (req, res, next) => {
         const userId = req.headers['x-user-id'] || req.body.userId || req.query.userId;
         
         if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized: No user ID provided' });
+            // Guest access - continue without attaching a user
+            return next();
         }
 
         const { data: user, error } = await supabase.from('customers').select('*').eq('id', userId).single();
 
         if (error || !user) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid user' });
+            // If an ID was provided but it's invalid, we should probably still allow next()
+            // but log it or just let verifyRole handle the failure.
+            return next();
         }
 
         req.user = user; // Attach hydrated user to request
+
+        // ── Regional Scoping Logic ──
+        if (user.role === 'regional_admin') {
+            const { data: mappings } = await supabase
+                .from('admin_region_mapping')
+                .select('region_id')
+                .eq('admin_id', user.id);
+            
+            req.user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
+        } else if (user.role === 'super_admin' || user.role === 'admin') {
+            // Super admins see all regions (null means no restriction)
+            req.user.assignedRegionIds = null; 
+        }
+
         next();
     } catch (err) {
-        return res.status(500).json({ error: 'Internal Server Error in authentication' });
+        console.error('Auth Middleware Error:', err);
+        next(); // Still continue but without req.user
     }
 };
 

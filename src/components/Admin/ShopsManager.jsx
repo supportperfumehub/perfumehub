@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
+import { AuthContext } from '../../context/AuthContext';
 import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 
 const ShopsManager = ({ isRTL }) => {
     const { products, orders } = useContext(ShopContext);
+    const { user } = useContext(AuthContext);
     const [shops, setShops] = useState([]);
+    const [regions, setRegions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [expandedShop, setExpandedShop] = useState(null);
@@ -18,7 +21,8 @@ const ShopsManager = ({ isRTL }) => {
         ownerPassword: '',
         shopName: '',
         address: '',
-        whatsapp_number: ''
+        whatsapp_number: '',
+        region_id: ''
     });
     const [photoInputs, setPhotoInputs] = useState(['']);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -31,31 +35,42 @@ const ShopsManager = ({ isRTL }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchShops = async () => {
+    const fetchShopsAndRegions = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/shops');
-            if (response.ok) {
-                const data = await response.json();
+            const headers = user ? { 'x-user-id': user.id } : {};
+            const [shopsRes, regionsRes] = await Promise.all([
+                fetch('/api/shops', { headers }),
+                fetch('/api/regions', { headers })
+            ]);
+            
+            if (shopsRes.ok) {
+                const data = await shopsRes.json();
                 setShops(data);
             }
+            if (regionsRes.ok) {
+                const regData = await regionsRes.json();
+                setRegions(regData || []);
+            }
         } catch (error) {
-            console.error('Error fetching shops:', error);
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchShops(); }, []);
+    useEffect(() => { fetchShopsAndRegions(); }, []);
 
     const updateShopStatus = async (id, status) => {
         try {
-            const response = await fetch(`/api/shops/${id}`, {
+            const response = await fetch(`/api/shops/${id}/approve`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                }
             });
-            if (response.ok) fetchShops();
+            if (response.ok) fetchShopsAndRegions();
             else alert(isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status');
         } catch (error) {
             console.error('Error updating shop status:', error);
@@ -66,12 +81,15 @@ const ShopsManager = ({ isRTL }) => {
         try {
             const response = await fetch(`/api/shops/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify(editData)
             });
             if (response.ok) {
                 setEditingShop(null);
-                fetchShops();
+                fetchShopsAndRegions();
                 alert(isRTL ? 'تم تحديث بيانات المتجر' : 'Shop details updated');
             }
         } catch (error) {
@@ -87,9 +105,12 @@ const ShopsManager = ({ isRTL }) => {
     const confirmDelete = async () => {
         if (!shopToDelete) return;
         try {
-            const response = await fetch(`/api/shops/${shopToDelete.id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/shops/${shopToDelete.id}`, { 
+                method: 'DELETE',
+                headers: user ? { 'x-user-id': user.id } : {}
+            });
             if (response.ok) {
-                fetchShops();
+                fetchShopsAndRegions();
                 setShowConfirm(false);
                 setShopToDelete(null);
             }
@@ -172,14 +193,17 @@ const ShopsManager = ({ isRTL }) => {
         try {
             const response = await fetch('/api/shops/manual', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify({ ...formData, images, adminCreated: true })
             });
             if (response.ok) {
                 setShowForm(false);
-                setFormData({ ownerName: '', ownerEmail: '', ownerPassword: '', shopName: '', address: '', whatsapp_number: '' });
+                setFormData({ ownerName: '', ownerEmail: '', ownerPassword: '', shopName: '', address: '', whatsapp_number: '', region_id: '' });
                 setPhotoInputs(['']);
-                fetchShops();
+                fetchShopsAndRegions();
                 alert(isRTL ? 'تم إنشاء المتجر بنجاح' : 'Vendor created successfully');
             } else {
                 const data = await response.json();
@@ -238,6 +262,16 @@ const ShopsManager = ({ isRTL }) => {
                             <div>
                                 <label className="form-label">{isRTL ? 'اسم المتجر' : 'Shop Name'}</label>
                                 <input type="text" className="form-control" required value={formData.shopName} onChange={(e) => setFormData({...formData, shopName: e.target.value})} />
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label">{isRTL ? 'المنطقة' : 'Region (Optional)'}</label>
+                                <select className="form-control" value={formData.region_id} onChange={(e) => setFormData({...formData, region_id: e.target.value})}>
+                                    <option value="">{isRTL ? '-- لا يوجد منطقة محددة --' : '-- No Region Assigned --'}</option>
+                                    {regions
+                                        .filter(r => user?.role === 'super_admin' || user?.role === 'admin' || user?.assignedRegionIds?.includes(r.id))
+                                        .map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)
+                                    }
+                                </select>
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label className="form-label">{isRTL ? 'العنوان' : 'Shop Address'}</label>
@@ -344,7 +378,19 @@ const ShopsManager = ({ isRTL }) => {
                                         { key: 'edit', icon: <Edit size={14} />, label: isRTL ? 'تعديل' : 'Edit Shop' }
                                     ].map(tab => (
                                         <button key={tab.key}
-                                            onClick={() => { setExpandedTab(tab.key); if (tab.key === 'edit') { setEditingShop(shop.id); setEditData({ name: shop.name, address: shop.address, whatsapp_number: shop.whatsapp_number || '', is_recommended: shop.is_recommended || false }); } }}
+                                            onClick={() => { 
+                                                setExpandedTab(tab.key); 
+                                                if (tab.key === 'edit') { 
+                                                    setEditingShop(shop.id); 
+                                                    setEditData({ 
+                                                        name: shop.name, 
+                                                        address: shop.address, 
+                                                        whatsapp_number: shop.whatsapp_number || '', 
+                                                        is_recommended: shop.is_recommended || false,
+                                                        region_id: shop.region_id || ''
+                                                    }); 
+                                                } 
+                                            }}
                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}
                                         >
                                             {tab.icon} {tab.label}
@@ -570,13 +616,20 @@ const ShopsManager = ({ isRTL }) => {
                                                 <input type="text" className="form-control" placeholder="+974..." value={editData.whatsapp_number || ''} onChange={(e) => setEditData({...editData, whatsapp_number: e.target.value})} />
                                             </div>
                                             <div style={{ gridColumn: '1 / -1' }}>
+                                                <label className="form-label">{isRTL ? 'المنطقة' : 'Region'}</label>
+                                                <select className="form-control" value={editData.region_id || ''} onChange={(e) => setEditData({...editData, region_id: e.target.value})}>
+                                                    <option value="">{isRTL ? '-- غير محدد --' : '-- Unassigned --'}</option>
+                                                    {regions.map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
+                                                </select>
+                                            </div>
+                                            <div style={{ gridColumn: '1 / -1' }}>
                                                 <label className="form-label">{isRTL ? 'العنوان' : 'Address'}</label>
                                                 <input type="text" className="form-control" value={editData.address || ''} onChange={(e) => setEditData({...editData, address: e.target.value})} />
                                             </div>
                                         </div>
                                         <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
                                             <button className="btn btn-gold" style={{ height: '48px', flex: 1 }} onClick={() => updateShopDetails(shop.id)}>{isRTL ? 'حفظ التغييرات' : 'SAVE CHANGES'}</button>
-                                            <button className="btn btn-outline" style={{ height: '48px', flex: 1 }} onClick={() => { setEditingShop(null); setExpandedTab('overview'); }}>{isRTL ? 'إلغاء' : 'CANCEL'}</button>
+                                            <button className="btn btn-slate" style={{ height: '48px', flex: 1 }} onClick={() => { setEditingShop(null); setExpandedTab('overview'); }}>{isRTL ? 'إلغاء' : 'CANCEL'}</button>
                                         </div>
                                     </div>
                                 )}

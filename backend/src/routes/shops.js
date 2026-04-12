@@ -6,23 +6,19 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 const router = express.Router();
 
 // Get all shops (public optionally supports status and admin filtering)
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     try {
         let query = supabase.from('shops').select('*, customers!shops_owner_id_fkey(name, email)');
         
         if (req.query.status) query = query.eq('status', req.query.status);
         if (req.query.owner_id) query = query.eq('owner_id', req.query.owner_id);
 
-        if (req.query.admin_id) {
-            const { data: regionsMap } = await supabase
-                .from('admin_region_mapping')
-                .select('region_id')
-                .eq('admin_id', req.query.admin_id);
-            
-            if (regionsMap && regionsMap.length > 0) {
-                const regionIds = regionsMap.map(rm => rm.region_id);
-                query = query.in('region_id', regionIds);
+        // Enforce Regional Scoping for Regional Admins
+        if (req.user && req.user.role === 'regional_admin') {
+            if (req.user.assignedRegionIds && req.user.assignedRegionIds.length > 0) {
+                query = query.in('region_id', req.user.assignedRegionIds);
             } else {
+                // Regional admin with no assigned regions has no access
                 return res.json([]);
             }
         }
@@ -61,7 +57,7 @@ router.post('/', async (req, res) => {
 
 // Create a complete Vendor + Shop (Admin or Guest self-registration)
 router.post('/manual', async (req, res) => {
-    const { ownerName, ownerEmail, ownerPassword, shopName, address, latitude, longitude, images, adminCreated, whatsapp_number, is_recommended } = req.body;
+    const { ownerName, ownerEmail, ownerPassword, shopName, address, latitude, longitude, images, adminCreated, whatsapp_number, is_recommended, region_id } = req.body;
     
     const userRole = adminCreated ? 'vendor' : 'customer';
     const shopStatus = adminCreated ? 'APPROVED' : 'PENDING';
@@ -78,6 +74,7 @@ router.post('/manual', async (req, res) => {
         let shopPayload = { owner_id: user.id, name: shopName, address, latitude, longitude, images: images || [], status: shopStatus };
         if (whatsapp_number !== undefined) shopPayload.whatsapp_number = whatsapp_number;
         if (is_recommended !== undefined) shopPayload.is_recommended = is_recommended;
+        if (region_id !== undefined && region_id !== '') shopPayload.region_id = parseInt(region_id);
 
         const { data: shop, error: shopError } = await supabase
             .from('shops')
@@ -102,11 +99,26 @@ router.post('/manual', async (req, res) => {
 // Admin Approve
 router.put('/:id/approve', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const adminId = req.user.id;
+    const admin = req.user;
     try {
+        // Find the shop first to check its region
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('region_id, owner_id')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
+            return res.status(403).json({ error: 'Forbidden: You can only approve shops in your assigned regions.' });
+        }
+
         const { data, error } = await supabase.from('shops')
-            .update({ status: 'APPROVED', approved_by: adminId, approved_at: new Date() })
+            .update({ status: 'APPROVED', approved_by: admin.id, approved_at: new Date() })
             .eq('id', id).select().single();
+            
         if (error) throw error;
         await supabase.from('customers').update({ role: 'vendor' }).eq('id', data.owner_id);
         res.json({ message: 'Shop approved successfully', shop: data });
@@ -119,10 +131,26 @@ router.put('/:id/approve', authenticateUser, verifyRole(['super_admin', 'regiona
 router.put('/:id/reject', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { rejection_reason } = req.body;
+    const admin = req.user;
     try {
+        // Find the shop first to check its region
+        const { data: shop, error: fetchError } = await supabase
+            .from('shops')
+            .select('region_id')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
+
+        // Scoping check
+        if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
+            return res.status(403).json({ error: 'Forbidden: You can only reject shops in your assigned regions.' });
+        }
+
         const { data, error } = await supabase.from('shops')
             .update({ status: 'REJECTED', rejection_reason })
             .eq('id', id).select().single();
+            
         if (error) throw error;
         res.json({ message: 'Shop rejected', shop: data });
     } catch (error) {
@@ -148,9 +176,11 @@ router.post('/:id/resubmit', authenticateUser, verifyRole(['vendor', 'customer']
 // Update Shop
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended } = req.body;
+    const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id } = req.body;
     try {
-        const updateData = { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended };
+        const updateData = { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id };
+        if (updateData.region_id === '') updateData.region_id = null; // Convert empty string to null
+        else if (updateData.region_id !== undefined) updateData.region_id = parseInt(updateData.region_id);
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
         const { data, error } = await supabase.from('shops').update(updateData).eq('id', id).select().single();
         if (error) throw error;

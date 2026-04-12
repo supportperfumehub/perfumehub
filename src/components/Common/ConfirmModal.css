@@ -163,13 +163,15 @@
 }
 
 .premium-matte-content .btn-cancel {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: rgba(255, 255, 255, 0.6) !important;
+    background: #334155 !important;
+    color: #f8fafc !important;
+    border: 1px solid #475569 !important;
 }
 
 .premium-matte-content .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: #475569 !important;
     color: #FFFFFF !important;
+    transform: translateY(-2px);
 }
 
 .premium-matte-content .confirm-modal-close {

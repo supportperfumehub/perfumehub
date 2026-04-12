@@ -1,12 +1,24 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
+import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all regions
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     try {
-        const { data, error } = await supabase.from('regions').select('*').order('name');
+        let query = supabase.from('regions').select('*').order('name');
+        
+        // Scoping for regional admins
+        if (req.user && req.user.role === 'regional_admin') {
+            if (req.user.assignedRegionIds && req.user.assignedRegionIds.length > 0) {
+                query = query.in('id', req.user.assignedRegionIds);
+            } else {
+                return res.json([]);
+            }
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         res.json(data);
     } catch (error) {
@@ -15,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a region
-router.post('/', async (req, res) => {
+router.post('/', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { name, code, currencyCode } = req.body;
     try {
         const { data, error } = await supabase
@@ -30,8 +42,55 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Update a region
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    const { name, code, currencyCode } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('regions')
+            .update({ name, code, currency_code: currencyCode })
+            .eq('id', id)
+            .select();
+        
+        if (error) throw error;
+        if (data && data.length === 0) return res.status(404).json({ error: 'Region not found' });
+        
+        res.json({ region: data[0], message: 'Region updated successfully' });
+    } catch (error) {
+        if (error.code === '23505') return res.status(400).json({ error: 'Region with this code already exists' });
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+// Delete a region
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('regions')
+            .delete()
+            .eq('id', id)
+            .select();
+            
+        if (error) {
+            // Foreign key constraints e.g., 23503
+            if (error.code === '23503') {
+                return res.status(400).json({ error: 'Cannot delete region because shops or admins are currently assigned to it. Please reassign them first.' });
+            }
+            throw error;
+        }
+        
+        if (data && data.length === 0) return res.status(404).json({ error: 'Region not found' });
+        
+        res.json({ message: 'Region deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
 // Assign Admin to a Region
-router.post('/assign-admin', async (req, res) => {
+router.post('/assign-admin', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { admin_id, region_id, assigned_by } = req.body;
     try {
         const { data, error } = await supabase

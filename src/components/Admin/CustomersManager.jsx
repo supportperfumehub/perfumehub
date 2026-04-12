@@ -40,12 +40,12 @@ const CustomersManager = ({ isRTL }) => {
             <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
-                        <tr>
-                            <th>{isRTL ? 'العميل' : 'Customer'}</th>
-                            <th>{isRTL ? 'معلومات الاتصال' : 'Contact Info'}</th>
-                            <th>{isRTL ? 'تاريخ الانضمام' : 'Join Date'}</th>
-                            <th>{isRTL ? 'الطلبات' : 'Orders'}</th>
-                            <th>{isRTL ? 'إجمالي الإنفاق' : 'Total Spent'}</th>
+                        <tr style={{ whiteSpace: 'nowrap' }}>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'العميل' : 'Customer'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'معلومات الاتصال' : 'Contact Info'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'تاريخ الانضمام' : 'Join Date'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'الطلبات' : 'Orders'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'إجمالي الإنفاق' : 'Total Spent'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,13 +59,13 @@ const CustomersManager = ({ isRTL }) => {
                                         <strong style={{ color: '#f8fafc' }}>{customer.name}</strong>
                                     </div>
                                 </td>
-                                <td>
+                                <td style={{ whiteSpace: 'nowrap' }}>
                                     <div style={{ fontSize: '0.9em', color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Mail size={14} /> {customer.email}</span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Phone size={14} /> {customer.phone}</span>
                                     </div>
                                 </td>
-                                <td>
+                                <td style={{ whiteSpace: 'nowrap' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#cbd5e1', fontSize: '0.9em' }}>
                                         <Calendar size={14} /> {customer.joinDate}
                                     </span>

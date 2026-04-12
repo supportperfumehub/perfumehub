@@ -146,24 +146,24 @@ const CouponsManager = ({ isRTL }) => {
             <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
-                        <tr>
-                            <th>{isRTL ? 'الرمز' : 'Code'}</th>
-                            <th>{isRTL ? 'النوع' : 'Type'}</th>
-                            <th>{isRTL ? 'القيمة' : 'Value'}</th>
-                            <th>{isRTL ? 'تاريخ الانتهاء' : 'Expiry'}</th>
-                            <th>{isRTL ? 'الاستخدام' : 'Usage'}</th>
-                            <th>{isRTL ? 'الحالة' : 'Status'}</th>
-                            <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                        <tr style={{ whiteSpace: 'nowrap' }}>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'الرمز' : 'Code'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'النوع' : 'Type'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'القيمة' : 'Value'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'تاريخ الانتهاء' : 'Expiry'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'الاستخدام' : 'Usage'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'الحالة' : 'Status'}</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {coupons.map(coupon => (
                             <tr key={coupon.id}>
-                                <td><strong>{coupon.code}</strong></td>
-                                <td>{coupon.discountType === 'percentage' ? (isRTL ? 'نسبة' : 'Percentage') : (isRTL ? 'ثابت' : 'Fixed')}</td>
-                                <td>{coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : (isRTL ? ' ر.ق' : ' QAR')}</td>
-                                <td>{coupon.expiryDate}</td>
-                                <td>
+                                <td style={{ whiteSpace: 'nowrap' }}><strong>{coupon.code}</strong></td>
+                                <td style={{ whiteSpace: 'nowrap' }}>{coupon.discountType === 'percentage' ? (isRTL ? 'نسبة' : 'Percentage') : (isRTL ? 'ثابت' : 'Fixed')}</td>
+                                <td style={{ whiteSpace: 'nowrap' }}>{coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : (isRTL ? ' ر.ق' : ' QAR')}</td>
+                                <td style={{ whiteSpace: 'nowrap' }}>{coupon.expiryDate}</td>
+                                <td style={{ whiteSpace: 'nowrap' }}>
                                     <span style={{
                                         color: (coupon.usageCount >= coupon.usageLimit) ? '#ff3333' : 'inherit',
                                         fontWeight: (coupon.usageCount >= coupon.usageLimit) ? 'bold' : 'normal'
@@ -177,6 +177,7 @@ const CouponsManager = ({ isRTL }) => {
                                         borderRadius: '4px',
                                         fontSize: '0.85em',
                                         fontWeight: 'bold',
+                                        whiteSpace: 'nowrap',
                                         backgroundColor: (coupon.isActive && (!coupon.usageLimit || coupon.usageCount < coupon.usageLimit)) ? '#e6ffed' : '#ffe6e6',
                                         color: (coupon.isActive && (!coupon.usageLimit || coupon.usageCount < coupon.usageLimit)) ? '#00b33c' : '#ff3333'
                                     }}>
