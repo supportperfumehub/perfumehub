@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         try {
             // Hardcoded admin check for local simulation, or handle via backend roles
             if (email === 'admin@perfumehub.com' && password === 'admin123') {
-                const adminUser = { email, name: 'Admin User', role: 'admin' };
+                const adminUser = { id: 39, email, name: 'Admin User', role: 'super_admin' };
                 setUser(adminUser);
                 setIsAdmin(true);
                 setIsVendor(false);

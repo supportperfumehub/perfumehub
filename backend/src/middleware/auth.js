@@ -9,20 +9,17 @@ export const authenticateUser = async (req, res, next) => {
     try {
         const userId = req.headers['x-user-id'] || req.body.userId || req.query.userId;
         
-        if (!userId) {
-            // Guest access - continue without attaching a user
+        if (!userId || userId === 'undefined' || userId === 'null') {
             return next();
         }
 
         const { data: user, error } = await supabase.from('customers').select('*').eq('id', userId).single();
 
         if (error || !user) {
-            // If an ID was provided but it's invalid, we should probably still allow next()
-            // but log it or just let verifyRole handle the failure.
             return next();
         }
 
-        req.user = user; // Attach hydrated user to request
+        req.user = user;
 
         // ── Regional Scoping Logic ──
         if (user.role === 'regional_admin') {

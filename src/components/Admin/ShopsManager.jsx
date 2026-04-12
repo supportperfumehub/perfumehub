@@ -128,7 +128,10 @@ const ShopsManager = ({ isRTL }) => {
         try {
             const response = await fetch(`/api/shops/${shopToDelete.id}`, { 
                 method: 'DELETE',
-                headers: user ? { 'x-user-id': user.id } : {}
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                }
             });
             if (response.ok) {
                 fetchShopsAndRegions();
