@@ -7,6 +7,13 @@ const OrderManager = ({ isRTL, shopId }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [expandedCustomers, setExpandedCustomers] = useState({});
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    React.useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // ── Helper: Status Translation & Styling ──
     const getStatusClass = (status) => {
@@ -113,23 +120,14 @@ const OrderManager = ({ isRTL, shopId }) => {
 
     return (
         <div className="manager-content">
-            <div className="manager-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <div className="manager-header stack-mobile">
+                <div className="header-title-container">
                     <h2 style={{ margin: 0 }}>{isRTL ? 'إدارة الطلبات المتقدمة' : 'Advanced Order Management'}</h2>
                 </div>
 
                 {/* ── Search & Filter Bar ── */}
-                <div className="admin-order-controls" style={{ 
-                    display: 'flex', 
-                    gap: '15px', 
-                    width: '100%', 
-                    flexWrap: 'wrap',
-                    background: '#f8f9fa',
-                    padding: '20px',
-                    borderRadius: '8px',
-                    border: '1px solid #eee'
-                }}>
-                    <div className="admin-search-container" style={{ flex: 1, minWidth: '250px' }}>
+                <div className="admin-order-controls">
+                    <div className="admin-search-container">
                         <input 
                             type="text" 
                             className="form-control admin-search-input" 
@@ -142,13 +140,12 @@ const OrderManager = ({ isRTL, shopId }) => {
                         </div>
                     </div>
 
-                    <div className="filter-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div className="filter-group">
                         {['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
                             <button 
                                 key={status}
-                                className={`category-pill ${statusFilter === status ? 'active' : ''}`}
                                 onClick={() => setStatusFilter(status)}
-                                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                                className={`filter-pill ${statusFilter === status ? 'active' : ''}`}
                             >
                                 {translateStatus(status)}
                             </button>
@@ -177,15 +174,15 @@ const OrderManager = ({ isRTL, shopId }) => {
 
                             return (
                                 <React.Fragment key={groupIdx}>
-                                    <tr style={{ background: isExpanded ? '#fffaf0' : 'transparent', fontWeight: '500' }}>
+                                    <tr style={{ background: isExpanded ? 'rgba(255, 255, 255, 0.05)' : 'transparent', fontWeight: '500' }}>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ background: '#eee', padding: '8px', borderRadius: '50%' }}>
+                                                <div style={{ background: '#334155', padding: '8px', borderRadius: '50%', color: '#cbd5e1' }}>
                                                     <User size={18} />
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: 'bold' }}>{group.customerName}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>{group.email}</div>
+                                                    <div style={{ fontWeight: 'bold', color: '#f8fafc' }}>{group.customerName}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{group.email}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -200,20 +197,10 @@ const OrderManager = ({ isRTL, shopId }) => {
                                             <button 
                                                 className="admin-action-btn edit-btn" 
                                                 onClick={() => toggleCustomerExpand(customerKey)}
-                                                style={{ 
-                                                    border: '1px solid #3498db', 
-                                                    padding: '6px 10px', 
-                                                    borderRadius: '4px', 
-                                                    display: 'inline-flex', 
-                                                    alignItems: 'center', 
-                                                    gap: '5px',
-                                                    fontSize: '0.85rem',
-                                                    margin: 0
-                                                }}
+                                                style={{ width: 'auto', padding: '0 12px', fontSize: '0.85rem' }}
                                             >
-                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                                <span className="hide-mobile">{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
-                                                <span className="show-mobile-only">{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
+                                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                <span style={{ marginLeft: isRTL ? '0' : '5px', marginRight: isRTL ? '5px' : '0' }}>{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -222,12 +209,12 @@ const OrderManager = ({ isRTL, shopId }) => {
                                         <tr>
                                             <td colSpan="5" style={{ padding: '0 0 20px 0' }}>
                                                 <div style={{ 
-                                                    margin: '10px 40px', 
+                                                    margin: isMobile ? '10px 10px' : '10px 40px', 
                                                     padding: '20px', 
-                                                    background: '#fff', 
-                                                    borderRadius: '8px',
-                                                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)',
-                                                    border: '1px solid #eee'
+                                                    background: '#151f33', 
+                                                    borderRadius: '12px',
+                                                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)',
+                                                    border: '1px solid #334155'
                                                 }}>
                                                     {group.orders.map((order, idx) => (
                                                         <div key={order.id} style={{ 
@@ -240,11 +227,11 @@ const OrderManager = ({ isRTL, shopId }) => {
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                 <div>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                                                                        <Package size={16} color="#d4af37" />
-                                                                        <strong style={{ fontSize: '1.1rem' }}>{order.id}</strong>
-                                                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>• {order.date}</span>
+                                                                        <Package size={16} color="#c8a951" />
+                                                                        <strong style={{ fontSize: '1.1rem', color: '#f8fafc' }}>{order.id}</strong>
+                                                                        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>• {order.date}</span>
                                                                     </div>
-                                                                    <div style={{ fontSize: '0.9rem', color: '#666', display: 'flex', gap: '15px' }}>
+                                                                    <div style={{ fontSize: '0.9rem', color: '#cbd5e1', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                                                                         {order.phone && <span><Phone size={12} /> {order.phone}</span>}
                                                                         {order.shippingAddress && <span><MapPin size={12} /> {order.shippingAddress}</span>}
                                                                         {order.paymentMethod && <span><CheckCircle size={12} /> {order.paymentMethod}</span>}
@@ -271,12 +258,12 @@ const OrderManager = ({ isRTL, shopId }) => {
                                                                 </div>
                                                             </div>
 
-                                                            <div style={{ background: '#f9f9f9', padding: '10px 15px', borderRadius: '4px' }}>
+                                                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
                                                                 <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
                                                                     {order.items?.map((item, iIdx) => (
-                                                                        <li key={iIdx} style={{ fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                                        <li key={iIdx} style={{ fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#cbd5e1' }}>
                                                                             <span>{item.quantity}x {item.name} {item.isGiftWrapped && '🎁'}</span>
-                                                                            <span>{item.price} {isRTL ? 'ر.ق' : 'QAR'}</span>
+                                                                            <span style={{ fontWeight: '600', color: '#f8fafc' }}>{item.price} {isRTL ? 'ر.ق' : 'QAR'}</span>
                                                                         </li>
                                                                     ))}
                                                                 </ul>

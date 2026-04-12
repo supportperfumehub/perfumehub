@@ -93,10 +93,10 @@ const CouponsManager = ({ isRTL }) => {
             </div>
 
             {showForm && (
-                <div className="admin-form animate-fade-in" style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '30px' }}>
+                <div className="admin-form animate-fade-in" style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', border: '1px solid #334155', marginBottom: '30px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3>{editingId ? (isRTL ? 'تعديل الكوبون' : 'Edit Coupon') : (isRTL ? 'إضافة كوبون' : 'Add Coupon')}</h3>
-                        <button onClick={cancelEdit} className="admin-action-btn"><X size={20} /></button>
+                        <h3 style={{ color: '#f8fafc', margin: 0 }}>{editingId ? (isRTL ? 'تعديل الكوبون' : 'Edit Coupon') : (isRTL ? 'إضافة كوبون' : 'Add Coupon')}</h3>
+                        <button onClick={cancelEdit} className="admin-action-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
 
                     <form onSubmit={handleSubmit}>
@@ -127,12 +127,12 @@ const CouponsManager = ({ isRTL }) => {
 
                         <div className="form-row" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '15px' }}>
                             <div className="form-group" style={{ flex: 1 }}>
-                                <label>{isRTL ? 'حد الاستخدام' : 'Usage Limit'}</label>
+                                <label style={{ color: '#cbd5e1' }}>{isRTL ? 'حد الاستخدام' : 'Usage Limit'}</label>
                                 <input type="number" name="usageLimit" className="form-control" value={formData.usageLimit} onChange={handleInputChange} min="1" />
                             </div>
                             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, marginTop: '25px' }}>
-                                <input type="checkbox" name="isActive" id="isActive" checked={formData.isActive} onChange={handleInputChange} />
-                                <label htmlFor="isActive" style={{ marginBottom: 0 }}>{isRTL ? 'نشط؟' : 'Is Active?'}</label>
+                                <input type="checkbox" name="isActive" id="isActive" checked={formData.isActive} onChange={handleInputChange} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                <label htmlFor="isActive" style={{ marginBottom: 0, color: '#f8fafc', cursor: 'pointer' }}>{isRTL ? 'نشط؟' : 'Is Active?'}</label>
                             </div>
                         </div>
 
@@ -188,12 +188,14 @@ const CouponsManager = ({ isRTL }) => {
                                     </span>
                                 </td>
                                 <td>
-                                    <button className="admin-action-btn edit-btn" onClick={() => handleEdit(coupon)} title={isRTL ? 'تعديل' : 'Edit'} style={{ background: 'none', border: 'none', cursor: 'pointer', margin: '0 5px', color: '#666' }}>
-                                        <Edit size={18} />
-                                    </button>
-                                    <button className="admin-action-btn delete-btn" onClick={() => handleDelete(coupon.id, coupon.code)} title={isRTL ? 'حذف' : 'Delete'} style={{ background: 'none', border: 'none', cursor: 'pointer', margin: '0 5px', color: '#ff3333' }}>
-                                        <Trash2 size={18} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="admin-action-btn edit-btn" onClick={() => handleEdit(coupon)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                            <Edit size={18} />
+                                        </button>
+                                        <button className="admin-action-btn delete-btn" onClick={() => handleDelete(coupon.id, coupon.code)} title={isRTL ? 'حذف' : 'Delete'}>
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

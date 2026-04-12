@@ -361,39 +361,36 @@ const ProductManager = ({ isRTL, shopId }) => {
                 <h2>{isRTL ? 'إدارة المنتجات' : 'Product Management'}</h2>
                 <div className="manager-header-actions">
                     {!showForm && (
-                        <div>
+                        <div className="header-controls-group">
                             <div className="admin-search-container">
+                                <div className="admin-search-icon">
+                                    <Search size={18} />
+                                </div>
                                 <input
                                     type="text"
-                                    placeholder={isRTL ? 'ابحث عن منتج أو ماركة...' : 'Search product or brand...'}
+                                    placeholder={isRTL ? 'ابحث عن منتج...' : 'Search product...'}
                                     className="form-control admin-search-input"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                                <div className="admin-search-icon">
-                                    <Search size={18} />
-                                </div>
                             </div>
                             <select 
-                                className="form-control" 
+                                className="form-control admin-sort-select" 
                                 value={sortBy} 
                                 onChange={(e) => setSortBy(e.target.value)}
-                                style={{ height: '44px', minWidth: '150px' }}
                             >
                                 <option value="default">{isRTL ? 'الترتيب الافتراضي' : 'Default Sort'}</option>
-                                <option value="newest">{isRTL ? 'مضاف حديثاً' : 'Newly Added (Newest First)'}</option>
+                                <option value="newest">{isRTL ? 'مضاف حديثاً' : 'Newly Added'}</option>
                                 <option value="name-asc">{isRTL ? 'الاسم (أ-ي)' : 'Name (A-Z)'}</option>
                                 <option value="name-desc">{isRTL ? 'الاسم (ي-أ)' : 'Name (Z-A)'}</option>
-                                <option value="price-asc">{isRTL ? 'السعر (من الأقل للأعلى)' : 'Price (Low to High)'}</option>
-                                <option value="price-desc">{isRTL ? 'السعر (من الأعلى للأقل)' : 'Price (High to Low)'}</option>
-                                <option value="stock-asc">{isRTL ? 'المخزون (من الأقل للأعلى)' : 'Stock (Low to High)'}</option>
-                                <option value="stock-desc">{isRTL ? 'المخزون (من الأعلى للأقل)' : 'Stock (High to Low)'}</option>
+                                <option value="price-asc">{isRTL ? 'السعر: من الأقل' : 'Price: Low to High'}</option>
+                                <option value="price-desc">{isRTL ? 'السعر: من الأعلى' : 'Price: High to Low'}</option>
                             </select>
                         </div>
                     )}
                     {!showForm && (
-                        <button type="button" className="btn btn-gold" onClick={() => setShowForm(true)} style={{ height: '44px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                            <Plus size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />
+                        <button type="button" className="btn btn-gold" onClick={() => setShowForm(true)}>
+                            <Plus size={18} />
                             {isRTL ? 'إضافة منتج جديد' : 'Add New Product'}
                         </button>
                     )}
@@ -533,39 +530,39 @@ const ProductManager = ({ isRTL, shopId }) => {
                                     <Plus size={16} /> {isRTL ? 'إدارة الأحجام والأسعار (Variants)' : 'Size & Price Variants'}
                                 </div>
                                 
-                                <div className="variant-input-group" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr auto', gap: '8px', alignItems: 'end', marginBottom: '12px' }}>
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>{isRTL ? 'الحجم' : 'Size'}</label>
+                                <div className="variant-input-grid">
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'الحجم' : 'Size'}</label>
                                         <input type="text" name="name" className="form-control" value={variantData.name} onChange={handleVariantInputChange} placeholder="100ml" />
                                     </div>
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>{isRTL ? 'السعر' : 'Price'}</label>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'السعر' : 'Price'}</label>
                                         <input type="number" name="price" className="form-control" value={variantData.price} onChange={handleVariantInputChange} />
                                     </div>
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>{isRTL ? 'القديم' : 'Old'}</label>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'القديم' : 'Old'}</label>
                                         <input type="number" name="oldPrice" className="form-control" value={variantData.oldPrice} onChange={handleVariantInputChange} />
                                     </div>
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>{isRTL ? 'خصم %' : 'Disc %'}</label>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'خصم %' : 'Disc %'}</label>
                                         <input type="number" name="discount" className="form-control" value={variantData.discount} onChange={handleVariantInputChange} />
                                     </div>
-                                    <button type="button" className="btn btn-gold" onClick={addSizeTag} style={{ height: '38px', padding: '0 10px' }}>
+                                    <button type="button" className="btn btn-gold add-variant-btn" onClick={addSizeTag}>
                                         <Plus size={16} />
                                     </button>
                                 </div>
 
                                 {formData.size.length > 0 && (
-                                    <div className="category-pills" style={{ marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '8px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <div className="variant-list">
                                         {formData.size.map((s, idx) => (
-                                            <div key={idx} className="variant-list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f9f9f9', borderRadius: '6px', fontSize: '0.85rem' }}>
-                                                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                                                    <span style={{ fontWeight: 700, minWidth: '50px' }}>{s.name}</span>
-                                                    <span style={{ color: 'var(--color-gold)' }}>{s.price} QAR</span>
-                                                    {s.oldPrice && <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.75rem' }}>{s.oldPrice} QAR</span>}
-                                                    {s.discount > 0 && <span style={{ background: '#d32f2f', color: '#fff', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>{s.discount}% OFF</span>}
+                                            <div key={idx} className="variant-list-item">
+                                                <div className="variant-info">
+                                                    <span className="variant-name">{s.name}</span>
+                                                    <span className="variant-price">{s.price} QAR</span>
+                                                    {s.oldPrice && <span className="variant-old-price">{s.oldPrice} QAR</span>}
+                                                    {s.discount > 0 && <span className="variant-discount-badge">{s.discount}% OFF</span>}
                                                 </div>
-                                                <X size={14} onClick={() => removeSizeTag(idx)} style={{ cursor: 'pointer', color: '#cc0000' }} />
+                                                <X size={14} className="remove-variant-icon" onClick={() => removeSizeTag(idx)} />
                                             </div>
                                         ))}
                                     </div>
@@ -640,12 +637,12 @@ const ProductManager = ({ isRTL, shopId }) => {
                         
                         <div className="image-manage-grid">
                             {formData.images.map((url, idx) => (
-                                <div key={idx} className="image-input-card">
+                                <div key={idx} className="image-input-card" style={{ background: '#1e293b', border: '1px solid #334155' }}>
                                     <div 
-                                        style={{ width: '50px', height: '50px', borderRadius: '6px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                                        style={{ width: '50px', height: '50px', borderRadius: '6px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
                                         onClick={() => document.getElementById(`file-upload-${idx}`).click()}
                                     >
-                                        {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Plus size={20} color="#999" />}
+                                        {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Plus size={20} color="#94a3b8" />}
                                         <input type="file" id={`file-upload-${idx}`} hidden accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
                                     </div>
                                     <div style={{ flex: 1 }}>
@@ -658,7 +655,7 @@ const ProductManager = ({ isRTL, shopId }) => {
                                             style={{ marginBottom: '4px', padding: '6px 10px', fontSize: '0.85rem' }} 
                                         />
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.7rem', color: '#888' }}>{idx === 0 ? (isRTL ? 'الأساسية' : 'MAIN') : (isRTL ? 'إضافية' : 'SUB')}</span>
+                                            <span style={{ fontSize: '0.7rem', color: '#cbd5e1', fontWeight: 'bold' }}>{idx === 0 ? (isRTL ? 'الأساسية' : 'MAIN') : (isRTL ? 'إضافية' : 'SUB')}</span>
                                             <div style={{ display: 'flex', gap: '5px' }}>
                                                 {idx > 0 && <button type="button" onClick={() => moveImage(idx, 'up')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>▲</button>}
                                                 {idx < formData.images.length - 1 && <button type="button" onClick={() => moveImage(idx, 'down')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>▼</button>}
@@ -767,8 +764,8 @@ const ProductManager = ({ isRTL, shopId }) => {
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: '600', marginBottom: '2px' }}>{product.name}</div>
-                                        <small style={{ color: '#888', display: 'block' }}>
+                                        <div style={{ fontWeight: '600', marginBottom: '2px', color: '#f8fafc' }}>{product.name}</div>
+                                        <small style={{ color: '#cbd5e1', display: 'block' }}>
                                             {Array.isArray(product.size) 
                                                 ? product.size.map(s => typeof s === 'object' ? s.name : s).join(', ') 
                                                 : product.size}
@@ -777,18 +774,18 @@ const ProductManager = ({ isRTL, shopId }) => {
                                     <td>{product.brand}</td>
                                     <td>
                                         <div className="price-display-wrapper">
-                                            <div style={{ fontWeight: '600' }}>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>
                                                 {product.price} {isRTL ? 'ر.ق' : 'QAR'}
                                             </div>
                                             {product.oldPrice ? (
-                                                <div style={{ textDecoration: 'line-through', color: '#888', fontSize: '0.85em' }}>
+                                                <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85em' }}>
                                                     {product.oldPrice} {isRTL ? 'ر.ق' : 'QAR'}
                                                 </div>
                                             ) : (
                                                 <div style={{ height: '1.2em' }}></div> /* Spacer for alignment */
                                             )}
                                             {product.discount > 0 ? (
-                                                <span style={{ backgroundColor: '#d32f2f', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7em', fontWeight: 'bold', width: 'fit-content' }}>
+                                                <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7em', fontWeight: 'bold', width: 'fit-content' }}>
                                                     {product.discount}% OFF
                                                 </span>
                                             ) : (
@@ -802,22 +799,24 @@ const ProductManager = ({ isRTL, shopId }) => {
                                         </span>
                                     </td>
                                     <td>
-                                        <button 
-                                            type="button" 
-                                            className="admin-action-btn edit-btn" 
-                                            onClick={(e) => { e.stopPropagation(); handleEdit(product); }} 
-                                            title={isRTL ? 'تعديل' : 'Edit'}
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className="admin-action-btn delete-btn" 
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
-                                            title={isRTL ? 'حذف' : 'Delete'}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                            <button 
+                                                type="button" 
+                                                className="admin-action-btn edit-btn" 
+                                                onClick={(e) => { e.stopPropagation(); handleEdit(product); }} 
+                                                title={isRTL ? 'تعديل' : 'Edit'}
+                                            >
+                                                <Edit size={18} />
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className="admin-action-btn delete-btn" 
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
+                                                title={isRTL ? 'حذف' : 'Delete'}
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

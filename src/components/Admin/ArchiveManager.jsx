@@ -62,7 +62,7 @@ const ArchiveManager = ({ isRTL }) => {
                     </p>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                     <div className="admin-search-container" style={{ maxWidth: '250px' }}>
                         <input
                             type="text"
@@ -115,14 +115,14 @@ const ArchiveManager = ({ isRTL }) => {
                                     </div>
                                 </td>
                                 <td>
-                                    <div style={{ fontWeight: '600' }}>
+                                    <div style={{ fontWeight: '600', color: '#f8fafc' }}>
                                         {item.table_name === 'products' ? item.data?.name : item.data?.code}
                                     </div>
-                                    <small style={{ color: '#888' }}>ID: {item.record_id}</small>
+                                    <small style={{ color: '#94a3b8' }}>ID: {item.record_id}</small>
                                 </td>
                                 <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem' }}>
-                                        <Clock size={14} color="#888" />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                        <Clock size={14} color="#94a3b8" />
                                         {formatDate(item.deleted_at)}
                                     </div>
                                 </td>
@@ -131,7 +131,7 @@ const ArchiveManager = ({ isRTL }) => {
                                         <button 
                                             className="admin-action-btn edit-btn" 
                                             onClick={(e) => handleActionClick(e, 'restore', item)}
-                                            style={{ color: '#2e7d32', borderColor: '#c8e6c9' }}
+                                            style={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.2)' }}
                                             title={isRTL ? 'استعادة' : 'Restore'}
                                         >
                                             <RefreshCw size={18} />

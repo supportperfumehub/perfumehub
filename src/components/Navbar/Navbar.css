@@ -253,14 +253,14 @@
     .navbar-links.mobile-open {
         display: flex;
         flex-direction: column;
-        position: fixed; /* Changed from absolute for better UX */
+        position: fixed;
         top: 0;
         left: 0;
-        width: 80%;
-        max-width: 300px;
+        width: 88%; /* Increased for better label visibility */
+        max-width: 320px;
         height: 100vh;
         background-color: var(--color-black);
-        padding: 80px 30px 40px;
+        padding: 80px 24px 40px; /* Reduced side padding from 30px */
         gap: 0;
         z-index: 1001;
         box-shadow: 10px 0 30px rgba(0,0,0,0.5);
@@ -270,8 +270,10 @@
     .navbar-links.mobile-open a {
         padding: 15px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        font-size: 1.1rem;
+        font-size: 1rem;
         color: var(--color-white) !important;
+        white-space: normal; /* Allow wrapping if needed */
+        letter-spacing: 1px;
     }
 
     .mobile-only-links {
@@ -288,14 +290,17 @@
         background: transparent;
         border: none;
         color: var(--color-white) !important;
-        font-family: inherit; /* Inherit from body to match links */
-        font-size: 1.1rem; /* Match mobile links */
+        font-family: inherit;
+        font-size: 0.95rem; /* Slightly smaller for better fit */
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 2px;
+        letter-spacing: 0.5px; /* Reduced more for better readability */
         cursor: pointer;
         text-align: left;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        white-space: normal; /* Allow text to wrap if it's too long */
+        width: 100%;
+        line-height: 1.2;
     }
 
     [dir="rtl"] .mobile-nav-link {
@@ -342,9 +347,17 @@
     }
 
     .logo-image {
-        height: 45px;
+        height: 40px; /* Reduced slightly */
     }
 
-    /* On very small screens, keep only search, wishlist, cart if needed,
-       but for now we'll just tighten the spacing. */
+    .navbar-links.mobile-open {
+        width: 90%; /* Almost full width for very small screens */
+        padding: 80px 20px 40px;
+    }
+
+    .mobile-nav-link {
+        font-size: 0.9rem;
+        letter-spacing: 0;
+        gap: 10px;
+    }
 }

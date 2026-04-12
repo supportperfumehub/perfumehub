@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, Calendar } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Search } from 'lucide-react';
 
 const CustomersManager = ({ isRTL }) => {
     // Mock user data
@@ -19,17 +19,21 @@ const CustomersManager = ({ isRTL }) => {
 
     return (
         <div className="manager-content animate-fade-in">
-            <div className="manager-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="manager-header">
                 <h2>{isRTL ? 'إدارة العملاء' : 'Customers Management'}</h2>
-                <div style={{ position: 'relative', width: '300px' }}>
-                    <input
-                        type="text"
-                        placeholder={isRTL ? 'ابحث عن عميل...' : 'Search customers...'}
-                        className="form-control"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ paddingRight: isRTL ? '15px' : '40px', paddingLeft: isRTL ? '40px' : '15px' }}
-                    />
+                <div className="manager-header-actions">
+                    <div className="admin-search-container" style={{ minWidth: '300px' }}>
+                        <div className="admin-search-icon">
+                            <Search size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder={isRTL ? 'ابحث عن عميل...' : 'Search customers...'}
+                            className="form-control admin-search-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -49,30 +53,30 @@ const CustomersManager = ({ isRTL }) => {
                             <tr key={customer.id}>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ width: '40px', height: '40px', backgroundColor: '#f0f0f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                                        <div style={{ width: '40px', height: '40px', backgroundColor: '#334155', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1' }}>
                                             <User size={20} />
                                         </div>
-                                        <strong>{customer.name}</strong>
+                                        <strong style={{ color: '#f8fafc' }}>{customer.name}</strong>
                                     </div>
                                 </td>
                                 <td>
-                                    <div style={{ fontSize: '0.9em', color: '#555', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div style={{ fontSize: '0.9em', color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Mail size={14} /> {customer.email}</span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Phone size={14} /> {customer.phone}</span>
                                     </div>
                                 </td>
                                 <td>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#555', fontSize: '0.9em' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#cbd5e1', fontSize: '0.9em' }}>
                                         <Calendar size={14} /> {customer.joinDate}
                                     </span>
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
-                                    <span style={{ padding: '2px 8px', backgroundColor: '#f0f0f0', borderRadius: '12px', fontWeight: 'bold' }}>
+                                    <span style={{ padding: '2px 8px', backgroundColor: '#334155', borderRadius: '12px', fontWeight: 'bold', color: 'var(--color-gold)' }}>
                                         {customer.totalOrders}
                                     </span>
                                 </td>
                                 <td>
-                                    <strong>{customer.totalSpent} {isRTL ? 'ر.ق' : 'QAR'}</strong>
+                                    <strong style={{ color: '#f8fafc' }}>{customer.totalSpent} {isRTL ? 'ر.ق' : 'QAR'}</strong>
                                 </td>
                             </tr>
                         ))}

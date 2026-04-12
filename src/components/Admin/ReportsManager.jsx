@@ -81,180 +81,178 @@ const ReportsManager = ({ isRTL }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
                 <div
                     onClick={() => setActiveDrillDown('revenue')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#e6f7ff', color: '#1890ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(24, 144, 255, 0.1)', color: '#1890ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <DollarSign size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'إجمالي الإيرادات' : 'Total Revenue'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{totalRevenue} {isRTL ? 'ر.ق' : 'QAR'}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي الإيرادات' : 'Total Revenue'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalRevenue} {isRTL ? 'ر.ق' : 'QAR'}</h3>
                     </div>
                 </div>
 
                 <div
                     onClick={() => setActiveDrillDown('orders')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#fff0f6', color: '#eb2f96', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(235, 47, 150, 0.1)', color: '#eb2f96', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <ShoppingBag size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'إجمالي الطلبات' : 'Total Orders'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{totalOrders}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي الطلبات' : 'Total Orders'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalOrders}</h3>
                     </div>
                 </div>
 
                 <div
                     onClick={() => setActiveDrillDown('customers')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#f6ffed', color: '#52c41a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(82, 196, 26, 0.1)', color: '#52c41a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Users size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'العملاء' : 'Total Customers'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{totalCustomers}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'العملاء' : 'Total Customers'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalCustomers}</h3>
                     </div>
                 </div>
 
                 <div
                     onClick={() => setActiveDrillDown('low-stock')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#fff2e8', color: '#fa541c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(250, 84, 28, 0.1)', color: '#fa541c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <TrendingUp size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'منتجات منخفضة المخزون' : 'Low Stock Items (<20)'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{lowStockProducts}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'منتجات منخفضة المخزون' : 'Low Stock Items'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{lowStockProducts}</h3>
                     </div>
                 </div>
 
                 <div
-                    onClick={() => setActiveDrillDown('today-sales')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    onClick={() => setActiveDrillDown('today')}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#fffbe6', color: '#faad14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(250, 173, 20, 0.1)', color: '#faad14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Activity size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'مبيعات اليوم' : "Today's Sales"}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{todaySales} ({todayRevenue} QAR)</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'مبيعات اليوم' : "Today's Sales"}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{todaySales} ({todayRevenue} QAR)</h3>
                     </div>
                 </div>
 
                 <div
                     onClick={() => setActiveDrillDown('out-of-stock')}
-                    style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#fff1f0', color: '#f5222d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(245, 34, 45, 0.1)', color: '#f5222d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <AlertCircle size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'منتجات غير متوفرة' : 'Out of Stock'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{outOfStockProducts}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'منتجات غير متوفرة' : 'Out of Stock'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{outOfStockProducts}</h3>
                     </div>
                 </div>
 
-                <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#f9f0ff', color: '#722ed1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(114, 46, 209, 0.1)', color: '#722ed1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <ShoppingBag size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'إجمالي المنتجات المدرجة' : 'Total Products Listed'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{totalProductsListing}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي المنتجات المدرجة' : 'Total Products Listed'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalProductsListing}</h3>
                     </div>
                 </div>
 
-                <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: 'var(--shadow-sm)' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#e6fffb', color: '#13c2c2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(19, 194, 194, 0.1)', color: '#13c2c2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Package size={24} />
                     </div>
                     <div>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>{isRTL ? 'إجمالي المنتجات المباعة' : 'Total Products Sold'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em' }}>{totalUnitsSold}</h3>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي المنتجات المباعة' : 'Total Products Sold'}</p>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalUnitsSold}</h3>
                     </div>
                 </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginBottom: '30px' }}>
-                {/* Best Selling (30 Days) */}
-                <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
-                    <h3 style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', border: '1px solid #334155' }}>
+                    <h3 style={{ color: '#f8fafc', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>{isRTL ? 'الأكثر مبيعاً (30 يوم)' : 'Best Selling (30 Days)'}</span>
-                        <span style={{ fontSize: '0.7em', color: '#888', fontWeight: 'normal' }}>{isRTL ? 'آخر 30 يوم' : 'Last 30 days'}</span>
+                        <span style={{ fontSize: '0.7em', color: '#94a3b8', fontWeight: 'normal' }}>{isRTL ? 'آخر 30 يوم' : 'Last 30 days'}</span>
                     </h3>
                     {bestSelling30Days.length > 0 ? (
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {bestSelling30Days.map(([name, qty], index) => (
-                                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px dashed #eee', paddingBottom: '10px' }}>
-                                    <span style={{ fontSize: '0.95em' }}><strong>{index + 1}.</strong> {name}</span>
+                                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px dashed #334155', paddingBottom: '12px' }}>
+                                    <span style={{ fontSize: '0.95em', color: '#cbd5e1' }}><strong>{index + 1}.</strong> {name}</span>
                                     <span style={{ fontWeight: 'bold', color: 'var(--color-gold)' }}>{qty} {isRTL ? 'وحدة' : 'units'}</span>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p style={{ color: '#888' }}>{isRTL ? 'لا توجد بيانات متاحة' : 'No sales data for this period'}</p>
+                        <p style={{ color: '#94a3b8' }}>{isRTL ? 'لا توجد بيانات متاحة' : 'No sales data for this period'}</p>
                     )}
                 </div>
 
-                {/* Trending (7 Days) */}
-                <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
-                    <h3 style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', border: '1px solid #334155' }}>
+                    <h3 style={{ color: '#f8fafc', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ color: '#eb2f96' }}>{isRTL ? 'المنتجات الرائجة (7 أيام)' : 'Trending (7 Days)'}</span>
-                        <span style={{ fontSize: '0.7em', color: '#888', fontWeight: 'normal' }}>{isRTL ? 'آخر 7 أيام' : 'Last 7 days'}</span>
+                        <span style={{ fontSize: '0.7em', color: '#94a3b8', fontWeight: 'normal' }}>{isRTL ? 'آخر 7 أيام' : 'Last 7 days'}</span>
                     </h3>
                     {trending7Days.length > 0 ? (
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {trending7Days.map(([name, qty], index) => (
-                                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px dashed #eee', paddingBottom: '10px' }}>
-                                    <span style={{ fontSize: '0.95em' }}><strong>{index + 1}.</strong> {name}</span>
+                                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px dashed #334155', paddingBottom: '12px' }}>
+                                    <span style={{ fontSize: '0.95em', color: '#cbd5e1' }}><strong>{index + 1}.</strong> {name}</span>
                                     <span style={{ fontWeight: 'bold', color: '#eb2f96' }}>{qty} {isRTL ? 'وحدة' : 'units'}</span>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p style={{ color: '#888' }}>{isRTL ? 'لا توجد بيانات متاحة' : 'No recent trends'}</p>
+                        <p style={{ color: '#94a3b8' }}>{isRTL ? 'لا توجد بيانات متاحة' : 'No recent trends'}</p>
                     )}
                 </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
                 {/* Recent Activity */}
-                <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
-                    <h3 style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', border: '1px solid #334155' }}>
+                    <h3 style={{ color: '#f8fafc', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
                         {isRTL ? 'أحدث الطلبات' : 'Recent Orders'}
                     </h3>
                     {recentOrders.length > 0 ? (
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {recentOrders.map((order, index) => (
-                                <li key={index} style={{ marginBottom: '15px', borderBottom: '1px dashed #eee', paddingBottom: '10px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                        <strong>{order.id}</strong>
-                                        <span style={{ color: '#888', fontSize: '0.9em' }}>{order.date}</span>
+                                <li key={index} style={{ marginBottom: '15px', borderBottom: '1px dashed #334155', paddingBottom: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <strong style={{ color: '#f8fafc' }}>{order.id}</strong>
+                                        <span style={{ color: '#94a3b8', fontSize: '0.85em' }}>{order.date}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95em', color: '#555' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95em', color: '#cbd5e1' }}>
                                         <span>{order.customerName}</span>
-                                        <span style={{ fontWeight: 'bold' }}>{order.total} QAR</span>
+                                        <span style={{ fontWeight: 'bold', color: 'var(--color-gold)' }}>{order.total} QAR</span>
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p style={{ color: '#888' }}>{isRTL ? 'لا توجد طلبات حديثة' : 'No recent orders'}</p>
+                        <p style={{ color: '#94a3b8' }}>{isRTL ? 'لا توجد طلبات حديثة' : 'No recent orders'}</p>
                     )}
                 </div>
 

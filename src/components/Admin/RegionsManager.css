@@ -60,7 +60,8 @@
 
 .form-group label {
     font-size: 14px;
-    color: #94a3b8;
+    color: #cbd5e1;
+    font-weight: 500;
 }
 
 .form-group input, .form-group select {
@@ -101,7 +102,7 @@
 .admin-table th {
     background-color: rgba(255, 255, 255, 0.02);
     font-weight: 600;
-    color: #94a3b8;
+    color: #cbd5e1;
 }
 
 .rtl .admin-table th, .rtl .admin-table td {

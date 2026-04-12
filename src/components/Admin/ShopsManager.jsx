@@ -192,25 +192,29 @@ const ShopsManager = ({ isRTL }) => {
 
     if (loading) return <div className="text-center p-4">Loading shops...</div>;
 
-    const cardStyle = { background: '#f8f9fa', borderRadius: '10px', padding: isMobile ? '12px' : '16px', border: '1px solid #eee' };
+    const cardStyle = { background: '#1e293b', borderRadius: '12px', padding: isMobile ? '16px' : '24px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' };
     const statCardStyle = (color) => ({ 
-        background: '#fff', 
-        borderRadius: '10px', 
+        background: '#0f172a', 
+        borderRadius: '12px', 
         padding: isMobile ? '12px' : '16px', 
-        border: `1px solid ${color}22`, 
+        border: `1px solid ${color}44`, 
         textAlign: 'center', 
         flex: '1', 
         minWidth: isMobile ? '100px' : '120px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+        color: '#f8fafc' // Unified light text
     });
 
     return (
         <div className="manager-content">
-            <div className="manager-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2>{isRTL ? 'إدارة المتاجر (Vendors)' : 'Shops Management (Vendors)'}</h2>
-                <button className="btn btn-gold" onClick={() => { setShowForm(!showForm); setPhotoInputs(['']); }}>
-                    {showForm ? (isRTL ? 'إلغاء' : 'Cancel') : (isRTL ? 'إضافة متجر جديد' : 'Add New Vendor')}
-                </button>
+            <div className="manager-header">
+                <h2>{isRTL ? 'إدارة المتاجر' : 'Shops Management'}</h2>
+                <div className="manager-header-actions">
+                    <button className={`btn ${showForm ? 'btn-outline' : 'btn-gold'}`} onClick={() => { setShowForm(!showForm); setPhotoInputs(['']); }} style={{ height: '44px', padding: '0 20px' }}>
+                        {showForm ? <X size={18} /> : <Plus size={18} />}
+                        {showForm ? (isRTL ? 'إلغاء' : 'Cancel') : (isRTL ? 'إضافة متجر جديد' : 'Add New Vendor')}
+                    </button>
+                </div>
             </div>
 
             {/* Add New Vendor Form */}
@@ -279,23 +283,23 @@ const ShopsManager = ({ isRTL }) => {
                 const isEditing = editingShop === shop.id;
 
                 return (
-                    <div key={shop.id} style={{ marginBottom: '16px', border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
+                    <div key={shop.id} style={{ marginBottom: '16px', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', background: '#1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                         {/* Shop Row Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 15px' : '16px 20px', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap', cursor: 'pointer', background: isExpanded ? '#fafafa' : 'transparent', position: 'relative' }}
+                        <div style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 15px' : '16px 20px', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap', cursor: 'pointer', background: isExpanded ? 'rgba(255, 255, 255, 0.03)' : 'transparent', position: 'relative' }}
                             onClick={() => { setExpandedShop(isExpanded ? null : shop.id); setExpandedTab('overview'); setEditingShop(null); }}
                         >
-                            <div style={{ width: isMobile ? '35px' : '45px', height: isMobile ? '35px' : '45px', borderRadius: '8px', background: '#eee', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                            <div style={{ width: isMobile ? '35px' : '45px', height: isMobile ? '35px' : '45px', borderRadius: '8px', background: '#0f172a', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #334155' }}>
                                 {(shop.images && shop.images.length > 0)
                                     ? <img src={shop.images[0]} alt={shop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <Store size={22} color="#999" />
+                                    : <Store size={22} color="#94a3b8" />
                                 }
                             </div>
                             <div style={{ flex: 1, minWidth: '150px' }}>
-                                <div style={{ fontWeight: '700', fontSize: '1rem' }}>{shop.name}</div>
-                                <div style={{ fontSize: '0.82rem', color: '#888' }}>{shop.customers?.name || 'Unknown'} · {shop.customers?.email || ''}</div>
+                                <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
+                                <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{shop.customers?.name || 'Unknown'} · {shop.customers?.email || ''}</div>
                             </div>
                             {!isMobile && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#888', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.85rem' }}>
                                     <MapPin size={14} /> {shop.address?.substring(0, 30)}{shop.address?.length > 30 ? '...' : ''}
                                 </div>
                             )}
@@ -322,14 +326,14 @@ const ShopsManager = ({ isRTL }) => {
 
                         {/* Mobile Address Info (shown only when expanded and on mobile) */}
                         {isExpanded && isMobile && (
-                            <div style={{ padding: '0 20px 10px', fontSize: '0.8rem', color: '#777', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <div style={{ padding: '0 20px 10px', fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <MapPin size={12} /> {shop.address}
                             </div>
                         )}
 
                         {/* Expanded Detail Panel */}
                         {isExpanded && analytics && (
-                            <div style={{ borderTop: '1px solid #eee', padding: isMobile ? '15px' : '20px' }}>
+                            <div style={{ borderTop: '1px solid #334155', padding: isMobile ? '15px' : '20px' }}>
                                 {/* Tab Navigation */}
                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
                                     {[
@@ -341,7 +345,7 @@ const ShopsManager = ({ isRTL }) => {
                                     ].map(tab => (
                                         <button key={tab.key}
                                             onClick={() => { setExpandedTab(tab.key); if (tab.key === 'edit') { setEditingShop(shop.id); setEditData({ name: shop.name, address: shop.address, whatsapp_number: shop.whatsapp_number || '', is_recommended: shop.is_recommended || false }); } }}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #ddd', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#fff', color: expandedTab === tab.key ? '#000' : '#555', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}
                                         >
                                             {tab.icon} {tab.label}
                                         </button>
@@ -361,38 +365,39 @@ const ShopsManager = ({ isRTL }) => {
                                         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '8px' : '12px', marginBottom: '20px' }}>
                                             <div style={statCardStyle('#3498db')}>
                                                 <Package size={isMobile ? 18 : 22} color="#3498db" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#333' }}>{analytics.shopProducts.length}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isRTL ? 'المنتجات' : 'Products'}</div>
+                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#111827' }}>{analytics.shopProducts.length}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المنتجات' : 'Products'}</div>
                                             </div>
                                             <div style={statCardStyle('#2ecc71')}>
                                                 <ShoppingCart size={isMobile ? 18 : 22} color="#2ecc71" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#333' }}>{analytics.shopOrders.length}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isRTL ? 'الطلبات' : 'Orders'}</div>
+                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#111827' }}>{analytics.shopOrders.length}</div>
+                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.shopOrders.length}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'الطلبات' : 'Orders'}</div>
                                             </div>
                                             <div style={statCardStyle('#d4af37')}>
                                                 <DollarSign size={isMobile ? 18 : 22} color="#d4af37" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#333' }}>{analytics.totalSales.toFixed(0)}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isRTL ? 'المبيعات' : 'Sales'}</div>
+                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.totalSales.toFixed(0)}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المبيعات' : 'Sales'}</div>
                                             </div>
-                                            <div style={statCardStyle('#f39c12')}>
-                                                <Clock size={isMobile ? 18 : 22} color="#f39c12" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#333' }}>{analytics.pendingOrders}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isRTL ? 'معلقة' : 'Pending'}</div>
+                                            <div style={statCardStyle('#f1c40f')}>
+                                                <Clock size={isMobile ? 18 : 22} color="#f1c40f" style={{ marginBottom: '6px' }} />
+                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.pendingOrders}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'معلقة' : 'Pending'}</div>
                                             </div>
                                         </div>
 
                                         {/* Shop Info */}
                                         <div style={cardStyle}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '8px' : '12px', fontSize: '0.88rem' }}>
-                                                <div><strong>{isRTL ? 'المالك:' : 'Owner:'}</strong> {shop.customers?.name || 'N/A'}</div>
-                                                <div><strong>{isRTL ? 'البريد:' : 'Email:'}</strong> {shop.customers?.email || 'N/A'}</div>
-                                                <div><strong>{isRTL ? 'العنوان:' : 'Address:'}</strong> {shop.address}</div>
-                                                <div><strong>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> {new Date(shop.created_at).toLocaleDateString()}</div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '15px', fontSize: '0.88rem' }}>
+                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div>
+                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div>
+                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div>
+                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div>
                                             </div>
                                             {shop.images && shop.images.length > 0 && (
                                                 <div style={{ marginTop: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                                     {shop.images.map((img, i) => (
-                                                        <img key={i} src={img} alt={`${shop.name} ${i+1}`} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} onError={(e) => e.target.style.display='none'} />
+                                                        <img key={i} src={img} alt={`${shop.name} ${i+1}`} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} onError={(e) => e.target.style.display='none'} />
                                                     ))}
                                                 </div>
                                             )}
@@ -405,32 +410,31 @@ const ShopsManager = ({ isRTL }) => {
                                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '15px' : '20px' }}>
                                         {/* Sales Performance Card */}
                                         <div style={cardStyle}>
-                                            <h4 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
                                                 <DollarSign size={18} color="var(--color-gold)" /> 
                                                 {isRTL ? 'الأداء المالي' : 'Sales Performance'}
                                             </h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                                 <div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#888', marginBottom: '4px' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div>
-                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700' }}>{analytics.monthlySales.toFixed(2)} QAR</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.monthlySales.toFixed(2)} QAR</div>
                                                 </div>
-                                                <div style={{ height: '1px', background: '#eee' }}></div>
+                                                <div style={{ height: '1px', background: '#334155' }}></div>
                                                 <div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#888', marginBottom: '4px' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div>
-                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700' }}>{analytics.quarterlySales.toFixed(2)} QAR</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.quarterlySales.toFixed(2)} QAR</div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Activity & Engagement Card */}
                                         <div style={cardStyle}>
-                                            <h4 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
                                                 <CheckCircle size={18} color="#2ecc71" /> 
                                                 {isRTL ? 'الحالة والمشاركة' : 'Activity & Engagement'}
                                             </h4>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                                    <span style={{ fontSize: '0.92rem', color: '#555', fontWeight: '500' }}>{isRTL ? 'حالة المتجر:' : 'Shop Status:'}</span>
+                                                    <span style={{ fontSize: '0.92rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'حالة المتجر:' : 'Shop Status:'}</span>
                                                     <span style={{ 
                                                         padding: '4px 12px', 
                                                         borderRadius: '20px', 
@@ -445,21 +449,23 @@ const ShopsManager = ({ isRTL }) => {
                                                         ) : analytics.activityStatus}
                                                     </span>
                                                 </div>
-                                                <div style={{ fontSize: '0.82rem', color: '#666' }}>
-                                                    {isRTL ? 'آخر تفاعل (تعديل):' : 'Last Involvement (Update):'} 
-                                                    <div style={{ fontWeight: '600', color: '#333' }}>
-                                                        {analytics.lastUpdate ? analytics.lastUpdate.toLocaleDateString() : 'N/A'}
+                                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div>
+                                                        {isRTL ? 'آخر تفاعل (تعديل):' : 'Last Involvement (Update):'} 
+                                                        <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: '5px' }}>
+                                                            {analytics.lastUpdate ? analytics.lastUpdate.toLocaleDateString() : 'N/A'}
+                                                        </span>
                                                     </div>
-                                                </div>
-                                                <div style={{ marginTop: '10px', background: '#eef', padding: '10px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                                                    <strong>{isRTL ? 'تحليل النشاط:' : 'Activity Insight:'}</strong>
-                                                    <p style={{ margin: '4px 0 0', color: '#666' }}>
-                                                        {analytics.activityStatus === 'very active' 
-                                                            ? (isRTL ? 'أداء استثنائي وتفاعل مستمر.' : 'Exceptional performance and high engagement.')
-                                                            : (analytics.activityStatus === 'active' 
-                                                                ? (isRTL ? 'نشط جيد ومنتظم.' : 'Healthy and regular activity.')
-                                                                : (isRTL ? 'يحتاج إلى مزيد من التفاعل والمنتجات.' : 'Requires more engagement and fresh products.'))}
-                                                    </p>
+                                                    <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid #334155' }}>
+                                                        <strong style={{ color: '#f8fafc', display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>{isRTL ? 'تحليل النشاط:' : 'Activity Insight:'}</strong>
+                                                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.8rem', lineHeight: '1.4' }}>
+                                                            {analytics.activityStatus === 'very active' 
+                                                                ? (isRTL ? 'أداء استثنائي وتفاعل مستمر.' : 'Exceptional performance and high engagement.')
+                                                                : (analytics.activityStatus === 'active' 
+                                                                    ? (isRTL ? 'نشط جيد ومنتظم.' : 'Healthy and regular activity.')
+                                                                    : (isRTL ? 'يحتاج إلى مزيد من التفاعل والمنتجات.' : 'Requires more engagement and fresh products.'))}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -477,20 +483,20 @@ const ShopsManager = ({ isRTL }) => {
                                         ) : (
                                             <div style={{ display: 'grid', gap: '10px' }}>
                                                 {analytics.shopProducts.map(product => (
-                                                    <div key={product.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
-                                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#eee', flexShrink: 0 }}>
+                                                    <div key={product.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', background: '#334155', borderRadius: '10px', border: '1px solid #475569' }}>
+                                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#0f172a', flexShrink: 0 }}>
                                                             {product.image?.[0]
                                                                 ? <img src={product.image[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                 : <Package size={20} color="#ccc" style={{ margin: '14px' }} />
                                                             }
                                                         </div>
                                                         <div style={{ flex: 1 }}>
-                                                            <div style={{ fontWeight: '600', fontSize: '0.92rem' }}>{product.name}</div>
-                                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>{product.brand} · {product.sku || 'No SKU'}</div>
+                                                            <div style={{ fontWeight: '600', fontSize: '0.92rem', color: '#f8fafc' }}>{product.name}</div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{product.brand} · {product.sku || 'No SKU'}</div>
                                                         </div>
                                                         <div style={{ textAlign: 'right' }}>
-                                                            <div style={{ fontWeight: '700', color: '#333' }}>{product.price} QAR</div>
-                                                            <div style={{ fontSize: '0.78rem', color: product.stock > 0 ? '#2ecc71' : '#e74c3c' }}>
+                                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{product.price} QAR</div>
+                                                            <div style={{ fontSize: '0.78rem', color: product.stock > 0 ? '#34d399' : '#f87171' }}>
                                                                 {product.stock > 0 ? `${isRTL ? 'متوفر' : 'In Stock'}: ${product.stock}` : (isRTL ? 'نفد المخزون' : 'Out of Stock')}
                                                             </div>
                                                         </div>
@@ -512,8 +518,9 @@ const ShopsManager = ({ isRTL }) => {
                                         ) : (
                                             <div style={{ display: 'grid', gap: '10px' }}>
                                                 {analytics.shopOrders.map(order => (
-                                                    <div key={order.id} style={{ padding: '14px 16px', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                    <div key={order.id} style={{ padding: '16px 20px', background: '#334155', borderRadius: '10px', border: '1px solid #475569', marginBottom: '10px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                            <span style={{ fontWeight: '700', color: '#f8fafc' }}>{order.id}</span>
                                                             <div>
                                                                 <strong>#{order.id}</strong>
                                                                 <span style={{ marginLeft: '10px', fontSize: '0.82rem', color: '#888' }}>{order.date || new Date(order.created_at).toLocaleDateString()}</span>

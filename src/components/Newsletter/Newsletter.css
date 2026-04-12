@@ -168,3 +168,24 @@ html[dir="rtl"] .submit-btn .send-icon {
         height: 50px;
     }
 }
+
+@media (max-width: 576px) {
+    .newsletter-section {
+        padding-top: 50px;
+        padding-bottom: 50px;
+    }
+
+    .newsletter-container {
+        padding: 30px 16px;
+        border-radius: 12px;
+    }
+
+    .newsletter-title {
+        font-size: 1.6rem;
+    }
+
+    .newsletter-description {
+        font-size: 0.95rem;
+        margin-bottom: 24px;
+    }
+}

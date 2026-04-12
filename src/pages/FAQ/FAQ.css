@@ -214,3 +214,48 @@ html[dir="rtl"] .search-icon {
         gap: 15px;
     }
 }
+
+@media (max-width: 576px) {
+    .faq-hero h1 {
+        font-size: 2rem;
+    }
+
+    .faq-hero p {
+        font-size: 1rem;
+    }
+
+    .faq-search-wrapper {
+        padding: 0 10px;
+    }
+
+    .faq-search-input {
+        padding: 15px 20px 15px 45px;
+        font-size: 1rem;
+    }
+
+    html[dir="rtl"] .faq-search-input {
+        padding: 15px 45px 15px 20px;
+    }
+
+    .faq-category-title {
+        font-size: 1.4rem;
+    }
+
+    .faq-question {
+        padding: 15px 20px;
+        font-size: 1rem;
+    }
+
+    .faq-answer p {
+        padding: 0 20px 20px;
+        font-size: 0.95rem;
+    }
+
+    .faq-support-card {
+        padding: 30px 20px;
+    }
+
+    .support-content h3 {
+        font-size: 1.3rem;
+    }
+}

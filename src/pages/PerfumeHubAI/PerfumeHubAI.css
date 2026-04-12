@@ -652,3 +652,60 @@
         height: 200px;
     }
 }
+
+@media (max-width: 576px) {
+    .ai-advisor-container {
+        padding: 100px 16px 40px;
+    }
+
+    .ai-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .ai-header p {
+        font-size: 0.95rem;
+    }
+
+    .quiz-card {
+        padding: 20px 16px;
+        border-radius: 20px;
+    }
+
+    .question-section h2 {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+    }
+
+    .option-btn {
+        padding: 15px;
+        gap: 10px;
+    }
+
+    .option-icon {
+        font-size: 1.8rem;
+    }
+
+    .option-label {
+        font-size: 0.95rem;
+    }
+
+    .results-title h2 {
+        font-size: 1.8rem;
+    }
+
+    .external-recs {
+        padding: 24px 16px;
+    }
+
+    .external-recs h3 {
+        font-size: 1.4rem;
+    }
+
+    .expert-item-details {
+        padding: 20px 16px;
+    }
+
+    .expert-item-details h4 {
+        font-size: 1.4rem;
+    }
+}
