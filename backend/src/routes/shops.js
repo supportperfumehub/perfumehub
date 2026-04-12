@@ -270,19 +270,30 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
         }
 
         // 1. Clear shop_id reference in customers table first (Foreign Key Constraint)
-        await supabase.from('customers').update({ shop_id: null, role: 'customer' }).eq('shop_id', id);
+        const { error: customerError } = await supabase.from('customers').update({ shop_id: null, role: 'customer' }).eq('shop_id', id);
+        if (customerError) {
+            console.error('Error clearing customer shop_id:', customerError);
+            return res.status(500).json({ error: 'Failed to clear customer mapping', message: customerError.message });
+        }
 
         // 2. Delete all products associated with the shop
-        await supabase.from('products').delete().eq('shop_id', id);
+        const { error: productError } = await supabase.from('products').delete().eq('shop_id', id);
+        if (productError) {
+            console.error('Error deleting shop products:', productError);
+            return res.status(500).json({ error: 'Failed to delete shop products', message: productError.message });
+        }
 
         // 3. Delete the shop itself
         const { error: deleteError } = await supabase.from('shops').delete().eq('id', id);
         
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+            console.error('Error deleting shop:', deleteError);
+            return res.status(500).json({ error: 'Database error deleting shop', message: deleteError.message });
+        }
         
         res.json({ message: 'Shop and its products deleted successfully' });
     } catch (error) {
-        console.error('Delete Shop Error:', error);
+        console.error('Delete Shop Exception:', error);
         res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });

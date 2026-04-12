@@ -134,8 +134,10 @@ const ShopsManager = ({ isRTL }) => {
                 fetchShopsAndRegions();
                 setShowConfirm(false);
                 setShopToDelete(null);
+            } else {
+                const data = await response.json();
+                alert(`${isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop'}: ${data.message || data.error || 'Unknown error'}`);
             }
-            else alert(isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop');
         } catch (error) {
             console.error('Error deleting shop:', error);
         }
