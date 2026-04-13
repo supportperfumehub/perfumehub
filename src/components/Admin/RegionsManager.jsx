@@ -34,7 +34,11 @@ const RegionsManager = ({ isRTL }) => {
 
     const fetchRegions = async () => {
         try {
-            const res = await fetch('/api/regions');
+            const res = await fetch('/api/regions', {
+                headers: {
+                    ...(user ? { 'x-user-id': user.id } : {})
+                }
+            });
             if (!res.ok) throw new Error('Failed to fetch regions');
             const data = await res.json();
             setRegions(data || []);
@@ -55,7 +59,10 @@ const RegionsManager = ({ isRTL }) => {
 
             const res = await fetch(url, {
                 method: method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify({
                     name: newRegionName,
                     code: newRegionCode,
@@ -112,7 +119,10 @@ const RegionsManager = ({ isRTL }) => {
         setSuccessMessage('');
         try {
             const res = await fetch(`/api/regions/${confirmModal.regionId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    ...(user ? { 'x-user-id': user.id } : {})
+                }
             });
             const data = await res.json();
             
@@ -134,11 +144,14 @@ const RegionsManager = ({ isRTL }) => {
         try {
             const res = await fetch('/api/admins/assign-region', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify({
                     admin_id: parseInt(assignAdminId),
                     region_id: parseInt(assignRegionId),
-                    assigned_by: user.id
+                    assigned_by: user?.id
                 })
             });
             const data = await res.json();

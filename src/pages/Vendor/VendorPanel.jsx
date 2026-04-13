@@ -3,7 +3,7 @@ import { useOutletContext, Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
-import { Store, Package, Target, Settings, Save } from 'lucide-react';
+import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon } from 'lucide-react';
 import '../Admin/Admin.css'; // Use the premium admin styles
 
 const VendorPanel = () => {
@@ -31,6 +31,27 @@ const VendorPanel = () => {
                 .catch(err => console.error("Error fetching shop data:", err));
         }
     }, [shopId, activeTab, shopData]);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const currentImages = Array.isArray(shopData.images) ? shopData.images : [];
+                setShopData({
+                    ...shopData,
+                    images: [...currentImages, reader.result]
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeImage = (index) => {
+        const updatedImages = [...shopData.images];
+        updatedImages.splice(index, 1);
+        setShopData({ ...shopData, images: updatedImages });
+    };
 
     if (!shopId) {
         return (
@@ -108,7 +129,8 @@ const VendorPanel = () => {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({
                                                 whatsapp_number: shopData.whatsapp_number,
-                                                address: shopData.address
+                                                address: shopData.address,
+                                                images: shopData.images
                                             })
                                         });
                                         if (res.ok) alert(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully');
@@ -140,6 +162,37 @@ const VendorPanel = () => {
                                             value={shopData.address || ''} 
                                             onChange={(e) => setShopData({...shopData, address: e.target.value})}
                                         />
+                                    </div>
+
+                                    {/* Shop Photos */}
+                                    <div className="form-group" style={{ marginBottom: '32px' }}>
+                                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ImageIcon size={18} /> {isRTL ? 'صور المتجر' : 'Shop Photos'}
+                                        </label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', marginTop: '12px' }}>
+                                            {(shopData.images || []).map((img, idx) => (
+                                                <div key={idx} style={{ position: 'relative', height: '120px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155' }}>
+                                                    <img src={img} alt={`Shop ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => removeImage(idx)} 
+                                                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(231, 76, 60, 0.9)', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <div 
+                                                onClick={() => document.getElementById('vendor-photo-upload').click()}
+                                                style={{ height: '120px', borderRadius: '12px', border: '2px dashed #334155', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', background: 'rgba(255,255,255,0.02)', transition: 'all 0.2s ease' }}
+                                                onMouseOver={(e) => e.currentTarget.style.borderColor = '#c8a951'}
+                                                onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
+                                            >
+                                                <Plus size={28} />
+                                                <span style={{ fontSize: '0.8rem', marginTop: '8px', fontWeight: '500' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
+                                                <input type="file" id="vendor-photo-upload" hidden accept="image/*" onChange={handleImageUpload} />
+                                            </div>
+                                        </div>
                                     </div>
                                     <button type="submit" className="btn btn-gold" disabled={savingSettings}>
                                         <Save size={18} />

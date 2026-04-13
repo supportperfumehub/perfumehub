@@ -207,6 +207,29 @@ const ShopsManager = ({ isRTL }) => {
 
     const addPhotoInput = () => setPhotoInputs([...photoInputs, '']);
     const removePhotoInput = (index) => setPhotoInputs(photoInputs.filter((_, i) => i !== index));
+    const handleImageUpload = (index, e, isEdit = false) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (isEdit) {
+                    const updatedImages = [...(editData.images || [])];
+                    if (index === -1) {
+                        updatedImages.push(reader.result);
+                    } else {
+                        updatedImages[index] = reader.result;
+                    }
+                    setEditData({ ...editData, images: updatedImages });
+                } else {
+                    const updated = [...photoInputs];
+                    updated[index] = reader.result;
+                    setPhotoInputs(updated);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const updatePhotoInput = (index, value) => {
         const updated = [...photoInputs];
         updated[index] = value;
@@ -315,21 +338,30 @@ const ShopsManager = ({ isRTL }) => {
                                 <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <Image size={16} /> {isRTL ? 'صور المتجر' : 'Shop Photos'}
                                 </label>
-                                <button type="button" onClick={addPhotoInput} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '1px dashed #999', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: '#555', fontSize: '0.85rem' }}>
+                                <button type="button" onClick={addPhotoInput} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '1px dashed #94a3b8', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: '#94a3b8', fontSize: '0.85rem' }}>
                                     <Plus size={14} /> {isRTL ? 'إضافة صورة' : 'Add Photo'}
                                 </button>
                             </div>
-                            {photoInputs.map((url, index) => (
-                                <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                                    {url && <img src={url} alt="preview" onError={(e) => e.target.style.display='none'} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ddd' }} />}
-                                    <input type="url" className="form-control" placeholder={`Photo URL ${index + 1}`} value={url} onChange={(e) => updatePhotoInput(index, e.target.value)} style={{ flex: 1 }} />
-                                    {photoInputs.length > 1 && (
-                                        <button type="button" onClick={() => removePhotoInput(index)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#e74c3c' }}>
-                                            <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
+                                {photoInputs.map((url, index) => (
+                                    <div key={index} style={{ position: 'relative', height: '100px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                        {url ? (
+                                            <>
+                                                <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <button type="button" onClick={() => removePhotoInput(index)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(231, 76, 60, 0.8)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <X size={14} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => document.getElementById(`new-shop-photo-${index}`).click()}>
+                                                <Image size={24} color="#334155" />
+                                                <div style={{ fontSize: '0.65rem', color: '#444', marginTop: '4px' }}>{isRTL ? 'رفع صورة' : 'Upload'}</div>
+                                            </div>
+                                        )}
+                                        <input type="file" id={`new-shop-photo-${index}`} hidden accept="image/*" onChange={(e) => handleImageUpload(index, e)} />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <button type="submit" className="btn btn-dark">{isRTL ? 'حفظ' : 'Save Vendor'}</button>
                     </form>
@@ -413,7 +445,10 @@ const ShopsManager = ({ isRTL }) => {
                                                         address: shop.address, 
                                                         whatsapp_number: shop.whatsapp_number || '', 
                                                         is_recommended: shop.is_recommended || false,
-                                                        region_id: shop.region_id || ''
+                                                        region_id: shop.region_id || '',
+                                                        ownerName: shop.customers?.name || '',
+                                                        ownerEmail: shop.customers?.email || '',
+                                                        images: shop.images || []
                                                     }); 
                                                 } 
                                             }}
@@ -641,6 +676,18 @@ const ShopsManager = ({ isRTL }) => {
                                                 <label className="form-label">{isRTL ? 'رقم الواتساب' : 'WhatsApp Number'}</label>
                                                 <input type="text" className="form-control" placeholder="+974..." value={editData.whatsapp_number || ''} onChange={(e) => setEditData({...editData, whatsapp_number: e.target.value})} />
                                             </div>
+                                            {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                                                <>
+                                                    <div>
+                                                        <label className="form-label">{isRTL ? 'اسم المالك' : 'Owner Name'}</label>
+                                                        <input type="text" className="form-control" value={editData.ownerName || ''} onChange={(e) => setEditData({...editData, ownerName: e.target.value})} />
+                                                    </div>
+                                                    <div>
+                                                        <label className="form-label">{isRTL ? 'البريد الإلكتروني للمالك' : 'Owner Email'}</label>
+                                                        <input type="email" className="form-control" value={editData.ownerEmail || ''} onChange={(e) => setEditData({...editData, ownerEmail: e.target.value})} />
+                                                    </div>
+                                                </>
+                                            )}
                                             <div style={{ gridColumn: '1 / -1' }}>
                                                 <label className="form-label">{isRTL ? 'المنطقة' : 'Region'}</label>
                                                 <select className="form-control" value={editData.region_id || ''} onChange={(e) => setEditData({...editData, region_id: e.target.value})}>
@@ -651,6 +698,37 @@ const ShopsManager = ({ isRTL }) => {
                                             <div style={{ gridColumn: '1 / -1' }}>
                                                 <label className="form-label">{isRTL ? 'العنوان' : 'Address'}</label>
                                                 <input type="text" className="form-control" value={editData.address || ''} onChange={(e) => setEditData({...editData, address: e.target.value})} />
+                                            </div>
+
+                                            {/* Edit Photos Component */}
+                                            <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                                                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Image size={16} /> {isRTL ? 'صور المتجر' : 'Shop Images'}
+                                                </label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '12px' }}>
+                                                    {(editData.images || []).map((img, idx) => (
+                                                        <div key={idx} style={{ position: 'relative', height: '110px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #334155' }}>
+                                                            <img src={img} alt="shop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <div style={{ position: 'absolute', top: '5px', right: '5px', display: 'flex', gap: '4px' }}>
+                                                                <button onClick={() => {
+                                                                    const updated = [...editData.images];
+                                                                    updated.splice(idx, 1);
+                                                                    setEditData({ ...editData, images: updated });
+                                                                }} style={{ background: 'rgba(231, 76, 60, 0.9)', color: '#fff', border: 'none', width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <X size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div 
+                                                        onClick={() => document.getElementById('edit-shop-photo-upload').click()}
+                                                        style={{ height: '110px', borderRadius: '10px', border: '2px dashed #334155', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', background: 'rgba(255,255,255,0.02)' }}
+                                                    >
+                                                        <Plus size={24} />
+                                                        <span style={{ fontSize: '0.75rem', marginTop: '5px' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
+                                                        <input type="file" id="edit-shop-photo-upload" hidden accept="image/*" onChange={(e) => handleImageUpload(-1, e, true)} />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>

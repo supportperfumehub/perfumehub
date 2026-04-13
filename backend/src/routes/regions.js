@@ -67,18 +67,38 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
 router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     try {
-        const { data, error } = await supabase
+        // 1. Clear region_id from shops assigned to this region
+        const { error: shopError } = await supabase
+            .from('shops')
+            .update({ region_id: null })
+            .eq('region_id', id);
+        
+        if (shopError) {
+            console.error('Error unassigning shops from region:', shopError);
+            return res.status(500).json({ error: 'Failed to unassign shops from region', message: shopError.message });
+        }
+
+        // 2. Delete admin-region mappings for this region
+        const { error: mappingError } = await supabase
+            .from('admin_region_mapping')
+            .delete()
+            .eq('region_id', id);
+        
+        if (mappingError) {
+            console.error('Error clearing admin mappings for region:', mappingError);
+            return res.status(500).json({ error: 'Failed to clear admin mappings', message: mappingError.message });
+        }
+
+        // 3. Finally delete the region itself
+        const { data, error: deleteError } = await supabase
             .from('regions')
             .delete()
             .eq('id', id)
             .select();
             
-        if (error) {
-            // Foreign key constraints e.g., 23503
-            if (error.code === '23503') {
-                return res.status(400).json({ error: 'Cannot delete region because shops or admins are currently assigned to it. Please reassign them first.' });
-            }
-            throw error;
+        if (deleteError) {
+            console.error('Error deleting region:', deleteError);
+            return res.status(500).json({ error: 'Database error deleting region', message: deleteError.message });
         }
         
         if (data && data.length === 0) return res.status(404).json({ error: 'Region not found' });

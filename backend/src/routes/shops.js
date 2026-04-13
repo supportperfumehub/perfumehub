@@ -212,24 +212,29 @@ router.post('/:id/resubmit', authenticateUser, verifyRole(['vendor', 'customer']
 });
 
 // Update Shop
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
-    const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id } = req.body;
+    const { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id, ownerName, ownerEmail } = req.body;
     const admin = req.user;
 
     try {
-        // Find the shop first to check its region
+        // Find the shop first to check its region and owner
         const { data: shop, error: fetchError } = await supabase
             .from('shops')
-            .select('region_id')
+            .select('region_id, owner_id')
             .eq('id', id)
             .single();
         
         if (fetchError || !shop) return res.status(404).json({ error: 'Shop not found' });
 
-        // Scoping check
+        // Scoping check (Regional Admin)
         if (admin.role === 'regional_admin' && (!admin.assignedRegionIds || !admin.assignedRegionIds.includes(shop.region_id))) {
             return res.status(403).json({ error: 'Forbidden: You can only update shops in your assigned regions.' });
+        }
+
+        // Ownership check (Vendor)
+        if (admin.role === 'vendor' && shop.owner_id !== admin.id) {
+            return res.status(403).json({ error: 'Forbidden: You can only update your own shop.' });
         }
 
         const updateData = { name, address, latitude, longitude, logo_url, images, status, whatsapp_number, is_recommended, region_id };
@@ -240,6 +245,15 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
         const { data, error } = await supabase.from('shops').update(updateData).eq('id', id).select().single();
         if (error) throw error;
         
+        // Update Owner Details (Admin Only)
+        if ((admin.role === 'super_admin' || admin.role === 'admin') && (ownerName || ownerEmail)) {
+            const customerUpdate = {};
+            if (ownerName) customerUpdate.name = ownerName;
+            if (ownerEmail) customerUpdate.email = ownerEmail;
+            
+            await supabase.from('customers').update(customerUpdate).eq('id', shop.owner_id);
+        }
+
         if (status === 'active' || status === 'APPROVED') {
             await supabase.from('customers').update({ role: 'vendor' }).eq('id', data.owner_id);
         }
