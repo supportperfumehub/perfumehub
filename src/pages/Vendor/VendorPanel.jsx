@@ -134,9 +134,13 @@ const VendorPanel = () => {
                                             })
                                         });
                                         if (res.ok) alert(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully');
-                                        else alert(isRTL ? 'حدث خطأ' : 'Error saving settings');
+                                        else {
+                                            const data = await res.json();
+                                            alert(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${data.error || data.message || 'Unknown error'}`);
+                                        }
                                     } catch (e) {
                                         console.error(e);
+                                        alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
                                     } finally {
                                         setSavingSettings(false);
                                     }

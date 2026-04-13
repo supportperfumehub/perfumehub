@@ -29,8 +29,15 @@ const RegionsManager = ({ isRTL }) => {
     });
 
     useEffect(() => {
-        fetchRegions();
-    }, []);
+        if (user) {
+            fetchRegions();
+        } else {
+            // If after 1s user is still not there, stop loading to show "Login" or "Unauthorized" 
+            // if we had that logic, otherwise just clear loading so error banner shows.
+            const timer = setTimeout(() => setLoading(false), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [user]);
 
     const fetchRegions = async () => {
         try {

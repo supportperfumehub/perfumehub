@@ -112,9 +112,13 @@ const ShopsManager = ({ isRTL }) => {
                 setEditingShop(null);
                 fetchShopsAndRegions();
                 alert(isRTL ? 'تم تحديث بيانات المتجر' : 'Shop details updated');
+            } else {
+                const data = await response.json();
+                alert(`${isRTL ? 'فشل التحديث' : 'Failed to update'}: ${data.error || data.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error updating shop:', error);
+            alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
         }
     };
 
@@ -256,10 +260,11 @@ const ShopsManager = ({ isRTL }) => {
                 alert(isRTL ? 'تم إنشاء المتجر بنجاح' : 'Vendor created successfully');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to create vendor');
+                alert(`${isRTL ? 'فشل إنشاء المتجر' : 'Failed to create vendor'}: ${data.error || data.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error creating vendor:', error);
+            alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
         }
     };
 
