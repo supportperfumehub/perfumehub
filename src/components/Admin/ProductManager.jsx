@@ -63,7 +63,7 @@ const ProductManager = ({ isRTL, shopId }) => {
         stock: 10,
         sku: '',
         description: '',
-        shop_id: shopId || null
+        shop_id: shopId || ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -374,7 +374,8 @@ const ProductManager = ({ isRTL, shopId }) => {
             description: product.description || '',
             topNotes: product.topNotes || '',
             middleNotes: product.middleNotes || '',
-            baseNotes: product.baseNotes || ''
+            baseNotes: product.baseNotes || '',
+            shop_id: product.shop_id || ''
         });
         setEditingId(product.id);
         setIsSkuAuto(false); // Set to false when editing existing product to prevent accidental changes
@@ -482,6 +483,34 @@ const ProductManager = ({ isRTL, shopId }) => {
                                 <input type="text" name="brand" className="form-control" value={formData.brand} onChange={handleInputChange} required />
                             </div>
                         </div>
+
+                        {/* Section 1.5: Ownership (Super Admin Only) */}
+                        {!shopId && (
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <div className="form-section-title" style={{ marginTop: 0, marginBottom: '10px' }}>
+                                    <Store size={16} /> {isRTL ? 'تخصيص المتجر' : 'Shop Assignment / Ownership'}
+                                </div>
+                                <select 
+                                    name="shop_id" 
+                                    className="form-control" 
+                                    value={formData.shop_id || ''} 
+                                    onChange={handleInputChange}
+                                    style={{ border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)' }}
+                                >
+                                    <option value="">{isRTL ? 'بيرفيوم هب (المخزون الرئيسي)' : 'PerfumeHub (Core Inventory)'}</option>
+                                    {shopsData.map(shop => (
+                                        <option key={shop.id} value={shop.id}>
+                                            {isRTL ? `منتج لـ: ${shop.name}` : `Assign to: ${shop.name}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <small style={{ color: '#94a3b8', display: 'block', marginTop: '6px' }}>
+                                    {isRTL 
+                                        ? 'حدد المتجر الذي يمتلك هذا المنتج. سيظهر في متجرهم وعلى صفحتهم الخاصة.' 
+                                        : 'Select the shop that owns this product. It will appear in their dashboard and shop page.'}
+                                </small>
+                            </div>
+                        )}
 
                         <div className="form-row grid-3">
                             <div className="form-group">
