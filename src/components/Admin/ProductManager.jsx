@@ -64,7 +64,7 @@ const ProductManager = ({ isRTL, shopId }) => {
         stock: 10,
         sku: '',
         description: '',
-        shop_id: shopId || ''
+        shop_id: shopId || 'core'
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -343,7 +343,7 @@ const ProductManager = ({ isRTL, shopId }) => {
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
             baseNotes: formData.baseNotes?.trim() || '',
-            shop_id: shopId !== undefined ? shopId : (formData.shop_id ? Number(formData.shop_id) : null)
+            shop_id: shopId !== undefined ? shopId : (formData.shop_id && formData.shop_id !== 'core' ? Number(formData.shop_id) : null)
         };
         delete productData.images;
 
@@ -376,7 +376,7 @@ const ProductManager = ({ isRTL, shopId }) => {
             topNotes: product.topNotes || '',
             middleNotes: product.middleNotes || '',
             baseNotes: product.baseNotes || '',
-            shop_id: product.shop_id || ''
+            shop_id: product.shop_id || 'core'
         });
         setEditingId(product.id);
         setIsSkuAuto(false); // Set to false when editing existing product to prevent accidental changes
@@ -494,11 +494,11 @@ const ProductManager = ({ isRTL, shopId }) => {
                                 <select 
                                     name="shop_id" 
                                     className="form-control" 
-                                    value={formData.shop_id || ''} 
+                                    value={formData.shop_id || 'core'} 
                                     onChange={handleInputChange}
                                     style={{ border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)' }}
                                 >
-                                    <option value="">{isRTL ? 'رويال نارسيس (المخزون الرئيسي)' : 'Royal Narciss (Core Inventory)'}</option>
+                                    <option value="core">{isRTL ? 'رويال نارسيس (المخزون الرئيسي)' : 'Royal Narciss (Core Inventory)'}</option>
                                     {shopsData.map(shop => (
                                         <option key={shop.id} value={shop.id}>
                                             {isRTL ? `منتج لـ: ${shop.name}` : `Assign to: ${shop.name}`}
