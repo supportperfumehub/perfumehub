@@ -5,10 +5,12 @@ import Footer from '../Footer/Footer';
 import WhatsAppWidget from '../WhatsAppWidget/WhatsAppWidget';
 import Toast from '../Toast/Toast';
 import { ShopContext } from '../../context/ShopContext';
+import { AuthContext } from '../../context/AuthContext';
 import PromotionBar from '../PromotionBar/PromotionBar';
 
 const Layout = ({ isRTL, toggleLanguage }) => {
     const { toast, showToast } = useContext(ShopContext);
+    const { user } = useContext(AuthContext);
     const location = useLocation();
     const isHomePage = location.pathname === '/';
     const [pageTransition, setPageTransition] = React.useState('page-fade-active');
@@ -35,7 +37,7 @@ const Layout = ({ isRTL, toggleLanguage }) => {
             />
             {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
             <main className={`main-content ${pageTransition}`} style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
-                <Outlet context={{ isRTL }} />
+                <Outlet context={{ isRTL, user }} />
             </main>
             {!isAdminPath && <Footer isRTL={isRTL} />}
             {!isAdminPath && <WhatsAppWidget isRTL={isRTL} />}

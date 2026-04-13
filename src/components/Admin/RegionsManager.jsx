@@ -7,6 +7,7 @@ import './RegionsManager.css';
 const RegionsManager = ({ isRTL }) => {
     const { user } = useOutletContext();
     const [regions, setRegions] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
@@ -31,6 +32,7 @@ const RegionsManager = ({ isRTL }) => {
     useEffect(() => {
         if (user) {
             fetchRegions();
+            fetchUsers();
         } else {
             // If after 1s user is still not there, stop loading to show "Login" or "Unauthorized" 
             // if we had that logic, otherwise just clear loading so error banner shows.
@@ -53,6 +55,21 @@ const RegionsManager = ({ isRTL }) => {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const res = await fetch('/api/users?role=vendor', {
+                headers: {
+                    ...(user ? { 'x-user-id': user.id } : {})
+                }
+            });
+            if (!res.ok) throw new Error('Failed to fetch users');
+            const data = await res.json();
+            setUsers(data || []);
+        } catch (err) {
+            console.error('Fetch users error:', err);
         }
     };
 
@@ -149,7 +166,7 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            const res = await fetch('/api/admins/assign-region', {
+            const res = await fetch('/api/regions/assign-admin', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -248,14 +265,19 @@ const RegionsManager = ({ isRTL }) => {
                     <h3>{isRTL ? 'تخصيص مشرف إقليمي' : 'Assign Regional Admin'}</h3>
                     <form onSubmit={handleAssignAdmin} className="region-form">
                         <div className="form-group">
-                            <label>{isRTL ? 'معرف المشرف' : 'Admin User ID'}</label>
-                            <input 
-                                type="number"
+                            <label>{isRTL ? 'اختر المشرف' : 'Select Admin/Vendor'}</label>
+                            <select 
                                 value={assignAdminId}
                                 onChange={(e) => setAssignAdminId(e.target.value)}
-                                placeholder="Enter User ID"
-                                required 
-                            />
+                                required
+                            >
+                                <option value="">{isRTL ? '-- اختر --' : '-- Select User --'}</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>
+                                        {u.name} ({u.role}) - {u.email}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>{isRTL ? 'المنطقة' : 'Select Region'}</label>
