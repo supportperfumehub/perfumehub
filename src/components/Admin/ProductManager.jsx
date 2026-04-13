@@ -322,7 +322,7 @@ const ProductManager = ({ isRTL, shopId }) => {
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
             baseNotes: formData.baseNotes?.trim() || '',
-            shop_id: shopId || null
+            shop_id: shopId !== undefined ? shopId : (formData.shop_id || null)
         };
         delete productData.images;
 
