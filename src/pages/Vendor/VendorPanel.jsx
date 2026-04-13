@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { useOutletContext, Navigate } from 'react-router-dom';
+import { useOutletContext, Navigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
-import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon, Home } from 'lucide-react';
 import '../Admin/Admin.css'; // Use the premium admin styles
 
 const VendorPanel = () => {
@@ -92,6 +92,14 @@ const VendorPanel = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
+                        <Home size={20} />
+                        <span>{isRTL ? 'العودة للرئيسية' : 'Back to Home'}</span>
+                    </Link>
+                </div>
             </aside>
 
             {/* Main Content Area */}

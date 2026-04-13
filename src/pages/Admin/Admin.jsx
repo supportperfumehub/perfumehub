@@ -10,8 +10,9 @@ import ShopsManager from '../../components/Admin/ShopsManager';
 import RegionsManager from '../../components/Admin/RegionsManager';
 import { 
     LayoutDashboard, Package, ShoppingCart, Ticket, 
-    Users, Store, BarChart2, DatabaseBackup, Globe 
+    Users, Store, BarChart2, DatabaseBackup, Globe, Home
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import './Admin.css';
 
 const Admin = () => {
@@ -65,6 +66,14 @@ const Admin = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
+                        <Home size={20} />
+                        <span>{isRTL ? 'العودة للرئيسية' : 'Back to Home'}</span>
+                    </Link>
+                </div>
             </aside>
 
             {/* Main Content Area */}
