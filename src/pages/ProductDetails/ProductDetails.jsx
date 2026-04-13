@@ -78,9 +78,18 @@ const ProductDetails = () => {
                 : foundProduct.size;
             setSelectedSize(defaultSize);
 
-            // Find shared items dynamically by matching name
+            // Find shared items dynamically by matching name, but deduplicate by shop to ensure a shop only appears once
             const related = mockProducts.filter(p => p.name === foundProduct.name);
-            setRelatedShopItems(related);
+            const uniqueRelated = [];
+            const seenShops = new Set();
+            related.forEach(p => {
+                const shopKey = p.shop_id || 'global';
+                if (!seenShops.has(shopKey)) {
+                    seenShops.add(shopKey);
+                    uniqueRelated.push(p);
+                }
+            });
+            setRelatedShopItems(uniqueRelated);
         }
     }, [id, mockProducts]);
 
