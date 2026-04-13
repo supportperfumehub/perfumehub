@@ -174,6 +174,10 @@ const VendorPanel = () => {
                                                 ...(user ? { 'x-user-id': user.id } : {})
                                             },
                                             body: JSON.stringify({
+                                                name: shopData.name,
+                                                latitude: shopData.latitude,
+                                                longitude: shopData.longitude,
+                                                logo_url: shopData.logo_url,
                                                 whatsapp_number: shopData.whatsapp_number,
                                                 address: shopData.address,
                                                 images: shopData.images
@@ -191,6 +195,48 @@ const VendorPanel = () => {
                                         setSavingSettings(false);
                                     }
                                 }}>
+                                    <div className="form-group" style={{ marginBottom: '24px' }}>
+                                        <label className="form-label">{isRTL ? 'اسم المتجر' : 'Shop Name'}</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            value={shopData.name || ''} 
+                                            onChange={(e) => setShopData({...shopData, name: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '24px' }}>
+                                        <label className="form-label">{isRTL ? 'رابط الشعار (Logo URL)' : 'Logo URL'}</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            placeholder="https://..."
+                                            value={shopData.logo_url || ''} 
+                                            onChange={(e) => setShopData({...shopData, logo_url: e.target.value})}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                                        <div className="form-group">
+                                            <label className="form-label">{isRTL ? 'خط العرض (Latitude)' : 'Latitude'}</label>
+                                            <input 
+                                                type="number" 
+                                                step="any"
+                                                className="form-control" 
+                                                value={shopData.latitude || ''} 
+                                                onChange={(e) => setShopData({...shopData, latitude: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">{isRTL ? 'خط الطول (Longitude)' : 'Longitude'}</label>
+                                            <input 
+                                                type="number" 
+                                                step="any"
+                                                className="form-control" 
+                                                value={shopData.longitude || ''} 
+                                                onChange={(e) => setShopData({...shopData, longitude: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="form-group" style={{ marginBottom: '24px' }}>
                                         <label className="form-label">{isRTL ? 'رقم الواتساب (لتلقي الطلبات)' : 'WhatsApp Number (For Orders)'}</label>
                                         <input 
