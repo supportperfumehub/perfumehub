@@ -421,7 +421,14 @@ const ShopsManager = ({ isRTL }) => {
                                 }
                             </div>
                             <div style={{ flex: 1, minWidth: '150px' }}>
-                                <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
+                                    {shop.region_id && (
+                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            {isRTL ? 'إدارة إقليمية' : 'Regional'}
+                                        </span>
+                                    )}
+                                </div>
                                 <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{shop.customers?.name || 'Unknown'} · {shop.customers?.email || ''}</div>
                             </div>
                             {!isMobile && (
