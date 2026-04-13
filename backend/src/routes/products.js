@@ -136,11 +136,29 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
         // Scoping check
         if (admin.role === 'regional_admin') {
-            if (!existingProduct.shop_id) return res.status(403).json({ error: 'Forbidden: You cannot modify global products.' });
-            
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingProduct.shop_id).single();
-            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            // If product is global (no shop_id), allow update ONLY if they are assigning it to one of their regional shops
+            if (!existingProduct.shop_id) {
+                if (!shop_id) {
+                    return res.status(403).json({ error: 'Forbidden: You cannot modify global products without assigning them to a shop.' });
+                }
+                const { data: targetShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
+                if (!targetShop || !admin.assignedRegionIds.includes(targetShop.region_id)) {
+                    return res.status(403).json({ error: 'Forbidden: The target shop is outside your assigned regions.' });
+                }
+            } else {
+                // If it already has a shop, ensure they own that shop
+                const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingProduct.shop_id).single();
+                if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
+                    return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+                }
+                
+                // Also ensure they aren't trying to transfer it to a shop they don't own
+                if (shop_id && shop_id !== existingProduct.shop_id) {
+                    const { data: targetShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
+                    if (!targetShop || !admin.assignedRegionIds.includes(targetShop.region_id)) {
+                        return res.status(403).json({ error: 'Forbidden: Cannot transfer to a shop outside your regions.' });
+                    }
+                }
             }
         } else if (admin.role === 'vendor') {
             if (!admin.shop_id) {
