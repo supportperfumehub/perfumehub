@@ -142,7 +142,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             .update({
                 name, brand, type, size, price, old_price: oldPrice, discount,
                 is_new: isNew, is_featured: isFeatured, image, category, gender,
-                description, sku, stock: stock !== undefined ? stock : 10,
+                description, sku: sku || null, stock: stock !== undefined ? stock : 10,
                 notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
                 reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
                 top_notes: topNotes !== undefined ? topNotes : undefined,
