@@ -232,7 +232,10 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch('/api/products', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify(product)
             });
             
@@ -261,7 +264,10 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch(`/api/products/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
                 body: JSON.stringify(updatedProduct)
             });
             if (response.ok) {
@@ -289,6 +295,7 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch(`/api/products/${id}`, {
                 method: 'DELETE',
+                headers: user ? { 'x-user-id': user.id } : {}
             });
             if (response.ok) {
                 showToast('Product archived successfully', 'success');
@@ -324,7 +331,8 @@ export const ShopProvider = ({ children }) => {
 
         try {
             const response = await fetch(`/api/backups/${backupId}/restore`, {
-                method: 'POST'
+                method: 'POST',
+                headers: user ? { 'x-user-id': user.id } : {}
             });
             
             if (response.ok) {
@@ -361,7 +369,8 @@ export const ShopProvider = ({ children }) => {
 
         try {
             const response = await fetch(`/api/backups/${backupId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: user ? { 'x-user-id': user.id } : {}
             });
             if (response.ok) {
                 showToast('Item permanently deleted', 'success');
@@ -398,13 +407,13 @@ export const ShopProvider = ({ children }) => {
             if (!isNaN(numericId) && numericId !== orderId) { 
                  await fetch(`/api/orders/${numericId}/status`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(user ? { 'x-user-id': user.id } : {}) },
                     body: JSON.stringify({ status })
                 });
             } else if (typeof orderId === 'number' || !isNaN(orderId)) {
                 await fetch(`/api/orders/${orderId}/status`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(user ? { 'x-user-id': user.id } : {}) },
                     body: JSON.stringify({ status })
                 });
             }
@@ -421,7 +430,7 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch('/api/coupons', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...(user ? { 'x-user-id': user.id } : {}) },
                 body: JSON.stringify(coupon)
             });
             if (response.ok) {
@@ -438,7 +447,7 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch(`/api/coupons/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...(user ? { 'x-user-id': user.id } : {}) },
                 body: JSON.stringify(updatedCoupon)
             });
             if (response.ok) {
@@ -457,6 +466,7 @@ export const ShopProvider = ({ children }) => {
         try {
             const response = await fetch(`/api/coupons/${id}`, {
                 method: 'DELETE',
+                headers: user ? { 'x-user-id': user.id } : {}
             });
             if (response.ok) {
                 showToast('Coupon archived successfully', 'success');
@@ -512,7 +522,7 @@ export const ShopProvider = ({ children }) => {
 
             await fetch(`/api/coupons/${coupon.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...(user ? { 'x-user-id': user.id } : {}) },
                 body: JSON.stringify(supabasePayload)
             });
         } catch (error) {
