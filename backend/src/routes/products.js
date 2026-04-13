@@ -95,7 +95,7 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
             .insert([{
                 name, brand, type, size, price, old_price: oldPrice, discount,
                 is_new: isNew, is_featured: isFeatured, image, category, gender,
-                description, sku, stock: stock !== undefined ? stock : 10,
+                description, sku: sku || null, stock: stock !== undefined ? stock : 10,
                 notes: notes || [], vibes: vibes || [], occasions: occasions || [],
                 reason: reason || null, seasons: seasons || [],
                 top_notes: topNotes || null, middle_notes: middleNotes || null,

@@ -245,12 +245,19 @@ export const ShopProvider = ({ children }) => {
                 setProducts(prevProducts => prevProducts.map(p => p.id === tempId ? { ...p, id: data.id } : p));
                 showToast('Product added successfully', 'success');
             } else {
-                const errorData = await response.json();
+                let errorData;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    errorData = await response.json();
+                } else {
+                    const text = await response.text();
+                    errorData = { error: `Server returned HTML or text (Status ${response.status}): ${text.substring(0, 50)}...` };
+                }
                 showToast(`Failed to save to database: ${errorData.error || 'Server error'}`, 'error');
                 console.error('Save failed:', errorData);
             }
         } catch (error) {
-            showToast('Network error: Product saved locally but NOT in database!', 'error');
+            showToast(`Network error: ${error.message}`, 'error');
             console.error('Network error during addProduct:', error);
         }
     };
@@ -273,11 +280,18 @@ export const ShopProvider = ({ children }) => {
             if (response.ok) {
                 showToast('Product updated successfully', 'success');
             } else {
-                const errorData = await response.json();
+                let errorData;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    errorData = await response.json();
+                } else {
+                    const text = await response.text();
+                    errorData = { error: `Server returned HTML or text (Status ${response.status})` };
+                }
                 showToast(`Update failed: ${errorData.error || 'Server error'}`, 'error');
             }
         } catch (error) {
-            showToast('Network error: Changes saved locally only!', 'error');
+            showToast(`Network error: ${error.message}`, 'error');
             console.error('Network error during updateProduct:', error);
         }
     };
