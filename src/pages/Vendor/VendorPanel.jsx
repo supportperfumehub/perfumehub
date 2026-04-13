@@ -22,13 +22,19 @@ const VendorPanel = () => {
 
     React.useEffect(() => {
         if (shopId && activeTab === 'settings' && !shopData) {
-            fetch('/api/shops?status=active')
+            fetch('/api/shops', {
+                headers: user ? { 'x-user-id': user.id } : {}
+            })
                 .then(res => res.json())
                 .then(data => {
-                    const myShop = data.find(s => s.id === shopId);
-                    if (myShop) setShopData(myShop);
+                    const shopsList = Array.isArray(data) ? data : (data.shops || []);
+                    const myShop = shopsList.find(s => s.id === shopId);
+                    setShopData(myShop || {});
                 })
-                .catch(err => console.error("Error fetching shop data:", err));
+                .catch(err => {
+                    console.error("Error fetching shop data:", err);
+                    setShopData({});
+                });
         }
     }, [shopId, activeTab, shopData]);
 
@@ -163,7 +169,10 @@ const VendorPanel = () => {
                                     try {
                                         const res = await fetch(`/api/shops/${shopId}`, {
                                             method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: { 
+                                                'Content-Type': 'application/json',
+                                                ...(user ? { 'x-user-id': user.id } : {})
+                                            },
                                             body: JSON.stringify({
                                                 whatsapp_number: shopData.whatsapp_number,
                                                 address: shopData.address,
