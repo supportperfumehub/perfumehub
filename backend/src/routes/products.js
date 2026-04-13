@@ -88,6 +88,10 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
             if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
             }
+        } else if (admin.role === 'vendor') {
+            if (shop_id !== admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: You can only create products for your own shop.' });
+            }
         }
 
         const { data, error } = await supabase
@@ -134,6 +138,14 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingProduct.shop_id).single();
             if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            }
+        } else if (admin.role === 'vendor') {
+            if (existingProduct.shop_id !== admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: You can only modify products from your own shop.' });
+            }
+            // Ensure they cannot stealthily transfer a product to another shop
+            if (shop_id !== undefined && shop_id !== admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: You cannot transfer products out of your shop.' });
             }
         }
 
@@ -182,6 +194,10 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', product.shop_id).single();
             if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
+            }
+        } else if (admin.role === 'vendor') {
+            if (product.shop_id !== admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: You can only delete products from your own shop.' });
             }
         }
 
