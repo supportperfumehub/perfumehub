@@ -39,7 +39,14 @@ const ProductDetails = () => {
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [shopsData, setShopsData] = useState([]);
     const [relatedShopItems, setRelatedShopItems] = useState([]);
-    const [userLocation, setUserLocation] = useState(null);
+    const [userLocation, setUserLocation] = useState(() => {
+        try {
+            const saved = localStorage.getItem('ph_user_location');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            return null;
+        }
+    });
     const DESCRIPTION_LIMIT = 200;
 
     useEffect(() => {
@@ -60,7 +67,9 @@ const ProductDetails = () => {
     const detectLocation = () => {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition((position) => {
-                setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+                const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+                setUserLocation(loc);
+                localStorage.setItem('ph_user_location', JSON.stringify(loc));
             }, (error) => {
                 console.error("Error getting location:", error);
             });
@@ -422,42 +431,51 @@ const ProductDetails = () => {
                                     {isRTL ? 'متاح أيضاً في هذه المتاجر:' : 'Available in these shops:'}
                                 </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {relatedShopItems.map(item => {
-                                        const isOurShop = !item.shop_id;
-                                        const shopInfo = shopsData.find(s => s.id === item.shop_id);
-                                        if (!isOurShop && !shopInfo) return null; // Shop not active
-                                        
-                                        const isSelected = String(item.id) === String(product.id);
-                                        let shopName = isOurShop ? (isRTL ? 'بيرفيوم هب (المتجر الرئيسي)' : 'PerfumeHub Direct') : shopInfo.name;
-                                        
-                                        let badge = null;
-                                        if (isOurShop) badge = <span className="shop-badge badge-primary">{isRTL ? 'الرئيسي' : 'Direct'}</span>;
-                                        else if (shopInfo.is_recommended) badge = <span className="shop-badge badge-gold">{isRTL ? 'موصى به' : 'Recommended'}</span>;
+                                    {relatedShopItems
+                                        .map(item => {
+                                            const isOurShop = !item.shop_id;
+                                            const shopInfo = shopsData.find(s => s.id === item.shop_id);
+                                            if (!isOurShop && !shopInfo) return null; // Shop not active
+                                            
+                                            let dist = Infinity;
+                                            if (userLocation && shopInfo?.latitude && shopInfo?.longitude) {
+                                                dist = calculateDistance(userLocation.lat, userLocation.lng, shopInfo.latitude, shopInfo.longitude);
+                                            }
+                                            return { item, shopInfo, isOurShop, dist };
+                                        })
+                                        .filter(obj => obj !== null)
+                                        .sort((a, b) => a.dist - b.dist)
+                                        .map(({ item, shopInfo, isOurShop, dist }) => {
+                                            const isSelected = String(item.id) === String(product.id);
+                                            let shopName = isOurShop ? (isRTL ? 'بيرفيوم هب (المتجر الرئيسي)' : 'PerfumeHub Direct') : shopInfo.name;
+                                            
+                                            let badge = null;
+                                            if (isOurShop) badge = <span className="shop-badge badge-primary">{isRTL ? 'الرئيسي' : 'Direct'}</span>;
+                                            else if (shopInfo.is_recommended) badge = <span className="shop-badge badge-gold">{isRTL ? 'موصى به' : 'Recommended'}</span>;
 
-                                        let distanceStr = "";
-                                        if (userLocation && shopInfo?.latitude && shopInfo?.longitude) {
-                                            const dist = calculateDistance(userLocation.lat, userLocation.lng, shopInfo.latitude, shopInfo.longitude);
-                                            distanceStr = ` (${dist.toFixed(1)} km)`;
-                                        }
+                                            let distanceStr = "";
+                                            if (dist !== Infinity) {
+                                                distanceStr = ` (${dist.toFixed(1)} km)`;
+                                            }
 
-                                        return (
-                                            <label key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '10px', border: isSelected ? '2px solid var(--color-gold, #C5A059)' : '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(197, 160, 89, 0.05)' : '#fff', transition: 'all 0.2s' }}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="shopSelection" 
-                                                    checked={isSelected} 
-                                                    onChange={() => navigate(`/product/${item.id}`)}
-                                                    style={{ marginRight: '10px', accentColor: 'var(--color-gold, #C5A059)' }}
-                                                />
-                                                <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <span style={{ fontWeight: isSelected ? '600' : '500', fontSize: '0.95rem' }}>
-                                                        {shopName} <span style={{color: '#888', fontSize: '0.85rem'}}>{distanceStr}</span>
-                                                    </span>
-                                                    {badge}
-                                                </div>
-                                            </label>
-                                        );
-                                    })}
+                                            return (
+                                                <label key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '10px', border: isSelected ? '2px solid var(--color-gold, #C5A059)' : '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(197, 160, 89, 0.05)' : '#fff', transition: 'all 0.2s' }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="shopSelection" 
+                                                        checked={isSelected} 
+                                                        onChange={() => navigate(`/product/${item.id}`)}
+                                                        style={{ marginRight: '10px', accentColor: 'var(--color-gold, #C5A059)' }}
+                                                    />
+                                                    <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <span style={{ fontWeight: isSelected ? '600' : '500', fontSize: '0.95rem' }}>
+                                                            {shopName} <span style={{color: '#888', fontSize: '0.85rem'}}>{distanceStr}</span>
+                                                        </span>
+                                                        {badge}
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
                                 </div>
                                 {!userLocation && (
                                     <button className="btn-link" onClick={detectLocation} style={{ marginTop: '12px', fontSize: '0.85rem', padding: '0', background: 'none', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>

@@ -337,10 +337,6 @@ const Checkout = () => {
                                         <p className="payment-option-desc">{t('checkout.whatsapp_desc')}</p>
                                     </div>
                                 </label>
-                                <label className={`payment-option ${paymentMethod === 'Credit Card' ? 'active' : ''}`}>
-                                    <input type="radio" name="paymentMethod" value="Credit Card" checked={paymentMethod === 'Credit Card'} onChange={e => setPaymentMethod(e.target.value)} />
-                                    <span>{t('checkout.credit_card')}</span>
-                                </label>
                                 <label className={`payment-option ${paymentMethod === 'Cash on Delivery' ? 'active' : ''}`}>
                                     <input type="radio" name="paymentMethod" value="Cash on Delivery" checked={paymentMethod === 'Cash on Delivery'} onChange={e => setPaymentMethod(e.target.value)} />
                                     <span>{t('checkout.cod')}</span>

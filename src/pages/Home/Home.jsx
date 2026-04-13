@@ -45,8 +45,8 @@ const Home = () => {
             {/* Site Introduction Section */}
             <section className="home-intro container animate-fade-in">
                 <div className="home-intro-content">
+                    <p className="home-intro-text" style={{ marginBottom: '-10px' }}>{t('home.intro_text')}</p>
                     <h1 className="home-intro-title">{t('home.intro_title')}</h1>
-                    <p className="home-intro-text">{t('home.intro_text')}</p>
                 </div>
             </section>
 
