@@ -793,7 +793,7 @@
     .slider-btn {
         width: 36px;
         height: 36px;
-        top: 120px; /* Shift arrows up to hover over the image, not the text */
+        top: 170px; /* Shift arrows up to hover over the image, not the text */
     }
 
     .slider-prev {
@@ -806,15 +806,20 @@
     
     .featured-slide {
         flex-direction: column;
-        padding: 24px 16px 48px;
+        padding: 30px 16px 40px;
         justify-content: center;
     }
     
     .featured-slide-img-container {
         flex: unset;
-        height: 190px;
+        height: 280px;
         width: 100%;
         margin-bottom: 16px;
+    }
+
+    .featured-slide-img {
+        height: 100%;
+        max-height: 280px;
     }
     
     .featured-slide-content {
@@ -829,12 +834,12 @@
     }
 
     .featured-slide-title {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
         margin-bottom: 8px;
     }
     
     .featured-slide-desc {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         -webkit-line-clamp: 2;
         line-clamp: 2;
         margin-bottom: 16px;
@@ -847,11 +852,11 @@
     }
 
     .featured-slide-price {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
     }
 
     .featured-slide-old-price {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .featured-slide-actions {
