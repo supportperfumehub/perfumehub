@@ -89,7 +89,10 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
             }
         } else if (admin.role === 'vendor') {
-            if (shop_id !== admin.shop_id) {
+            if (!admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+            }
+            if (shop_id && shop_id !== admin.shop_id) {
                 return res.status(403).json({ error: 'Forbidden: You can only create products for your own shop.' });
             }
         }
@@ -103,7 +106,7 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
                 notes: notes || [], vibes: vibes || [], occasions: occasions || [],
                 reason: reason || null, seasons: seasons || [],
                 top_notes: topNotes || null, middle_notes: middleNotes || null,
-                base_notes: baseNotes || null, shop_id: shop_id || null
+                base_notes: baseNotes || null, shop_id: admin.role === 'vendor' ? admin.shop_id : (shop_id || null)
             }])
             .select();
 
@@ -140,11 +143,14 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
             }
         } else if (admin.role === 'vendor') {
+            if (!admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+            }
             if (existingProduct.shop_id !== admin.shop_id) {
                 return res.status(403).json({ error: 'Forbidden: You can only modify products from your own shop.' });
             }
             // Ensure they cannot stealthily transfer a product to another shop
-            if (shop_id !== undefined && shop_id !== admin.shop_id) {
+            if (shop_id && shop_id !== admin.shop_id) {
                 return res.status(403).json({ error: 'Forbidden: You cannot transfer products out of your shop.' });
             }
         }
@@ -160,7 +166,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
                 top_notes: topNotes !== undefined ? topNotes : undefined,
                 middle_notes: middleNotes !== undefined ? middleNotes : undefined,
                 base_notes: baseNotes !== undefined ? baseNotes : undefined,
-                shop_id: shop_id !== undefined ? shop_id : undefined
+                shop_id: admin.role === 'vendor' ? admin.shop_id : (shop_id !== undefined ? shop_id : undefined)
             })
             .eq('id', id)
             .select();
@@ -196,6 +202,9 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
                 return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
             }
         } else if (admin.role === 'vendor') {
+            if (!admin.shop_id) {
+                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+            }
             if (product.shop_id !== admin.shop_id) {
                 return res.status(403).json({ error: 'Forbidden: You can only delete products from your own shop.' });
             }
