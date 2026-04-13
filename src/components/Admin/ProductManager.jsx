@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff } from 'lucide-react';
+import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 
 const typeCodes = {
@@ -34,7 +34,8 @@ const ProductManager = ({ isRTL, shopId }) => {
                     const response = await fetch('/api/shops');
                     if (response.ok) {
                         const data = await response.json();
-                        setShopsData(data);
+                        const shopsList = Array.isArray(data) ? data : (data.shops || []);
+                        setShopsData(shopsList);
                     }
                 } catch (error) {
                     console.error("Failed to fetch shops:", error);
