@@ -405,10 +405,10 @@ export const ShopProvider = ({ children }) => {
 
     // Products categorization for Home and Shop views
     const safeProducts = Array.isArray(products) ? products : [];
-    const featuredProducts = safeProducts.filter(p => p?.isFeatured && !p?.shop_id);
-    const newArrivals = safeProducts.filter(p => p?.isNew && !p?.shop_id);
-    const mensProducts = safeProducts.filter(p => p?.gender === 'men' && !p?.shop_id);
-    const womensProducts = safeProducts.filter(p => p?.gender === 'women' && !p?.shop_id);
+    const featuredProducts = safeProducts.filter(p => p?.isFeatured);
+    const newArrivals = safeProducts.filter(p => p?.isNew);
+    const mensProducts = safeProducts.filter(p => p?.gender === 'men');
+    const womensProducts = safeProducts.filter(p => p?.gender === 'women');
 
     // Order Functions
     const updateOrderStatus = async (orderId, status) => {

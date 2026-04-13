@@ -52,9 +52,6 @@ const Shop = () => {
                 String(p.shop_id) === String(shopIdFilter) || 
                 String(p.vendor_id) === String(shopIdFilter)
             );
-        } else {
-            // Default: Exclude all vendor-specific products from global catalog views
-            result = result.filter(p => !p.shop_id);
         }
 
         // Search Query
