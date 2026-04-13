@@ -175,8 +175,6 @@ const VendorPanel = () => {
                                             },
                                             body: JSON.stringify({
                                                 name: shopData.name,
-                                                latitude: shopData.latitude,
-                                                longitude: shopData.longitude,
                                                 logo_url: shopData.logo_url,
                                                 whatsapp_number: shopData.whatsapp_number,
                                                 address: shopData.address,
@@ -214,28 +212,6 @@ const VendorPanel = () => {
                                             value={shopData.logo_url || ''} 
                                             onChange={(e) => setShopData({...shopData, logo_url: e.target.value})}
                                         />
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                                        <div className="form-group">
-                                            <label className="form-label">{isRTL ? 'خط العرض (Latitude)' : 'Latitude'}</label>
-                                            <input 
-                                                type="number" 
-                                                step="any"
-                                                className="form-control" 
-                                                value={shopData.latitude || ''} 
-                                                onChange={(e) => setShopData({...shopData, latitude: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">{isRTL ? 'خط الطول (Longitude)' : 'Longitude'}</label>
-                                            <input 
-                                                type="number" 
-                                                step="any"
-                                                className="form-control" 
-                                                value={shopData.longitude || ''} 
-                                                onChange={(e) => setShopData({...shopData, longitude: e.target.value})}
-                                            />
-                                        </div>
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '24px' }}>
                                         <label className="form-label">{isRTL ? 'رقم الواتساب (لتلقي الطلبات)' : 'WhatsApp Number (For Orders)'}</label>
