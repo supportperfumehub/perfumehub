@@ -802,7 +802,7 @@ const ProductManager = ({ isRTL, shopId }) => {
                             .map((p, index) => ({ ...p, originalIndex: index }))
                             .filter(product => {
                                 // Vendor-specific bound manager isolation
-                                if (shopId && product.shop_id !== shopId) return false;
+                                if (shopId && String(product.shop_id) !== String(shopId)) return false;
                                 
                                 // Global Super Admin dynamic dropdown filter logic
                                 if (!shopId) {
