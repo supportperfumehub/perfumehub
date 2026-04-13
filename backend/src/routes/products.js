@@ -90,9 +90,15 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
             }
         } else if (admin.role === 'vendor') {
             if (!admin.shop_id) {
-                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+                // Fallback: Try to find shop by owner_id if it's missing from user record
+                const { data: vendorShop } = await supabase.from('shops').select('id').eq('owner_id', admin.id).single();
+                if (vendorShop) {
+                    admin.shop_id = vendorShop.id;
+                } else {
+                    return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+                }
             }
-            if (shop_id && shop_id !== admin.shop_id) {
+            if (shop_id && Number(shop_id) !== Number(admin.shop_id)) {
                 return res.status(403).json({ error: 'Forbidden: You can only create products for your own shop.' });
             }
         }
@@ -162,13 +168,19 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             }
         } else if (admin.role === 'vendor') {
             if (!admin.shop_id) {
-                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+                // Fallback: Try to find shop by owner_id if it's missing from user record
+                const { data: vendorShop } = await supabase.from('shops').select('id').eq('owner_id', admin.id).single();
+                if (vendorShop) {
+                    admin.shop_id = vendorShop.id;
+                } else {
+                    return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
+                }
             }
-            if (existingProduct.shop_id !== admin.shop_id) {
+            if (existingProduct.shop_id && Number(existingProduct.shop_id) !== Number(admin.shop_id)) {
                 return res.status(403).json({ error: 'Forbidden: You can only modify products from your own shop.' });
             }
             // Ensure they cannot stealthily transfer a product to another shop
-            if (shop_id && shop_id !== admin.shop_id) {
+            if (shop_id && Number(shop_id) !== Number(admin.shop_id)) {
                 return res.status(403).json({ error: 'Forbidden: You cannot transfer products out of your shop.' });
             }
         }

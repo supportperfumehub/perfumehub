@@ -24,6 +24,7 @@ const NearestShopFinder = ({ isRTL }) => {
     const [location, setLocation] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
     
     useEffect(() => {
         const fetchActiveShops = async () => {
@@ -35,6 +36,8 @@ const NearestShopFinder = ({ isRTL }) => {
                 }
             } catch (error) {
                 console.error("Failed to fetch shops:", error);
+            } finally {
+                setIsInitialLoading(false);
             }
         };
         fetchActiveShops();
@@ -103,7 +106,17 @@ const NearestShopFinder = ({ isRTL }) => {
             </div>
 
             <div className="shops-grid">
-                {displayedShops.length > 0 ? (
+                {isInitialLoading ? (
+                    // Show 4 skeleton cards while loading
+                    [1, 2, 3, 4].map(idx => (
+                        <div key={idx} className="skeleton-card">
+                            <div className="skeleton-img"></div>
+                            <div className="skeleton-text"></div>
+                            <div className="skeleton-subtext"></div>
+                            <div className="skeleton-btn"></div>
+                        </div>
+                    ))
+                ) : displayedShops.length > 0 ? (
                     displayedShops.map((shop) => (
                         <div key={shop.id} className="shop-card">
                             <div className="shop-image-container">
@@ -122,7 +135,6 @@ const NearestShopFinder = ({ isRTL }) => {
                                         <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
                                     </div>
                                 )}
-
                                 <button 
                                     className="shop-visit-btn"
                                     onClick={() => navigate(`/shop?shop_id=${shop.id}`)}

@@ -120,7 +120,10 @@ router.put('/:id/approve', authenticateUser, verifyRole(['super_admin', 'regiona
             .eq('id', id).select().single();
             
         if (error) throw error;
-        await supabase.from('customers').update({ role: 'vendor' }).eq('id', data.owner_id);
+        // Sync the shop_id to the customer record so they are fully linked
+        await supabase.from('customers')
+            .update({ role: 'vendor', shop_id: data.id })
+            .eq('id', data.owner_id);
         res.json({ message: 'Shop approved successfully', shop: data });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error', message: error.message });

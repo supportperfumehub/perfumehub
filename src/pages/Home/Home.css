@@ -572,8 +572,8 @@
 
 .featured-slider-track {
     display: flex;
-    transition: transform 0.8s ease-out;
-    height: 450px;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    height: 550px; /* Increased height for a more heroic presence */
     will-change: transform;
     transform: translate3d(0, 0, 0);
 }
@@ -604,11 +604,14 @@
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    /* Soft dark gradient that fades from the text side to transparent over the image */
-    background: linear-gradient(to right, rgba(15, 15, 15, 0.9) 0%, rgba(15, 15, 15, 0.8) 35%, rgba(15, 15, 15, 0.2) 100%);
+    /* Sophisticated dark gradient with a hint of gold-tinted shadow */
+    background: linear-gradient(to right, 
+        rgba(5, 5, 5, 0.95) 0%, 
+        rgba(5, 5, 5, 0.7) 45%, 
+        rgba(5, 5, 5, 0.2) 100%
+    );
     z-index: 1;
     pointer-events: none;
-    mix-blend-mode: multiply;
 }
 
 [dir="rtl"] .featured-slide::before {
@@ -626,15 +629,14 @@
 }
 
 .featured-slide-img {
-    height: 80%;
-    max-height: 350px;
+    height: 90%; /* Increased from 80% */
+    max-height: 450px; /* Increased from 350px */
     width: auto;
-    max-width: 90%;
-    object-fit: cover;
-    border-radius: 20px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 60px rgba(197, 160, 89, 0.08);
-    filter: drop-shadow(0px 20px 25px rgba(0, 0, 0, 0.7));
-    transition: transform 0.5s ease;
+    max-width: 95%;
+    object-fit: contain;
+    border-radius: 12px;
+    filter: drop-shadow(0px 30px 40px rgba(0, 0, 0, 0.8));
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 2;
 }
 
@@ -670,18 +672,21 @@
 }
 
 .featured-slide-title {
-    font-size: 2.8rem;
-    line-height: 1.1;
-    margin-bottom: 20px;
+    font-size: 3.2rem; /* Refined size */
+    line-height: 1.05;
+    margin-bottom: 15px;
     color: #ffffff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    font-weight: 600;
+    text-shadow: 0 4px 15px rgba(0,0,0,0.6);
 }
 
 .featured-slide-type {
-    font-size: 1rem;
-    color: #ccc;
-    margin-bottom: 15px;
-    letter-spacing: 1px;
+    font-size: 0.9rem;
+    color: var(--color-gold); /* Using gold color for type to match premium aesthetic */
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
 .featured-slide-desc {
