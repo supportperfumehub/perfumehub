@@ -24,6 +24,26 @@ const ProductManager = ({ isRTL, shopId }) => {
         productName: '' 
     });
 
+    const [shopsData, setShopsData] = useState([]);
+    const [filterShop, setFilterShop] = useState('all');
+
+    React.useEffect(() => {
+        if (!shopId) { // Only fetch shop lists if we are running as global Super Admin
+            const fetchShops = async () => {
+                try {
+                    const response = await fetch('/api/shops');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setShopsData(data);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch shops:", error);
+                }
+            };
+            fetchShops();
+        }
+    }, [shopId]);
+
     const initialFormState = {
         name: '',
         brand: '',
@@ -415,6 +435,21 @@ const ProductManager = ({ isRTL, shopId }) => {
                                 <option value="price-asc">{isRTL ? 'السعر: من الأقل' : 'Price: Low to High'}</option>
                                 <option value="price-desc">{isRTL ? 'السعر: من الأعلى' : 'Price: High to Low'}</option>
                             </select>
+                            
+                            {!shopId && (
+                                <select 
+                                    className="form-control admin-sort-select" 
+                                    style={{ flex: 1, minWidth: '180px' }}
+                                    value={filterShop} 
+                                    onChange={(e) => setFilterShop(e.target.value)}
+                                >
+                                    <option value="all">{isRTL ? 'جميع المنتجات (عام)' : 'All Inventory'}</option>
+                                    <option value="own">{isRTL ? 'منتجات بيرفيوم هب فقط' : 'Our Own Products'}</option>
+                                    {shopsData.map(shop => (
+                                        <option key={shop.id} value={shop.id}>{isRTL ? `متجر: ${shop.name}` : `Shop: ${shop.name}`}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                     )}
                     {!showForm && (
@@ -766,7 +801,15 @@ const ProductManager = ({ isRTL, shopId }) => {
                         {[...products]
                             .map((p, index) => ({ ...p, originalIndex: index }))
                             .filter(product => {
+                                // Vendor-specific bound manager isolation
                                 if (shopId && product.shop_id !== shopId) return false;
+                                
+                                // Global Super Admin dynamic dropdown filter logic
+                                if (!shopId) {
+                                    if (filterShop === 'own' && product.shop_id) return false;
+                                    if (filterShop !== 'all' && filterShop !== 'own' && String(product.shop_id) !== String(filterShop)) return false;
+                                }
+
                                 return product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                        product.brand.toLowerCase().includes(searchTerm.toLowerCase());
                             })
@@ -805,6 +848,19 @@ const ProductManager = ({ isRTL, shopId }) => {
                                                 ? product.size.map(s => typeof s === 'object' ? s.name : s).join(', ') 
                                                 : product.size}
                                         </small>
+                                        {!shopId && (
+                                            <div style={{ marginTop: '6px' }}>
+                                                {product.shop_id ? (
+                                                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                        {shopsData.find(s => String(s.id) === String(product.shop_id))?.name || 'Vendor'}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                        {isRTL ? 'بيرفيوم هب' : 'PerfumeHub'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </td>
                                     <td>{product.brand}</td>
                                     <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
