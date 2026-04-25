@@ -1,62 +1,77 @@
+import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.js';
 import { supabase } from '../config/supabaseClient.js';
 
 /**
- * Middleware to authenticate requests based on a pseudo-auth approach 
- * (since full JWT was not observed in the base codebase).
- * Expects 'x-user-id' header or 'userId' in the request body.
+ * Middleware to authenticate requests using JWT
  */
 export const authenticateUser = async (req, res, next) => {
     try {
-        const userId = req.headers['x-user-id'] || req.body.userId || req.query.userId;
+        const token = extractTokenFromHeader(req);
         
-        if (!userId || userId === 'undefined' || userId === 'null') {
-            return next();
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        const { data: user, error } = await supabase.from('customers').select('*').eq('id', userId).single();
+        const decoded = verifyAccessToken(token);
+        
+        if (!decoded) {
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+        }
+
+        // Fetch user from DB to ensure they still exist and check for account lock
+        const { data: user, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('id', decoded.id)
+            .single();
 
         if (error || !user) {
-            return next();
+            return res.status(401).json({ success: false, error: 'User no longer exists' });
         }
 
+        // Check for account lockout
+        if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Account is temporarily locked. Please try again later.' 
+            });
+        }
+
+        // Attach user to request
         req.user = user;
 
-        // ── Regional Scoping Logic ──
+        // Regional Scoping
         if (user.role === 'regional_admin') {
             const { data: mappings } = await supabase
                 .from('admin_region_mapping')
                 .select('region_id')
                 .eq('admin_id', user.id);
-            
             req.user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
-        } else if (user.role === 'super_admin' || user.role === 'admin') {
-            // Super admins see all regions (null means no restriction)
-            req.user.assignedRegionIds = null; 
         }
 
         next();
     } catch (err) {
         console.error('Auth Middleware Error:', err);
-        next(); // Still continue but without req.user
+        res.status(500).json({ success: false, error: 'Authentication processing error' });
     }
 };
 
 /**
  * Middleware for Role-Based Access Control
- * @param {string[]} allowedRoles Array of roles (e.g. ['super_admin', 'regional_admin', 'vendor'])
+ * @param {string[]} allowedRoles Array of roles
  */
 export const verifyRole = (allowedRoles) => {
     return (req, res, next) => {
-        const user = req.user;
-        if (!user) {
-            return res.status(401).json({ error: 'Unauthorized' });
+        if (!req.user) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        if (allowedRoles.includes(user.role)) {
-            // Further granular checks can be done inside actual route (like region mappings)
+        if (allowedRoles.includes(req.user.role)) {
             return next();
         }
 
-        return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+        // Special case: Regional Admins might be allowed if scoped (checked in controller)
+        // But here we check base role permission
+        return res.status(403).json({ success: false, error: 'Forbidden: Insufficient permissions' });
     };
 };

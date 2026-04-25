@@ -2,40 +2,21 @@ import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { withTimeout } from '../utils/timeout.js';
 import { authenticateUser, verifyRole } from '../middleware/auth.js';
+import { validateBase64Image } from '../middleware/upload.js';
+import { validateRequest } from '../middleware/validate.js';
+import { body } from 'express-validator';
 
 const router = express.Router();
 
-// Get all products
-router.get('/', authenticateUser, async (req, res) => {
+// Get all global products
+router.get('/', async (req, res) => {
     try {
         let query = supabase
             .from('products')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (req.query.shop_id) {
-            query = query.eq('shop_id', req.query.shop_id);
-        }
-
-        // Enforce Regional Scoping for Regional Admins
-        if (req.user && req.user.role === 'regional_admin') {
-            const { data: shops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', req.user.assignedRegionIds);
-            
-            const shopIds = shops ? shops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                query = query.in('shop_id', shopIds);
-            } else if (req.query.shop_id) {
-                // If they asked for a specific shop but they have no shops, block it
-                return res.json([]);
-            } else {
-                // If they have no shops but didn't specify one, only show global products (if any)
-                // or just empty for admin context. Usually we want to show nothing if they have no shops assigned.
-                query = query.is('shop_id', null); 
-            }
-        }
+        // Removed shop_id scope because products is now a global catalog
 
         const { data, error } = await withTimeout(query);
 
@@ -69,140 +50,76 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create product
-router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+// Create product (Global Catalog - Admins Only)
+router.post('/', 
+    authenticateUser, 
+    verifyRole(['super_admin', 'regional_admin', 'admin']), 
+    validateBase64Image('image'),
+    [
+        body('name').notEmpty().withMessage('Product name is required'),
+        body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+        validateRequest
+    ],
+    async (req, res) => {
+    // Note: price and stock are no longer needed on the global product, but keeping them as base/MSRP for now if needed.
     const { 
-        name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
-        image, category, gender, description, sku, stock,
+        name, brand, type, size, isNew, isFeatured,
+        image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes, shop_id
+        topNotes, middleNotes, baseNotes
     } = req.body;
-    const admin = req.user;
 
     try {
-        // Scoping check
-        if (admin.role === 'regional_admin') {
-            if (!shop_id) return res.status(403).json({ error: 'Regional admins must specify a shop_id' });
-            
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
-            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
-            }
-        } else if (admin.role === 'vendor') {
-            if (!admin.shop_id) {
-                // Fallback: Try to find shop by owner_id if it's missing from user record
-                const { data: vendorShop } = await supabase.from('shops').select('id').eq('owner_id', admin.id).single();
-                if (vendorShop) {
-                    admin.shop_id = vendorShop.id;
-                } else {
-                    return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
-                }
-            }
-            if (shop_id && Number(shop_id) !== Number(admin.shop_id)) {
-                return res.status(403).json({ error: 'Forbidden: You can only create products for your own shop.' });
-            }
-        }
-
         const { data, error } = await supabase
             .from('products')
             .insert([{
-                name, brand, type, size, price, old_price: oldPrice, discount,
+                name, brand, type, size, 
                 is_new: isNew, is_featured: isFeatured, image, category, gender,
-                description, sku: sku || null, stock: stock !== undefined ? stock : 10,
+                description, sku: sku || null,
                 notes: notes || [], vibes: vibes || [], occasions: occasions || [],
                 reason: reason || null, seasons: seasons || [],
                 top_notes: topNotes || null, middle_notes: middleNotes || null,
-                base_notes: baseNotes || null, shop_id: admin.role === 'vendor' ? admin.shop_id : (shop_id || null)
+                base_notes: baseNotes || null
+                // shop_id is omitted as it's a global entity
             }])
             .select();
 
         if (error) throw error;
-        res.status(201).json({ id: data[0].id, message: 'Product created successfully' });
+        res.status(201).json({ id: data[0].id, message: 'Global product created successfully' });
     } catch (error) {
         console.error('Error creating product:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Update product
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+// Update product (Global Catalog - Admins Only)
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { 
-        name, brand, type, size, price, oldPrice, discount, isNew, isFeatured,
-        image, category, gender, description, sku, stock,
+        name, brand, type, size, isNew, isFeatured,
+        image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes, shop_id
+        topNotes, middleNotes, baseNotes
     } = req.body;
-    const admin = req.user;
 
     try {
-        // Fetch existing product to check ownership
-        const { data: existingProduct } = await supabase.from('products').select('shop_id').eq('id', id).single();
-        if (!existingProduct) return res.status(404).json({ error: 'Product not found' });
-
-        // Scoping check
-        if (admin.role === 'regional_admin') {
-            // If product is global (no shop_id), allow update ONLY if they are assigning it to one of their regional shops
-            if (!existingProduct.shop_id) {
-                if (!shop_id) {
-                    return res.status(403).json({ error: 'Forbidden: You cannot modify global products without assigning them to a shop.' });
-                }
-                const { data: targetShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
-                if (!targetShop || !admin.assignedRegionIds.includes(targetShop.region_id)) {
-                    return res.status(403).json({ error: 'Forbidden: The target shop is outside your assigned regions.' });
-                }
-            } else {
-                // If it already has a shop, ensure they own that shop
-                const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingProduct.shop_id).single();
-                if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                    return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
-                }
-                
-                // Also ensure they aren't trying to transfer it to a shop they don't own
-                if (shop_id && shop_id !== existingProduct.shop_id) {
-                    const { data: targetShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
-                    if (!targetShop || !admin.assignedRegionIds.includes(targetShop.region_id)) {
-                        return res.status(403).json({ error: 'Forbidden: Cannot transfer to a shop outside your regions.' });
-                    }
-                }
-            }
-        } else if (admin.role === 'vendor') {
-            if (!admin.shop_id) {
-                // Fallback: Try to find shop by owner_id if it's missing from user record
-                const { data: vendorShop } = await supabase.from('shops').select('id').eq('owner_id', admin.id).single();
-                if (vendorShop) {
-                    admin.shop_id = vendorShop.id;
-                } else {
-                    return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
-                }
-            }
-            if (existingProduct.shop_id && Number(existingProduct.shop_id) !== Number(admin.shop_id)) {
-                return res.status(403).json({ error: 'Forbidden: You can only modify products from your own shop.' });
-            }
-            // Ensure they cannot stealthily transfer a product to another shop
-            if (shop_id && Number(shop_id) !== Number(admin.shop_id)) {
-                return res.status(403).json({ error: 'Forbidden: You cannot transfer products out of your shop.' });
-            }
-        }
-
         const { data, error } = await supabase
             .from('products')
             .update({
-                name, brand, type, size, price, old_price: oldPrice, discount,
+                name, brand, type, size,
                 is_new: isNew, is_featured: isFeatured, image, category, gender,
-                description, sku: sku || null, stock: stock !== undefined ? stock : 10,
+                description, sku: sku || null,
                 notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
                 reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
                 top_notes: topNotes !== undefined ? topNotes : undefined,
                 middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-                base_notes: baseNotes !== undefined ? baseNotes : undefined,
-                shop_id: admin.role === 'vendor' ? admin.shop_id : (shop_id !== undefined ? shop_id : undefined)
+                base_notes: baseNotes !== undefined ? baseNotes : undefined
             })
             .eq('id', id)
             .select();
 
         if (error) throw error;
-        res.json({ message: 'Product updated successfully' });
+        res.json({ message: 'Global product updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -210,9 +127,8 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 });
 
 // Delete product (Soft Delete / Archive)
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const admin = req.user;
 
     try {
         const { data: product, error: fetchError } = await supabase
@@ -222,23 +138,6 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
             .single();
 
         if (fetchError || !product) return res.status(404).json({ error: 'Product not found' });
-
-        // Scoping check
-        if (admin.role === 'regional_admin') {
-            if (!product.shop_id) return res.status(403).json({ error: 'Forbidden: You cannot delete global products.' });
-            
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', product.shop_id).single();
-            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this shop.' });
-            }
-        } else if (admin.role === 'vendor') {
-            if (!admin.shop_id) {
-                return res.status(403).json({ error: 'Forbidden: Vendor account is missing an assigned shop.' });
-            }
-            if (product.shop_id !== admin.shop_id) {
-                return res.status(403).json({ error: 'Forbidden: You can only delete products from your own shop.' });
-            }
-        }
 
         const { error: backupError } = await supabase
             .from('backups')
@@ -251,13 +150,13 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
 
         if (backupError) console.error('Backup failed for product deletion:', backupError);
 
-        const { error: deleteError, count } = await supabase
+        const { error: deleteError } = await supabase
             .from('products')
             .delete({ count: 'exact' })
             .eq('id', id);
 
         if (deleteError) throw deleteError;
-        res.json({ message: 'Product archived and deleted successfully' });
+        res.json({ message: 'Product archived and deleted successfully. Vendor inventories cascaded.' });
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Internal server error' });

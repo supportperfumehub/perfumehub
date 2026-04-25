@@ -1,116 +1,144 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import api, { setAccessToken } from '../utils/api';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('perfumehub_user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [requires2FA, setRequires2FA] = useState(false);
+    const [pendingUserId, setPendingUserId] = useState(null);
 
+    // Persist non-sensitive status flags
     const [isAdmin, setIsAdmin] = useState(() => {
-        const savedIsAdmin = localStorage.getItem('perfumehub_isAdmin');
-        return savedIsAdmin ? JSON.parse(savedIsAdmin) : false;
+        const saved = localStorage.getItem('perfumehub_isAdmin');
+        return saved ? JSON.parse(saved) : false;
     });
 
     const [isVendor, setIsVendor] = useState(() => {
-        const savedIsVendor = localStorage.getItem('perfumehub_isVendor');
-        return savedIsVendor ? JSON.parse(savedIsVendor) : false;
+        const saved = localStorage.getItem('perfumehub_isVendor');
+        return saved ? JSON.parse(saved) : false;
     });
 
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem('perfumehub_user', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('perfumehub_user');
+    /**
+     * Initialize Auth (Silent Refresh)
+     */
+    const initAuth = useCallback(async () => {
+        try {
+            const response = await api.post('/auth/refresh');
+            if (response.data.success) {
+                const { accessToken, user } = response.data;
+                setAccessToken(accessToken);
+                setUser(user);
+                setIsAdmin(user.role === 'super_admin' || user.role === 'admin');
+                setIsVendor(user.role === 'vendor');
+            }
+        } catch (error) {
+            console.log('No active session found.');
+        } finally {
+            setLoading(false);
         }
-    }, [user]);
+    }, []);
+
+    useEffect(() => {
+        initAuth();
+
+        // Listen for global logout events from axios interceptor
+        const handleLogout = () => logout();
+        window.addEventListener('auth-logout', handleLogout);
+        return () => window.removeEventListener('auth-logout', handleLogout);
+    }, [initAuth]);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_isAdmin', JSON.stringify(isAdmin));
-    }, [isAdmin]);
-
-    useEffect(() => {
         localStorage.setItem('perfumehub_isVendor', JSON.stringify(isVendor));
-    }, [isVendor]);
+    }, [isAdmin, isVendor]);
 
     const login = async (email, password) => {
         try {
-            // Hardcoded admin check for local simulation, or handle via backend roles
-            if (email === 'admin@perfumehub.com' && password === 'admin123') {
-                const adminUser = { id: 39, email, name: 'Admin User', role: 'super_admin' };
-                setUser(adminUser);
-                setIsAdmin(true);
-                setIsVendor(false);
-                return { success: true, user: adminUser };
+            const response = await api.post('/auth/login', { email, password });
+            const data = response.data;
+
+            if (data.requires2FA) {
+                setRequires2FA(true);
+                setPendingUserId(data.userId);
+                return { success: true, requires2FA: true };
             }
 
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Fetch full user data to get role and shop info
-                const userResponse = await fetch(`/api/users/${data.user.id}`);
-                const fullUser = userResponse.ok ? await userResponse.json() : data.user;
-
-                setUser(fullUser);
-                setIsAdmin(fullUser.role === 'admin' || data.user.email === 'admin@perfumehub.com');
-                setIsVendor(fullUser.role === 'vendor');
-                return { success: true, user: fullUser };
-            } else {
-                return { success: false, message: data.error || 'Login failed' };
+            if (data.success) {
+                setAccessToken(data.accessToken);
+                setUser(data.user);
+                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin');
+                setIsVendor(data.user.role === 'vendor');
+                return { success: true, user: data.user };
             }
+            return { success: false, message: data.error || 'Login failed' };
         } catch (error) {
-            console.error('Login error:', error);
-            return { success: false, message: 'Could not connect to server' };
+            return { success: false, message: error.response?.data?.error || 'Could not connect to server' };
+        }
+    };
+
+    const verify2FA = async (token) => {
+        try {
+            const response = await api.post('/auth/2fa/verify', { userId: pendingUserId, token });
+            const data = response.data;
+
+            if (data.success) {
+                setAccessToken(data.accessToken);
+                setUser(data.user);
+                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin');
+                setIsVendor(data.user.role === 'vendor');
+                setRequires2FA(false);
+                setPendingUserId(null);
+                return { success: true, user: data.user };
+            }
+            return { success: false, message: data.error || 'Invalid 2FA code' };
+        } catch (error) {
+            return { success: false, message: error.response?.data?.error || '2FA verification failed' };
         }
     };
 
     const register = async (name, email, password) => {
         try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                return { success: true };
-            } else {
-                return { success: false, message: data.error || 'Registration failed' };
+            const response = await api.post('/auth/register', { name, email, password });
+            if (response.data.success) {
+                return { success: true, message: response.data.message };
             }
+            return { success: false, message: response.data.error || 'Registration failed' };
         } catch (error) {
-            console.error('Registration error details:', error);
-            return { success: false, message: 'Could not connect to server: ' + error.message };
+            return { success: false, message: error.response?.data?.error || 'Registration failed' };
         }
     };
 
-    const logout = () => {
-        setUser(null);
-        setIsAdmin(false);
-        setIsVendor(false);
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } finally {
+            setAccessToken(null);
+            setUser(null);
+            setIsAdmin(false);
+            setIsVendor(false);
+            setRequires2FA(false);
+            setPendingUserId(null);
+        }
     };
 
     const value = {
         user,
+        loading,
         isAuthenticated: !!user,
         isAdmin,
         isVendor,
+        requires2FA,
         login,
         register,
-        logout
+        logout,
+        verify2FA
     };
 
     return (
         <AuthContext.Provider value={value}>
-            {children}
+            {!loading && children}
         </AuthContext.Provider>
     );
 };

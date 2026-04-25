@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CreditCard, Truck, AlertCircle } from 'lucide-react';
+import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store } from 'lucide-react';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -34,6 +34,18 @@ const Checkout = () => {
     const [couponCode, setCouponCode] = useState(orderData?.couponCode || '');
     const [discount, setDiscount] = useState(orderData?.discount || 0);
     const [userIP, setUserIP] = useState('');
+    const [fulfillmentType, setFulfillmentType] = useState(orderData?.isReservation ? 'pickup' : 'delivery');
+    const [pickupShopId, setPickupShopId] = useState(orderData?.shop_id || '');
+    const [pickupDateTime, setPickupDateTime] = useState('');
+    const [shops, setShops] = useState([]);
+
+    useEffect(() => {
+        const fetchShops = async () => {
+             const res = await fetch('/api/shops?status=active');
+             if (res.ok) setShops(await res.json());
+        };
+        fetchShops();
+    }, []);
 
     useEffect(() => {
         const fetchIP = async () => {
@@ -130,14 +142,60 @@ const Checkout = () => {
     };
 
     /* ── Submit ── */
-    /* ── Submit ── */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (!formData.fullName || !formData.zone || !formData.street || !formData.building || !formData.phone || !formData.city) {
-            setError(t('checkout.error_required'));
+        if (orderData.isReservation) {
+            if (!formData.fullName || !formData.phone || !pickupShopId || !pickupDateTime) {
+                setError(t('checkout.error_required'));
+                return;
+            }
+            
+            setIsSubmitting(true);
+            const startDate = new Date(pickupDateTime);
+            const endDate = new Date(startDate.getTime() + 60*60*1000); // +1 hour window
+
+            try {
+                const res = await fetch('/api/reservations', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(user ? { 'x-user-id': user.id } : {})
+                    },
+                    body: JSON.stringify({
+                        shop_id: pickupShopId,
+                        product_id: singleProduct.id,
+                        quantity: singleQty,
+                        pickup_time_start: startDate.toISOString(),
+                        pickup_time_end: endDate.toISOString()
+                    })
+                });
+                
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to create reservation. ' + (data.error || ''));
+                }
+                
+                setIsSubmitting(false);
+                navigate('/checkout-success', { state: { orderId: 'RSV-' + Date.now(), isReservation: true } });
+            } catch (err) {
+                setError(err.message);
+                setIsSubmitting(false);
+            }
             return;
+        }
+
+        if (fulfillmentType === 'delivery') {
+            if (!formData.fullName || !formData.zone || !formData.street || !formData.building || !formData.phone || !formData.city) {
+                setError(t('checkout.error_required'));
+                return;
+            }
+        } else {
+            if (!formData.fullName || !formData.phone || !pickupShopId) {
+                setError(t('checkout.error_required'));
+                return;
+            }
         }
 
         // Final Coupon Check
@@ -163,7 +221,9 @@ const Checkout = () => {
         }
 
         setIsSubmitting(true);
-        const shippingAddress = `${isRTL ? 'مبنى' : 'Building'} ${formData.building}, ${isRTL ? 'شارع' : 'Street'} ${formData.street}, ${isRTL ? 'منطقة' : 'Zone'} ${formData.zone}, ${formData.city}${formData.pincode ? `, ${formData.pincode}` : ''}`;
+        const shippingAddress = fulfillmentType === 'delivery' 
+            ? `${isRTL ? 'مبنى' : 'Building'} ${formData.building}, ${isRTL ? 'شارع' : 'Street'} ${formData.street}, ${isRTL ? 'منطقة' : 'Zone'} ${formData.zone}, ${formData.city}${formData.pincode ? `, ${formData.pincode}` : ''}`
+            : 'Store Pickup';
 
         let allSuccess = true;
         let generatedOrderId = `ORD-${Date.now()}`;
@@ -181,7 +241,9 @@ const Checkout = () => {
                     formData.email,
                     formData.phone,
                     item.selectedSize,
-                    item.selectedPrice
+                    item.selectedPrice,
+                    fulfillmentType,
+                    pickupShopId
                 );
                 if (!ok) allSuccess = false;
             }
@@ -196,7 +258,9 @@ const Checkout = () => {
                 formData.email,
                 formData.phone,
                 singleSize,
-                orderData.selectedPrice
+                orderData.selectedPrice,
+                fulfillmentType,
+                pickupShopId
             );
             if (!ok) allSuccess = false;
         }
@@ -270,9 +334,30 @@ const Checkout = () => {
                             </div>
                         )}
 
-                        {/* Shipping Address */}
+                        {/* Fulfillment Selection */}
+                        {!orderData.isReservation && (
+                            <div className="checkout-section">
+                                <h3><Store size={20} style={{ marginRight: '8px' }}/> {isRTL ? 'طريقة الاستلام' : 'Fulfillment Method'}</h3>
+                                <div className="payment-options" style={{ marginBottom: '20px' }}>
+                                    <label className={`payment-option ${fulfillmentType === 'delivery' ? 'active recommended' : ''}`}>
+                                        <input type="radio" name="fulfillmentType" value="delivery" checked={fulfillmentType === 'delivery'} onChange={e => setFulfillmentType(e.target.value)} />
+                                        <span>{isRTL ? 'توصيل' : 'Delivery'}</span>
+                                    </label>
+                                    <label className={`payment-option ${fulfillmentType === 'pickup' ? 'active' : ''}`}>
+                                        <input type="radio" name="fulfillmentType" value="pickup" checked={fulfillmentType === 'pickup'} onChange={e => setFulfillmentType(e.target.value)} />
+                                        <span>{isRTL ? 'الاستلام من المتجر' : 'Reserve in Shop'}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Customer Details */}
                         <div className="checkout-section">
-                            <h3><Truck size={20} /> {t('checkout.shipping_address')}</h3>
+                            {fulfillmentType === 'delivery' ? (
+                                <h3><Truck size={20} /> {t('checkout.shipping_address')}</h3>
+                            ) : (
+                                <h3><Truck size={20} /> {isRTL ? 'معلومات العميل' : 'Customer Details'}</h3>
+                            )}
 
                             <div className="form-group">
                                 <label>{t('checkout.full_name')}</label>
@@ -290,42 +375,130 @@ const Checkout = () => {
                                 </div>
                             </div>
 
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>{t('checkout.zone')}</label>
-                                    <input type="text" name="zone" value={formData.zone} onChange={handleInputChange} placeholder="e.g. 66" required />
-                                </div>
-                                <div className="form-group">
-                                    <label>{t('checkout.street')}</label>
-                                    <input type="text" name="street" value={formData.street} onChange={handleInputChange} placeholder="e.g. 850" required />
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>{t('checkout.building')}</label>
-                                    <input type="text" name="building" value={formData.building} onChange={handleInputChange} placeholder="e.g. 12" required />
-                                </div>
-                                <div className="form-group">
-                                    <label>{t('checkout.city')}</label>
-                                    <select name="city" value={formData.city} onChange={handleInputChange} className="form-control" required style={{ width: '100%', height: '48px' }}>
-                                        <option value="Doha">{t('checkout.cities.doha')}</option>
-                                        <option value="Al Rayyan">{t('checkout.cities.rayyan')}</option>
-                                        <option value="Al Wakrah">{t('checkout.cities.wakrah')}</option>
-                                        <option value="Al Khor">{t('checkout.cities.khor')}</option>
-                                        <option value="Lusail">{t('checkout.cities.lusail')}</option>
-                                        <option value="Umm Salal">{t('checkout.cities.salal')}</option>
-                                        <option value="Al Sheehaniya">{t('checkout.cities.sheehaniya')}</option>
-                                        <option value="Madinat ash Shamal">{t('checkout.cities.shamal')}</option>
-                                        <option value="Mesaieed">{t('checkout.cities.mesaieed')}</option>
+                            {fulfillmentType === 'pickup' && (
+                                <div className="form-group" style={{ marginTop: '15px' }}>
+                                    <label>{isRTL ? 'اختر المتجر للاستلام' : 'Select Shop for Pickup'}</label>
+                                    <select className="form-control" value={pickupShopId} onChange={(e) => setPickupShopId(e.target.value)} required style={{ height: '48px', width: '100%' }}>
+                                        <option value="" disabled>{isRTL ? 'اختر متجرنا' : '-- Select a Shop --'}</option>
+                                        {shops.map(shop => (
+                                            <option key={shop.id} value={shop.id}>{shop.name} ({shop.address})</option>
+                                        ))}
                                     </select>
                                 </div>
-                            </div>
+                            )}
+
+                            {orderData.isReservation && (
+                                <div style={{ marginTop: '20px' }}>
+                                    {/* Pickup Date */}
+                                    <label style={{ fontWeight: '600', fontSize: '0.85rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                                        <CalendarDays size={16} /> {isRTL ? 'اختر يوم الاستلام' : 'Select Pickup Day'}
+                                    </label>
+                                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '20px' }}>
+                                        {[...Array(5)].map((_, i) => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() + i + 1);
+                                            const dateStr = d.toISOString().slice(0, 10);
+                                            const dayName = d.toLocaleDateString(isRTL ? 'ar' : 'en', { weekday: 'short' });
+                                            const dayNum = d.getDate();
+                                            const monthName = d.toLocaleDateString(isRTL ? 'ar' : 'en', { month: 'short' });
+                                            const isSelected = pickupDateTime.startsWith(dateStr);
+                                            return (
+                                                <div
+                                                    key={dateStr}
+                                                    onClick={() => setPickupDateTime(dateStr + 'T10:00')}
+                                                    style={{
+                                                        minWidth: '80px', textAlign: 'center', padding: '14px 12px',
+                                                        borderRadius: '14px', cursor: 'pointer', transition: 'all 0.2s',
+                                                        border: isSelected ? '2px solid var(--color-gold, #c8a951)' : '1px solid #e5e5e5',
+                                                        background: isSelected ? 'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.02))' : '#fafafa',
+                                                        boxShadow: isSelected ? '0 4px 12px rgba(212, 175, 55, 0.15)' : 'none',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: '0.7rem', fontWeight: '600', color: isSelected ? 'var(--color-gold, #c8a951)' : '#999', textTransform: 'uppercase', letterSpacing: '1px' }}>{dayName}</div>
+                                                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: isSelected ? '#1a1a1a' : '#555', margin: '4px 0' }}>{dayNum}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: isSelected ? 'var(--color-gold, #c8a951)' : '#aaa', fontWeight: '500' }}>{monthName}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Time Slots */}
+                                    {pickupDateTime && (
+                                        <>
+                                            <label style={{ fontWeight: '600', fontSize: '0.85rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                                                <Clock size={16} /> {isRTL ? 'اختر الوقت' : 'Select Time Slot'}
+                                            </label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                                {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00'].map(time => {
+                                                    const isTimeSelected = pickupDateTime.includes('T' + time);
+                                                    const hour = parseInt(time.split(':')[0]);
+                                                    const displayTime = hour > 12 ? `${hour - 12}:00 PM` : (hour === 12 ? '12:00 PM' : `${hour}:00 AM`);
+                                                    return (
+                                                        <button
+                                                            key={time}
+                                                            type="button"
+                                                            onClick={() => setPickupDateTime(pickupDateTime.slice(0, 10) + 'T' + time)}
+                                                            style={{
+                                                                padding: '12px 8px', borderRadius: '10px', cursor: 'pointer',
+                                                                border: isTimeSelected ? '2px solid var(--color-gold, #c8a951)' : '1px solid #e5e5e5',
+                                                                background: isTimeSelected ? 'var(--color-black, #1a1a1a)' : '#fff',
+                                                                color: isTimeSelected ? '#fff' : '#555',
+                                                                fontWeight: isTimeSelected ? '700' : '500', fontSize: '0.85rem',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            {displayTime}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {fulfillmentType === 'delivery' && !orderData.isReservation && (
+                                <>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>{t('checkout.zone')}</label>
+                                            <input type="text" name="zone" value={formData.zone} onChange={handleInputChange} placeholder="e.g. 66" required />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>{t('checkout.street')}</label>
+                                            <input type="text" name="street" value={formData.street} onChange={handleInputChange} placeholder="e.g. 850" required />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>{t('checkout.building')}</label>
+                                            <input type="text" name="building" value={formData.building} onChange={handleInputChange} placeholder="e.g. 12" required />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>{t('checkout.city')}</label>
+                                            <select name="city" value={formData.city} onChange={handleInputChange} className="form-control" required style={{ width: '100%', height: '48px' }}>
+                                                <option value="Doha">{t('checkout.cities.doha')}</option>
+                                                <option value="Al Rayyan">{t('checkout.cities.rayyan')}</option>
+                                                <option value="Al Wakrah">{t('checkout.cities.wakrah')}</option>
+                                                <option value="Al Khor">{t('checkout.cities.khor')}</option>
+                                                <option value="Lusail">{t('checkout.cities.lusail')}</option>
+                                                <option value="Umm Salal">{t('checkout.cities.salal')}</option>
+                                                <option value="Al Sheehaniya">{t('checkout.cities.sheehaniya')}</option>
+                                                <option value="Madinat ash Shamal">{t('checkout.cities.shamal')}</option>
+                                                <option value="Mesaieed">{t('checkout.cities.mesaieed')}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Payment Method */}
-                        <div className="checkout-section">
-                            <h3><CreditCard size={20} /> {t('checkout.payment_method')}</h3>
+                        {!orderData.isReservation && (
+                            <div className="checkout-section">
+                                <h3><CreditCard size={20} /> {t('checkout.payment_method')}</h3>
                             <div className="payment-options">
                                 <label className={`payment-option recommended ${paymentMethod === 'WhatsApp Confirmation' ? 'active' : ''}`}>
                                     <input type="radio" name="paymentMethod" value="WhatsApp Confirmation" checked={paymentMethod === 'WhatsApp Confirmation'} onChange={e => setPaymentMethod(e.target.value)} />
@@ -343,6 +516,7 @@ const Checkout = () => {
                                 </label>
                             </div>
                         </div>
+                        )}
                     </div>
 
                     {/* Order Summary Sidebar */}
@@ -411,7 +585,9 @@ const Checkout = () => {
                             </div>
 
                             <button type="submit" className="btn-confirm" disabled={isSubmitting}>
-                                {isSubmitting ? t('checkout.processing') : t('checkout.confirm_order')}
+                                {isSubmitting 
+                                    ? t('checkout.processing') 
+                                    : (orderData.isReservation ? t('checkout.confirm_reservation', 'Confirm Reservation') : t('checkout.confirm_order'))}
                             </button>
                         </div>
                     </div>

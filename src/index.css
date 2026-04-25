@@ -21,6 +21,12 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-premium: 0 10px 40px rgba(212, 175, 55, 0.15); /* Gold tinted shadow */
+  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
 }
 
 /* Reset and Base Styles */
@@ -229,4 +235,50 @@ ul {
   font-size: 1.05rem;
   letter-spacing: 0.5px;
   color: var(--color-gold-dark);
+}
+
+/* UI Badges (Atoms) */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.ui-badge.premium {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  color: var(--color-black);
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.ui-badge.nearest {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #C8E6C9;
+}
+
+.ui-badge.best-price {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+/* Modern Card Layouts */
+.premium-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-premium);
 }

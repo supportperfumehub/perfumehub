@@ -3,6 +3,7 @@ import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
+import ProductManager from './ProductManager';
 
 const ShopsManager = ({ isRTL }) => {
     const { products, orders } = useContext(ShopContext);
@@ -622,36 +623,8 @@ const ShopsManager = ({ isRTL }) => {
 
                                 {/* Products Tab */}
                                 {expandedTab === 'products' && (
-                                    <div>
-                                        {analytics.shopProducts.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
-                                                <Package size={40} style={{ marginBottom: '10px' }} />
-                                                <div>{isRTL ? 'لا توجد منتجات بعد' : 'No products yet'}</div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'grid', gap: '10px' }}>
-                                                {analytics.shopProducts.map(product => (
-                                                    <div key={product.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', background: '#334155', borderRadius: '10px', border: '1px solid #475569' }}>
-                                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#0f172a', flexShrink: 0 }}>
-                                                            {product.image?.[0]
-                                                                ? <img src={product.image[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                : <Package size={20} color="#ccc" style={{ margin: '14px' }} />
-                                                            }
-                                                        </div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ fontWeight: '600', fontSize: '0.92rem', color: '#f8fafc' }}>{product.name}</div>
-                                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{product.brand} · {product.sku || 'No SKU'}</div>
-                                                        </div>
-                                                        <div style={{ textAlign: 'right' }}>
-                                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{product.price} QAR</div>
-                                                            <div style={{ fontSize: '0.78rem', color: product.stock > 0 ? '#34d399' : '#f87171' }}>
-                                                                {product.stock > 0 ? `${isRTL ? 'متوفر' : 'In Stock'}: ${product.stock}` : (isRTL ? 'نفد المخزون' : 'Out of Stock')}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                    <div className="nested-product-manager">
+                                        <ProductManager isRTL={isRTL} shopId={shop.id} hideHeader={true} />
                                     </div>
                                 )}
 

@@ -11,10 +11,13 @@ const typeCodes = {
     'Eau Fraîche': 'EF'
 };
 
-const ProductManager = ({ isRTL, shopId }) => {
-    const { products, addProduct, updateProduct, deleteProduct } = useContext(ShopContext);
+const ProductManager = ({ isRTL, shopId, hideHeader }) => {
+    const { products, addProduct, updateProduct, deleteProduct, addInventory } = useContext(ShopContext);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [isBindingCatalog, setIsBindingCatalog] = useState(false);
+    const [selectedCatalogProduct, setSelectedCatalogProduct] = useState(null);
+    const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('default');
     const [isSkuAuto, setIsSkuAuto] = useState(true);
@@ -404,12 +407,43 @@ const ProductManager = ({ isRTL, shopId }) => {
         setIsSkuAuto(true);
         setShowForm(false);
         setEditingId(null);
+        setIsBindingCatalog(false);
+        setSelectedCatalogProduct(null);
+    };
+
+    const handleCatalogSelect = (product) => {
+        setSelectedCatalogProduct(product);
+        setFormData({
+            ...initialFormState,
+            price: product.price || '',
+            stock: 10
+        });
+    };
+
+    const handleInventorySubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedCatalogProduct || !shopId) return;
+        
+        const payload = {
+            product_id: selectedCatalogProduct.id,
+            shop_id: shopId,
+            price: Number(formData.price),
+            stock: Number(formData.stock),
+            is_active: true,
+            pickup_available: true
+        };
+
+        const success = await addInventory(payload);
+        if (success) {
+            cancelEdit();
+        }
     };
 
     return (
         <div className="manager-content">
             <div className="manager-header">
-                <h2>{isRTL ? 'إدارة المنتجات' : 'Product Management'}</h2>
+                {!hideHeader && <h2>{isRTL ? 'إدارة المنتجات' : 'Product Management'}</h2>}
+                {hideHeader && <div style={{ flex: 1 }}></div>}
                 <div className="manager-header-actions">
                     {!showForm && (
                         <div className="header-controls-group">
@@ -454,14 +488,105 @@ const ProductManager = ({ isRTL, shopId }) => {
                             )}
                         </div>
                     )}
-                    {!showForm && (
-                        <button type="button" className="btn btn-gold" onClick={() => setShowForm(true)}>
+                    {!showForm && !isBindingCatalog && (
+                        <button type="button" className="btn btn-gold" onClick={() => shopId ? setIsBindingCatalog(true) : setShowForm(true)}>
                             <Plus size={18} />
-                            {isRTL ? 'إضافة منتج جديد' : 'Add New Product'}
+                            {shopId ? (isRTL ? 'إضافة من الكتالوج' : 'Add from Catalog') : (isRTL ? 'إضافة منتج جديد' : 'Add New Product')}
                         </button>
                     )}
                 </div>
             </div>
+
+            {isBindingCatalog && (
+                <div className="admin-form animate-fade-in" style={{ backgroundColor: 'rgba(200, 169, 81, 0.05)', border: '1px solid rgba(200, 169, 81, 0.2)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, color: 'var(--color-gold)' }}>
+                            <Store size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                            {isRTL ? 'تحديد منتج من الكتالوج العالمي' : 'Select Product from Global Catalog'}
+                        </h3>
+                        <button onClick={cancelEdit} className="admin-action-btn" style={{ margin: 0 }}><X size={20} /></button>
+                    </div>
+
+                    {!selectedCatalogProduct ? (
+                        <div>
+                            <div className="admin-search-container" style={{ marginBottom: '20px' }}>
+                                <div className="admin-search-icon"><Search size={18} /></div>
+                                <input
+                                    type="text"
+                                    placeholder={isRTL ? 'ابحث عن اسم العطر أو الماركة...' : 'Search global perfumes or brands...'}
+                                    className="form-control admin-search-input"
+                                    value={catalogSearchTerm}
+                                    onChange={(e) => setCatalogSearchTerm(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
+                                {products.filter(p => !p._dummy && (p.name.toLowerCase().includes(catalogSearchTerm.toLowerCase()) || p.brand.toLowerCase().includes(catalogSearchTerm.toLowerCase()))).slice(0, 50).map(p => {
+                                    // Check if shop already owns this product
+                                    const alreadyHas = p.inventories?.some(inv => inv.shop_id === shopId);
+                                    return (
+                                        <div 
+                                            key={p.id} 
+                                            style={{ 
+                                                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', cursor: alreadyHas ? 'not-allowed' : 'pointer', opacity: alreadyHas ? 0.5 : 1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', gap: '8px' 
+                                            }}
+                                            onClick={() => !alreadyHas && handleCatalogSelect(p)}
+                                            onMouseOver={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'var(--color-gold)'; }}
+                                            onMouseOut={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                                        >
+                                            <div style={{ height: '100px', borderRadius: '8px', overflow: 'hidden', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {p.image && p.image[0] ? <img src={p.image[0]} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="" /> : <ImageOff size={24} color="#333" />}
+                                            </div>
+                                            <div>
+                                                <h4 style={{ margin: '0 0 4px', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h4>
+                                                <div style={{ color: 'var(--color-gold)', fontSize: '0.8rem', marginBottom: '8px' }}>{p.brand}</div>
+                                                {alreadyHas && <div style={{ fontSize: '0.75rem', color: '#e74c3c', background: 'rgba(231,76,60,0.1)', padding: '4px 8px', borderRadius: '4px', textAlign: 'center' }}>{isRTL ? 'مضاف مسبقاً' : 'Already in inventory'}</div>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleInventorySubmit}>
+                            <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', alignItems: 'center' }}>
+                                {selectedCatalogProduct.image && selectedCatalogProduct.image[0] && (
+                                    <img src={selectedCatalogProduct.image[0]} style={{ width: '80px', height: '80px', objectFit: 'contain', background: '#fff', borderRadius: '8px', padding: '5px' }} alt="" />
+                                )}
+                                <div>
+                                    <h4 style={{ margin: '0 0 5px 0', fontSize: '1.2rem' }}>{selectedCatalogProduct.name}</h4>
+                                    <div style={{ color: 'var(--color-gold)' }}>{selectedCatalogProduct.brand} • {selectedCatalogProduct.type}</div>
+                                </div>
+                                <button type="button" className="btn" onClick={() => setSelectedCatalogProduct(null)} style={{ marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0, padding: '8px 15px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>
+                                    {isRTL ? 'تغيير المنتج' : 'Change Product'}
+                                </button>
+                            </div>
+
+                            <div className="form-row grid-2">
+                                <div className="form-group">
+                                    <label>{isRTL ? 'سعر البيع (ر.ق)' : 'Selling Price (QAR)'}</label>
+                                    <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required min="1" step="0.5" />
+                                </div>
+                                <div className="form-group">
+                                    <label>{isRTL ? 'الكمية المتوفرة' : 'Available Stock'}</label>
+                                    <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
+                                </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <button type="submit" className="btn btn-gold" style={{ flex: 1 }}>
+                                    <Plus size={18} />
+                                    {isRTL ? 'إضافة لمخزون المتجر' : 'Add to Shop Inventory'}
+                                </button>
+                                <button type="button" className="btn" onClick={cancelEdit} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+                                    {isRTL ? 'إلغاء' : 'Cancel'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            )}
 
             {showForm && (
                 <div className="admin-form animate-fade-in">

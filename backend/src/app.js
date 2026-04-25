@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { supabase } from './config/supabaseClient.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
 
 // Import Routes
 import authRoutes from './routes/auth.js';
@@ -12,19 +16,34 @@ import shopsRoutes from './routes/shops.js';
 import couponsRoutes from './routes/coupons.js';
 import regionsRoutes from './routes/regions.js';
 import backupsRoutes from './routes/backups.js';
+import inventoryRoutes from './routes/inventory.js';
+import discoverRoutes from './routes/discover.js';
+import recommendationRoutes from './routes/recommendations.js';
+import webhooksRoutes from './routes/webhooks.js';
+import reservationsRoutes from './routes/reservations.js';
+import adminRoutes from './routes/admin.js';
+import subscriptionRoutes from './routes/subscriptions.js';
 
 dotenv.config();
 
 const app = express();
 
+// Security Headers
+app.use(helmet());
+
 const corsOptions = {
-    origin: '*',
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'x-user-id', 'X-Requested-With', 'Accept', 'Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204
 };
 app.use(cors(corsOptions));
+app.use(cookieParser());
+
+// Webhooks must be parsed as raw body, so they must be mounted BEFORE express.json()
+app.use('/api/webhooks', webhooksRoutes);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -34,26 +53,32 @@ app.use((req, res, next) => {
     next();
 });
 
-// Debug Routes
-app.get('/api/debug/schema', async (req, res) => {
-    try {
-        const { data, error } = await supabase.from('customers').select('*').limit(1);
-        if (error) return res.status(500).json({ error: 'Database check failed', details: error });
-        res.json({ message: 'Table accessible', data });
-    } catch (err) {
-        res.status(500).json({ error: 'System error', details: err.message });
-    }
-});
+// Apply global rate limiting to all /api routes
+app.use('/api', apiLimiter);
 
-app.get('/api/debug/env', (req, res) => {
-    res.json({
-        hasUrl: !!process.env.SUPABASE_URL,
-        hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        urlPrefix: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 10) : 'none',
-        nodeEnv: process.env.NODE_ENV
+// Debug Routes (Disabled in production)
+if (process.env.NODE_ENV !== 'production') {
+    app.get('/api/debug/schema', async (req, res) => {
+        try {
+            const table = req.query.table || 'customers';
+            const { data, error } = await supabase.from(table).select('*').limit(50);
+            if (error) return res.status(500).json({ error: `Database check failed for ${table}`, details: error });
+            res.json({ message: `Table ${table} accessible`, count: data.length, data });
+        } catch (err) {
+            res.status(500).json({ error: 'System error', details: err.message });
+        }
     });
-});
+
+    app.get('/api/debug/env', (req, res) => {
+        res.json({
+            hasUrl: !!process.env.SUPABASE_URL,
+            hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            urlPrefix: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 10) : 'none',
+            nodeEnv: process.env.NODE_ENV
+        });
+    });
+}
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -64,6 +89,15 @@ app.use('/api/shops', shopsRoutes);
 app.use('/api/coupons', couponsRoutes);
 app.use('/api/regions', regionsRoutes);
 app.use('/api/backups', backupsRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/discover', discoverRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/reservations', reservationsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+
+// Error Handler (Must be last)
+app.use(errorHandler);
 
 // For Vercel: Export the app as default
 export default app;

@@ -6,6 +6,8 @@ import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
 import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
+import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
+import { getLocationWithFallback } from '../../utils/geolocation';
 import './ProductDetails.css';
 
 // Haversine formula to calculate distance between two lat/lng pairs in km
@@ -37,8 +39,9 @@ const ProductDetails = () => {
     const [addedToCart, setAddedToCart] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const [isVendorsExpanded, setIsVendorsExpanded] = useState(false);
     const [shopsData, setShopsData] = useState([]);
-    const [relatedShopItems, setRelatedShopItems] = useState([]);
+    const [selectedInventoryId, setSelectedInventoryId] = useState(null);
     const [userLocation, setUserLocation] = useState(() => {
         try {
             const saved = localStorage.getItem('ph_user_location');
@@ -49,32 +52,35 @@ const ProductDetails = () => {
     });
     const DESCRIPTION_LIMIT = 200;
 
+    const [recommendedVendors, setRecommendedVendors] = useState([]);
+
     useEffect(() => {
-        const fetchShops = async () => {
+        const fetchRecommendations = async () => {
+            if (!product) return;
             try {
-                const response = await fetch('/api/shops?status=active');
+                const lat = userLocation?.lat || 25.2854;
+                const lon = userLocation?.lng || 51.5310;
+                const response = await fetch(`/api/recommendations/vendors/${product.id}?lat=${lat}&lon=${lon}`);
                 if (response.ok) {
-                    const data = await response.json();
-                    setShopsData(data);
+                    const result = await response.json();
+                    setRecommendedVendors(result.data);
                 }
             } catch (error) {
-                console.error("Failed to fetch shops:", error);
+                console.error("Failed to fetch recommendations:", error);
             }
         };
-        fetchShops();
-    }, []);
+        fetchRecommendations();
+    }, [product, userLocation]);
 
-    const detectLocation = () => {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
-                setUserLocation(loc);
-                localStorage.setItem('ph_user_location', JSON.stringify(loc));
-            }, (error) => {
-                console.error("Error getting location:", error);
-            });
-        }
+    const detectLocation = async () => {
+        const loc = await getLocationWithFallback();
+        setUserLocation({ lat: loc.lat, lng: loc.lng });
     };
+
+    // Auto-detect on mount if no saved location
+    useEffect(() => {
+        if (!userLocation) { detectLocation(); }
+    }, []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -87,18 +93,11 @@ const ProductDetails = () => {
                 : foundProduct.size;
             setSelectedSize(defaultSize);
 
-            // Find shared items dynamically by matching name, but deduplicate by shop to ensure a shop only appears once
-            const related = mockProducts.filter(p => p.name === foundProduct.name);
-            const uniqueRelated = [];
-            const seenShops = new Set();
-            related.forEach(p => {
-                const shopKey = p.shop_id || 'global';
-                if (!seenShops.has(shopKey)) {
-                    seenShops.add(shopKey);
-                    uniqueRelated.push(p);
-                }
-            });
-            setRelatedShopItems(uniqueRelated);
+            // Default to cheapest active inventory
+            if (foundProduct.inventories && foundProduct.inventories.length > 0) {
+                const cheapest = [...foundProduct.inventories].sort((a,b)=>a.price-b.price)[0];
+                setSelectedInventoryId(cheapest.id);
+            }
         }
     }, [id, mockProducts]);
 
@@ -134,13 +133,22 @@ const ProductDetails = () => {
         ? product.size.find(s => (typeof s === 'object' ? s.name : s) === selectedSize)
         : null;
     
-    const displayPrice = selectedVariant && typeof selectedVariant === 'object' 
-        ? selectedVariant.price 
-        : product.price;
+    // Fallbacks
+    let displayPrice = product.price;
+    let orderStock = product.stock;
     
-    const displayOldPrice = selectedVariant && typeof selectedVariant === 'object' 
-        ? selectedVariant.oldPrice 
-        : product.oldPrice;
+    const selectedInventory = product.inventories?.find(i => i.id === selectedInventoryId);
+    if (selectedInventory) {
+        displayPrice = selectedInventory.price;
+        orderStock = selectedInventory.stock;
+    } else if (selectedVariant && typeof selectedVariant === 'object') {
+        displayPrice = selectedVariant.price;
+    }
+    
+    let displayOldPrice = product.oldPrice;
+    if (selectedVariant && typeof selectedVariant === 'object' && selectedVariant.oldPrice) {
+        displayOldPrice = selectedVariant.oldPrice;
+    }
 
     const displayDiscount = displayOldPrice && displayOldPrice > displayPrice 
         ? Math.round((1 - displayPrice / displayOldPrice) * 100)
@@ -309,31 +317,15 @@ const ProductDetails = () => {
                     <div className="purchase-actions">
                         <div className="quantity-selector-wrapper">
                             <div className="quantity-selector">
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock === 0}>-</button>
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={orderStock === 0}>-</button>
                                 <span className="qty-value">{quantity}</span>
-                                <button onClick={() => setQuantity(Math.min((product.stock !== undefined ? product.stock : 10), quantity + 1))} disabled={product.stock === 0}>+</button>
+                                <button onClick={() => setQuantity(Math.min((orderStock !== undefined ? orderStock : 10), quantity + 1))} disabled={orderStock === 0}>+</button>
                             </div>
                             <button
                                 className="btn-reserve-store"
+                                disabled={orderStock === 0}
                                 onClick={() => {
-                                    // Dynamically get the currently selected shop's whatsapp number
-                                    let targetNumber = '97430301901'; // Default PerfumeHub Admin Number
-                                    let targetShopName = isRTL ? 'المتجر الرئيسي' : 'Direct';
-                                    
-                                    if (product.shop_id) {
-                                        const shop = shopsData.find(s => s.id === product.shop_id);
-                                        if (shop) {
-                                            targetShopName = shop.name;
-                                            if (shop.whatsapp_number) {
-                                                targetNumber = shop.whatsapp_number;
-                                            }
-                                        }
-                                    }
-
-                                    const message = isRTL 
-                                        ? `مرحباً ${targetShopName}، أود حجز المنتج التالى في المتجر:\n${product.name}`
-                                        : `Hello ${targetShopName}, I would like to reserve the following product in store:\n${product.name}`;
-                                    window.open(`https://wa.me/${targetNumber.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                                    navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
                                 }}
                             >
                                 <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
@@ -363,37 +355,18 @@ const ProductDetails = () => {
                             </div>
                         </div>
 
-                        <div className="action-buttons-group">
-                            <button
-                                className={`btn add-to-cart-large ${addedToCart ? 'btn-success' : ''}`}
-                                disabled={product.stock === 0}
-                                onClick={() => {
-                                    addToCart(product, quantity, isGiftWrapped, selectedSize, displayPrice);
-                                    setAddedToCart(true);
-                                    setTimeout(() => setAddedToCart(false), 2000);
-                                }}
-                                style={{ 
-                                    backgroundColor: addedToCart ? 'var(--success, #28a745)' : 'var(--color-gold)', 
-                                    border: 'none', 
-                                    color: '#fff'
-                                }}
-                            >
-                                {addedToCart ? (
-                                    <><Check size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.added')}</>
-                                ) : (
-                                    <><ShoppingBag size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.add_to_cart')}</>
-                                )}
-                            </button>
-
-                            <button
-                                className="btn-buy-now"
-                                disabled={product.stock === 0}
-                                onClick={() => {
-                                    navigate('/checkout', { state: { product, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice } });
-                                }}
-                            >
-                                {t('product.buy_now')}
-                            </button>
+                        <div className="product-authenticity-note animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                            <p>
+                                {isRTL 
+                                    ? 'ملاحظة: قد يختلف شكل العبوة والتغليف بناءً على تحديثات المصنع، ولكننا نضمن أن جميع المنتجات أصلية 100% ومن مصادرها الرسمية.'
+                                    : 'Note: Product packaging and presentation may vary based on manufacturer updates. We guarantee that all products are 100% authentic and sourced from official channels.'}
+                            </p>
+                            <div className="product-status-tag">
+                                <strong>{t('product.status')}</strong>
+                                <span className={`status-indicator ${orderStock === 0 ? 'out-of-stock' : 'in-stock'}`}>
+                                    {orderStock === 0 ? t('product.out_of_stock') : t('product.in_stock')}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="action-row-meta">
@@ -411,67 +384,56 @@ const ProductDetails = () => {
                             </div>
                         </div>
 
-                        <div className="product-authenticity-note animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                            <p>
-                                {isRTL 
-                                    ? 'ملاحظة: قد يختلف شكل العبوة والتغليف بناءً على تحديثات المصنع، ولكننا نضمن أن جميع المنتجات أصلية 100% ومن مصادرها الرسمية.'
-                                    : 'Note: Product packaging and presentation may vary based on manufacturer updates. We guarantee that all products are 100% authentic and sourced from official channels.'}
-                            </p>
-                            <div className="product-status-tag">
-                                <strong>{t('product.status')}</strong>
-                                <span className={`status-indicator ${product.stock === 0 ? 'out-of-stock' : 'in-stock'}`}>
-                                    {product.stock === 0 ? t('product.out_of_stock') : t('product.in_stock')}
-                                </span>
-                            </div>
-                        </div>
+                        {recommendedVendors.length > 0 && (
+                            <div className="shop-selection-accordion premium-card" style={{ marginBottom: '25px', padding: '15px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <h4 style={{ fontSize: '1rem', color: 'var(--color-black)', margin: 0 }}>
+                                        {isRTL ? 'أفضل العروض:' : 'Best Offers:'}
+                                    </h4>
+                                    {recommendedVendors.length > 1 && (
+                                        <button 
+                                            className="btn-link" 
+                                            onClick={() => setIsVendorsExpanded(!isVendorsExpanded)}
+                                            style={{ background: 'none', border: 'none', color: 'var(--color-gold-dark)', fontWeight: '600', cursor: 'pointer' }}
+                                        >
+                                            {isVendorsExpanded ? (isRTL ? 'إخفاء' : 'View Less') : (isRTL ? `عرض ${recommendedVendors.length - 1} عروض أخرى` : `View ${recommendedVendors.length - 1} other offers`)}
+                                        </button>
+                                    )}
+                                </div>
 
-                        {relatedShopItems.length > 1 && shopsData.length > 0 && (
-                            <div className="shop-selection-panel" style={{ marginBottom: '25px', padding: '15px', borderRadius: '10px', backgroundColor: 'var(--bg-light, #f8f9fa)' }}>
-                                <h4 style={{ marginBottom: '12px', fontSize: '1rem', color: 'var(--text-secondary, #666)' }}>
-                                    {isRTL ? 'متاح أيضاً في هذه المتاجر:' : 'Available in these shops:'}
-                                </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {relatedShopItems
-                                        .map(item => {
-                                            const isOurShop = !item.shop_id;
-                                            const shopInfo = shopsData.find(s => s.id === item.shop_id);
-                                            if (!isOurShop && !shopInfo) return null; // Shop not active
+                                    {recommendedVendors
+                                        .filter((_, idx) => isVendorsExpanded || idx === 0)
+                                        .map((vendor) => {
+                                            const isSelected = vendor.inventory_id === selectedInventoryId;
                                             
-                                            let dist = Infinity;
-                                            if (userLocation && shopInfo?.latitude && shopInfo?.longitude) {
-                                                dist = calculateDistance(userLocation.lat, userLocation.lng, shopInfo.latitude, shopInfo.longitude);
-                                            }
-                                            return { item, shopInfo, isOurShop, dist };
-                                        })
-                                        .filter(obj => obj !== null)
-                                        .sort((a, b) => a.dist - b.dist)
-                                        .map(({ item, shopInfo, isOurShop, dist }) => {
-                                            const isSelected = String(item.id) === String(product.id);
-                                            let shopName = isOurShop ? (isRTL ? 'بيرفيوم هب (المتجر الرئيسي)' : 'PerfumeHub Direct') : shopInfo.name;
-                                            
-                                            let badge = null;
-                                            if (isOurShop) badge = <span className="shop-badge badge-primary">{isRTL ? 'الرئيسي' : 'Direct'}</span>;
-                                            else if (shopInfo.is_recommended) badge = <span className="shop-badge badge-gold">{isRTL ? 'موصى به' : 'Recommended'}</span>;
-
-                                            let distanceStr = "";
-                                            if (dist !== Infinity) {
-                                                distanceStr = ` (${dist.toFixed(1)} km)`;
-                                            }
-
                                             return (
-                                                <label key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '10px', border: isSelected ? '2px solid var(--color-gold, #C5A059)' : '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(197, 160, 89, 0.05)' : '#fff', transition: 'all 0.2s' }}>
+                                                <label key={vendor.inventory_id} style={{ display: 'flex', alignItems: 'center', padding: '12px', border: isSelected ? '2px solid var(--color-gold)' : '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.05)' : '#fff', transition: 'all var(--transition-fast)' }}>
                                                     <input 
                                                         type="radio" 
                                                         name="shopSelection" 
                                                         checked={isSelected} 
-                                                        onChange={() => navigate(`/product/${item.id}`)}
-                                                        style={{ marginRight: '10px', accentColor: 'var(--color-gold, #C5A059)' }}
+                                                        onChange={() => setSelectedInventoryId(vendor.inventory_id)}
+                                                        style={{ marginRight: '12px', width: '18px', height: '18px', accentColor: 'var(--color-gold)' }}
                                                     />
-                                                    <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-                                                        <span style={{ fontWeight: isSelected ? '600' : '500', fontSize: '0.95rem' }}>
-                                                            {shopName} <span style={{color: '#888', fontSize: '0.85rem'}}>{distanceStr}</span>
-                                                        </span>
-                                                        {badge}
+                                                    <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <span style={{ fontWeight: isSelected ? '700' : '500', fontSize: '0.95rem', color: 'var(--color-black)' }}>
+                                                                {vendor.shop_name} <span style={{color: 'var(--color-text-light)', fontSize: '0.85rem', fontWeight: '400'}}>({vendor.dist_km.toFixed(1)} km)</span>
+                                                            </span>
+                                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                                {vendor.badges.map((badge, idx) => {
+                                                                    let badgeClass = 'best-price';
+                                                                    if(badge.includes('Premium')) badgeClass = 'premium';
+                                                                    if(badge.includes('Nearest')) badgeClass = 'nearest';
+                                                                    return <span key={idx} className={`ui-badge ${badgeClass}`}>{badge}</span>;
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem' }}>
+                                                            <span style={{ fontWeight: '600', color: 'var(--color-black)' }}>{vendor.price} {vendor.currency}</span>
+                                                            <span style={{ color: '#2E7D32', fontWeight: '500' }}>{t('product.in_stock')}</span>
+                                                        </div>
                                                     </div>
                                                 </label>
                                             );
@@ -531,6 +493,40 @@ const ProductDetails = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Sticky Action Bar */}
+            <div className="sticky-action-bar">
+                <div className="container" style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                        <PrimaryCTA 
+                            disabled={orderStock === 0}
+                            onClick={() => {
+                                addToCart({...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, displayPrice);
+                                setAddedToCart(true);
+                                setTimeout(() => setAddedToCart(false), 2000);
+                            }}
+                        >
+                            {addedToCart ? (
+                                <><Check size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.added')}</>
+                            ) : (
+                                <><ShoppingBag size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.add_to_cart')}</>
+                            )}
+                        </PrimaryCTA>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <ReserveCTA
+                            disabled={orderStock === 0}
+                            onClick={() => {
+                                // TODO: Trigger Reserve flow bottom sheet
+                                navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
+                            }}
+                        >
+                            {t('product.reserve_in_shop', 'Reserve in Shop')}
+                        </ReserveCTA>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 };

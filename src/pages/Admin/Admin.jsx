@@ -8,16 +8,20 @@ import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
 import ShopsManager from '../../components/Admin/ShopsManager';
 import RegionsManager from '../../components/Admin/RegionsManager';
+import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
     LayoutDashboard, Package, ShoppingCart, Ticket, 
-    Users, Store, BarChart2, DatabaseBackup, Globe, Home
+    Users, Store, BarChart2, DatabaseBackup, Globe, Home,
+    Sparkles, Sliders
 } from 'lucide-react';
+import DiscoveryManager from '../../components/Admin/DiscoveryManager';
+import RecommendationLab from '../../components/Admin/RecommendationLab';
 import { Link } from 'react-router-dom';
 import './Admin.css';
 
 const Admin = () => {
     const { isRTL, user } = useOutletContext();
-    const [activeTab, setActiveTab] = useState('products');
+    const [activeTab, setActiveTab] = useState('shops');
 
     // Assume user object contains the role from context. 
     // Fallback to 'super_admin' or 'admin' for demo purposes if strictly not set.
@@ -32,15 +36,19 @@ const Admin = () => {
     }
 
     const tabs = [
-        { id: 'products', label: isRTL ? 'إدارة المنتجات' : 'Products', icon: <Package size={20} /> },
+        { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
         { id: 'orders', label: isRTL ? 'إدارة الطلبات' : 'Orders', icon: <ShoppingCart size={20} /> },
         // Regional admins might not control global coupons or recovery
         ...(isSuperAdmin ? [{ id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> }] : []),
         { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
-        { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
-        ...(isSuperAdmin ? [{ id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> }] : []),
-        ...(isSuperAdmin ? [{ id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }] : []),
+        ...(isSuperAdmin ? [
+            { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
+            { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
+            { id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> },
+            { id: 'subscriptions', label: isRTL ? 'الاشتراكات' : 'Subscriptions', icon: <Ticket size={20} /> },
+            { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }
+        ] : []),
     ];
 
     return (
@@ -91,7 +99,10 @@ const Admin = () => {
                     {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
+                    {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
+                    {activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
                     {activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
+                    {activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
                     {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                 </div>
             </main>

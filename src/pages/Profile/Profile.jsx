@@ -1,9 +1,9 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Mail, Phone, MapPin, Package, Clock, CheckCircle, Store } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Package, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
 
@@ -23,6 +23,40 @@ const Profile = () => {
 
     // Filter orders to only show those for this user based on email
     const userOrders = orders.filter(o => o.email === user?.email).reverse();
+
+    // Fetch user reservations
+    const [reservations, setReservations] = useState([]);
+    const [resvLoading, setResvLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReservations = async () => {
+            if (!user) return;
+            try {
+                const res = await fetch('/api/reservations', { headers: { 'x-user-id': user.id } });
+                if (res.ok) setReservations(await res.json());
+            } catch (e) { console.error(e); }
+            finally { setResvLoading(false); }
+        };
+        fetchReservations();
+    }, [user]);
+
+    const cancelReservation = async (id) => {
+        if (!window.confirm(isRTL ? 'هل تريد إلغاء هذا الحجز؟' : 'Cancel this reservation?')) return;
+        try {
+            const res = await fetch(`/api/reservations/${id}/cancel`, {
+                method: 'POST', headers: { 'x-user-id': user.id }
+            });
+            if (res.ok) setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'cancelled' } : r));
+        } catch (e) { console.error(e); }
+    };
+
+    const statusStyles = {
+        pending:   { bg: '#fef3c7', color: '#92400e', label: isRTL ? 'قيد الانتظار' : 'Pending' },
+        confirmed: { bg: '#d1fae5', color: '#065f46', label: isRTL ? 'مؤكد' : 'Confirmed' },
+        completed: { bg: '#e0e7ff', color: '#3730a3', label: isRTL ? 'تم الاستلام' : 'Picked Up' },
+        cancelled: { bg: '#fee2e2', color: '#b91c1c', label: isRTL ? 'ملغى' : 'Cancelled' },
+        expired:   { bg: '#f3f4f6', color: '#6b7280', label: isRTL ? 'منتهي' : 'Expired' },
+    };
 
     return (
         <div className="profile-page">
@@ -86,6 +120,97 @@ const Profile = () => {
                 </div>
 
                 <div className="profile-content">
+                    {/* My Reservations */}
+                    <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <CalendarCheck size={22} style={{ color: 'var(--color-gold)' }} />
+                        {isRTL ? 'حجوزاتي' : 'My Reservations'}
+                    </h2>
+
+                    {resvLoading ? (
+                        <div className="no-orders text-center" style={{ padding: '30px' }}>
+                            <p>{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+                        </div>
+                    ) : reservations.length > 0 ? (
+                        <div className="orders-list" style={{ marginBottom: '40px' }}>
+                            {reservations.map(resv => {
+                                const sty = statusStyles[resv.status] || statusStyles.pending;
+                                return (
+                                    <div key={resv.id} className="order-card" style={{ position: 'relative' }}>
+                                        <div className="order-header">
+                                            <div className="order-id">
+                                                <Store size={18} className="gold-icon" />
+                                                <span>{resv.shops?.name || (isRTL ? 'متجر' : 'Shop')}</span>
+                                            </div>
+                                            <span style={{
+                                                padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem',
+                                                fontWeight: '700', background: sty.bg, color: sty.color,
+                                                textTransform: 'uppercase', letterSpacing: '0.5px'
+                                            }}>
+                                                {sty.label}
+                                            </span>
+                                        </div>
+                                        <div className="order-body">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                                {resv.products?.image_url && (
+                                                    <img 
+                                                        src={Array.isArray(resv.products.image_url) ? resv.products.image_url[0] : resv.products.image_url} 
+                                                        alt="" 
+                                                        style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} 
+                                                    />
+                                                )}
+                                                <div>
+                                                    <strong style={{ fontSize: '0.95rem' }}>{resv.products?.name}</strong>
+                                                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>
+                                                        {resv.products?.brand} • Qty: {resv.quantity}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="order-date" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Clock size={14} style={{ color: 'var(--color-gold)' }} />
+                                                <span>
+                                                    {new Date(resv.pickup_time_start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
+                                                    {new Date(resv.pickup_time_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {new Date(resv.pickup_time_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+
+                                            {/* NEW: Verification Code for Pickup */}
+                                            {(resv.status === 'pending' || resv.status === 'confirmed') && resv.verification_code && (
+                                                <div style={{ marginTop: '15px', padding: '12px', background: 'rgba(200, 169, 81, 0.05)', borderRadius: '8px', border: '1px dashed var(--color-gold)', textAlign: 'center' }}>
+                                                    <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                        {isRTL ? 'رمز الاستلام' : 'Pickup Code'}
+                                                    </p>
+                                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '4px', color: 'var(--color-gold)' }}>
+                                                        {resv.verification_code}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {(resv.status === 'pending' || resv.status === 'confirmed') && (
+                                            <div className="order-footer" style={{ justifyContent: 'flex-end' }}>
+                                                <button 
+                                                    onClick={() => cancelReservation(resv.id)}
+                                                    style={{
+                                                        background: 'none', border: '1px solid #e5e5e5', borderRadius: '8px',
+                                                        padding: '6px 14px', fontSize: '0.8rem', cursor: 'pointer',
+                                                        color: '#dc2626', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'
+                                                    }}
+                                                >
+                                                    <XCircle size={14} /> {isRTL ? 'إلغاء' : 'Cancel'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="no-orders text-center" style={{ marginBottom: '40px' }}>
+                            <CalendarCheck size={40} color="var(--color-gray)" style={{ opacity: 0.4 }} />
+                            <p>{isRTL ? 'لا توجد حجوزات حالياً' : 'No reservations yet'}</p>
+                        </div>
+                    )}
+
+                    {/* Order History */}
                     <h2 className="section-title">
                         {t('profile.order_history')}
                     </h2>

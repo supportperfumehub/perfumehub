@@ -4,19 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, Navigation, Search, Store } from 'lucide-react';
 import './NearestShopFinder.css';
 
-// Haversine formula to calculate distance between two lat/lng pairs in km
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in km
-};
-
 const NearestShopFinder = ({ isRTL }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -24,24 +11,25 @@ const NearestShopFinder = ({ isRTL }) => {
     const [location, setLocation] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [loadingLocation, setLoadingLocation] = useState(false);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
     
     useEffect(() => {
-        const fetchActiveShops = async () => {
+        const fetchShops = async () => {
             try {
-                const response = await fetch('/api/shops?status=active');
+                let url = '/api/shops?status=active';
+                if (location) {
+                    url = `/api/shops/nearest?lat=${location.lat}&lng=${location.lng}&radius=50`; // 50km radius
+                }
+                const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     setShops(data);
                 }
             } catch (error) {
                 console.error("Failed to fetch shops:", error);
-            } finally {
-                setIsInitialLoading(false);
             }
         };
-        fetchActiveShops();
-    }, []);
+        fetchShops();
+    }, [location]);
 
     const detectLocation = () => {
         setLoadingLocation(true);
@@ -67,15 +55,12 @@ const NearestShopFinder = ({ isRTL }) => {
     };
 
     const getProcessedShops = () => {
-        // If sorting by location
+        // If sorting by location, the backend already sorted them and attached dist_km!
         if (location) {
-            return [...shops].map(shop => {
-                const distance = (shop.latitude && shop.longitude) 
-                    ? calculateDistance(location.lat, location.lng, shop.latitude, shop.longitude) 
-                    : Infinity;
-                return { ...shop, distance };
-            })
-            .sort((a, b) => a.distance - b.distance);
+            return shops.map(shop => ({
+                ...shop,
+                distance: shop.dist_km !== undefined ? shop.dist_km : Infinity
+            })).sort((a, b) => a.distance - b.distance);
         }
         
         // If searching manually by name or address
@@ -106,17 +91,7 @@ const NearestShopFinder = ({ isRTL }) => {
             </div>
 
             <div className="shops-grid">
-                {isInitialLoading ? (
-                    // Show 4 skeleton cards while loading
-                    [1, 2, 3, 4].map(idx => (
-                        <div key={idx} className="skeleton-card">
-                            <div className="skeleton-img"></div>
-                            <div className="skeleton-text"></div>
-                            <div className="skeleton-subtext"></div>
-                            <div className="skeleton-btn"></div>
-                        </div>
-                    ))
-                ) : displayedShops.length > 0 ? (
+                {displayedShops.length > 0 ? (
                     displayedShops.map((shop) => (
                         <div key={shop.id} className="shop-card">
                             <div className="shop-image-container">
@@ -135,6 +110,7 @@ const NearestShopFinder = ({ isRTL }) => {
                                         <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
                                     </div>
                                 )}
+
                                 <button 
                                     className="shop-visit-btn"
                                     onClick={() => navigate(`/shop?shop_id=${shop.id}`)}

@@ -11,6 +11,7 @@ import Cart from './pages/Cart/Cart';
 import Login from './pages/Login/Login';
 import Wishlist from './pages/Wishlist/Wishlist';
 import Admin from './pages/Admin/Admin';
+import VerificationPortal from './pages/Admin/VerificationPortal';
 import VendorPanel from './pages/Vendor/VendorPanel';
 import VendorSignup from './pages/Vendor/VendorSignup';
 import Checkout from './pages/Checkout/Checkout';
@@ -105,6 +106,11 @@ function App() {
         <Route path="vendor" element={
           <ProtectedRoute isVendorRequired={true}>
             <VendorPanel />
+          </ProtectedRoute>
+        } />
+        <Route path="verify" element={
+          <ProtectedRoute isVendorRequired={true}>
+            <VerificationPortal />
           </ProtectedRoute>
         } />
         <Route path="vendor-signup" element={<VendorSignup />} />

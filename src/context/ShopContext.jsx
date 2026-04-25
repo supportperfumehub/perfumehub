@@ -11,6 +11,7 @@ export const ShopProvider = ({ children }) => {
     const [products, setProducts] = useState(mockProducts);
     const [loading, setLoading] = useState(true);
     const [backups, setBackups] = useState([]);
+    const [discoverCampaigns, setDiscoverCampaigns] = useState([]);
 
     // Initial orders - Start empty and fetch from database
     const [orders, setOrders] = useState([]);
@@ -39,28 +40,64 @@ export const ShopProvider = ({ children }) => {
                 url += `?shop_id=${user.shop_id}`;
             }
 
-            const response = await fetch(url, { 
-                signal: controller.signal,
-                headers: user ? { 'x-user-id': user.id } : {}
-            });
+            const headers = user ? { 'x-user-id': user.id } : {};
+            
+            // Parallel fetch to gather products, inventory, and discover campaigns
+            const [productsRes, invRes, discRes] = await Promise.all([
+                fetch(url, { signal: controller.signal, headers }),
+                fetch('/api/inventory', { signal: controller.signal, headers }),
+                fetch('/api/discover', { signal: controller.signal, headers }).catch(() => null)
+            ]);
             clearTimeout(timeoutId);
             
-            if (response.ok) {
-                const data = await response.json();
+            if (productsRes.ok && invRes.ok) {
+                const data = await productsRes.json();
+                const invData = await invRes.json();
+
+                if (discRes && discRes.ok) {
+                    const discData = await discRes.json();
+                    setDiscoverCampaigns(discData);
+                }
+
+                // Group inventory by product_id
+                const inventoryByProduct = {};
+                if (Array.isArray(invData)) {
+                    invData.forEach(inv => {
+                        if (!inventoryByProduct[inv.product_id]) inventoryByProduct[inv.product_id] = [];
+                        inventoryByProduct[inv.product_id].push(inv);
+                    });
+                }
+
                 if (Array.isArray(data)) {
                     // Map snake_case to camelCase and handle JSON fields
                     const mappedProducts = data.map(p => {
-                        // Sanitize images: handle both single string and array, and trim whitespace
                         let images = [];
                         if (Array.isArray(p.image)) {
                             images = p.image.map(img => typeof img === 'string' ? img.trim() : img).filter(img => img);
                         } else if (typeof p.image === 'string') {
                             images = [p.image.trim()];
                         }
+                        
+                        // Calculate price & stock from inventory
+                        const productInventories = inventoryByProduct[p.id] || [];
+                        let lowestPrice = p.price || 0; // API fallback
+                        let totalStock = p.stock || 0;
+                        let activeInventories = [];
+
+                        if (productInventories.length > 0) {
+                            activeInventories = productInventories.filter(i => i.is_active);
+                            if (activeInventories.length > 0) {
+                                lowestPrice = Math.min(...activeInventories.map(i => i.price));
+                                totalStock = activeInventories.reduce((acc, i) => acc + i.stock, 0);
+                            }
+                        }
 
                         return {
                             ...p,
                             image: images,
+                            price: lowestPrice,
+                            stock: totalStock,
+                            inventories: activeInventories,
                             oldPrice: p.old_price,
                             type: p.type,
                             isNew: p.is_new,
@@ -293,6 +330,31 @@ export const ShopProvider = ({ children }) => {
         } catch (error) {
             showToast(`Network error: ${error.message}`, 'error');
             console.error('Network error during updateProduct:', error);
+        }
+    };
+
+    const addInventory = async (payload) => {
+        try {
+            const response = await fetch('/api/inventory', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(user ? { 'x-user-id': user.id } : {})
+                },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                showToast('Inventory bound successfully', 'success');
+                await fetchProducts(); // refresh products to pull new bindings
+                return true;
+            } else {
+                const data = await response.json().catch(() => ({}));
+                showToast(`Failed: ${data.error || 'Server error'}`, 'error');
+                return false;
+            }
+        } catch (error) {
+            showToast(`Network error: ${error.message}`, 'error');
+            return false;
         }
     };
 
@@ -544,7 +606,7 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const placeOrder = async (product, quantity, customerName = 'Guest Customer', isGiftWrapped = false, shippingAddress = null, paymentMethod = 'Not Specified', email = '', phone = '', selectedSize = null, selectedPrice = null) => {
+    const placeOrder = async (product, quantity, customerName = 'Guest Customer', isGiftWrapped = false, shippingAddress = null, paymentMethod = 'Not Specified', email = '', phone = '', selectedSize = null, selectedPrice = null, fulfillmentType = 'delivery', pickupShopId = null) => {
         try {
             const basePrice = selectedPrice !== null ? parseFloat(selectedPrice) : parseFloat(product.price);
             const giftWrapCost = isGiftWrapped ? 10 : 0;
@@ -552,54 +614,60 @@ export const ShopProvider = ({ children }) => {
             const total = itemPrice * quantity;
             
             // Use provided size, or fallback to first size in product array, or the product.size string itself
-            const sizeToUse = selectedSize || (Array.isArray(product.size) ? product.size[0] : product.size);
+            const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
             
+            // Determine target shop_id: 
+            // If pickup, use pickupShopId. Else, if inventory_id is present on product, use that shop.
+            let stockShopId = null;
+            if (fulfillmentType === 'pickup') {
+                stockShopId = pickupShopId;
+            } else if (product.shop_id) {
+                stockShopId = product.shop_id;
+            }
+
             const orderItems = [
                 {
                     productId: product.id,
+                    product_id: product.id,
+                    shop_id: stockShopId,
                     name: product.name,
                     brand: product.brand,
                     quantity: quantity,
                     price: itemPrice,
                     isGiftWrapped: isGiftWrapped,
-                    size: selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size)
+                    size: sizeToUse
                 }
             ];
 
             let orderId = `ORD-${Date.now()}`;
 
             try {
-                const updatedStock = (product.stock !== undefined ? product.stock : 10) - quantity;
-                const updatedProduct = { ...product, stock: updatedStock };
 
-                const response = await fetch(`/api/products/${product.id}`, {
-                    method: 'PUT',
+                const orderPayload = {
+                    customerName: customerName,
+                    email: email,
+                    phone: phone,
+                    total: total,
+                    shippingAddress: shippingAddress,
+                    paymentMethod: paymentMethod,
+                    items: orderItems,
+                    fulfillment_type: fulfillmentType,
+                    pickup_shop_id: fulfillmentType === 'pickup' ? pickupShopId : null,
+                    shop_id: stockShopId
+                };
+
+                const orderRes = await fetch('/api/orders', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedProduct)
+                    body: JSON.stringify(orderPayload)
                 });
 
-                if (response.ok) {
-                    setProducts(products.map(p => p.id === product.id ? updatedProduct : p));
-
-                    const orderPayload = {
-                        customerName: customerName,
-                        email: email,
-                        phone: phone,
-                        total: total,
-                        shippingAddress: shippingAddress,
-                        paymentMethod: paymentMethod,
-                        items: orderItems
-                    };
-
-                    const orderRes = await fetch('/api/orders', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(orderPayload)
-                    });
-
-                    if (orderRes.ok) {
-                        const orderData = await orderRes.json();
-                        orderId = `ORD-${orderData.id}`;
+                if (orderRes.ok) {
+                    const orderData = await orderRes.json();
+                    orderId = `ORD-${orderData.id}`;
+                    // Optimistic stock decrement handled locally or naturally upon reload
+                    if (fulfillmentType === 'delivery') {
+                         setProducts(products.map(p => p.id === product.id ? { ...p, stock: p.stock - quantity } : p));
                     }
                 }
             } catch (backendError) {
@@ -633,9 +701,11 @@ export const ShopProvider = ({ children }) => {
         newArrivals,
         mensProducts,
         womensProducts,
+        discoverCampaigns,
         addProduct,
         updateProduct,
         deleteProduct,
+        addInventory,
         orders,
         updateOrderStatus,
         placeOrder,

@@ -3,7 +3,8 @@ import { useOutletContext, Navigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
-import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon, Home } from 'lucide-react';
+import ReservationManager from '../../components/Admin/ReservationManager';
+import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck } from 'lucide-react';
 import '../Admin/Admin.css'; // Use the premium admin styles
 
 const VendorPanel = () => {
@@ -101,6 +102,7 @@ const VendorPanel = () => {
     const tabs = [
         { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <Package size={20} /> },
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
+        { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
         { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> }
     ];
 
@@ -153,6 +155,7 @@ const VendorPanel = () => {
                 <div className="main-content-wrapper">
                     {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={shopId} />}
+                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'settings' && (
                         <div className="admin-section">
                             <div className="manager-header">
