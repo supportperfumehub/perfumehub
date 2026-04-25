@@ -28,7 +28,7 @@ const Checkout = () => {
         city: 'Doha',
         pincode: '',
     });
-    const [paymentMethod, setPaymentMethod] = useState('WhatsApp Confirmation');
+    const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [couponCode, setCouponCode] = useState(orderData?.couponCode || '');
@@ -294,21 +294,21 @@ const Checkout = () => {
                 body: JSON.stringify(formspreePayload)
             }).catch(e => console.error("Email backup failed", e));
 
-            // 3. WHATSAPP OPENING
-            if (paymentMethod === 'WhatsApp Confirmation') {
-                const whatsappNumber = "97430301901";
-                const itemsText = isCartMode
-                    ? cartItems.map(item => `• ${item.product.name}${item.selectedSize ? ` (${item.selectedSize})` : ''} x${item.quantity}`).join('\n')
-                    : `• ${singleProduct.name}${singleSize ? ` (${singleSize})` : ''} x${singleQty}`;
+            // 3. WHATSAPP OPENING (Mandatory for all orders now)
+            const whatsappNumber = "97430301901";
+            const itemsText = isCartMode
+                ? cartItems.map(item => `• ${item.product.name}${item.selectedSize ? ` (${item.selectedSize})` : ''} x${item.quantity}`).join('\n')
+                : `• ${singleProduct.name}${singleSize ? ` (${singleSize})` : ''} x${singleQty}`;
 
-                const couponText = discount > 0 ? `\n\u{1F3AB} *${isRTL ? 'كوبون:' : 'Coupon:'}* ${couponCode}` : '';
-                const messageText = isRTL
-                    ? `\u{1F6CD} *طلب جديد: ${generatedOrderId}*${couponText}\n\u{1F464} *العميل:* ${formData.fullName}\n\u{1F4CD} *العنوان:* منطقة ${formData.zone}، شارع ${formData.street}، مبنى ${formData.building}، ${formData.city}\n\n*المنتجات:*\n${itemsText}\n\n\u{2705} *يرجى تأكيد طلبي.*`
-                    : `\u{1F6CD} *New Order: ${generatedOrderId}*${couponText}\n\u{1F464} *Customer:* ${formData.fullName}\n\u{1F4CD} *Address:* Zone ${formData.zone}, Street ${formData.street}, Building ${formData.building}, ${formData.city}\n\n*Items:*\n${itemsText}\n\n\u{2705} *Please confirm my order.*`;
+            const couponText = discount > 0 ? `\n\u{1F3AB} *${isRTL ? 'كوبون:' : 'Coupon:'}* ${couponCode}` : '';
+            const paymentText = isRTL ? `\u{1F4B5} *الدفع:* عند الاستلام (COD)` : `\u{1F4B5} *Payment:* Cash on Delivery (COD)`;
+            
+            const messageText = isRTL
+                ? `\u{1F6CD} *طلب جديد: ${generatedOrderId}*${couponText}\n\u{1F464} *العميل:* ${formData.fullName}\n\u{1F4CD} *العنوان:* منطقة ${formData.zone}، شارع ${formData.street}، مبنى ${formData.building}، ${formData.city}\n${paymentText}\n\n*المنتجات:*\n${itemsText}\n\n\u{2705} *يرجى تأكيد طلبي.*`
+                : `\u{1F6CD} *New Order: ${generatedOrderId}*${couponText}\n\u{1F464} *Customer:* ${formData.fullName}\n\u{1F4CD} *Address:* Zone ${formData.zone}, Street ${formData.street}, Building ${formData.building}, ${formData.city}\n${paymentText}\n\n*Items:*\n${itemsText}\n\n\u{2705} *Please confirm my order.*`;
 
-                const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(messageText)}`;
-                window.open(url, '_blank');
-            }
+            const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(messageText)}`;
+            window.open(url, '_blank');
 
             // 4. NAVIGATE TO SUCCESS
             setIsSubmitting(false);
@@ -495,27 +495,26 @@ const Checkout = () => {
                             )}
                         </div>
 
-                        {/* Payment Method */}
+                        {/* Payment Method - simplified to COD + WhatsApp */}
                         {!orderData.isReservation && (
                             <div className="checkout-section">
                                 <h3><CreditCard size={20} /> {t('checkout.payment_method')}</h3>
-                            <div className="payment-options">
-                                <label className={`payment-option recommended ${paymentMethod === 'WhatsApp Confirmation' ? 'active' : ''}`}>
-                                    <input type="radio" name="paymentMethod" value="WhatsApp Confirmation" checked={paymentMethod === 'WhatsApp Confirmation'} onChange={e => setPaymentMethod(e.target.value)} />
-                                    <div className="payment-option-content">
-                                        <div className="payment-option-header">
-                                            <span>{t('checkout.whatsapp')}</span>
-                                            <span className="recommended-badge">{t('checkout.recommended')}</span>
+                                <div className="payment-options">
+                                    <div className="payment-option active recommended" style={{ border: '2px solid var(--color-gold, #c8a951)', background: 'rgba(212, 175, 55, 0.05)' }}>
+                                        <div className="payment-option-content">
+                                            <div className="payment-option-header">
+                                                <span>{isRTL ? 'الدفع عند الاستلام + تأكيد عبر واتساب' : 'COD + WhatsApp Confirmation'}</span>
+                                                <span className="recommended-badge">{t('checkout.recommended')}</span>
+                                            </div>
+                                            <p className="payment-option-desc">
+                                                {isRTL 
+                                                    ? 'سيتم توجيهك إلى واتساب لإرسال تفاصيل الطلب وتأكيده. الدفع كاش عند الاستلام.' 
+                                                    : 'You will be redirected to WhatsApp to confirm your order details. Pay cash when you receive your order.'}
+                                            </p>
                                         </div>
-                                        <p className="payment-option-desc">{t('checkout.whatsapp_desc')}</p>
                                     </div>
-                                </label>
-                                <label className={`payment-option ${paymentMethod === 'Cash on Delivery' ? 'active' : ''}`}>
-                                    <input type="radio" name="paymentMethod" value="Cash on Delivery" checked={paymentMethod === 'Cash on Delivery'} onChange={e => setPaymentMethod(e.target.value)} />
-                                    <span>{t('checkout.cod')}</span>
-                                </label>
+                                </div>
                             </div>
-                        </div>
                         )}
                     </div>
 
@@ -587,7 +586,7 @@ const Checkout = () => {
                             <button type="submit" className="btn-confirm" disabled={isSubmitting}>
                                 {isSubmitting 
                                     ? t('checkout.processing') 
-                                    : (orderData.isReservation ? t('checkout.confirm_reservation', 'Confirm Reservation') : t('checkout.confirm_order'))}
+                                    : (orderData.isReservation ? t('checkout.confirm_reservation', 'Confirm Reservation') : (isRTL ? 'تأكيد الطلب عبر واتساب' : 'Confirm Order via WhatsApp'))}
                             </button>
                         </div>
                     </div>

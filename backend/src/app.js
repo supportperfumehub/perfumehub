@@ -19,7 +19,7 @@ import backupsRoutes from './routes/backups.js';
 import inventoryRoutes from './routes/inventory.js';
 import discoverRoutes from './routes/discover.js';
 import recommendationRoutes from './routes/recommendations.js';
-import webhooksRoutes from './routes/webhooks.js';
+// import webhooksRoutes from './routes/webhooks.js'; // Removed for COD-only flow
 import reservationsRoutes from './routes/reservations.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscriptions.js';
@@ -42,7 +42,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 
 // Webhooks must be parsed as raw body, so they must be mounted BEFORE express.json()
-app.use('/api/webhooks', webhooksRoutes);
+// app.use('/api/webhooks', webhooksRoutes); // Removed for COD flow
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
