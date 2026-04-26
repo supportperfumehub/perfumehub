@@ -123,6 +123,24 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const forgotPassword = async (email) => {
+        try {
+            const response = await api.post('/auth/forgot-password', { email });
+            return response.data;
+        } catch (error) {
+            return { success: false, message: error.response?.data?.error || 'Request failed' };
+        }
+    };
+
+    const resetPassword = async (token, password) => {
+        try {
+            const response = await api.post('/auth/reset-password', { token, password });
+            return response.data;
+        } catch (error) {
+            return { success: false, message: error.response?.data?.error || 'Reset failed' };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -133,7 +151,9 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        verify2FA
+        verify2FA,
+        forgotPassword,
+        resetPassword
     };
 
     return (

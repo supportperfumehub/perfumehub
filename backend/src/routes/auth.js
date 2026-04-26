@@ -20,6 +20,9 @@ router.post('/login', loginRateLimiter, authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.post('/2fa/verify', loginRateLimiter, authController.verify2FA);
+router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
+router.post('/reset-password', authRateLimiter, authController.resetPassword);
+
 
 /**
  * Protected Routes

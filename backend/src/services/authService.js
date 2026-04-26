@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/tokenUtils.js';
 import { AppError } from '../middleware/errorHandler.js';
 import dotenv from 'dotenv';
@@ -200,5 +201,56 @@ export class AuthService {
 
         await this.userRepository.update(userId, { two_factor_enabled: true });
         return { success: true, message: '2FA enabled successfully' };
+    }
+
+    /**
+     * Request Password Reset
+     */
+    async requestPasswordReset(email) {
+        const user = await this.userRepository.findByEmail(email);
+        if (!user) {
+            // Return success even if user not found to prevent email enumeration
+            return { success: true, message: 'If an account exists, a reset link has been sent.' };
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date();
+        expires.setHours(expires.getHours() + 1); // 1 hour expiry
+
+        await this.userRepository.update(user.id, {
+            reset_token: token,
+            reset_token_expires: expires.toISOString()
+        });
+
+        // Simulation: Log reset link
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${token}`;
+        console.log(`\n[PASSWORD RESET SIMULATION]`);
+        console.log(`User: ${email}`);
+        console.log(`Link: ${resetUrl}\n`);
+
+        return { success: true, message: 'If an account exists, a reset link has been sent.' };
+    }
+
+    /**
+     * Reset Password
+     */
+    async resetPassword(token, newPassword) {
+        const user = await this.userRepository.findByResetToken(token);
+        
+        if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+            throw new AppError('Invalid or expired reset token', 400);
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, this.bcryptRounds);
+
+        await this.userRepository.update(user.id, {
+            password_hash: passwordHash,
+            reset_token: null,
+            reset_token_expires: null,
+            failed_attempts: 0,
+            lockout_until: null
+        });
+
+        return { success: true, message: 'Password has been reset successfully.' };
     }
 }

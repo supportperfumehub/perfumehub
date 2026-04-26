@@ -9,6 +9,7 @@ import ProductDetails from './pages/ProductDetails/ProductDetails';
 import ContentPage from './pages/ContentPage/ContentPage';
 import Cart from './pages/Cart/Cart';
 import Login from './pages/Login/Login';
+import ResetPassword from './pages/Login/ResetPassword';
 import Wishlist from './pages/Wishlist/Wishlist';
 import Admin from './pages/Admin/Admin';
 import VerificationPortal from './pages/Admin/VerificationPortal';

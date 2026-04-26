@@ -152,4 +152,30 @@ export class AuthController {
             next(error);
         }
     };
+
+    /**
+     * POST /api/auth/forgot-password
+     */
+    forgotPassword = async (req, res, next) => {
+        try {
+            const { email } = req.body;
+            const result = await this.authService.requestPasswordReset(email);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/auth/reset-password
+     */
+    resetPassword = async (req, res, next) => {
+        try {
+            const { token, password } = req.body;
+            const result = await this.authService.resetPassword(token, password);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
 }

@@ -155,16 +155,34 @@
     text-align: left;
 }
 
-.forgot-password a {
+.forgot-password a, .text-link {
+    background: none;
+    border: none;
     color: var(--color-text-light);
     font-size: 0.75rem;
     opacity: 0.5;
+    cursor: pointer;
     transition: all 0.2s ease;
+    padding: 0;
+    font-family: inherit;
+    text-decoration: none;
 }
 
-.forgot-password a:hover {
+.forgot-password a:hover, .text-link:hover {
     color: var(--color-gold-light);
     opacity: 1;
+}
+
+.success-message {
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    color: var(--color-gold-light);
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
+    margin: 15px 0;
 }
 
 .login-btn {

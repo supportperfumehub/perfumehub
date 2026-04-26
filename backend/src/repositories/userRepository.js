@@ -16,6 +16,20 @@ export class UserRepository {
     }
 
     /**
+     * Find a user by reset token
+     */
+    async findByResetToken(token) {
+        const { data, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('reset_token', token)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+    }
+
+    /**
      * Find a user by ID
      */
     async findById(id) {

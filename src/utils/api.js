@@ -37,6 +37,15 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
+        // Don't try to refresh if it's an auth endpoint (prevents masking login errors)
+        const isAuthRequest = originalRequest.url.includes('/auth/login') || 
+                             originalRequest.url.includes('/auth/register') || 
+                             originalRequest.url.includes('/auth/refresh');
+
+        if (isAuthRequest) {
+            return Promise.reject(error);
+        }
+
         // If we already tried refreshing once and failed, logout
         if (originalRequest._retry) {
             accessToken = null;

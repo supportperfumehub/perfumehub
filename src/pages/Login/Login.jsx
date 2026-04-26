@@ -11,20 +11,36 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
+    const [isResetSent, setIsResetSent] = useState(false);
 
-    const { user, login, register } = useContext(AuthContext);
+    const { user, login, register, forgotPassword } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
+        setIsForgotPassword(false);
         setError('');
+        setIsResetSent(false);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (isForgotPassword) {
+            const result = await forgotPassword(email);
+            if (result.success) {
+                setIsResetSent(true);
+                showToast(result.message, 'success');
+            } else {
+                setError(result.message);
+                showToast(result.message, 'error');
+            }
+            return;
+        }
 
         if (isLogin) {
             const result = await login(email, password);
@@ -90,7 +106,7 @@ const Login = () => {
                     {error && <div className="error-message">{error}</div>}
 
                     <div className="form-content">
-                        {!isLogin && (
+                        {!isLogin && !isForgotPassword && (
                             <div className="form-group slide-down">
                                 <label>{isRTL ? 'الاسم الكامل' : 'Full Name'}</label>
                                 <div className="input-with-icon">
@@ -118,35 +134,55 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <div className="form-group">
-                            <label>{isRTL ? 'كلمة المرور' : 'Password'}</label>
-                            <div className="input-with-icon">
-                                <Lock size={18} className="input-icon" />
-                                <input
-                                    type="password"
-                                    placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
+                        {!isForgotPassword && (
+                            <div className="form-group">
+                                <label>{isRTL ? 'كلمة المرور' : 'Password'}</label>
+                                <div className="input-with-icon">
+                                    <Lock size={18} className="input-icon" />
+                                    <input
+                                        type="password"
+                                        placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
-                    {isLogin && (
+                    {isLogin && !isForgotPassword && (
                         <div className="forgot-password">
-                            <a href="#">{isRTL ? 'هل نسيت كلمة المرور؟' : 'Forgot Password?'}</a>
+                            <button type="button" className="text-link" onClick={() => setIsForgotPassword(true)}>
+                                {isRTL ? 'هل نسيت كلمة المرور؟' : 'Forgot Password?'}
+                            </button>
                         </div>
                     )}
 
-                    <button type="submit" className="btn btn-gold login-btn">
-                        <span>
-                            {isRTL
-                                ? (isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب')
-                                : (isLogin ? 'Sign In' : 'Create Account')}
-                        </span>
-                        <ArrowRight size={18} className={isRTL ? 'rotate-180' : ''} />
-                    </button>
+                    {isForgotPassword && (
+                        <div className="forgot-password">
+                             <button type="button" className="text-link" onClick={() => setIsForgotPassword(false)}>
+                                {isRTL ? 'العودة لتسجيل الدخول' : 'Back to Login'}
+                            </button>
+                        </div>
+                    )}
+
+                    {isForgotPassword && isResetSent ? (
+                        <div className="success-message text-center" style={{ margin: '1rem 0', color: '#d4af37' }}>
+                            {isRTL ? 'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.' : 'Reset link has been sent to your email.'}
+                        </div>
+                    ) : (
+                        <button type="submit" className="btn btn-gold login-btn">
+                            <span>
+                                {isForgotPassword 
+                                    ? (isRTL ? 'إرسال رابط التعيين' : 'Send Reset Link')
+                                    : (isRTL
+                                        ? (isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب')
+                                        : (isLogin ? 'Sign In' : 'Create Account'))}
+                            </span>
+                            <ArrowRight size={18} className={isRTL ? 'rotate-180' : ''} />
+                        </button>
+                    )}
                 </form>
 
                 {/* Vendor CTA */}
