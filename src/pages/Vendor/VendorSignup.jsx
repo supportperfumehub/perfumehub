@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock } from 'lucide-react';
+import api from '../../utils/api';
 
 const VendorSignup = () => {
     const { t } = useTranslation();
@@ -48,53 +49,43 @@ const VendorSignup = () => {
         try {
             if (isGuest) {
                 // Guest flow: create user + shop together via /api/shops/manual (pending status)
-                const response = await fetch('/api/shops/manual', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ownerName: guestData.ownerName,
-                        ownerEmail: guestData.ownerEmail,
-                        ownerPassword: guestData.ownerPassword,
-                        shopName: formData.name,
-                        address: formData.address,
-                        whatsapp_number: formData.whatsapp_number,
-                        images
-                    })
+                const response = await api.post('/shops/manual', {
+                    ownerName: guestData.ownerName,
+                    ownerEmail: guestData.ownerEmail,
+                    ownerPassword: guestData.ownerPassword,
+                    shopName: formData.name,
+                    address: formData.address,
+                    whatsapp_number: formData.whatsapp_number,
+                    images
                 });
 
-                if (response.ok) {
+                if (response.data.success || response.status === 201 || response.status === 200) {
                     setSuccess(true);
                 } else {
-                    const data = await response.json();
-                    alert(data.error || 'Submission failed');
+                    alert(response.data.error || 'Submission failed');
                 }
             } else {
                 // Logged-in user flow: just create shop linked to their account
-                const response = await fetch('/api/shops', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        owner_id: user.id,
-                        name: formData.name,
-                        address: formData.address,
-                        whatsapp_number: formData.whatsapp_number,
-                        latitude: null,
-                        longitude: null,
-                        logo_url: images[0] || null,
-                        images
-                    })
+                const response = await api.post('/shops', {
+                    owner_id: user.id,
+                    name: formData.name,
+                    address: formData.address,
+                    whatsapp_number: formData.whatsapp_number,
+                    latitude: null,
+                    longitude: null,
+                    logo_url: images[0] || null,
+                    images
                 });
 
-                if (response.ok) {
+                if (response.data.success || response.status === 201 || response.status === 200) {
                     setSuccess(true);
                 } else {
-                    const data = await response.json();
-                    alert(data.error || 'Submission failed');
+                    alert(response.data.error || 'Submission failed');
                 }
             }
         } catch (error) {
             console.error('Submission error:', error);
-            alert('A network error occurred');
+            alert(error.response?.data?.error || 'A network error occurred');
         } finally {
             setLoading(false);
         }

@@ -4,8 +4,8 @@ import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import ReservationManager from '../../components/Admin/ReservationManager';
-import { Store, Package, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck } from 'lucide-react';
 import '../Admin/Admin.css'; // Use the premium admin styles
+import api from '../../utils/api';
 
 const VendorPanel = () => {
     const { isRTL } = useOutletContext();
@@ -23,11 +23,9 @@ const VendorPanel = () => {
 
     React.useEffect(() => {
         if (shopId && activeTab === 'settings' && !shopData) {
-            fetch('/api/shops', {
-                headers: user ? { 'x-user-id': user.id } : {}
-            })
-                .then(res => res.json())
-                .then(data => {
+            api.get('/shops')
+                .then(response => {
+                    const data = response.data;
                     const shopsList = Array.isArray(data) ? data : (data.shops || []);
                     const myShop = shopsList.find(s => s.id === shopId);
                     setShopData(myShop || {});
@@ -170,28 +168,21 @@ const VendorPanel = () => {
                                     e.preventDefault();
                                     setSavingSettings(true);
                                     try {
-                                        const res = await fetch(`/api/shops/${shopId}`, {
-                                            method: 'PUT',
-                                            headers: { 
-                                                'Content-Type': 'application/json',
-                                                ...(user ? { 'x-user-id': user.id } : {})
-                                            },
-                                            body: JSON.stringify({
-                                                name: shopData.name,
-                                                logo_url: shopData.logo_url,
-                                                whatsapp_number: shopData.whatsapp_number,
-                                                address: shopData.address,
-                                                images: shopData.images
-                                            })
+                                        const res = await api.put(`/shops/${shopId}`, {
+                                            name: shopData.name,
+                                            logo_url: shopData.logo_url,
+                                            whatsapp_number: shopData.whatsapp_number,
+                                            address: shopData.address,
+                                            images: shopData.images
                                         });
-                                        if (res.ok) alert(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully');
-                                        else {
-                                            const data = await res.json();
-                                            alert(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${data.error || data.message || 'Unknown error'}`);
+                                        if (res.status === 200 || res.data.success) {
+                                            alert(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully');
+                                        } else {
+                                            alert(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`);
                                         }
                                     } catch (e) {
                                         console.error(e);
-                                        alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
+                                        alert(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'));
                                     } finally {
                                         setSavingSettings(false);
                                     }

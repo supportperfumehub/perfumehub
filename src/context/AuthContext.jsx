@@ -30,8 +30,12 @@ export const AuthProvider = ({ children }) => {
                 const { accessToken, user } = response.data;
                 setAccessToken(accessToken);
                 setUser(user);
-                setIsAdmin(user.role === 'super_admin' || user.role === 'admin');
-                setIsVendor(user.role === 'vendor');
+                console.log('User Role from Server:', user.role);
+                const adminFlag = user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin';
+                const vendorFlag = user.role === 'vendor' || !!user.shop_id;
+                console.log('Setting isAdmin:', adminFlag, 'isVendor:', vendorFlag);
+                setIsAdmin(adminFlag);
+                setIsVendor(vendorFlag);
             }
         } catch (error) {
             console.log('No active session found.');
@@ -39,6 +43,13 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (user) {
+            setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
+            setIsVendor(user.role === 'vendor' || !!user.shop_id);
+        }
+    }, [user]);
 
     useEffect(() => {
         initAuth();
@@ -68,8 +79,8 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin');
-                setIsVendor(data.user.role === 'vendor');
+                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
+                setIsVendor(data.user.role === 'vendor' || !!data.user.shop_id);
                 return { success: true, user: data.user };
             }
             return { success: false, message: data.error || 'Login failed' };
@@ -86,8 +97,8 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin');
-                setIsVendor(data.user.role === 'vendor');
+                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
+                setIsVendor(data.user.role === 'vendor' || !!data.user.shop_id);
                 setRequires2FA(false);
                 setPendingUserId(null);
                 return { success: true, user: data.user };

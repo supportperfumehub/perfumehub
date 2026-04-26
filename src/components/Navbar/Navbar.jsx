@@ -95,7 +95,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
-                                {isVendor && !isAdmin && (
+                                {isVendor && (
                                     <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <Store size={18} />
                                         <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
@@ -129,6 +129,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         {isAuthenticated ? (
                             <Link to="/profile" className="icon-btn" title={isRTL ? 'حسابي' : 'Profile'}>
                                 <User size={20} className="text-gold" />
+                                <span style={{ fontSize: '10px', color: 'gold' }}>{user.role}</span>
                             </Link>
                         ) : (
                             <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
@@ -155,7 +156,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                 <Settings size={20} />
                             </Link>
                         )}
-                        {isVendor && !isAdmin && (
+                        {isVendor && (
                             <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
                                 <Store size={20} />
                             </Link>
