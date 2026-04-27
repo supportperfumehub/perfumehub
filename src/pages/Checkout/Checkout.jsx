@@ -161,7 +161,7 @@ const Checkout = () => {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        ...(user ? { 'x-user-id': user.id } : {})
+                        ...(user?.id ? { 'x-user-id': user.id } : {})
                     },
                     body: JSON.stringify({
                         shop_id: pickupShopId,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
+import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
 
@@ -37,9 +37,10 @@ const ShopsManager = ({ isRTL }) => {
     }, []);
 
     const fetchShopsAndRegions = async () => {
+        if (!user?.id) return;
         try {
             setLoading(true);
-            const headers = user ? { 'x-user-id': user.id } : {};
+            const headers = { 'x-user-id': user.id };
             const [shopsRes, regionsRes] = await Promise.all([
                 fetch('/api/shops', { headers }),
                 fetch('/api/regions', { headers })
@@ -60,7 +61,11 @@ const ShopsManager = ({ isRTL }) => {
         }
     };
 
-    useEffect(() => { fetchShopsAndRegions(); }, []);
+    useEffect(() => {
+        if (user?.id) {
+            fetchShopsAndRegions();
+        }
+    }, [user?.id]);
 
     const updateShopStatus = async (id, status) => {
         try {
@@ -473,7 +478,7 @@ const ShopsManager = ({ isRTL }) => {
                                     {[
                                         { key: 'overview', icon: <BarChart3 size={14} />, label: isRTL ? 'نظرة عامة' : 'Overview' },
                                         { key: 'reports', icon: <BarChart3 size={14} />, label: isRTL ? 'التقارير' : 'Reports' },
-                                        { key: 'products', icon: <Package size={14} />, label: isRTL ? 'المنتجات' : 'Products' },
+                                        { key: 'products', icon: <PackageIcon size={14} />, label: isRTL ? 'المنتجات' : 'Products' },
                                         { key: 'orders', icon: <ShoppingCart size={14} />, label: isRTL ? 'الطلبات' : 'Orders' },
                                         { key: 'edit', icon: <Edit size={14} />, label: isRTL ? 'تعديل' : 'Edit Shop' }
                                     ].map(tab => (
@@ -513,7 +518,7 @@ const ShopsManager = ({ isRTL }) => {
                                         {/* Stats Cards */}
                                         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '8px' : '12px', marginBottom: '20px' }}>
                                             <div style={statCardStyle('#3498db')}>
-                                                <Package size={isMobile ? 18 : 22} color="#3498db" style={{ marginBottom: '6px' }} />
+                                                <PackageIcon size={isMobile ? 18 : 22} color="#3498db" style={{ marginBottom: '6px' }} />
                                                 <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#111827' }}>{analytics.shopProducts.length}</div>
                                                 <div style={{ fontSize: '0.7rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المنتجات' : 'Products'}</div>
                                             </div>

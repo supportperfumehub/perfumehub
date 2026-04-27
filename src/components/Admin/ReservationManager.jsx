@@ -16,7 +16,7 @@ const ReservationManager = ({ shopId, isRTL }) => {
             setLoading(true);
             setError(null);
             const res = await fetch(`/api/reservations${shopId ? `?shop_id=${shopId}` : ''}`, {
-                headers: { 'x-user-id': user.id }
+                headers: { 'x-user-id': user?.id }
             });
             if (!res.ok) throw new Error('Failed to fetch reservations');
             const data = await res.json();
@@ -30,7 +30,7 @@ const ReservationManager = ({ shopId, isRTL }) => {
 
     useEffect(() => {
         fetchReservations();
-    }, [shopId]);
+    }, [shopId, user?.id]);
 
     const handleAction = async (id, action) => {
         const actionLabels = {
@@ -44,7 +44,7 @@ const ReservationManager = ({ shopId, isRTL }) => {
         try {
             const res = await fetch(`/api/reservations/${id}/${action}`, {
                 method: 'POST',
-                headers: { 'x-user-id': user.id }
+                headers: { 'x-user-id': user?.id }
             });
             if (!res.ok) {
                 const data = await res.json();

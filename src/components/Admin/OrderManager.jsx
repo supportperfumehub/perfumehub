@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { Search, ChevronDown, ChevronUp, User, Package, Clock, CheckCircle, Truck, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, User, Package as PackageIcon, Clock, CheckCircle, Truck, Phone, Mail, MapPin } from 'lucide-react';
 
 const OrderManager = ({ isRTL, shopId }) => {
     const { orders, updateOrderStatus } = useContext(ShopContext);
@@ -227,7 +227,7 @@ const OrderManager = ({ isRTL, shopId }) => {
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                 <div>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                                                                        <Package size={16} color="#c8a951" />
+                                                                        <PackageIcon size={16} color="#c8a951" />
                                                                         <strong style={{ fontSize: '1.1rem', color: '#f8fafc' }}>{order.id}</strong>
                                                                         <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>• {order.date}</span>
                                                                     </div>
@@ -281,7 +281,7 @@ const OrderManager = ({ isRTL, shopId }) => {
                             <tr>
                                 <td colSpan="5" className="text-center" style={{ padding: '40px' }}>
                                     <div style={{ opacity: 0.5 }}>
-                                        <Package size={48} style={{ marginBottom: '10px' }} />
+                                        <PackageIcon size={48} style={{ marginBottom: '10px' }} />
                                         <div>{shopId 
                                             ? (isRTL ? 'لم تصل طلبات لمنتجات متجرك بعد' : 'No orders yet for your shop products')
                                             : (isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found')}

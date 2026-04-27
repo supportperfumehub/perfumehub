@@ -17,10 +17,11 @@ const SubscriptionManager = ({ isRTL }) => {
     });
 
     const fetchPlans = async () => {
+        if (!user?.id) return;
         try {
             setLoading(true);
             const res = await fetch('/api/subscriptions/plans', {
-                headers: user ? { 'x-user-id': user.id } : {}
+                headers: { 'x-user-id': user.id }
             });
             if (res.ok) {
                 const data = await res.json();
@@ -33,10 +34,15 @@ const SubscriptionManager = ({ isRTL }) => {
         }
     };
 
-    useEffect(() => { fetchPlans(); }, []);
+    useEffect(() => {
+        if (user?.id) {
+            fetchPlans();
+        }
+    }, [user?.id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!user?.id) return;
         try {
             const method = editingPlan ? 'PUT' : 'POST';
             const url = editingPlan ? `/api/subscriptions/plans/${editingPlan.id}` : '/api/subscriptions/plans';

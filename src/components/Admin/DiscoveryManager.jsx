@@ -12,6 +12,7 @@ const DiscoveryManager = ({ isRTL }) => {
     const [filter, setFilter] = useState('all'); // all, featured, regular
 
     const fetchData = async () => {
+        if (!user?.id) return;
         try {
             setLoading(true);
             const [shopsRes, campaignsRes] = await Promise.all([
@@ -31,10 +32,13 @@ const DiscoveryManager = ({ isRTL }) => {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (user?.id) {
+            fetchData();
+        }
+    }, [user?.id]);
 
     const toggleFeatured = async (shopId, currentStatus) => {
+        if (!user?.id) return;
         try {
             const res = await fetch(`/api/admin/shops/${shopId}/feature`, {
                 method: 'PATCH',

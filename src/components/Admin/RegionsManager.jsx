@@ -45,7 +45,7 @@ const RegionsManager = ({ isRTL }) => {
         try {
             const res = await fetch('/api/regions', {
                 headers: {
-                    ...(user ? { 'x-user-id': user.id } : {})
+                    'x-user-id': user?.id
                 }
             });
             if (!res.ok) throw new Error('Failed to fetch regions');
@@ -62,7 +62,7 @@ const RegionsManager = ({ isRTL }) => {
         try {
             const res = await fetch('/api/users?role=vendor', {
                 headers: {
-                    ...(user ? { 'x-user-id': user.id } : {})
+                    'x-user-id': user?.id
                 }
             });
             if (!res.ok) throw new Error('Failed to fetch users');
@@ -85,7 +85,7 @@ const RegionsManager = ({ isRTL }) => {
                 method: method,
                 headers: { 
                     'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
+                    'x-user-id': user?.id
                 },
                 body: JSON.stringify({
                     name: newRegionName,
@@ -145,7 +145,7 @@ const RegionsManager = ({ isRTL }) => {
             const res = await fetch(`/api/regions/${confirmModal.regionId}`, {
                 method: 'DELETE',
                 headers: {
-                    ...(user ? { 'x-user-id': user.id } : {})
+                    'x-user-id': user?.id
                 }
             });
             const data = await res.json();
@@ -170,7 +170,7 @@ const RegionsManager = ({ isRTL }) => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
+                    'x-user-id': user?.id
                 },
                 body: JSON.stringify({
                     admin_id: parseInt(assignAdminId),

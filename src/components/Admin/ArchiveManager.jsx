@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { RefreshCw, Trash2, ShieldAlert, Clock, Tag, Package, Search } from 'lucide-react';
+import { RefreshCw, Trash2, ShieldAlert, Clock, Tag, Package as PackageIcon, Search } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 
 const ArchiveManager = ({ isRTL }) => {
@@ -105,7 +105,7 @@ const ArchiveManager = ({ isRTL }) => {
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {item.table_name === 'products' ? (
-                                            <Package size={16} color="#c8a951" />
+                                            <PackageIcon size={16} color="#c8a951" />
                                         ) : (
                                             <Tag size={16} color="#4caf50" />
                                         )}

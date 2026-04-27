@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Mail, Phone, MapPin, Package, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
 
@@ -30,7 +30,7 @@ const Profile = () => {
 
     useEffect(() => {
         const fetchReservations = async () => {
-            if (!user) return;
+            if (!user?.id) return;
             try {
                 const res = await fetch('/api/reservations', { headers: { 'x-user-id': user.id } });
                 if (res.ok) setReservations(await res.json());
@@ -38,9 +38,10 @@ const Profile = () => {
             finally { setResvLoading(false); }
         };
         fetchReservations();
-    }, [user]);
+    }, [user?.id]);
 
     const cancelReservation = async (id) => {
+        if (!user?.id) return;
         if (!window.confirm(isRTL ? 'هل تريد إلغاء هذا الحجز؟' : 'Cancel this reservation?')) return;
         try {
             const res = await fetch(`/api/reservations/${id}/cancel`, {
@@ -221,7 +222,7 @@ const Profile = () => {
                                 <div key={order.id} className="order-card">
                                     <div className="order-header">
                                         <div className="order-id">
-                                            <Package size={18} className="gold-icon" />
+                                            <PackageIcon size={18} className="gold-icon" />
                                             <span>{order.id}</span>
                                         </div>
                                         <div className={`order-status status-${order.status.toLowerCase()}`}>
@@ -256,7 +257,7 @@ const Profile = () => {
                         </div>
                     ) : (
                         <div className="no-orders text-center">
-                            <Package size={48} color="var(--color-gray)" />
+                            <PackageIcon size={48} color="var(--color-gray)" />
                             <p>{t('profile.no_orders')}</p>
                         </div>
                     )}

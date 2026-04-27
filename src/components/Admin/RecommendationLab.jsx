@@ -11,9 +11,9 @@ const RecommendationLab = ({ isRTL }) => {
     const [success, setSuccess] = useState(false);
 
     const fetchConfig = async () => {
+        if (!user?.id) return;
         try {
             setLoading(true);
-            // We'll use a direct select for simplicity or a new endpoint if needed
             const res = await fetch('/api/admin/algorithm-config', {
                 headers: { 'x-user-id': user.id }
             });
@@ -28,10 +28,13 @@ const RecommendationLab = ({ isRTL }) => {
     };
 
     useEffect(() => {
-        fetchConfig();
-    }, []);
+        if (user?.id) {
+            fetchConfig();
+        }
+    }, [user?.id]);
 
     const handleSave = async () => {
+        if (!user?.id || !config) return;
         setSaving(true);
         setError(null);
         setSuccess(false);

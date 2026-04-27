@@ -67,7 +67,7 @@ const VendorSignup = () => {
             } else {
                 // Logged-in user flow: just create shop linked to their account
                 const response = await api.post('/shops', {
-                    owner_id: user.id,
+                    owner_id: user?.id,
                     name: formData.name,
                     address: formData.address,
                     whatsapp_number: formData.whatsapp_number,

@@ -1,10 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useOutletContext, Navigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import ReservationManager from '../../components/Admin/ReservationManager';
 import '../Admin/Admin.css'; // Use the premium admin styles
+import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck } from 'lucide-react';
 import api from '../../utils/api';
 
 const VendorPanel = () => {
@@ -21,13 +22,14 @@ const VendorPanel = () => {
 
     const shopId = user?.shop_id;
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (shopId && activeTab === 'settings' && !shopData) {
             api.get('/shops')
                 .then(response => {
                     const data = response.data;
                     const shopsList = Array.isArray(data) ? data : (data.shops || []);
-                    const myShop = shopsList.find(s => s.id === shopId);
+                    // Find THIS user's shop by owner_id or ID
+                    const myShop = shopsList.find(s => s.owner_id === user?.id || s.id === shopId);
                     setShopData(myShop || {});
                 })
                 .catch(err => {
@@ -35,7 +37,7 @@ const VendorPanel = () => {
                     setShopData({});
                 });
         }
-    }, [shopId, activeTab, shopData]);
+    }, [shopId, activeTab, shopData, user]);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -98,7 +100,7 @@ const VendorPanel = () => {
     }
 
     const tabs = [
-        { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <Package size={20} /> },
+        { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <PackageIcon size={20} /> },
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
         { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> }

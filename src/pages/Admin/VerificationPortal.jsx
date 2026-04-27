@@ -27,7 +27,7 @@ const VerificationPortal = () => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'x-user-id': user.id 
+                    'x-user-id': user?.id 
                 },
                 body: JSON.stringify({ code })
             });
@@ -46,7 +46,7 @@ const VerificationPortal = () => {
     };
 
     const handleComplete = async () => {
-        if (!reservation) return;
+        if (!reservation || !user?.id) return;
         setVerifying(true);
         try {
             const res = await fetch(`/api/reservations/${reservation.id}/complete`, {

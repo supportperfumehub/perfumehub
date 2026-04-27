@@ -129,7 +129,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         {isAuthenticated ? (
                             <Link to="/profile" className="icon-btn" title={isRTL ? 'حسابي' : 'Profile'}>
                                 <User size={20} className="text-gold" />
-                                <span style={{ fontSize: '10px', color: 'gold' }}>{user.role}</span>
+                                <span style={{ fontSize: '10px', color: 'gold' }}>{user?.role}</span>
                             </Link>
                         ) : (
                             <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>

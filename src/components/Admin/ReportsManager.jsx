@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { TrendingUp, DollarSign, ShoppingBag, Users, X, Activity, AlertCircle, Package, Search } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Users, X, Activity, AlertCircle, Package as PackageIcon, Search } from 'lucide-react';
 
 const ReportsManager = ({ isRTL }) => {
     const { orders, products, updateProduct } = useContext(ShopContext);
@@ -181,7 +181,7 @@ const ReportsManager = ({ isRTL }) => {
 
                 <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                     <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(19, 194, 194, 0.1)', color: '#13c2c2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Package size={24} />
+                        <PackageIcon size={24} />
                     </div>
                     <div>
                         <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي المنتجات المباعة' : 'Total Products Sold'}</p>

@@ -10,7 +10,7 @@ import ShopsManager from '../../components/Admin/ShopsManager';
 import RegionsManager from '../../components/Admin/RegionsManager';
 import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
-    LayoutDashboard, Package, ShoppingCart, Ticket, 
+    LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
     Sparkles, Sliders
 } from 'lucide-react';
