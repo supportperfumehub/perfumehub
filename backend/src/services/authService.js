@@ -100,7 +100,7 @@ export class AuthService {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
         await this.userRepository.saveRefreshToken(user.id, refreshToken, expiresAt.toISOString());
 
-        return { accessToken, refreshToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+        return { accessToken, refreshToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id } };
     }
 
     /**
@@ -131,7 +131,7 @@ export class AuthService {
         const tokens = await this.issueTokens(user);
         return {
             ...tokens,
-            user: { id: user.id, name: user.name, email: user.email, role: user.role }
+            user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id }
         };
     }
 
