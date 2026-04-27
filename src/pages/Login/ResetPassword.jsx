@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useOutletContext } from 'react-router-dom';
 import { Lock, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { ShopContext } from '../../context/ShopContext';
@@ -8,8 +8,9 @@ import './Login.css';
 const ResetPassword = () => {
     const { token } = useParams();
     const navigate = useNavigate();
+    const { isRTL } = useOutletContext();
     const { resetPassword } = useContext(AuthContext);
-    const { isRTL, showToast } = useContext(ShopContext);
+    const { showToast } = useContext(ShopContext);
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');

@@ -93,6 +93,7 @@ function App() {
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout-success" element={<CheckoutSuccess />} />
         <Route path="login" element={<Login />} />
+        <Route path="reset-password/:token" element={<ResetPassword />} />
         <Route path="wishlist" element={<Wishlist />} />
         <Route path="profile" element={
           <ProtectedRoute>
@@ -115,6 +116,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="vendor-signup" element={<VendorSignup />} />
+        <Route path="*" element={<Home />} />
       </Route>
     </Routes>
   );
