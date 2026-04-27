@@ -14,7 +14,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
-    const { isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
+    const { user, isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
     const { getCartCount } = useContext(CartContext);
     const { wishlistItems } = useContext(WishlistContext);
 
