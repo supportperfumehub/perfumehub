@@ -17,10 +17,20 @@ export const setAccessToken = (token) => {
 // Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
-        // Ensure every request starts with /api
-        if (!config.url.startsWith('/api/') && !config.url.startsWith('http')) {
-            config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+        // Super Fail-Safe: Aggressively prevent double /api prefixing
+        let cleanUrl = config.url.startsWith('/') ? config.url : '/' + config.url;
+        
+        // If it already has /api/api, strip one
+        if (cleanUrl.startsWith('/api/api/')) {
+            cleanUrl = cleanUrl.substring(4);
         }
+        
+        // Ensure it has exactly one /api prefix
+        if (!cleanUrl.startsWith('/api/')) {
+            cleanUrl = '/api' + cleanUrl;
+        }
+        
+        config.url = cleanUrl;
         
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
