@@ -15,9 +15,14 @@ export const setAccessToken = (token) => {
     accessToken = token;
 };
 
-// Request Interceptor: Inject Access Token
+// Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
+        // Prevent double /api prefixing
+        if (config.url.startsWith('/api/')) {
+            config.url = config.url.substring(4);
+        }
+        
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
@@ -58,7 +63,7 @@ api.interceptors.response.use(
 
         try {
             // Attempt invisible refresh
-            const response = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+            const response = await api.post('/auth/refresh', {}, { withCredentials: true });
             
             if (response.data.success) {
                 accessToken = response.data.accessToken;
