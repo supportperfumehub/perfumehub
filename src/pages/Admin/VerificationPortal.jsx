@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Scan, CheckCircle, AlertCircle, ShoppingBag, User, Clock, ArrowRight, RefreshCw } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
+import api from '../../utils/api';
 
 const VerificationPortal = () => {
     const { isRTL } = useOutletContext();
@@ -23,23 +24,10 @@ const VerificationPortal = () => {
         setSuccess('');
 
         try {
-            const res = await fetch('/api/reservations/verify', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-user-id': user?.id 
-                },
-                body: JSON.stringify({ code })
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                setReservation(data.reservation);
-            } else {
-                setError(data.error || 'Invalid code');
-            }
+            const res = await api.post('/reservations/verify', { code });
+            setReservation(res.data.reservation);
         } catch (err) {
-            setError('Connection error');
+            setError(err.response?.data?.error || 'Invalid code');
         } finally {
             setLoading(false);
         }
@@ -49,21 +37,12 @@ const VerificationPortal = () => {
         if (!reservation || !user?.id) return;
         setVerifying(true);
         try {
-            const res = await fetch(`/api/reservations/${reservation.id}/complete`, {
-                method: 'POST',
-                headers: { 'x-user-id': user.id }
-            });
-
-            if (res.ok) {
-                setSuccess(isRTL ? 'تم تأكيد الاستلام بنجاح!' : 'Pickup verified & completed!');
-                setReservation(null);
-                setCode('');
-            } else {
-                const data = await res.json();
-                setError(data.error || 'Failed to complete pickup');
-            }
+            await api.post(`/reservations/${reservation.id}/complete`);
+            setSuccess(isRTL ? 'تم تأكيد الاستلام بنجاح!' : 'Pickup verified & completed!');
+            setReservation(null);
+            setCode('');
         } catch (err) {
-            setError('Connection error');
+            setError(err.response?.data?.error || 'Failed to complete pickup');
         } finally {
             setVerifying(false);
         }

@@ -9,9 +9,9 @@
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "start": "npm run dev:all",
     "mobile": "start chrome --app=http://localhost:5173 --window-size=390,844",
-    "db:init": "node backend/init-db.js",
-    "sync": "node backend/sync-data.js",
-    "sync:force": "node backend/sync-data.js --force",
+    "db:init": "node scripts/init-db.js",
+    "sync": "node scripts/sync-data.js",
+    "sync:force": "node scripts/sync-data.js --force",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

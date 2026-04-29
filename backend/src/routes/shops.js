@@ -14,7 +14,7 @@ const shopService = new ShopService(shopRepository, userRepository);
 const shopController = new ShopController(shopService);
 
 /**
- * Public Routes
+ * Public & Admin Routes (Controller handles RBAC)
  */
 router.get('/', shopController.getAllShops);
 router.get('/nearest', shopController.getNearest);
@@ -23,9 +23,8 @@ router.get('/nearest-for-product', shopController.getNearestForProduct);
 /**
  * Admin Routes
  */
-router.get('/', authenticateUser, verifyRole(['super_admin', 'regional_admin']), shopController.getAllShops);
-router.patch('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin']), shopController.updateStatus);
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin']), shopController.deleteShop);
+router.patch('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.updateStatus);
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.deleteShop);
 
 /**
  * Vendor/Shared Routes

@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import api from '../../utils/api';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
@@ -41,8 +42,12 @@ const Checkout = () => {
 
     useEffect(() => {
         const fetchShops = async () => {
-             const res = await fetch('/api/shops?status=active');
-             if (res.ok) setShops(await res.json());
+             try {
+                 const res = await api.get('/shops?status=active');
+                 setShops(res.data);
+             } catch (err) {
+                 console.error("Failed to fetch shops:", err);
+             }
         };
         fetchShops();
     }, []);
@@ -157,19 +162,12 @@ const Checkout = () => {
             const endDate = new Date(startDate.getTime() + 60*60*1000); // +1 hour window
 
             try {
-                const res = await fetch('/api/reservations', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        ...(user?.id ? { 'x-user-id': user.id } : {})
-                    },
-                    body: JSON.stringify({
-                        shop_id: pickupShopId,
-                        product_id: singleProduct.id,
-                        quantity: singleQty,
-                        pickup_time_start: startDate.toISOString(),
-                        pickup_time_end: endDate.toISOString()
-                    })
+                const res = await api.post('/reservations', {
+                    shop_id: pickupShopId,
+                    product_id: singleProduct.id,
+                    quantity: singleQty,
+                    pickup_time_start: startDate.toISOString(),
+                    pickup_time_end: endDate.toISOString()
                 });
                 
                 if (!res.ok) {

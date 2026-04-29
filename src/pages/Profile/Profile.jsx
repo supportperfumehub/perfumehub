@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
+import api from '../../utils/api';
 import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
@@ -32,8 +33,8 @@ const Profile = () => {
         const fetchReservations = async () => {
             if (!user?.id) return;
             try {
-                const res = await fetch('/api/reservations', { headers: { 'x-user-id': user.id } });
-                if (res.ok) setReservations(await res.json());
+                const res = await api.get('/reservations');
+                setReservations(res.data);
             } catch (e) { console.error(e); }
             finally { setResvLoading(false); }
         };
@@ -44,10 +45,8 @@ const Profile = () => {
         if (!user?.id) return;
         if (!window.confirm(isRTL ? 'هل تريد إلغاء هذا الحجز؟' : 'Cancel this reservation?')) return;
         try {
-            const res = await fetch(`/api/reservations/${id}/cancel`, {
-                method: 'POST', headers: { 'x-user-id': user.id }
-            });
-            if (res.ok) setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'cancelled' } : r));
+            await api.post(`/reservations/${id}/cancel`);
+            setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'cancelled' } : r));
         } catch (e) { console.error(e); }
     };
 

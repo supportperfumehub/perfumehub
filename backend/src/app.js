@@ -53,8 +53,58 @@ app.use((req, res, next) => {
     next();
 });
 
-// Apply global rate limiting to all /api routes
-app.use('/api', apiLimiter);
+// Health Check / Diagnostic
+app.get('/api/health', async (req, res) => {
+    try {
+        const { count: pCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
+        const { count: sCount } = await supabase.from('shops').select('*', { count: 'exact', head: true });
+        const { count: iCount } = await supabase.from('vendor_inventory').select('*', { count: 'exact', head: true });
+        
+        res.json({
+            status: 'online',
+            database: {
+                products: pCount || 0,
+                shops: sCount || 0,
+                inventory: iCount || 0,
+                connected: pCount !== null
+            },
+            environment: process.env.NODE_ENV
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+/**
+ * RECOVERY TOOL: Imports 130+ products from codebase to DB
+ */
+app.post('/api/admin/recover-all-products', async (req, res) => {
+    try {
+        const { products } = req.body;
+        if (!products || !Array.isArray(products)) {
+            return res.status(400).json({ error: 'Invalid products data' });
+        }
+
+        console.log(`Recovering ${products.length} products...`);
+        
+        // Batch upsert into Supabase
+        const { data, error } = await supabase
+            .from('products')
+            .upsert(products, { onConflict: 'name, brand' })
+            .select();
+
+        if (error) throw error;
+
+        res.json({ 
+            success: true, 
+            count: data.length,
+            message: `Successfully recovered ${data.length} products to the database.`
+        });
+    } catch (err) {
+        console.error('Recovery failed:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Debug Routes (Disabled in production)
 if (process.env.NODE_ENV !== 'production') {

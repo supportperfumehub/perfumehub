@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Navigation, Search, Store } from 'lucide-react';
 import './NearestShopFinder.css';
+import api from '../../utils/api';
 
 const NearestShopFinder = ({ isRTL }) => {
     const { t } = useTranslation();
@@ -15,15 +16,12 @@ const NearestShopFinder = ({ isRTL }) => {
     useEffect(() => {
         const fetchShops = async () => {
             try {
-                let url = '/api/shops?status=active';
+                let url = '/shops?status=active';
                 if (location) {
-                    url = `/api/shops/nearest?lat=${location.lat}&lng=${location.lng}&radius=50`; // 50km radius
+                    url = `/shops/nearest?lat=${location.lat}&lng=${location.lng}&radius=50`; // 50km radius
                 }
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    setShops(data);
-                }
+                const response = await api.get(url);
+                setShops(response.data);
             } catch (error) {
                 console.error("Failed to fetch shops:", error);
             }
