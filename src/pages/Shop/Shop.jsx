@@ -50,7 +50,8 @@ const Shop = () => {
         if (shopIdFilter) {
             result = result.filter(p => 
                 String(p.shop_id) === String(shopIdFilter) || 
-                String(p.vendor_id) === String(shopIdFilter)
+                String(p.vendor_id) === String(shopIdFilter) ||
+                p.shop_id === 'core' || p.shop_id === null
             );
         }
 

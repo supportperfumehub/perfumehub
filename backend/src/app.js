@@ -53,8 +53,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Health Check / Diagnostic
-app.get('/api/health', async (req, res) => {
+// Health Check / Diagnostic (At the root)
+app.get('/health', async (req, res) => {
     try {
         const { count: pCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
         const { count: sCount } = await supabase.from('shops').select('*', { count: 'exact', head: true });
@@ -75,36 +75,6 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-/**
- * RECOVERY TOOL: Imports 130+ products from codebase to DB
- */
-app.post('/api/admin/recover-all-products', async (req, res) => {
-    try {
-        const { products } = req.body;
-        if (!products || !Array.isArray(products)) {
-            return res.status(400).json({ error: 'Invalid products data' });
-        }
-
-        console.log(`Recovering ${products.length} products...`);
-        
-        // Batch upsert into Supabase
-        const { data, error } = await supabase
-            .from('products')
-            .upsert(products, { onConflict: 'name, brand' })
-            .select();
-
-        if (error) throw error;
-
-        res.json({ 
-            success: true, 
-            count: data.length,
-            message: `Successfully recovered ${data.length} products to the database.`
-        });
-    } catch (err) {
-        console.error('Recovery failed:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // Debug Routes (Disabled in production)
 if (process.env.NODE_ENV !== 'production') {
@@ -130,21 +100,45 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/orders', ordersRoutes);
-app.use('/api/shops', shopsRoutes);
-app.use('/api/coupons', couponsRoutes);
-app.use('/api/regions', regionsRoutes);
-app.use('/api/backups', backupsRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/discover', discoverRoutes);
-app.use('/api/recommendations', recommendationRoutes);
-app.use('/api/reservations', reservationsRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
+// Create API Router
+const apiRouter = express.Router();
+
+// Health Check in API
+apiRouter.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Recovery Tool in API
+apiRouter.post('/admin/recover-all-products', async (req, res) => {
+    try {
+        const { products } = req.body;
+        if (!products || !Array.isArray(products)) {
+            return res.status(400).json({ error: 'Invalid products data' });
+        }
+        const { data, error } = await supabase.from('products').upsert(products, { onConflict: 'name, brand' }).select();
+        if (error) throw error;
+        res.json({ success: true, count: data.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Mount Routes to API Router
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/users', usersRoutes);
+apiRouter.use('/products', productsRoutes);
+apiRouter.use('/orders', ordersRoutes);
+apiRouter.use('/shops', shopsRoutes);
+apiRouter.use('/coupons', couponsRoutes);
+apiRouter.use('/regions', regionsRoutes);
+apiRouter.use('/backups', backupsRoutes);
+apiRouter.use('/inventory', inventoryRoutes);
+apiRouter.use('/discover', discoverRoutes);
+apiRouter.use('/recommendations', recommendationRoutes);
+apiRouter.use('/reservations', reservationsRoutes);
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/subscriptions', subscriptionRoutes);
+
+// Mount the API Router to /api
+app.use('/api', apiRouter);
 
 // Error Handler (Must be last)
 app.use(errorHandler);

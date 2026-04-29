@@ -5,7 +5,7 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json'
     },
-    withCredentials: true // Important for cookies
+    withCredentials: true
 });
 
 // Memoized access token (in-memory)
