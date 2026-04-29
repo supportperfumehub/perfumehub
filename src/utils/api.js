@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json'
     },
@@ -18,9 +17,9 @@ export const setAccessToken = (token) => {
 // Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
-        // Prevent double /api prefixing
-        if (config.url.startsWith('/api/')) {
-            config.url = config.url.substring(4);
+        // Ensure every request starts with /api
+        if (!config.url.startsWith('/api/') && !config.url.startsWith('http')) {
+            config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
         }
         
         if (accessToken) {
