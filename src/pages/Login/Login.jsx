@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useOutletContext, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Store } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Store, Eye, EyeOff } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { ShopContext } from '../../context/ShopContext';
 import './Login.css';
@@ -13,6 +13,8 @@ const Login = () => {
     const [error, setError] = useState('');
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [isResetSent, setIsResetSent] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
     const { user, login, register, forgotPassword } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
@@ -25,6 +27,15 @@ const Login = () => {
         setError('');
         setIsResetSent(false);
     };
+
+    // Load remembered email on mount
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem('remembered_email');
+        if (savedEmail) {
+            setEmail(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -47,6 +58,14 @@ const Login = () => {
             if (result.success) {
                 showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
                 const role = result.user?.role;
+                
+                // Handle Remember Me
+                if (rememberMe) {
+                    localStorage.setItem('remembered_email', email);
+                } else {
+                    localStorage.removeItem('remembered_email');
+                }
+
                 const origin = location.state?.from?.pathname
                     || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
                 navigate(origin);
@@ -140,22 +159,41 @@ const Login = () => {
                                 <div className="input-with-icon">
                                     <Lock size={18} className="input-icon" />
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                     />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle-icon"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
                             </div>
                         )}
                     </div>
 
                     {isLogin && !isForgotPassword && (
-                        <div className="forgot-password">
-                            <button type="button" className="text-link" onClick={() => setIsForgotPassword(true)}>
-                                {isRTL ? 'هل نسيت كلمة المرور؟' : 'Forgot Password?'}
-                            </button>
+                        <div className="login-options">
+                            <label className="remember-me">
+                                <input 
+                                    type="checkbox" 
+                                    checked={rememberMe} 
+                                    onChange={(e) => setRememberMe(e.target.checked)} 
+                                />
+                                <span className="checkmark"></span>
+                                <span className="remember-text">{isRTL ? 'تذكرني' : 'Remember Me'}</span>
+                            </label>
+                            <div className="forgot-password">
+                                <button type="button" className="text-link" onClick={() => setIsForgotPassword(true)}>
+                                    {isRTL ? 'هل نسيت كلمة المرور؟' : 'Forgot Password?'}
+                                </button>
+                            </div>
                         </div>
                     )}
 

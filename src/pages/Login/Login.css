@@ -146,9 +146,105 @@
     backdrop-filter: blur(4px);
 }
 
+/* Password Toggle Icon */
+.password-toggle-icon {
+    background: transparent;
+    border: none;
+    color: var(--color-gold);
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.password-toggle-icon:hover {
+    opacity: 1;
+}
+
+[dir="rtl"] .password-toggle-icon {
+    margin-left: 0;
+    margin-right: 10px;
+}
+
+/* Login Options Container */
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: -10px;
+}
+
+/* Custom Remember Me Checkbox */
+.remember-me {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+    position: relative;
+}
+
+.remember-me input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    height: 18px;
+    width: 18px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.remember-me:hover .checkmark {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+}
+
+.remember-me input:checked ~ .checkmark {
+    background-color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
+.checkmark:after {
+    content: "";
+    display: none;
+    width: 4px;
+    height: 8px;
+    border: solid #000;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.remember-me input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.remember-text {
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.remember-me:hover .remember-text {
+    opacity: 1;
+}
+
 .forgot-password {
     text-align: right;
-    margin-top: -8px;
 }
 
 [dir="rtl"] .forgot-password {
