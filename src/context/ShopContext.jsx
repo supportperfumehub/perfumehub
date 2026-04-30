@@ -8,8 +8,8 @@ export const ShopContext = createContext();
 export const ShopProvider = ({ children }) => {
     const { user, isVendor } = useContext(AuthContext);
 
-    // Initial products start with mock data, then fetch fresh from DB
-    const [products, setProducts] = useState(mockProducts);
+    // Products start empty — always loaded fresh from database
+    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [backups, setBackups] = useState([]);
     const [discoverCampaigns, setDiscoverCampaigns] = useState([]);
@@ -128,7 +128,7 @@ export const ShopProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Error fetching products:', error);
-            // We keep current products (mockData) on error
+            // Keep current products on error (do NOT fall back to mock data)
         } finally {
             setLoading(false);
         }
