@@ -140,6 +140,30 @@
     color: var(--color-gold);
 }
 
+.profile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-nav-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-gold);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 992px) {
+    .user-nav-name {
+        display: none;
+    }
+}
+
 .lang-toggle .lang-text {
     font-family: var(--font-body);
     font-size: 0.85rem;

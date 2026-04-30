@@ -127,9 +127,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     {/* User Profile / Login (Mobile & Desktop) */}
                     <div className="user-access">
                         {isAuthenticated ? (
-                            <Link to="/profile" className="icon-btn" title={isRTL ? 'حسابي' : 'Profile'}>
+                            <Link to="/profile" className="icon-btn profile-nav-item" title={isRTL ? 'حسابي' : 'Profile'}>
                                 <User size={20} className="text-gold" />
-                                <span style={{ fontSize: '10px', color: 'gold' }}>{user?.role}</span>
+                                <span className="user-nav-name">{user?.name || (isRTL ? 'حسابي' : 'Profile')}</span>
                             </Link>
                         ) : (
                             <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
