@@ -33,8 +33,8 @@ const Shop = () => {
     const [maxPrice, setMaxPrice] = useState('');
     const [activeGender, setActiveGender] = useState('all');
     const [brandSearch, setBrandSearch] = useState('');
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(20);
 
     useEffect(() => {
         let result = [...mockProducts];
@@ -91,6 +91,7 @@ const Shop = () => {
         }
 
         setProducts(result);
+        setVisibleCount(20); // Reset visible count when filters change
     }, [type, shopIdFilter, selectedBrands, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
 
     useEffect(() => {
@@ -348,7 +349,7 @@ const Shop = () => {
 
                     <div className="products-grid">
                         {products.length > 0 ? (
-                            products.map(product => (
+                            products.slice(0, visibleCount).map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))
                         ) : (
@@ -357,6 +358,18 @@ const Shop = () => {
                             </div>
                         )}
                     </div>
+
+                    {visibleCount < products.length && (
+                        <div className="load-more-container animate-fade-in">
+                            <button 
+                                className="load-more-btn" 
+                                onClick={() => setVisibleCount(prev => prev + 20)}
+                            >
+                                <span>{isRTL ? 'عرض المزيد' : 'Load More'}</span>
+                                <RotateCcw size={18} className="load-more-icon" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
