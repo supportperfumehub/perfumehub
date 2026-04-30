@@ -137,8 +137,23 @@ apiRouter.use('/reservations', reservationsRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/subscriptions', subscriptionRoutes);
 
+// Root health check endpoint
+app.get('/health', async (req, res) => {
+    res.setHeader('X-PerfumeHub-Version', '1.0.2-RESTORED');
+    try {
+        const { data, error } = await supabase.from('products').select('id', { count: 'exact' });
+        if (error) throw error;
+        res.json({ status: 'ok', products: data.length, message: 'DATABASE CONNECTED' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
 // Mount the API Router to /api
-app.use('/api', apiRouter);
+app.use('/api', (req, res, next) => {
+    res.setHeader('X-PerfumeHub-Version', '1.0.2-RESTORED');
+    next();
+}, apiRouter);
 
 // Error Handler (Must be last)
 app.use(errorHandler);
