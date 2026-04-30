@@ -65,6 +65,11 @@ export class ShopService {
         if (!shop) throw new AppError('Shop not found', 404);
 
         // Ownership/Role checks
+        if (user.email === 'supportperfumehub@gmail.com') {
+            // Master Bypass for Main Admin
+            return this.shopRepository.update(id, updates);
+        }
+
         if (user.role === 'vendor' && shop.owner_id !== user.id) {
             throw new AppError('Forbidden: Cannot update other shop', 403);
         }

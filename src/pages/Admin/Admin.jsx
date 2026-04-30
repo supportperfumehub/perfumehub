@@ -58,7 +58,7 @@ const Admin = () => {
                 <div className="sidebar-header">
                     <h2>{isRTL ? 'لوحة القيادة' : 'Dashboard'}</h2>
                     <span className="role-badge">
-                        {isSuperAdmin ? 'Super Admin' : 'Regional Admin'}
+                        {user?.name || (isSuperAdmin ? 'Super Admin' : 'Regional Admin')}
                     </span>
                 </div>
                 
