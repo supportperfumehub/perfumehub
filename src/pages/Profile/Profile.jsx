@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import api from '../../utils/api';
+import api from '../../utils/api_v1_0_2';
 import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';

@@ -6,7 +6,7 @@ import OrderManager from '../../components/Admin/OrderManager';
 import ReservationManager from '../../components/Admin/ReservationManager';
 import '../Admin/Admin.css'; // Use the premium admin styles
 import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck } from 'lucide-react';
-import api from '../../utils/api';
+import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
     const { isRTL } = useOutletContext();

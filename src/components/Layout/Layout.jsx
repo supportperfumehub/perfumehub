@@ -28,6 +28,9 @@ const Layout = ({ isRTL, toggleLanguage }) => {
 
     return (
         <div className="app-layout">
+            <div style={{ background: '#FFD700', color: '#000', textAlign: 'center', padding: '5px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                DATABASE RESTORATION v1.0.2 - 167 PRODUCTS SYNCED
+            </div>
             {isHomePage && <PromotionBar isRTL={isRTL} />}
             <Toast
                 message={toast.message}

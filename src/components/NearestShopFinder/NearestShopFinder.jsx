@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Navigation, Search, Store } from 'lucide-react';
 import './NearestShopFinder.css';
-import api from '../../utils/api';
+import api from '../../utils/api_v1_0_2';
 
 const NearestShopFinder = ({ isRTL }) => {
     const { t } = useTranslation();

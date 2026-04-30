@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Scan, CheckCircle, AlertCircle, ShoppingBag, User, Clock, ArrowRight, RefreshCw } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../utils/api_v1_0_2';
 
 const VerificationPortal = () => {
     const { isRTL } = useOutletContext();

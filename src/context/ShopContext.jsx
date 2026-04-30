@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { mockProducts } from '../data/mockData';
 import { AuthContext } from './AuthContext';
-import api from '../utils/api';
+import api from '../utils/api_v1_0_2';
 
 export const ShopContext = createContext();
 

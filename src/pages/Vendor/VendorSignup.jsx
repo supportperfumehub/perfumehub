@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock } from 'lucide-react';
-import api from '../../utils/api';
+import api from '../../utils/api_v1_0_2';
 
 const VendorSignup = () => {
     const { t } = useTranslation();
