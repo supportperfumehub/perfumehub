@@ -51,7 +51,7 @@ const Home = () => {
             <section className="modern-hero animate-fade-in">
                 <div className="hero-background"></div>
                 <div className="modern-hero-content container">
-                    <p className="hero-subtitle">{t('home.intro_text', 'The Essence of Luxury')}</p>
+                    <p className="hero-subtitle">{t('home.intro_text', 'RESTORING INVENTORY - THE ESSENCE OF LUXURY')}</p>
                     <h1 className="hero-title">{t('home.intro_title')}</h1>
                 </div>
             </section>

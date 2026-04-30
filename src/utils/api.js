@@ -24,9 +24,9 @@ api.interceptors.request.use(
         if (config.url) {
             config.url = config.url.replace(/\/api\/api\//g, '/api/');
             
-            // Ensure single /api prefix if missing and not absolute
-            if (!config.url.startsWith('/api/') && !config.url.startsWith('http')) {
-                config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+            // If we have an absolute baseURL, ensure the URL doesn't repeat /api
+            if (config.baseURL?.endsWith('/api') && config.url.startsWith('/api/')) {
+                config.url = config.url.substring(4);
             }
         }
         
