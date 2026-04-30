@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
+import api from '../../utils/api_v1_0_2';
 
 const ShopsManager = ({ isRTL }) => {
     const { products, orders } = useContext(ShopContext);
@@ -40,20 +41,13 @@ const ShopsManager = ({ isRTL }) => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const headers = { 'x-user-id': user.id };
             const [shopsRes, regionsRes] = await Promise.all([
-                fetch('/api/shops', { headers }),
-                fetch('/api/regions', { headers })
+                api.get('/shops'),
+                api.get('/regions')
             ]);
             
-            if (shopsRes.ok) {
-                const data = await shopsRes.json();
-                setShops(data);
-            }
-            if (regionsRes.ok) {
-                const regData = await regionsRes.json();
-                setRegions(regData || []);
-            }
+            setShops(shopsRes.data);
+            setRegions(regionsRes.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -84,20 +78,16 @@ const ShopsManager = ({ isRTL }) => {
                 body = JSON.stringify({ rejection_reason: 'Administrative action' });
             }
 
-            const response = await fetch(endpoint, {
+            const response = await api({
+                url: endpoint,
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
-                },
-                body: body
+                data: body
             });
 
-            if (response.ok) {
+            if (response.data.success) {
                 fetchShopsAndRegions();
             } else {
-                const data = await response.json();
-                alert(data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'));
+                alert(response.data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'));
             }
         } catch (error) {
             console.error('Error updating shop status:', error);
@@ -106,21 +96,13 @@ const ShopsManager = ({ isRTL }) => {
 
     const updateShopDetails = async (id) => {
         try {
-            const response = await fetch(`/api/shops/${id}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
-                },
-                body: JSON.stringify(editData)
-            });
-            if (response.ok) {
+            const response = await api.put(`/shops/${id}`, editData);
+            if (response.data.success) {
                 setEditingShop(null);
                 fetchShopsAndRegions();
                 alert(isRTL ? 'تم تحديث بيانات المتجر' : 'Shop details updated');
             } else {
-                const data = await response.json();
-                alert(`${isRTL ? 'فشل التحديث' : 'Failed to update'}: ${data.error || data.message || 'Unknown error'}`);
+                alert(`${isRTL ? 'فشل التحديث' : 'Failed to update'}: ${response.data.error || response.data.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error updating shop:', error);
@@ -136,20 +118,13 @@ const ShopsManager = ({ isRTL }) => {
     const confirmDelete = async () => {
         if (!shopToDelete) return;
         try {
-            const response = await fetch(`/api/shops/${shopToDelete.id}`, { 
-                method: 'DELETE',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
-                }
-            });
-            if (response.ok) {
+            const response = await api.delete(`/shops/${shopToDelete.id}`);
+            if (response.data.success) {
                 fetchShopsAndRegions();
                 setShowConfirm(false);
                 setShopToDelete(null);
             } else {
-                const data = await response.json();
-                alert(`${isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop'}: ${data.message || data.error || 'Unknown error'}`);
+                alert(`${isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop'}: ${response.data.message || response.data.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error deleting shop:', error);
@@ -279,23 +254,15 @@ const ShopsManager = ({ isRTL }) => {
         e.preventDefault();
         const images = photoInputs.filter(url => url.trim() !== '');
         try {
-            const response = await fetch('/api/shops/manual', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(user ? { 'x-user-id': user.id } : {})
-                },
-                body: JSON.stringify({ ...formData, images, adminCreated: true })
-            });
-            if (response.ok) {
+            const response = await api.post('/shops/manual', { ...formData, images, adminCreated: true });
+            if (response.data.success) {
                 setShowForm(false);
                 setFormData({ ownerName: '', ownerEmail: '', ownerPassword: '', shopName: '', address: '', whatsapp_number: '', region_id: '' });
                 setPhotoInputs(['']);
                 fetchShopsAndRegions();
                 alert(isRTL ? 'تم إنشاء المتجر بنجاح' : 'Vendor created successfully');
             } else {
-                const data = await response.json();
-                alert(`${isRTL ? 'فشل إنشاء المتجر' : 'Failed to create vendor'}: ${data.error || data.message || 'Unknown error'}`);
+                alert(`${isRTL ? 'فشل إنشاء المتجر' : 'Failed to create vendor'}: ${response.data.error || response.data.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error creating vendor:', error);
