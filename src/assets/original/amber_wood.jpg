@@ -1,0 +1,457 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:og="http://ogp.me/ns#" xmlns:fb="https://www.facebook.com/2008/fbml">
+<head>
+    <script type="text/javascript">
+    function setCookie(cname, cvalue, exdays) {
+      const d = new Date();
+      d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+      let expires = "expires="+d.toUTCString();
+      document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+
+    function getCookie(cname) {
+      let name = cname + "=";
+      let ca = document.cookie.split(';');
+      for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+          c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+          return c.substring(name.length, c.length);
+        }
+      }
+      return "";
+    }
+
+    function checkCookie() {
+      let cDomain = getCookie("cdomain");
+      if (cDomain != "") {
+        location.href = cDomain;
+      } 
+      
+    }
+    function setNewCookie(ccurl){
+        setCookie("cdomain", ccurl, 365);
+        location.href = ccurl;
+        return true;
+    }
+    checkCookie();
+
+</script>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>Ajmal</title>
+<meta name="description" content="Perfume Online Shopping for Men, Women and Unisex - Perfume Oil, Agarwood, Dahn Al Oudh, Home Fragrance at Ajmal.com Free Shipping Cash on Delivery">
+<meta name="robots" content="index,follow">
+<meta name="viewport" content="width=device-width">
+<meta name="google" content="nositelinkssearchbox" />
+<meta property="og:title" content="Buy Perfume Online | Perfume for Men, Women & Unisex | Ajmal King of Oudh">
+<meta property="og:site_name" content="Ajmal">
+<meta property="og:url" content="https://www.ajmal.com/">
+<meta property="og:description" content="Perfume Online Shopping for Men, Women and Unisex - Perfume Oil, Agarwood, Dahn Al Oudh, Home Fragrance at Ajmal.com Free Shipping Cash on Delivery">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://ajmal.com/public/images/logo.svg">
+<meta property="og:image:width" content="400">
+<meta property="og:image:height" content="400">
+<link type="image/x-icon" href="https://ajmal.com/public/images/logo.svg" rel="shortcut icon">
+<style>
+         html, body {
+             color: #4F4F4F;
+             font-family: Arial,Sans-serif;
+             font-size: 100%;
+             line-height: 25px;
+             margin: 0;
+             height: 100%;
+             padding: 0;
+             background: url("images/ajmal_bg.png");
+             background-size: cover;
+             background-repeat: no-repeat;
+             background-position: 50%;
+         }
+         * {
+             -moz-box-sizing: border-box;
+             -webkit-box-sizing: border-box;
+             box-sizing: border-box;
+         }
+         p {
+             font-size: 15px;
+             margin: 0;
+         }
+         ul {
+             padding: 0;
+             margin: 0;
+         }
+         .ar, .ar body {
+             font-family: frutiger,Tahoma,Arial,Sans-serif;
+         }
+         #splash_container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+         }
+         #splash_container .panel {
+             background-color: #FFFFFF;
+             color: #000000;
+             margin: 0 auto;
+             padding: 32px 32px 17px;
+             text-align: center;
+             width: 700px;
+             border-radius: 15px;
+             border: 3px solid #bc8b57;
+             box-shadow: 10px 10px 10px 15px rgb(0 0 0 / 30%);
+         }
+         #splash_container .panel .branding {
+             margin-bottom: 8px;
+         }
+
+         .TxtParGrph {
+            margin-bottom: 20px;
+         }
+
+         .TxtParGrph p {
+            font-size: 20px;
+         }
+
+         .TxtParGrph p:nth-child(2) {
+           font-size: 18px;
+         }
+         #splash_container .panel .logo_en {
+            background-position: -1px -112px;
+            height: 28px;
+            width: 152px;
+         }
+         #splash_container .panel .logo_ar {
+            background-position: -1px -66px;
+            height: 38px;
+            width: 151px;
+         }
+         #splash_container .panel .logo_en,
+         #splash_container .panel .logo_ar {
+            margin: 0 auto 4px;
+            background-size: 230px;
+         }
+         #splash_container i.flag, #splash_container .panel .logo_en, #splash_container .panel .logo_ar {
+             background-image: url("https://a.namshicdn.com/cms/phoenix/misc/2021/30062021/splash_sprite.png");
+             background-repeat: no-repeat;
+             overflow: hidden;
+             text-indent: 200%;
+             white-space: nowrap;
+         }
+         #splash_container ul.locations {
+             padding-bottom: 11px;
+         }
+         #splash_container ul.locations li {
+             display: inline-block;
+             font-size: 14px;
+             overflow: hidden;
+             width: 14%;
+             text-align: center;
+             list-style-type: none;
+             margin-right: 20px;
+         }
+
+         #splash_container ul.locations li:last-child {
+            margin-right: 0px;
+         }
+
+
+         #splash_container ul.locations li a {
+             color: #000000;
+             display: block;
+             margin-bottom: 4px;
+             text-decoration: none;
+         }
+
+         #splash_container ul.locations li a img {
+            width: 100%;
+         }
+
+
+         #splash_container ul.locations li a:last-child {
+            margin-bottom: 0;
+         }
+         #splash_container ul.locations li a:hover {
+             color: #D08C03;
+         }
+         #splash_container i.flag {
+             display: inline-block;
+             height: 39px;
+             margin-top: 7px;
+             width: 58px;
+             border: 1px solid #000;
+             background-size: 450px;
+         }
+         #splash_container i.flag.ae {
+             background-position: -2px -2px;
+         }
+         #splash_container i.flag.sa {
+             background-position: -378px -2px;
+         }
+         #splash_container i.flag.bh {
+             background-position: -64px -2px;
+         }
+         #splash_container i.flag.kw {
+             background-position: -127px -2px;
+         }
+         #splash_container i.flag.om {
+             background-position: -253px -2px;
+         }
+         #splash_container i.flag.qa {
+             background-position: -312px -2px;
+         }
+        #splash_container i.flag.iq {
+             background-position: -64px -277px;
+         }
+         .copyright {
+            margin-top: 20px;
+         }
+         .cc {
+            margin-bottom: 10px;
+         }
+         .global-selector-row {
+            width: 50%;
+            margin: 0 auto;
+         }
+         .global-selector-row .select,
+         .global-selector-row .button {
+            float: left;
+         }
+         .global-selector-row .button {
+            width: 8%;
+         }
+         .global-selector-row .select {
+            width: 80%;
+         }
+         .global-selector-row:after {
+            content: "";
+            display: block;
+            clear: both;
+         }
+        .global-selector-row .global-selector-drop-down {
+            border: 1px solid #ededed;
+            width: 100%;
+            border-radius: 3px;
+            overflow: hidden;
+            background: #ededed url("data:image/png;base64,R0lGODlhDwAUAIABAAAAAP///yH5BAEAAAEALAAAAAAPABQAAAIXjI+py+0Po5wH2HsXzmw//lHiSJZmUAAAOw==") no-repeat 98% center;
+        }
+        .global-selector-row .global-selector-drop-down #global-selector {
+            padding: 8px 8px;
+            width: 130%;
+            font-size: 14px;
+            border: none;
+            box-shadow: none;
+            background: transparent;
+            background-image: none;
+            -webkit-appearance: none;
+        }
+        .global-selector-row .global-selector-drop-down #global-selector:focus {
+            outline: none;
+        }
+        .global-selector-row .button .go {
+            background: #000;
+            color: #fff;
+            outline: 0;
+            border: 0;
+            padding: 2px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .Logo_ajmal {
+            width: 70px;
+            margin: 0 auto;
+        }
+
+        .Logo_ajmal img {
+            width: 100%;
+        }
+
+         @media (max-width: 768px) {
+            body {
+                background-position: 88%;
+            }
+            .global-selector-row {
+                width: 60%;
+            }
+            #splash_container .panel {
+                width: 100%;
+                padding: 5%;
+            }
+            #splash_container {
+                width: 90%;
+            }
+            #splash_container ul.locations li {
+                    width: 18%;
+    margin-right: 20px;
+            }
+         }
+
+         @media (min-width: 768px) {
+             #splash_container ul.locations {
+                display: flex;
+             }
+         }
+
+         @media (max-width: 600px) {
+            body {
+                background-position: right;
+            }
+            .global-selector-row {
+                width: 70%;
+            }
+            #splash_container ul.locations li {
+                width: 18%;
+                margin-right: 20px;
+            }
+            #splash_container ul.locations {
+                padding-bottom: 0;
+            }
+            .global-selector-row .button {
+                 width: auto;
+            }
+         }
+
+         @media (max-width: 500px) {
+            .global-selector-row {
+                width: 100%;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .global-selector-row .select {
+                width: 83%;
+            }
+            #splash_container ul.locations li a {
+                margin-bottom: 0;
+            }
+            #splash_container .panel .logo_en,
+            #splash_container .panel .logo_ar {
+                background-size: 174px;
+            }
+            #splash_container .panel .logo_en {
+                background-position: -1px -84px;
+                height: 21px;
+                width: 114px;
+            }
+            #splash_container .panel .logo_ar {
+                background-position: -1px -50px;
+                height: 28px;
+                width: 114px;
+            }
+            #splash_container i.flag {
+                height: 27px;
+                width: 40px;
+                background-size: 300px;
+            }
+            #splash_container i.flag.sa {
+                background-position: -253px -2px;
+            }
+            #splash_container i.flag.bh {
+                background-position: -44px -2px;
+            }
+            #splash_container i.flag.om {
+                background-position: -169px -2px;
+            }
+            #splash_container i.flag.kw {
+                background-position: -85px -2px;
+            }
+            #splash_container i.flag.qa {
+                background-position: -211px -2px;
+            }
+            #splash_container i.flag.iq {
+                background-position: -43px -185px;
+            }
+         }
+        </style>
+</head>
+<body>
+<div id="splash_container" class="ng-scope">
+<div class="panel">
+<div class="branding">
+<!-- <div class="logo_ar">نمشي</div>
+<div class="logo_en"> </div> -->
+  <div class="Logo_ajmal">
+       <img src="images/logo.svg" />
+    </div>
+</div>
+
+<div class="TxtParGrph">
+    
+    <p> يرجى تحديد وجهة التوصيل الخاصة بك </p>
+    <p> Please Select Your Delivery Destination </p>
+
+</div>
+
+
+<ul class="locations">
+<li>
+<a title="UAE" class="flag"  onclick="return setNewCookie('https://en-ae.ajmal.com/');" href="javascript:void(0)" >
+    <!-- <i class="flag ae">UAE</i> -->
+    <img src="images/country_flag/united_arab_emirates.png" />
+
+</a>
+<a title="الامارات" class="ar"   onclick="return setNewCookie('https://ar-ae.ajmal.com/');" href="javascript:void(0)" >الامارات</a>
+    <a title="UAE"   onclick="return setNewCookie('https://en-ae.ajmal.com/');" href="javascript:void(0)" >UAE</a>
+</li>
+
+<li>
+<a title="Saudi Arabia" class="flag"  onclick="return setNewCookie('https://ar-sa.ajmal.com/');" href="javascript:void(0)" >
+        <img src="images/country_flag/saudi_arabia.png" />
+</a>
+<a title="السعودية" class="ar"  onclick="return setNewCookie('https://ar-sa.ajmal.com/');" href="javascript:void(0)" >السعودية</a>
+<a title="Saudi Arabia"  onclick="return setNewCookie('https://en-sa.ajmal.com/');" href="javascript:void(0)" >KSA</a>
+</li>
+
+<li>
+<a title="Bahrain" class="flag" onclick="return setNewCookie('https://ar-bh.ajmal.com/');" href="javascript:void(0)" >
+    <!-- <i class="flag bh">Bahrain</i> -->
+        <img src="images/country_flag/bahrain.png" />
+</a>
+<a title="البحرين" class="ar" onclick="return setNewCookie('https://ar-bh.ajmal.com/');" href="javascript:void(0)" >البحرين</a>
+<a title="Bahrain"  onclick="return setNewCookie('https://en-bh.ajmal.com/');" href="javascript:void(0)" >Bahrain</a>
+</li>
+
+<li>
+<a title="Oman" class="flag" onclick="return setNewCookie('https://ar-om.ajmal.com/');" href="javascript:void(0)" >
+    <!-- <i class="flag om">Oman</i> -->
+        <img src="images/country_flag/oman.png" />
+
+</a>
+<a title="عمان" class="ar" onclick="return setNewCookie('https://ar-om.ajmal.com/');" href="javascript:void(0)" >عمان</a>
+<a title="Oman" onclick="return setNewCookie('https://en-om.ajmal.com/');" href="javascript:void(0)">Oman</a>
+</li>
+
+
+<li>
+<a title="Kuwait" class="flag" onclick="return setNewCookie('https://ar-kwt.ajmal.com/');" href="javascript:void(0)">
+    <!-- <i class="flag kw">Kuwait</i> -->
+        <img src="images/country_flag/kuwait.png" />
+</a>
+<a title="الكويت" class="ar" onclick="return setNewCookie('https://ar-kwt.ajmal.com/');" href="javascript:void(0)">الكويت</a>
+<a title="Kuwait" onclick="return setNewCookie('https://en-kwt.ajmal.com/');" href="javascript:void(0)">Kuwait</a>
+</li>
+
+<li>
+<a title="Qatar" class="flag" onclick="return setNewCookie('https://ar-qa.ajmal.com/');" href="javascript:void(0)" >
+    <!-- <i class="flag qa">Qatar</i> -->
+        <img src="images/country_flag/qatar.png" />
+</a>
+<a title="قطر" class="ar" onclick="return setNewCookie('https://ar-qa.ajmal.com/');" href="javascript:void(0)">قطر</a>
+<a title="Qatar"  onclick="return setNewCookie('https://en-qa.ajmal.com/');" href="javascript:void(0)">Qatar</a>
+</li>
+
+
+
+</ul>
+<!-- <p translate="copyright" class="copyright ng-scope">Powered by Tekfleet Technologies</p> -->
+</div>
+</div>
+
+</body>
+</html>

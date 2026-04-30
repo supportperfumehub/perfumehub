@@ -1,0 +1,125 @@
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    background: white;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+    border-left: 4px solid #ddd;
+    overflow: hidden;
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+}
+
+.toast-notification.hide {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.toast-notification.success {
+    border-left-color: #10b981;
+}
+
+.toast-notification.error {
+    border-left-color: #ef4444;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.success .toast-icon {
+    color: #10b981;
+}
+
+.error .toast-icon {
+    color: #ef4444;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.toast-close:hover {
+    color: #4b5563;
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+}
+
+.success .toast-progress {
+    background: #10b981;
+}
+
+.error .toast-progress {
+    background: #ef4444;
+}
+
+.toast-notification.show .toast-progress {
+    animation: progress 3s linear forwards;
+}
+
+@keyframes progress {
+    0% {
+        width: 100%;
+    }
+
+    100% {
+        width: 0%;
+    }
+}
+
+[dir="rtl"] .toast-notification {
+    right: auto;
+    left: 20px;
+    border-left: none;
+    border-right: 4px solid #ddd;
+    transform: translateX(-120%);
+}
+
+[dir="rtl"] .toast-notification.show {
+    transform: translateX(0);
+}
+
+[dir="rtl"] .toast-notification.success {
+    border-right-color: #10b981;
+}
+
+[dir="rtl"] .toast-notification.error {
+    border-right-color: #ef4444;
+}
