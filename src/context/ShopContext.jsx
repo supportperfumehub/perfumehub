@@ -13,6 +13,7 @@ export const ShopProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [backups, setBackups] = useState([]);
     const [discoverCampaigns, setDiscoverCampaigns] = useState([]);
+    const [shops, setShops] = useState([]);
 
     // Initial orders - Start empty and fetch from database
     const [orders, setOrders] = useState([]);
@@ -195,6 +196,17 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
+    const fetchShops = async () => {
+        try {
+            const response = await api.get('/shops');
+            if (Array.isArray(response.data)) {
+                setShops(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching shops:', error);
+        }
+    };
+
     useEffect(() => {
         // Debounce slightly to wait for auth state on mount
         const timer = setTimeout(() => {
@@ -202,6 +214,7 @@ export const ShopProvider = ({ children }) => {
             fetchOrders();
             fetchCoupons();
             fetchBackups();
+            fetchShops();
         }, 100);
         return () => clearTimeout(timer);
     }, [isVendor, user?.shop_id]);
@@ -504,6 +517,7 @@ export const ShopProvider = ({ children }) => {
         mensProducts,
         womensProducts,
         discoverCampaigns,
+        shops,
         addProduct,
         updateProduct,
         deleteProduct,
