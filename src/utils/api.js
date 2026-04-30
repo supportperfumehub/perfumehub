@@ -17,6 +17,9 @@ export const setAccessToken = (token) => {
 // Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
+        // Trace URL for debugging
+        console.log('[API Debug] Original URL:', config.url);
+        
         // Aggressive Fail-Safe: Replace any double /api prefix anywhere in the URL
         if (config.url) {
             config.url = config.url.replace(/\/api\/api\//g, '/api/');
@@ -26,6 +29,8 @@ api.interceptors.request.use(
                 config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
             }
         }
+        
+        console.log('[API Debug] Final URL:', config.url);
         
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
