@@ -300,6 +300,7 @@ const Home = () => {
 
             {/* Newsletter Section */}
             <Newsletter isRTL={isRTL} />
+            <div style={{ textAlign: 'center', padding: '10px', color: '#333', fontSize: '0.7rem', opacity: 0.5 }}>Version 0.0.1 - RESTORED</div>
         </div>
     );
 };
