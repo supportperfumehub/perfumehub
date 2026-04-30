@@ -17,20 +17,15 @@ export const setAccessToken = (token) => {
 // Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
-        // Super Fail-Safe: Aggressively prevent double /api prefixing
-        let cleanUrl = config.url.startsWith('/') ? config.url : '/' + config.url;
-        
-        // If it already has /api/api, strip one
-        if (cleanUrl.startsWith('/api/api/')) {
-            cleanUrl = cleanUrl.substring(4);
+        // Aggressive Fail-Safe: Replace any double /api prefix anywhere in the URL
+        if (config.url) {
+            config.url = config.url.replace(/\/api\/api\//g, '/api/');
+            
+            // Ensure single /api prefix if missing and not absolute
+            if (!config.url.startsWith('/api/') && !config.url.startsWith('http')) {
+                config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+            }
         }
-        
-        // Ensure it has exactly one /api prefix
-        if (!cleanUrl.startsWith('/api/')) {
-            cleanUrl = '/api' + cleanUrl;
-        }
-        
-        config.url = cleanUrl;
         
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
@@ -39,6 +34,7 @@ api.interceptors.request.use(
     },
     (error) => Promise.reject(error)
 );
+// Version: 1.0.2 - Cache Buster: 1777509540000
 
 // Response Interceptor: Handle 401 and Refresh Token
 api.interceptors.response.use(
