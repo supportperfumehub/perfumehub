@@ -324,7 +324,7 @@ const PerfumeHubAI = () => {
             
             <div className="ai-header" style={{ position: 'relative', zIndex: 2 }}>
                 <Sparkles className="shine-icon" size={48} color="#d4af37" />
-                <h1>PerfumeHub AI</h1>
+                <h1>Scent Genie</h1>
                 <p>Let our intelligence curate your signature scent. Perfect for gifts or personal discovery.</p>
             </div>
 
@@ -381,7 +381,7 @@ const PerfumeHubAI = () => {
             {step === 10 && (
                 <div className="quiz-card loading-container">
                     <div className="loader"></div>
-                    <h3>{isExpertMode ? 'AI Expert Analysis...' : 'Consulting our Fragrance Experts...'}</h3>
+                    <h3>{isExpertMode ? 'Scent Genie Expert Analysis...' : 'Consulting the Scent Genie...'}</h3>
                     <p>Analyzing high-level scent data and matching your personality profile.</p>
                 </div>
             )}

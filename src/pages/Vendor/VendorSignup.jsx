@@ -1,14 +1,16 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock } from 'lucide-react';
+import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock, Upload, Phone, MapPin } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+import './VendorSignup.css';
 
 const VendorSignup = () => {
     const { t } = useTranslation();
     const { isRTL } = useOutletContext();
     const { user } = useContext(AuthContext);
+    const fileInputRef = useRef(null);
 
     // Guest account fields
     const [guestData, setGuestData] = useState({ ownerName: '', ownerEmail: '', ownerPassword: '' });
@@ -21,17 +23,21 @@ const VendorSignup = () => {
     // Already a vendor/admin — redirect to dashboard
     if (user && (user.role === 'admin' || user.role === 'vendor')) {
         return (
-            <div className="container section text-center" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <CheckCircle size={64} color="#2ecc71" style={{ marginBottom: '20px' }} />
-                <h2>{isRTL ? 'أنت بالفعل تمتلك متجرًا' : 'You already have shop access'}</h2>
-                <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="btn btn-gold" style={{ marginTop: '20px' }}>
-                    {isRTL ? 'اذهب إلى لوحة التحكم' : 'Go to Dashboard'}
-                </Link>
+            <div className="vendor-signup-page">
+                <div className="vendor-signup-container text-center">
+                    <CheckCircle size={64} className="vendor-input-icon" style={{ marginBottom: '20px', margin: '0 auto' }} />
+                    <h2 className="vendor-signup-title" style={{ marginTop: '20px' }}>
+                        {isRTL ? 'أنت بالفعل تمتلك متجرًا' : 'You already have shop access'}
+                    </h2>
+                    <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="submit-request-btn" style={{ marginTop: '30px' }}>
+                        {isRTL ? 'اذهب إلى لوحة التحكم' : 'Go to Dashboard'}
+                    </Link>
+                </div>
             </div>
         );
     }
 
-    const isGuest = !user; // true if not logged in
+    const isGuest = !user;
 
     const addPhotoInput = () => setPhotoInputs([...photoInputs, '']);
     const removePhotoInput = (index) => setPhotoInputs(photoInputs.filter((_, i) => i !== index));
@@ -41,6 +47,26 @@ const VendorSignup = () => {
         setPhotoInputs(updated);
     };
 
+    const handleFileUpload = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                // Add as a new photo input or fill the first empty one
+                setPhotoInputs(prev => {
+                    const emptyIndex = prev.findIndex(url => !url);
+                    if (emptyIndex !== -1) {
+                        const updated = [...prev];
+                        updated[emptyIndex] = reader.result;
+                        return updated;
+                    }
+                    return [...prev, reader.result];
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -48,7 +74,6 @@ const VendorSignup = () => {
 
         try {
             if (isGuest) {
-                // Guest flow: create user + shop together via /api/shops/manual (pending status)
                 const response = await api.post('/shops/manual', {
                     ownerName: guestData.ownerName,
                     ownerEmail: guestData.ownerEmail,
@@ -65,7 +90,6 @@ const VendorSignup = () => {
                     alert(response.data.error || 'Submission failed');
                 }
             } else {
-                // Logged-in user flow: just create shop linked to their account
                 const response = await api.post('/shops', {
                     owner_id: user?.id,
                     name: formData.name,
@@ -93,229 +117,229 @@ const VendorSignup = () => {
 
     if (success) {
         return (
-            <div className="container section text-center" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <Send size={64} color="#2ecc71" style={{ marginBottom: '20px' }} />
-                <h2>{isRTL ? 'تم استلام طلبك بنجاح' : 'Request Submitted Successfully'}</h2>
-                <p>
-                    {isRTL
-                        ? 'شكراً لاهتمامك بالانضمام إلينا كبائع. ستقوم الإدارة بمراجعة طلبك والرد عليك قريباً.'
-                        : 'Thank you for your interest in joining as a vendor. The administration will review your request and get back to you soon.'}
-                </p>
-                {isGuest && (
-                    <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
+            <div className="vendor-signup-page">
+                <div className="vendor-signup-container text-center">
+                    <div className="upload-icon-circle" style={{ width: '80px', height: '80px' }}>
+                        <Send size={40} />
+                    </div>
+                    <h2 className="vendor-signup-title">{isRTL ? 'تم استلام طلبك بنجاح' : 'Request Submitted'}</h2>
+                    <p className="vendor-signup-subtitle" style={{ marginBottom: '30px' }}>
                         {isRTL
-                            ? 'يمكنك الآن تسجيل الدخول باستخدام بريدك الإلكتروني وكلمة المرور.'
-                            : 'You can now login with your email and password.'}
+                            ? 'شكراً لاهتمامك بالانضمام إلينا كبائع. ستقوم الإدارة بمراجعة طلبك والرد عليك قريباً.'
+                            : 'Thank you for your interest. The administration will review your request and get back to you soon.'}
                     </p>
-                )}
-                <Link to={isGuest ? "/login" : "/"} className="btn btn-gold" style={{ marginTop: '20px' }}>
-                    {isGuest
-                        ? (isRTL ? 'تسجيل الدخول' : 'Go to Login')
-                        : (isRTL ? 'العودة للصفحة الرئيسية' : 'Return to Home')}
-                </Link>
+                    <Link to={isGuest ? "/login" : "/"} className="submit-request-btn">
+                        {isGuest
+                            ? (isRTL ? 'تسجيل الدخول' : 'Go to Login')
+                            : (isRTL ? 'العودة للصفحة الرئيسية' : 'Return to Home')}
+                    </Link>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="container section" style={{ maxWidth: '640px', margin: '0 auto' }}>
-            <div className="text-center" style={{ marginBottom: '40px' }}>
-                <Store size={48} color="var(--color-gold)" style={{ marginBottom: '15px' }} />
-                <h2>{isRTL ? 'طلب الانضمام كبائع' : 'Vendor Registration Request'}</h2>
-                <p className="text-muted">
-                    {isRTL
-                        ? 'قم بتعبئة النموذج التالي لإرسال طلب تسجيل متجرك على منصتنا.'
-                        : 'Fill out the form below to submit a request to register your shop on our platform.'}
-                </p>
-            </div>
+        <div className="vendor-signup-page">
+            <div className="vendor-signup-container animate-slide-up">
+                <div className="vendor-signup-header">
+                    <div className="upload-icon-circle">
+                        <Store size={28} />
+                    </div>
+                    <h1 className="vendor-signup-title">{isRTL ? 'طلب الانضمام كبائع' : 'Vendor Registration'}</h1>
+                    <p className="vendor-signup-subtitle">
+                        {isRTL
+                            ? 'قم بتعبئة النموذج التالي لإرسال طلب تسجيل متجرك على منصتنا.'
+                            : 'Join our exclusive network of premium fragrance vendors. Complete the registration below.'}
+                    </p>
+                </div>
 
-            <form onSubmit={handleSubmit} style={{ background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 20px rgba(0,0,0,0.05)' }}>
+                <form onSubmit={handleSubmit} className="vendor-form">
+                    {/* Account Section */}
+                    {isGuest && (
+                        <div className="vendor-form-section">
+                            <h3 className="section-title">
+                                <User size={18} />
+                                {isRTL ? 'معلومات الحساب' : 'Account Information'}
+                            </h3>
+                            <div className="vendor-form">
+                                <div className="vendor-form-group">
+                                    <label>{isRTL ? 'الاسم الكامل' : 'Full Name'}</label>
+                                    <div className="vendor-input-wrapper">
+                                        <User size={18} className="vendor-input-icon" />
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'}
+                                            value={guestData.ownerName}
+                                            onChange={(e) => setGuestData({...guestData, ownerName: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group-grid">
+                                    <div className="vendor-form-group">
+                                        <label>{isRTL ? 'البريد الإلكتروني' : 'Email Address'}</label>
+                                        <div className="vendor-input-wrapper">
+                                            <Mail size={18} className="vendor-input-icon" />
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="email@example.com"
+                                                value={guestData.ownerEmail}
+                                                onChange={(e) => setGuestData({...guestData, ownerEmail: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="vendor-form-group">
+                                        <label>{isRTL ? 'كلمة المرور' : 'Password'}</label>
+                                        <div className="vendor-input-wrapper">
+                                            <Lock size={18} className="vendor-input-icon" />
+                                            <input
+                                                type="password"
+                                                required
+                                                minLength={4}
+                                                placeholder="••••••••"
+                                                value={guestData.ownerPassword}
+                                                onChange={(e) => setGuestData({...guestData, ownerPassword: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                {/* Guest Account Section */}
-                {isGuest && (
-                    <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #eee' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <User size={18} color="var(--color-gold)" />
-                            {isRTL ? 'معلومات الحساب' : 'Account Information'}
+                    {/* Signed-in user info banner */}
+                    {!isGuest && (
+                        <div className="vendor-form-section" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                            <div style={{ padding: '15px 20px', background: 'rgba(212, 175, 55, 0.08)', borderRadius: '14px', border: '1px solid rgba(212, 175, 55, 0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <CheckCircle size={20} color="var(--color-gold)" />
+                                <span style={{ color: 'var(--color-white)', fontSize: '0.9rem', fontWeight: 600 }}>
+                                    {isRTL ? `مسجّل كـ ${user.name || user.email}` : `Authenticated as ${user.name || user.email}`}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Shop Details */}
+                    <div className="vendor-form-section">
+                        <h3 className="section-title">
+                            <Store size={18} />
+                            {isRTL ? 'معلومات المتجر' : 'Shop Details'}
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
-                            <div>
-                                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                                    {isRTL ? 'الاسم الكامل' : 'Full Name'}
-                                </label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    required
-                                    value={guestData.ownerName}
-                                    onChange={(e) => setGuestData({...guestData, ownerName: e.target.value})}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                />
+                        <div className="vendor-form">
+                            <div className="vendor-form-group">
+                                <label>{isRTL ? 'اسم المتجر المقترح' : 'Proposed Shop Name'}</label>
+                                <div className="vendor-input-wrapper">
+                                    <Store size={18} className="vendor-input-icon" />
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder={isRTL ? 'أدخل اسم المتجر' : 'Enter shop name'}
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                                    {isRTL ? 'البريد الإلكتروني' : 'Email Address'}
-                                </label>
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    required
-                                    value={guestData.ownerEmail}
-                                    onChange={(e) => setGuestData({...guestData, ownerEmail: e.target.value})}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                />
+
+                            <div className="vendor-form-group">
+                                <label>{isRTL ? 'رقم الواتساب' : 'WhatsApp Number'}</label>
+                                <div className="vendor-input-wrapper">
+                                    <Phone size={18} className="vendor-input-icon" />
+                                    <input
+                                        type="text"
+                                        placeholder="+974..."
+                                        value={formData.whatsapp_number}
+                                        onChange={(e) => setFormData({...formData, whatsapp_number: e.target.value})}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                                    {isRTL ? 'كلمة المرور' : 'Password'}
-                                </label>
-                                <input
-                                    type="password"
-                                    className="form-control"
-                                    required
-                                    minLength={4}
-                                    value={guestData.ownerPassword}
-                                    onChange={(e) => setGuestData({...guestData, ownerPassword: e.target.value})}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                />
+
+                            <div className="vendor-form-group">
+                                <label>{isRTL ? 'العنوان التفصيلي' : 'Detailed Address'}</label>
+                                <div className="vendor-input-wrapper">
+                                    <MapPin size={18} className="vendor-input-icon" style={{ alignSelf: 'flex-start', marginTop: '15px' }} />
+                                    <textarea
+                                        required
+                                        placeholder={isRTL ? 'أدخل العنوان الكامل' : 'Enter detailed location'}
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                )}
 
-                {/* Logged-in user info */}
-                {!isGuest && (
-                    <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#f0faf5', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d4edda' }}>
-                        <CheckCircle size={18} color="#2ecc71" />
-                        <span style={{ fontSize: '0.9rem', color: '#333' }}>
-                            {isRTL ? `مسجّل كـ ${user.name || user.email}` : `Signed in as ${user.name || user.email}`}
-                        </span>
-                    </div>
-                )}
-
-                {/* Shop Details */}
-                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Store size={18} color="var(--color-gold)" />
-                    {isRTL ? 'معلومات المتجر' : 'Shop Details'}
-                </h3>
-
-                {/* Shop Name */}
-                <div style={{ marginBottom: '18px' }}>
-                    <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                        {isRTL ? 'اسم المتجر المقترح' : 'Proposed Shop Name'}
-                    </label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        required
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    />
-                </div>
-
-                {/* Address */}
-                <div style={{ marginBottom: '18px' }}>
-                    <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                        {isRTL ? 'العنوان التفصيلي للمتجر' : 'Detailed Shop Address'}
-                    </label>
-                    <textarea
-                        className="form-control"
-                        rows="3"
-                        required
-                        value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
-                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical' }}
-                    ></textarea>
-                </div>
-
-                {/* WhatsApp Number */}
-                <div style={{ marginBottom: '18px' }}>
-                    <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                        {isRTL ? 'رقم الواتساب (مع رمز الدولة)' : 'WhatsApp Number (with country code)'}
-                    </label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="+974..."
-                        value={formData.whatsapp_number}
-                        onChange={(e) => setFormData({...formData, whatsapp_number: e.target.value})}
-                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    />
-                </div>
-
-                {/* Multiple Photos */}
-                <div style={{ marginBottom: '28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Image size={16} /> {isRTL ? 'صور المتجر (اختياري)' : 'Shop Photos (optional)'}
-                        </label>
-                        <button
-                            type="button"
-                            onClick={addPhotoInput}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '1px dashed #aaa', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: '#555', fontSize: '0.85rem' }}
-                        >
-                            <Plus size={14} /> {isRTL ? 'إضافة صورة' : 'Add Photo'}
-                        </button>
-                    </div>
-
-                    {photoInputs.map((url, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
-                            {url && (
-                                <img
-                                    src={url}
-                                    alt="preview"
-                                    onError={(e) => e.target.style.display = 'none'}
-                                    onLoad={(e) => e.target.style.display = 'block'}
-                                    style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd', flexShrink: 0 }}
+                    {/* Photos Section */}
+                    <div className="vendor-form-section">
+                        <h3 className="section-title">
+                            <Image size={18} />
+                            {isRTL ? 'صور المتجر' : 'Shop Presentation'}
+                        </h3>
+                        
+                        <div className="photo-upload-container">
+                            {/* Local Upload Zone */}
+                            <div className="local-upload-zone" onClick={() => fileInputRef.current?.click()}>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    style={{ display: 'none' }} 
+                                    accept="image/*" 
+                                    multiple 
+                                    onChange={handleFileUpload} 
                                 />
-                            )}
-                            <input
-                                type="url"
-                                className="form-control"
-                                placeholder={isRTL ? `رابط الصورة ${index + 1}` : `Photo URL ${index + 1}`}
-                                value={url}
-                                onChange={(e) => updatePhotoInput(index, e.target.value)}
-                                style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                            />
-                            {photoInputs.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => removePhotoInput(index)}
-                                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#e74c3c', padding: '4px', flexShrink: 0 }}
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            )}
+                                <div className="upload-icon-circle">
+                                    <Upload size={20} />
+                                </div>
+                                <p className="upload-text">
+                                    {isRTL ? 'اضغط لرفع الصور من' : 'Click to upload from'} <span>{isRTL ? 'جهازك' : 'Local Storage'}</span>
+                                </p>
+                            </div>
+
+                            <div className="photo-input-list">
+                                {photoInputs.map((url, index) => (
+                                    <div key={index} className="photo-input-item">
+                                        <div className="photo-preview-box">
+                                            {url ? <img src={url} alt="Preview" /> : <Image size={20} style={{ opacity: 0.2 }} />}
+                                        </div>
+                                        <div className="vendor-input-wrapper photo-url-input">
+                                            <input
+                                                type="text"
+                                                placeholder={isRTL ? `رابط الصورة ${index + 1}` : `Photo URL or Data ${index + 1}`}
+                                                value={url}
+                                                onChange={(e) => updatePhotoInput(index, e.target.value)}
+                                            />
+                                        </div>
+                                        {photoInputs.length > 1 && (
+                                            <button type="button" className="remove-photo-btn" onClick={() => removePhotoInput(index)}>
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button type="button" onClick={addPhotoInput} className="text-link" style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', opacity: 1, color: 'var(--color-gold)' }}>
+                                <Plus size={14} /> {isRTL ? 'إضافة رابط إضافي' : 'Add another link'}
+                            </button>
                         </div>
-                    ))}
-                    <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '6px' }}>
-                        {isRTL ? 'أدخل روابط مباشرة لصور متجرك. يمكن إضافة أكثر من صورة.' : 'Enter direct image URLs for your shop. You can add multiple photos.'}
-                    </p>
-                </div>
+                    </div>
 
-                <button
-                    type="submit"
-                    className="btn btn-gold"
-                    style={{ width: '100%', padding: '14px', fontSize: '1.1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-                    disabled={loading}
-                >
-                    <Send size={18} />
-                    {loading ? (isRTL ? 'جاري الإرسال...' : 'Submitting...') : (isRTL ? 'إرسال الطلب' : 'Submit Request')}
-                </button>
+                    <button type="submit" className="submit-request-btn" disabled={loading}>
+                        {loading ? (isRTL ? 'جاري الإرسال...' : 'Submitting...') : (isRTL ? 'إرسال طلب التسجيل' : 'Submit Registration')}
+                        <Send size={18} />
+                    </button>
 
-                {/* Login link for guests */}
-                {isGuest && (
-                    <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: '#888' }}>
-                        {isRTL ? 'لديك حساب بالفعل؟' : 'Already have an account?'}{' '}
-                        <Link to="/login" style={{ color: 'var(--color-gold)', fontWeight: '600' }}>
-                            {isRTL ? 'تسجيل الدخول' : 'Login here'}
-                        </Link>
-                    </p>
-                )}
-            </form>
+                    {isGuest && (
+                        <p className="login-redirect">
+                            {isRTL ? 'لديك حساب بالفعل؟' : 'Already have an account?'}
+                            <Link to="/login">{isRTL ? 'تسجيل الدخول' : 'Login here'}</Link>
+                        </p>
+                    )}
+                </form>
+            </div>
         </div>
     );
 };
 
 export default VendorSignup;
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import { ShopContext } from '../../context/ShopContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
@@ -41,8 +42,14 @@ const Shop = () => {
 
         // Filter by category param
         if (type) {
+            const CATEGORY_MAP = {
+                'fashion': 'men',
+                'jewellery': 'women',
+                'gift-box': 'arabic'
+            };
+            const mappedType = CATEGORY_MAP[type] || type;
             result = result.filter(p =>
-                (p.category && p.category.includes(type)) || p.gender === type
+                (p.category && p.category.includes(mappedType)) || p.gender === mappedType
             );
         }
 
@@ -114,9 +121,12 @@ const Shop = () => {
     const getPageTitle = () => {
         if (!type) return isRTL ? 'جميع العطور' : 'All Perfumes';
         const titles = {
-            'men': isRTL ? 'عطور رجالية' : 'Men Perfumes',
-            'women': isRTL ? 'عطور نسائية' : 'Women Perfumes',
-            'arabic': isRTL ? 'عطور عربية' : 'Arabic Collection',
+            'men': isRTL ? 'مجموعة الأزياء' : 'Fashion Collection',
+            'fashion': isRTL ? 'مجموعة الأزياء' : 'Fashion Collection',
+            'women': isRTL ? 'مجموعة المجوهرات' : 'Jewellery Collection',
+            'jewellery': isRTL ? 'مجموعة المجوهرات' : 'Jewellery Collection',
+            'arabic': isRTL ? 'صناديق الهدايا' : 'Gift Box',
+            'gift-box': isRTL ? 'صناديق الهدايا' : 'Gift Box',
         };
         return titles[type] || (isRTL ? 'التسوق' : 'Shop');
     };
@@ -135,14 +145,22 @@ const Shop = () => {
         if (!type) return allBanner;
         const banners = {
             'men': menBanner,
+            'fashion': menBanner,
             'women': womenBanner,
+            'jewellery': womenBanner,
             'arabic': arabicBanner,
+            'gift-box': arabicBanner,
         };
         return banners[type] || allBanner;
     };
 
     return (
         <div className="shop-page">
+            <Helmet>
+                <title>{isRTL ? 'المتجر | بيرفيوم هوب - عطور وفخامة في قطر' : 'Shop | PerfumeHub - Luxury Fragrances & Marketplace Qatar'}</title>
+                <meta name="description" content={isRTL ? 'تسوق أفضل العطور والساعات والمجوهرات في قطر. وجهتك الأولى للفخامة مع توصيل سريع في الدوحة.' : 'Shop the best perfumes, watches, and jewellery in Qatar. Your premier destination for luxury with fast delivery in Doha.'} />
+                <link rel="canonical" href="https://perfumehubqa.com/shop" />
+            </Helmet>
             <div 
                 className="shop-header" 
                 style={{ 

@@ -43,9 +43,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const navLinks = [
         { name: t('navbar.home'), path: '/' },
         { name: t('navbar.shop'), path: '/shop' },
-        { name: t('navbar.men'), path: '/category/men' },
-        { name: t('navbar.women'), path: '/category/women' },
-        { name: t('navbar.arabic'), path: '/category/arabic' },
+        { name: t('navbar.men'), path: '/category/fashion' },
+        { name: t('navbar.women'), path: '/category/jewellery' },
+        { name: t('navbar.arabic'), path: '/category/gift-box' },
         { name: t('navbar.ai_advisor'), path: '/ai-advisor' }
     ];
 

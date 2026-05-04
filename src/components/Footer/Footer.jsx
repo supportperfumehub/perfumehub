@@ -46,7 +46,7 @@ const Footer = ({ isRTL }) => {
                     <h3>{t('footer.shopping')}</h3>
                     <ul>
                         <li><Link to="/shop">{t('footer.all_perfumes')}</Link></li>
-                        <li><Link to="/category/arabic">{t('footer.arabic_perfumes')}</Link></li>
+                        <li><Link to="/category/gift-box">{t('footer.arabic_perfumes')}</Link></li>
                     </ul>
                 </div>
 

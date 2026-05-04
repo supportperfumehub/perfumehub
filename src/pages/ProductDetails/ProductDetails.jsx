@@ -237,11 +237,12 @@ const ProductDetails = () => {
 
                     <div className="product-brand-group">
                         <span className="brand-name">{product.brand}</span>
-                        <span className="product-gender-tag">{isRTL ? (
-                            product.gender === 'men' ? 'للرجال' : product.gender === 'women' ? 'للنساء' : 'للجنسين'
-                        ) : (
-                            product.gender === 'men' ? "Men's Fragrance" : product.gender === 'women' ? "Women's Fragrance" : 'Unisex'
-                        )}</span>
+                        <span className="product-gender-tag">
+                            {product.gender === 'men' ? t('navbar.men') : 
+                             product.gender === 'women' ? t('navbar.women') : 
+                             product.gender === 'arabic' ? t('navbar.arabic') : 
+                             t('categories.unisex')}
+                        </span>
                     </div>
                     <h1 className="product-name">{product.name}</h1>
                     <p className="product-type-large">

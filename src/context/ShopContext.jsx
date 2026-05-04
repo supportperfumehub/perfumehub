@@ -366,8 +366,9 @@ export const ShopProvider = ({ children }) => {
     const safeProducts = Array.isArray(products) ? products : [];
     const featuredProducts = safeProducts.filter(p => p?.isFeatured);
     const newArrivals = safeProducts.filter(p => p?.isNew);
-    const mensProducts = safeProducts.filter(p => p?.gender === 'men');
-    const womensProducts = safeProducts.filter(p => p?.gender === 'women');
+    const fashionProducts = safeProducts.filter(p => p?.gender === 'men');
+    const jewelleryProducts = safeProducts.filter(p => p?.gender === 'women');
+    const giftBoxProducts = safeProducts.filter(p => p?.gender === 'arabic');
 
     // Order Functions
     const updateOrderStatus = async (orderId, status) => {
@@ -514,8 +515,9 @@ export const ShopProvider = ({ children }) => {
         loading,
         featuredProducts,
         newArrivals,
-        mensProducts,
-        womensProducts,
+        fashionProducts,
+        jewelleryProducts,
+        giftBoxProducts,
         discoverCampaigns,
         shops,
         addProduct,

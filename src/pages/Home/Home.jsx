@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Newsletter from '../../components/Newsletter/Newsletter';
 import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
@@ -12,7 +13,7 @@ import './Home.css';
 const Home = () => {
     const { i18n, t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { featuredProducts, newArrivals, mensProducts, womensProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
+    const { featuredProducts, newArrivals, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllMens, setShowAllMens] = useState(false);
     const [showAllWomens, setShowAllWomens] = useState(false);
@@ -47,6 +48,12 @@ const Home = () => {
 
     return (
         <div className="home-page">
+            <Helmet>
+                <title>PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in Qatar</title>
+                <meta name="description" content="Shop authentic luxury perfumes, fashion, and jewellery in Qatar at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery across Doha." />
+                <meta name="keywords" content="perfume, perfumehub, qatar perfume, perfumes qatar, buy perfume online qatar, luxury fragrances qatar, fashion qatar, jewellery qatar, perfume hub qatar, scent genie, luxury marketplace qatar" />
+                <link rel="canonical" href="https://perfumehubqa.com/" />
+            </Helmet>
             {/* Modern Minimalist Hero */}
             <section className="modern-hero animate-fade-in">
                 <div className="hero-background"></div>
@@ -165,11 +172,11 @@ const Home = () => {
                                     className="boutique-image-container" 
                                     style={{ 
                                         backgroundImage: `url(${shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
-                                        backgroundSize: 'contain',
+                                        backgroundSize: 'cover',
                                         backgroundPosition: 'center',
                                         backgroundRepeat: 'no-repeat',
                                         height: '150px',
-                                        backgroundColor: '#f9f9f9',
+                                        backgroundColor: '#1a1a1a',
                                         borderRadius: '12px 12px 0 0'
                                     }}
                                 ></div>
@@ -232,7 +239,7 @@ const Home = () => {
 
                 <div className={`products-grid-wrapper${showAllMens ? '' : ' collapsed'}`}>
                     <div className="products-grid">
-                        {mensProducts.map(product => (
+                        {fashionProducts.map(product => (
                             <ProductCard key={product.id} product={product} isRTL={isRTL} />
                         ))}
                     </div>
@@ -245,7 +252,7 @@ const Home = () => {
                             ? t('common.view_less')
                             : t('common.view_more')}
                     </button>
-                    <Link to="/category/men" className="btn btn-outline" style={{ marginLeft: '12px' }}>
+                    <Link to="/category/fashion" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                         {t('common.view_all')}
                     </Link>
                 </div>
@@ -262,7 +269,7 @@ const Home = () => {
 
                 <div className={`products-grid-wrapper${showAllWomens ? '' : ' collapsed'}`}>
                     <div className="products-grid">
-                        {womensProducts.map(product => (
+                        {jewelleryProducts.map(product => (
                             <ProductCard key={product.id} product={product} isRTL={isRTL} />
                         ))}
                     </div>
@@ -275,9 +282,35 @@ const Home = () => {
                             ? t('common.view_less')
                             : t('common.view_more')}
                     </button>
-                    <Link to="/category/women" className="btn btn-outline" style={{ marginLeft: '12px' }}>
+                    <Link to="/category/jewellery" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                         {t('common.view_all')}
                     </Link>
+                </div>
+            </section>
+
+            {/* Gift Boxes Section - Premium Redesign */}
+            <section className="section gift-box-special-section reveal">
+                <div className="container">
+                    <div className="gift-box-header text-center">
+                        <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
+                        <p className="section-subtitle">
+                            {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
+                        </p>
+                    </div>
+
+                    <div className="products-grid-wrapper">
+                        <div className="products-grid">
+                            {giftBoxProducts.slice(0, 4).map(product => (
+                                <ProductCard key={product.id} product={product} isRTL={isRTL} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="text-center section-view-more" style={{ marginTop: '50px' }}>
+                        <Link to="/category/gift-box" className="btn btn-gold">
+                            {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
+                        </Link>
+                    </div>
                 </div>
             </section>
 

@@ -1,11 +1,11 @@
 {
   "navbar": {
     "home": "Home",
-    "shop": "Shop",
-    "men": "Men",
-    "women": "Women",
-    "arabic": "Arabic",
-    "ai_advisor": "AI Advisor",
+    "shop": "PerfumeHub",
+    "men": "Fashion",
+    "women": "Jewellery",
+    "arabic": "Gift Box",
+    "ai_advisor": "Scent Genie",
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
@@ -25,7 +25,7 @@
     "tagline": "Powered by Artificial Intelligence",
     "title": "Find Your Perfect Match",
     "description": "Let our advanced AI analyze your preferences and suggest the ideal fragrance tailored just for you.",
-    "button": "Try AI Scent Advisor"
+    "button": "Consult Scent Genie"
   },
   "hero": {
     "subtitle": "EXQUISITE FRAGRANCES",
@@ -33,33 +33,33 @@
     "text": "Explore our curated collection of luxury perfumes from the world's most prestigious perfume houses.",
     "shop_now": "Shop Collection",
     "learn_more": "Our Story",
-    "scent_advisor": "AI Scent Advisor"
+    "scent_advisor": "Scent Genie"
   },
   "categories": {
     "title": "Shop By Categories",
-    "subtitle": "Explore our wide range of fragrance collections",
-    "men": "Men's Perfumes",
-    "women": "Women's Perfumes",
-    "unisex": "Unisex Perfumes",
-    "arabic": "Arabic Collection",
-    "all_perfumes": "All Perfumes"
+    "subtitle": "Explore our exclusive luxury collections",
+    "men": "Fashion",
+    "women": "Jewellery",
+    "unisex": "Unisex Collection",
+    "arabic": "Gift Boxes",
+    "all_perfumes": "All Products"
   },
   "featured": {
-    "title": "Featured Perfumes",
-    "subtitle": "Our best-selling and most loved fragrances",
-    "view_all": "View All Perfumes"
+    "title": "Featured Collection",
+    "subtitle": "Our best-selling and most loved items",
+    "view_all": "View All Products"
   },
   "new_arrivals": {
     "title": "New Arrivals",
-    "subtitle": "Discover the latest fragrances added to our collection"
+    "subtitle": "Discover our latest luxury additions"
   },
   "mens": {
-    "title": "Men's Collection",
-    "subtitle": "Discover our exclusive collection for men"
+    "title": "Fashion Collection",
+    "subtitle": "Discover our exclusive fashion collection"
   },
   "womens": {
-    "title": "Women's Collection",
-    "subtitle": "Explore the most delicate women's fragrances"
+    "title": "Jewellery Collection",
+    "subtitle": "Explore the most exquisite jewellery"
   },
   "brand_story": {
     "our_story": "Our Story",
@@ -72,7 +72,7 @@
     "add_to_cart": "Add to Cart",
     "buy_now": "Buy Now",
     "view_details": "View Details",
-    "search_placeholder": "Search for fragrances...",
+    "search_placeholder": "Search for products...",
     "loading": "Loading...",
     "new_arrival": "New Arrival",
     "view_more": "View More",
@@ -233,7 +233,7 @@
     }
   },
   "footer": {
-    "description": "Your premier destination for luxury perfumes in Qatar. Discover our exclusive collection today.",
+    "description": "Your premier destination for luxury in Qatar. Discover our exclusive collection today.",
     "quick_links": "Quick Links",
     "policies": "Policies",
     "shopping": "Shopping",
@@ -246,8 +246,8 @@
     "terms_conditions": "Terms & Conditions",
     "refund_policy": "Refund Policy",
     "shipping_policy": "Shipping Policy",
-    "all_perfumes": "All Perfumes",
-    "arabic_perfumes": "Arabic Perfumes",
+    "all_perfumes": "All Products",
+    "arabic_perfumes": "Gift Boxes",
     "rights_reserved": "All rights reserved."
   }
 }

@@ -25,8 +25,8 @@ const FAQ = () => {
         {
           q: isRTL ? 'كيف أختار العطر المناسب لي؟' : 'How do I choose the right perfume for me?',
           a: isRTL 
-            ? 'يمكنك استخدام مستشار الذكاء الاصطناعي الخاص بنا (PerfumeHub AI) أو تصفح الأوصاف التفصيلية للمكونات (القمة، القلب، القاعدة) في صفحة كل منتج.' 
-            : 'You can use our AI Advisor (PerfumeHub AI) or browse the detailed ingredient descriptions (top, heart, base notes) on each product page.'
+            ? 'يمكنك استخدام جني العطور الخاص بنا (Scent Genie) أو تصفح الأوصاف التفصيلية للمكونات (القمة، القلب، القاعدة) في صفحة كل منتج.' 
+            : 'You can use our Scent Genie or browse the detailed ingredient descriptions (top, heart, base notes) on each product page.'
         }
       ]
     },

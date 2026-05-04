@@ -15,14 +15,16 @@ const Login = () => {
     const [isResetSent, setIsResetSent] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [isVendorLogin, setIsVendorLogin] = useState(false);
 
-    const { user, login, register, forgotPassword } = useContext(AuthContext);
+    const { user, login, register, forgotPassword, loginWithGoogle } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
+        setIsVendorLogin(false);
         setIsForgotPassword(false);
         setError('');
         setIsResetSent(false);
@@ -30,6 +32,7 @@ const Login = () => {
 
     // Load remembered email on mount
     React.useEffect(() => {
+        console.log('Login Component Mounted');
         const savedEmail = localStorage.getItem('remembered_email');
         if (savedEmail) {
             setEmail(savedEmail);
@@ -116,8 +119,8 @@ const Login = () => {
                     </h1>
                     <p className="login-subtitle animate-slide-up" style={{ animationDelay: '0.1s' }}>
                         {isRTL
-                            ? (isLogin ? 'سجل الدخول للمتابعة إلى حسابك' : 'ابدأ رحلتك في عالم العطور الفاخرة')
-                            : (isLogin ? 'Sign in to your premium account' : 'Discover a world of luxury fragrances')}
+                            ? (isVendorLogin ? 'تسجيل دخول البائع للمتابعة إلى لوحة التحكم' : (isLogin ? 'سجل الدخول للمتابعة إلى حسابك' : 'ابدأ رحلتك في عالم الفخامة'))
+                            : (isVendorLogin ? 'Sign in to your vendor dashboard to continue' : (isLogin ? 'Sign in to your premium account' : 'Discover a world of luxury'))}
                     </p>
                 </div>
 
@@ -223,6 +226,22 @@ const Login = () => {
                     )}
                 </form>
 
+                <div className="login-divider">
+                    <span>{isRTL ? 'أو' : 'OR'}</span>
+                </div>
+
+                <button 
+                    type="button" 
+                    className="google-login-btn"
+                    onClick={() => {
+                        console.log('Google Login Button Clicked');
+                        loginWithGoogle();
+                    }}
+                >
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+                    <span>{isRTL ? 'المتابعة باستخدام جوجل' : 'Continue with Google'}</span>
+                </button>
+
                 {/* Vendor CTA */}
                 <div className="vendor-cta animate-slide-up" style={{ animationDelay: '0.35s' }}>
                     <div className="vendor-cta-inner">
@@ -236,9 +255,17 @@ const Login = () => {
                             </Link>
                         ) : (
                             <>
-                                <Link to="/vendor-signup" className="vendor-link">
+                                <button 
+                                    type="button"
+                                    className="vendor-link"
+                                    onClick={() => {
+                                        setIsLogin(true);
+                                        setIsVendorLogin(true);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                >
                                     {isRTL ? 'تسجيل دخول البائع' : 'Vendor Login'}
-                                </Link>
+                                </button>
                                 <span className="vendor-divider">·</span>
                                 <Link to="/vendor-signup" className="vendor-link vendor-link-highlight">
                                     {isRTL ? 'سجّل متجرك' : 'Register Your Shop'}

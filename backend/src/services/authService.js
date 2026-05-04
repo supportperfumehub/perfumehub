@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/tokenUtils.js';
 import { AppError } from '../middleware/errorHandler.js';
+import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -252,5 +253,46 @@ export class AuthService {
         });
 
         return { success: true, message: 'Password has been reset successfully.' };
+    }
+
+    /**
+     * Google Login via Supabase OAuth verification
+     */
+    async googleLogin(supabaseToken) {
+        try {
+            // 1. Verify token with Supabase
+            const response = await axios.get(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+                headers: {
+                    'apikey': process.env.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${supabaseToken}`
+                }
+            });
+
+            const supabaseUser = response.data;
+            if (!supabaseUser || !supabaseUser.email) {
+                throw new AppError('Invalid Google session', 401);
+            }
+
+            // 2. Find or Create user in our DB
+            let user = await this.userRepository.findByEmail(supabaseUser.email);
+
+            if (!user) {
+                // Auto-register new Google user
+                user = await this.userRepository.create({
+                    name: supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
+                    email: supabaseUser.email,
+                    role: 'customer',
+                    email_verified: true, // Google emails are already verified
+                    auth_provider: 'google',
+                    supabase_id: supabaseUser.id
+                });
+            }
+
+            // 3. Issue backend tokens
+            return this.issueTokens(user);
+        } catch (error) {
+            console.error('AuthService.googleLogin Error:', error.response?.data || error.message);
+            throw new AppError('Google verification failed', 401);
+        }
     }
 }

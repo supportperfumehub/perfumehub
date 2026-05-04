@@ -178,4 +178,27 @@ export class AuthController {
             next(error);
         }
     };
+
+    /**
+     * POST /api/auth/google
+     */
+    googleLogin = async (req, res, next) => {
+        try {
+            const { token } = req.body;
+            if (!token) throw new AppError('No token provided', 400);
+
+            const result = await this.authService.googleLogin(token);
+
+            this.setRefreshCookie(res, result.refreshToken);
+
+            res.status(200).json({
+                success: true,
+                message: 'Google login successful',
+                accessToken: result.accessToken,
+                user: result.user
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
 }

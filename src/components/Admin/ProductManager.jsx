@@ -217,7 +217,22 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     };
 
     const availableCategories = [
-        // Core Categories
+        // Core Departments
+        { value: 'jewellery', label: 'Jewellery' },
+        { value: 'fashion', label: 'Fashion' },
+        { value: 'giftbox', label: 'Gift Box' },
+        
+        // Luxury Items
+        { value: 'watches', label: 'Watches' },
+        { value: 'rings', label: 'Rings' },
+        { value: 'necklaces', label: 'Necklaces' },
+        { value: 'earrings', label: 'Earrings' },
+        { value: 'bracelets', label: 'Bracelets' },
+        { value: 'bags', label: 'Handbags & Bags' },
+        { value: 'clothing', label: 'Clothing' },
+        { value: 'shoes', label: 'Shoes' },
+
+        // Fragrance Categories (Keep for perfumes)
         { value: 'woody', label: 'Woody' },
         { value: 'floral', label: 'Floral' },
         { value: 'arabic', label: 'Arabic' },
@@ -229,23 +244,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         { value: 'fruity', label: 'Fruity' },
         { value: 'sweet', label: 'Sweet' },
         { value: 'aquatic', label: 'Aquatic' },
-
-        // Popular Perfume Notes
-        { value: 'vanilla', label: 'Vanilla' },
-        { value: 'oud', label: 'Oud' },
-        { value: 'rose', label: 'Rose' },
-        { value: 'jasmine', label: 'Jasmine' },
-        { value: 'amber', label: 'Amber' },
-        { value: 'patchouli', label: 'Patchouli' },
-        { value: 'sandalwood', label: 'Sandalwood' },
-        { value: 'bergamot', label: 'Bergamot' },
-        { value: 'leather', label: 'Leather' },
-        { value: 'vetiver', label: 'Vetiver' },
-        { value: 'lavender', label: 'Lavender' },
-        { value: 'neroli', label: 'Neroli' },
-        { value: 'cedar', label: 'Cedar' },
-
-        // Special Categories
         { value: 'luxury', label: 'Luxury Brands' }
     ];
 
@@ -661,29 +659,32 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label>{isRTL ? 'التصنيف' : 'Gender'}</label>
+                                <label>{isRTL ? 'القسم الرئيسي' : 'Primary Department'}</label>
                                 <select name="gender" className="form-control" value={formData.gender} onChange={handleInputChange}>
-                                    <option value="men">{isRTL ? 'رجالي' : 'Men'}</option>
-                                    <option value="women">{isRTL ? 'نسائي' : 'Women'}</option>
-                                    <option value="unisex">{isRTL ? 'للجنسين' : 'Unisex'}</option>
+                                    <option value="men">{isRTL ? 'أزياء' : 'Fashion'}</option>
+                                    <option value="women">{isRTL ? 'مجوهرات' : 'Jewellery'}</option>
+                                    <option value="arabic">{isRTL ? 'صناديق الهدايا' : 'Gift Boxes'}</option>
+                                    <option value="unisex">{isRTL ? 'للجنسين / عام' : 'Unisex / General'}</option>
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label>{isRTL ? 'نوع العطر' : 'Fragrance Type'}</label>
+                                <label>{isRTL ? 'النوع / التصنيف' : 'Type / Category'}</label>
                                 <input 
-                                    list="fragrance-types" 
+                                    list="product-types" 
                                     name="type" 
                                     className="form-control" 
                                     value={formData.type} 
                                     onChange={handleInputChange}
-                                    placeholder={isRTL ? 'اختر أو اكتب...' : 'Select or type...'}
+                                    placeholder={isRTL ? 'مثلاً: عطر، قلادة، ساعة...' : 'e.g. Perfume, Necklace, Watch...'}
                                 />
-                                <datalist id="fragrance-types">
-                                    <option value="Parfum">Parfum</option>
+                                <datalist id="product-types">
+                                    <option value="Perfume">Perfume</option>
+                                    <option value="Necklace">Necklace</option>
+                                    <option value="Ring">Ring</option>
+                                    <option value="Watch">Watch</option>
+                                    <option value="Bag">Bag</option>
+                                    <option value="Gift Set">Gift Set</option>
                                     <option value="EDP (Eau de Parfum)">EDP (Eau de Parfum)</option>
-                                    <option value="EDT (Eau de Toilette)">EDT (Eau de Toilette)</option>
-                                    <option value="EDC (Eau de Cologne)">EDC (Eau de Cologne)</option>
-                                    <option value="Eau Fraîche">Eau Fraîche</option>
                                 </datalist>
                             </div>
                         </div>

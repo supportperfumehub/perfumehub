@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import api, { setAccessToken } from '../utils/api_v1_0_2';
+import { supabase } from '../utils/supabaseClient';
 
 export const AuthContext = createContext();
 
@@ -57,7 +58,34 @@ export const AuthProvider = ({ children }) => {
         // Listen for global logout events from axios interceptor
         const handleLogout = () => logout();
         window.addEventListener('auth-logout', handleLogout);
-        return () => window.removeEventListener('auth-logout', handleLogout);
+
+        // Listen for Supabase OAuth changes
+        const syncGoogleLogin = () => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    try {
+                        const response = await api.post('/auth/google', { token: session.access_token });
+                        if (response.data.success) {
+                            const { accessToken, user } = response.data;
+                            setAccessToken(accessToken);
+                            setUser(user);
+                            setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
+                            setIsVendor(user.role === 'vendor' || !!user.shop_id);
+                        }
+                    } catch (error) {
+                        console.error('Failed to sync Google login with backend:', error);
+                    }
+                }
+            });
+            return subscription;
+        };
+
+        const subscription = syncGoogleLogin();
+
+        return () => {
+            window.removeEventListener('auth-logout', handleLogout);
+            subscription?.unsubscribe();
+        };
     }, [initAuth]);
 
     useEffect(() => {
@@ -152,6 +180,25 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const loginWithGoogle = async () => {
+        try {
+            console.log('Initiating Google Login...');
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) {
+                console.error('Supabase OAuth Error:', error);
+                throw error;
+            }
+        } catch (error) {
+            console.error('Google Login Error:', error);
+            return { success: false, message: error.message };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -160,6 +207,7 @@ export const AuthProvider = ({ children }) => {
         isVendor,
         requires2FA,
         login,
+        loginWithGoogle,
         register,
         logout,
         verify2FA,
