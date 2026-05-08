@@ -253,4 +253,33 @@ export class AuthService {
 
         return { success: true, message: 'Password has been reset successfully.' };
     }
+    /**
+     * Social Login (Supabase/Google)
+     * This handles users who authenticated via a third party.
+     * It finds or creates the user in the local database.
+     */
+    async socialLogin(email, name, providerData = {}) {
+        let user = await this.userRepository.findByEmail(email);
+
+        if (!user) {
+            // Create user if they don't exist
+            user = await this.userRepository.create({
+                name: name || email.split('@')[0],
+                email: email,
+                role: 'customer',
+                email_verified: true,
+                provider: 'google',
+                provider_id: providerData.id
+            });
+        } else if (!user.provider) {
+            // Link provider to existing email account if not already linked
+            await this.userRepository.update(user.id, {
+                provider: 'google',
+                provider_id: providerData.id,
+                email_verified: true // Google emails are verified
+            });
+        }
+
+        return this.issueTokens(user);
+    }
 }

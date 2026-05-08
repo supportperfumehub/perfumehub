@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import api, { setAccessToken } from '../utils/api_v1_0_2';
+import { supabase } from '../utils/supabaseClient';
 
 export const AuthContext = createContext();
 
@@ -54,10 +55,41 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         initAuth();
 
+        // Listen for Supabase Auth changes (for Google Login)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Supabase Auth Event:', event);
+            if (event === 'SIGNED_IN' && session) {
+                // If we got a Supabase session, sync it with our backend
+                try {
+                    const { user } = session;
+                    const response = await api.post('/auth/social-login', {
+                        email: user.email,
+                        name: user.user_metadata?.full_name || user.user_metadata?.name,
+                        providerData: { id: user.id, provider: 'google' }
+                    });
+
+                    if (response.data.success) {
+                        setAccessToken(response.data.accessToken);
+                        setUser(response.data.user);
+                        // Clear Supabase session after syncing to avoid confusion? 
+                        // Actually, better to keep it but prioritize backend tokens.
+                    }
+                } catch (error) {
+                    console.error('Social Login Sync Failed:', error);
+                }
+            }
+        });
+
         // Listen for global logout events from axios interceptor
-        const handleLogout = () => logout();
+        const handleLogout = () => {
+            logout();
+            supabase.auth.signOut();
+        };
         window.addEventListener('auth-logout', handleLogout);
-        return () => window.removeEventListener('auth-logout', handleLogout);
+        return () => {
+            window.removeEventListener('auth-logout', handleLogout);
+            subscription.unsubscribe();
+        };
     }, [initAuth]);
 
     useEffect(() => {
@@ -124,6 +156,7 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await api.post('/auth/logout');
+            await supabase.auth.signOut();
         } finally {
             setAccessToken(null);
             setUser(null);
@@ -131,6 +164,21 @@ export const AuthProvider = ({ children }) => {
             setIsVendor(false);
             setRequires2FA(false);
             setPendingUserId(null);
+        }
+    };
+
+    const loginWithGoogle = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin + '/login'
+                }
+            });
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.message || 'Google login failed' };
         }
     };
 
@@ -162,6 +210,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        loginWithGoogle,
         verify2FA,
         forgotPassword,
         resetPassword

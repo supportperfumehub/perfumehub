@@ -16,7 +16,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
-    const { user, login, register, forgotPassword } = useContext(AuthContext);
+    const { user, login, register, forgotPassword, loginWithGoogle } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
@@ -222,7 +222,22 @@ const Login = () => {
                         </button>
                     )}
                 </form>
+                {!isForgotPassword && (
+                    <>
+                        <div className="login-separator">
+                            <span>{isRTL ? 'أو' : 'or'}</span>
+                        </div>
 
+                        <button 
+                            type="button" 
+                            className="btn btn-outline google-login-btn"
+                            onClick={() => loginWithGoogle()}
+                        >
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" height="18" />
+                            <span>{isRTL ? 'متابعة باستخدام جوجل' : 'Continue with Google'}</span>
+                        </button>
+                    </>
+                )}
                 {/* Vendor CTA */}
                 <div className="vendor-cta animate-slide-up" style={{ animationDelay: '0.35s' }}>
                     <div className="vendor-cta-inner">

@@ -22,6 +22,7 @@ router.post('/logout', authController.logout);
 router.post('/2fa/verify', loginRateLimiter, authController.verify2FA);
 router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
 router.post('/reset-password', authRateLimiter, authController.resetPassword);
+router.post('/social-login', authRateLimiter, authController.socialLogin);
 
 
 /**

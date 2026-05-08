@@ -178,4 +178,25 @@ export class AuthController {
             next(error);
         }
     };
+
+    /**
+     * POST /api/auth/social-login
+     */
+    socialLogin = async (req, res, next) => {
+        try {
+            const { email, name, providerData } = req.body;
+            const result = await this.authService.socialLogin(email, name, providerData);
+
+            this.setRefreshCookie(res, result.refreshToken);
+
+            res.status(200).json({
+                success: true,
+                message: 'Social login successful',
+                accessToken: result.accessToken,
+                user: result.user
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
 }
