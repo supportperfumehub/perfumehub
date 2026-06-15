@@ -36,6 +36,7 @@ const Shop = () => {
     const [brandSearch, setBrandSearch] = useState('');
     const [showResetModal, setShowResetModal] = useState(false);
     const [visibleCount, setVisibleCount] = useState(20);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
         let result = [...mockProducts];
