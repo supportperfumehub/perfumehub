@@ -106,7 +106,7 @@ router.post('/',
         name, brand, type, size, isNew, isFeatured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes
+        topNotes, middleNotes, baseNotes, attributes
     } = req.body;
 
     try {
@@ -127,7 +127,8 @@ router.post('/',
                 notes: notes || [], vibes: vibes || [], occasions: occasions || [],
                 reason: reason || null, seasons: seasons || [],
                 top_notes: topNotes || null, middle_notes: middleNotes || null,
-                base_notes: baseNotes || null
+                base_notes: baseNotes || null,
+                attributes: attributes || {}
             }])
             .select();
 
@@ -146,7 +147,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
         name, brand, type, size, isNew, isFeatured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes
+        topNotes, middleNotes, baseNotes, attributes
     } = req.body;
 
     try {
@@ -168,7 +169,8 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
                 reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
                 top_notes: topNotes !== undefined ? topNotes : undefined,
                 middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-                base_notes: baseNotes !== undefined ? baseNotes : undefined
+                base_notes: baseNotes !== undefined ? baseNotes : undefined,
+                attributes: attributes !== undefined ? attributes : undefined
             })
             .eq('id', id)
             .select();

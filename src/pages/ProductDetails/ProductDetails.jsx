@@ -287,30 +287,61 @@ const ProductDetails = () => {
                     )}
 
 
-                    {(product.topNotes || product.middleNotes || product.baseNotes) && (
-                        <div className="olfactory-pyramid">
-                            <h3 className="notes-title">{isRTL ? 'مكونات العطر:' : 'Fragrance Notes:'}</h3>
-                            <div className="notes-container">
-                                {product.topNotes && (
-                                    <div className="note-item">
-                                        <span className="note-label">{isRTL ? 'إفتتاحية العطر:' : 'TOP NOTES:'}</span>
-                                        <span className="note-value">{product.topNotes}</span>
-                                    </div>
-                                )}
-                                {product.middleNotes && (
-                                    <div className="note-item">
-                                        <span className="note-label">{isRTL ? 'قلب العطر:' : 'MIDDLE NOTES:'}</span>
-                                        <span className="note-value">{product.middleNotes}</span>
-                                    </div>
-                                )}
-                                {product.baseNotes && (
-                                    <div className="note-item">
-                                        <span className="note-label">{isRTL ? 'قاعدة العطر:' : 'BASE NOTES:'}</span>
-                                        <span className="note-value">{product.baseNotes}</span>
-                                    </div>
-                                )}
+                    {/* Specifications or Olfactory Pyramid */}
+                    {product && (!product.category?.includes('fashion') && !product.category?.includes('jewellery') && !product.category?.includes('giftbox') && !product.category?.includes('gift-box')) ? (
+                        (product.topNotes || product.middleNotes || product.baseNotes) && (
+                            <div className="olfactory-pyramid">
+                                <h3 className="notes-title">{isRTL ? 'مكونات العطر:' : 'Fragrance Notes:'}</h3>
+                                <div className="notes-container">
+                                    {product.topNotes && (
+                                        <div className="note-item">
+                                            <span className="note-label">{isRTL ? 'إفتتاحية العطر:' : 'TOP NOTES:'}</span>
+                                            <span className="note-value">{product.topNotes}</span>
+                                        </div>
+                                    )}
+                                    {product.middleNotes && (
+                                        <div className="note-item">
+                                            <span className="note-label">{isRTL ? 'قلب العطر:' : 'MIDDLE NOTES:'}</span>
+                                            <span className="note-value">{product.middleNotes}</span>
+                                        </div>
+                                    )}
+                                    {product.baseNotes && (
+                                        <div className="note-item">
+                                            <span className="note-label">{isRTL ? 'قاعدة العطر:' : 'BASE NOTES:'}</span>
+                                            <span className="note-value">{product.baseNotes}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )
+                    ) : (
+                        product && product.attributes && Object.keys(product.attributes).length > 0 && (
+                            <div className="product-specifications" style={{ marginBottom: '25px', padding: '15px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', backgroundColor: '#fff' }}>
+                                <h3 className="notes-title" style={{ fontSize: '1rem', color: 'var(--color-black)', margin: '0 0 12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '8px' }}>
+                                    {isRTL ? 'المواصفات والتفاصيل:' : 'Specifications & Details:'}
+                                </h3>
+                                <div className="specs-container" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                                    {Object.entries(product.attributes).map(([key, val]) => (
+                                        <div className="spec-item" key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px dashed rgba(0,0,0,0.04)', fontSize: '0.9rem' }}>
+                                            <span className="spec-label" style={{ fontWeight: '600', color: 'var(--color-text-light)', textTransform: 'capitalize' }}>
+                                                {isRTL ? (
+                                                    key === 'material' ? 'المادة' :
+                                                    key === 'color' ? 'اللون' :
+                                                    key === 'stone' ? 'الحجر' :
+                                                    key === 'purity' ? 'النقاء / العيار' :
+                                                    key === 'theme' ? 'الموضوع' :
+                                                    key === 'contents' ? 'المحتويات' :
+                                                    key === 'size' ? 'الحجم / المقاس' : key
+                                                ) : key.replace(/([A-Z])/g, ' $1').trim()}
+                                            </span>
+                                            <span className="spec-value" style={{ color: 'var(--color-black)', fontWeight: '500' }}>
+                                                {Array.isArray(val) ? val.join(', ') : String(val)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )
                     )}
 
                     {/* Olfactory pyramid already shows the notes. Description removed as per user request to avoid overlap. */}

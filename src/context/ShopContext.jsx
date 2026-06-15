@@ -101,7 +101,8 @@ export const ShopProvider = ({ children }) => {
                         seasons: typeof p.seasons === 'string' ? JSON.parse(p.seasons || '[]') : (p.seasons || []),
                         topNotes: p.top_notes,
                         middleNotes: p.middle_notes,
-                        baseNotes: p.base_notes
+                        baseNotes: p.base_notes,
+                        attributes: typeof p.attributes === 'string' ? JSON.parse(p.attributes || '{}') : (p.attributes || {})
                     };
                 });
 
@@ -366,9 +367,9 @@ export const ShopProvider = ({ children }) => {
     const safeProducts = Array.isArray(products) ? products : [];
     const featuredProducts = safeProducts.filter(p => p?.isFeatured);
     const newArrivals = safeProducts.filter(p => p?.isNew);
-    const fashionProducts = safeProducts.filter(p => p?.gender === 'men');
-    const jewelleryProducts = safeProducts.filter(p => p?.gender === 'women');
-    const giftBoxProducts = safeProducts.filter(p => p?.gender === 'arabic');
+    const fashionProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('fashion'));
+    const jewelleryProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('jewellery'));
+    const giftBoxProducts = safeProducts.filter(p => Array.isArray(p?.category) && (p.category.includes('giftbox') || p.category.includes('gift-box')));
 
     // Order Functions
     const updateOrderStatus = async (orderId, status) => {

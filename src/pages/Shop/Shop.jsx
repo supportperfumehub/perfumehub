@@ -28,6 +28,9 @@ const Shop = () => {
 
     const [products, setProducts] = useState(mockProducts);
     const [selectedBrands, setSelectedBrands] = useState([]);
+    const [selectedSizes, setSelectedSizes] = useState([]);
+    const [selectedColors, setSelectedColors] = useState([]);
+    const [selectedMaterials, setSelectedMaterials] = useState([]);
     const [sortType, setSortType] = useState('default');
     const [searchQuery, setSearchQuery] = useState('');
     const [minPrice, setMinPrice] = useState('');
@@ -38,19 +41,61 @@ const Shop = () => {
     const [visibleCount, setVisibleCount] = useState(20);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+    // Dynamically compute brands from mockProducts based on category
+    const categoryBrands = React.useMemo(() => {
+        let items = [...mockProducts];
+        if (type) {
+            items = items.filter(p =>
+                (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
+                p.gender === type
+            );
+        }
+        return [...new Set(items.map(p => p.brand))].filter(Boolean).sort();
+    }, [mockProducts, type]);
+
+    const availableSizes = React.useMemo(() => {
+        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('fashion'));
+        let sizes = new Set();
+        items.forEach(p => {
+            if (Array.isArray(p.size)) {
+                p.size.forEach(s => sizes.add(typeof s === 'object' ? s.name : s));
+            } else if (p.size) {
+                sizes.add(p.size);
+            }
+        });
+        return Array.from(sizes).sort();
+    }, [mockProducts]);
+
+    const availableColors = React.useMemo(() => {
+        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('fashion'));
+        let colors = new Set();
+        items.forEach(p => {
+            const color = p.attributes?.color || p.attributes?.colors;
+            if (Array.isArray(color)) color.forEach(c => colors.add(c));
+            else if (color) colors.add(color);
+        });
+        return Array.from(colors).sort();
+    }, [mockProducts]);
+
+    const availableMaterials = React.useMemo(() => {
+        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('jewellery'));
+        let materials = new Set();
+        items.forEach(p => {
+            const mat = p.attributes?.material || p.attributes?.materials;
+            if (Array.isArray(mat)) mat.forEach(m => materials.add(m));
+            else if (mat) materials.add(mat);
+        });
+        return Array.from(materials).sort();
+    }, [mockProducts]);
+
     useEffect(() => {
         let result = [...mockProducts];
 
         // Filter by category param
         if (type) {
-            const CATEGORY_MAP = {
-                'fashion': 'men',
-                'jewellery': 'women',
-                'gift-box': 'arabic'
-            };
-            const mappedType = CATEGORY_MAP[type] || type;
             result = result.filter(p =>
-                (p.category && p.category.includes(mappedType)) || p.gender === mappedType
+                (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
+                p.gender === type
             );
         }
 
@@ -89,6 +134,36 @@ const Shop = () => {
             result = result.filter(p => selectedBrands.includes(p.brand.toLowerCase()));
         }
 
+        // Size Filter
+        if (selectedSizes.length > 0) {
+            result = result.filter(p => {
+                const sizes = Array.isArray(p.size)
+                    ? p.size.map(s => typeof s === 'object' ? s.name : s)
+                    : [p.size];
+                return selectedSizes.some(size => sizes.some(ps => String(ps).toLowerCase().includes(size.toLowerCase())));
+            });
+        }
+
+        // Color Filter
+        if (selectedColors.length > 0) {
+            result = result.filter(p => {
+                const color = p.attributes?.color || p.attributes?.colors;
+                if (!color) return false;
+                const colors = Array.isArray(color) ? color.map(c => String(c).toLowerCase()) : [String(color).toLowerCase()];
+                return selectedColors.some(c => colors.some(pc => pc.includes(c.toLowerCase())));
+            });
+        }
+
+        // Material Filter
+        if (selectedMaterials.length > 0) {
+            result = result.filter(p => {
+                const material = p.attributes?.material || p.attributes?.materials;
+                if (!material) return false;
+                const materials = Array.isArray(material) ? material.map(m => String(m).toLowerCase()) : [String(material).toLowerCase()];
+                return selectedMaterials.some(m => materials.some(pm => pm.includes(m.toLowerCase())));
+            });
+        }
+
         // Sort products
         if (sortType === 'price-asc') {
             result.sort((a, b) => a.price - b.price);
@@ -100,7 +175,7 @@ const Shop = () => {
 
         setProducts(result);
         setVisibleCount(20); // Reset visible count when filters change
-    }, [type, shopIdFilter, selectedBrands, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
+    }, [type, shopIdFilter, selectedBrands, selectedSizes, selectedColors, selectedMaterials, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -132,12 +207,28 @@ const Shop = () => {
         return titles[type] || (isRTL ? 'التسوق' : 'Shop');
     };
 
+    const getPageSubtitle = () => {
+        if (type === 'fashion') {
+            return isRTL ? 'تصفح مجموعتنا الحصرية من الملابس والأزياء الفاخرة.' : 'Browse our exclusive collection of luxury apparel and fashion.';
+        }
+        if (type === 'jewellery') {
+            return isRTL ? 'اكتشف أرقى تصميمات المجوهرات والساعات الفاخرة.' : 'Discover the finest designs of luxury jewellery and watches.';
+        }
+        if (type === 'gift-box' || type === 'giftbox') {
+            return isRTL ? 'صناديق هدايا فاخرة ومخصصة لمختلف المناسبات.' : 'Luxury curated gift boxes tailored for every special occasion.';
+        }
+        return isRTL ? 'تصفح مجموعتنا الحصرية من العطور والمنتجات الفاخرة.' : 'Browse our exclusive collection of hand-picked luxury items.';
+    };
+
     const handleResetFilters = () => {
         setSearchQuery('');
         setMinPrice('');
         setMaxPrice('');
         setActiveGender('all');
         setSelectedBrands([]);
+        setSelectedSizes([]);
+        setSelectedColors([]);
+        setSelectedMaterials([]);
         setBrandSearch('');
         setShowResetModal(false);
     };
@@ -174,9 +265,7 @@ const Shop = () => {
                 <div className="container text-center">
                     <h1 className="header-title">{getPageTitle()}</h1>
                     <p className="shop-subtitle">
-                        {isRTL
-                            ? 'تصفح مجموعتنا الحصرية من العطور المختارة بعناية.'
-                            : 'Browse our exclusive collection of hand-picked fragrances.'}
+                        {getPageSubtitle()}
                     </p>
                 </div>
             </div>
@@ -215,133 +304,241 @@ const Shop = () => {
 
                     <div className="sidebar-content-area">
                         <div className="filter-block">
-                        <h3 className="filter-title">
-                            {isRTL ? 'بحث' : 'Search'}
-                        </h3>
-                        <div className="filter-content">
-                            <input
-                                type="text"
-                                placeholder={isRTL ? 'ابحث عن عطر...' : 'Search perfume...'}
-                                className="search-input"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-block">
-                        <h3 className="filter-title">
-                            {isRTL ? 'تصفية حسب السعر' : 'Price Filter'}
-                        </h3>
-                        <div className="filter-content">
-                            <div className="price-filter">
-                                <input
-                                    type="number"
-                                    placeholder={isRTL ? 'الحد الأدنى' : 'Min'}
-                                    value={minPrice}
-                                    onChange={(e) => setMinPrice(e.target.value)}
-                                />
-                                <span>-</span>
-                                <input
-                                    type="number"
-                                    placeholder={isRTL ? 'الحد الأقصى' : 'Max'}
-                                    value={maxPrice}
-                                    onChange={(e) => setMaxPrice(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="filter-block">
-                        <h3 className="filter-title">
-                            {isRTL ? 'الجنس' : 'Gender'}
-                        </h3>
-                        <div className="filter-content">
-                            <ul className="filter-list">
-                                <li>
-                                    <button
-                                        className={activeGender === 'all' ? 'active' : ''}
-                                        onClick={() => setActiveGender('all')}
-                                    >
-                                        {isRTL ? 'الكل' : 'All'}
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className={activeGender === 'men' ? 'active' : ''}
-                                        onClick={() => setActiveGender('men')}
-                                    >
-                                        {isRTL ? 'رجالي' : 'Men'}
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className={activeGender === 'women' ? 'active' : ''}
-                                        onClick={() => setActiveGender('women')}
-                                    >
-                                        {isRTL ? 'نسائي' : 'Women'}
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        className={activeGender === 'unisex' ? 'active' : ''}
-                                        onClick={() => setActiveGender('unisex')}
-                                    >
-                                        {isRTL ? 'للجنسين' : 'Unisex'}
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="filter-block">
-                        <h3 className="filter-title">
-                            <SlidersHorizontal size={18} />
-                            {isRTL ? 'تصفية حسب الماركة' : 'Filter by Brand'}
-                        </h3>
-
-                        <div className="filter-content">
-                            {/* Brand Search Input */}
-                            <div className="brand-search-wrapper">
-                                <Search size={15} className="brand-search-icon" />
+                            <h3 className="filter-title">
+                                {isRTL ? 'بحث' : 'Search'}
+                            </h3>
+                            <div className="filter-content">
                                 <input
                                     type="text"
-                                    className="brand-search-input"
-                                    placeholder={isRTL ? 'ابحث عن ماركة...' : 'Search brand...'}
-                                    value={brandSearch}
-                                    onChange={(e) => setBrandSearch(e.target.value)}
+                                    placeholder={type === 'fashion' ? (isRTL ? 'ابحث عن أزياء...' : 'Search fashion...') : type === 'jewellery' ? (isRTL ? 'ابحث عن مجوهرات...' : 'Search jewellery...') : type === 'gift-box' ? (isRTL ? 'ابحث عن صناديق هدايا...' : 'Search gift boxes...') : (isRTL ? 'ابحث عن عطر...' : 'Search perfume...')}
+                                    className="search-input"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
+                        </div>
 
-                            {/* Popular Brands List */}
-                            <ul className="filter-list brand-filter-list">
-                                {!brandSearch && (
-                                    <li>
-                                        <button
-                                            className={selectedBrands.length === 0 ? 'active' : ''}
-                                            onClick={() => handleFilter('all')}
-                                        >
-                                            {isRTL ? 'الكل' : 'All Brands'}
-                                        </button>
-                                    </li>
-                                )}
-                                {POPULAR_BRANDS
-                                    .filter(b => b.toLowerCase().includes(brandSearch.toLowerCase()))
-                                    .map(brand => (
-                                        <li key={brand}>
+                        <div className="filter-block">
+                            <h3 className="filter-title">
+                                {isRTL ? 'تصفية حسب السعر' : 'Price Filter'}
+                            </h3>
+                            <div className="filter-content">
+                                <div className="price-filter">
+                                    <input
+                                        type="number"
+                                        placeholder={isRTL ? 'الحد الأدنى' : 'Min'}
+                                        value={minPrice}
+                                        onChange={(e) => setMinPrice(e.target.value)}
+                                    />
+                                    <span>-</span>
+                                    <input
+                                        type="number"
+                                        placeholder={isRTL ? 'الحد الأقصى' : 'Max'}
+                                        value={maxPrice}
+                                        onChange={(e) => setMaxPrice(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FASHION ONLY FILTERS */}
+                        {type === 'fashion' && availableSizes.length > 0 && (
+                            <div className="filter-block animate-fade-in">
+                                <h3 className="filter-title">
+                                    {isRTL ? 'المقاس' : 'Sizes'}
+                                </h3>
+                                <div className="filter-content">
+                                    <ul className="filter-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: 0 }}>
+                                        {availableSizes.map(size => {
+                                            const isSelected = selectedSizes.includes(size.toLowerCase());
+                                            return (
+                                                <li key={size} style={{ margin: 0, listStyle: 'none' }}>
+                                                    <button
+                                                        onClick={() => setSelectedSizes(prev => isSelected ? prev.filter(s => s !== size.toLowerCase()) : [...prev, size.toLowerCase()])}
+                                                        style={{
+                                                            padding: '6px 12px',
+                                                            border: isSelected ? '1px solid var(--color-gold, #d4af37)' : '1px solid rgba(0,0,0,0.1)',
+                                                            backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                                                            color: isSelected ? 'var(--color-gold, #d4af37)' : 'inherit',
+                                                            borderRadius: '20px',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {type === 'fashion' && availableColors.length > 0 && (
+                            <div className="filter-block animate-fade-in">
+                                <h3 className="filter-title">
+                                    {isRTL ? 'اللون' : 'Colors'}
+                                </h3>
+                                <div className="filter-content">
+                                    <ul className="filter-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: 0 }}>
+                                        {availableColors.map(color => {
+                                            const isSelected = selectedColors.includes(color.toLowerCase());
+                                            return (
+                                                <li key={color} style={{ margin: 0, listStyle: 'none' }}>
+                                                    <button
+                                                        onClick={() => setSelectedColors(prev => isSelected ? prev.filter(c => c !== color.toLowerCase()) : [...prev, color.toLowerCase()])}
+                                                        style={{
+                                                            padding: '6px 12px',
+                                                            border: isSelected ? '1px solid var(--color-gold, #d4af37)' : '1px solid rgba(0,0,0,0.1)',
+                                                            backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                                                            color: isSelected ? 'var(--color-gold, #d4af37)' : 'inherit',
+                                                            borderRadius: '20px',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        {color}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* JEWELLERY ONLY FILTERS */}
+                        {type === 'jewellery' && availableMaterials.length > 0 && (
+                            <div className="filter-block animate-fade-in">
+                                <h3 className="filter-title">
+                                    {isRTL ? 'المواد' : 'Materials'}
+                                </h3>
+                                <div className="filter-content">
+                                    <ul className="filter-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: 0 }}>
+                                        {availableMaterials.map(mat => {
+                                            const isSelected = selectedMaterials.includes(mat.toLowerCase());
+                                            return (
+                                                <li key={mat} style={{ margin: 0, listStyle: 'none' }}>
+                                                    <button
+                                                        onClick={() => setSelectedMaterials(prev => isSelected ? prev.filter(m => m !== mat.toLowerCase()) : [...prev, mat.toLowerCase()])}
+                                                        style={{
+                                                            padding: '6px 12px',
+                                                            border: isSelected ? '1px solid var(--color-gold, #d4af37)' : '1px solid rgba(0,0,0,0.1)',
+                                                            backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                                                            color: isSelected ? 'var(--color-gold, #d4af37)' : 'inherit',
+                                                            borderRadius: '20px',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        {mat}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Gender Filter (Skip for gift box since they are usually unisex, otherwise show) */}
+                        {type !== 'gift-box' && (
+                            <div className="filter-block">
+                                <h3 className="filter-title">
+                                    {isRTL ? 'الجنس' : 'Gender'}
+                                </h3>
+                                <div className="filter-content">
+                                    <ul className="filter-list">
+                                        <li>
                                             <button
-                                                className={selectedBrands.includes(brand.toLowerCase()) ? 'active' : ''}
-                                                onClick={() => handleFilter(brand.toLowerCase())}
+                                                className={activeGender === 'all' ? 'active' : ''}
+                                                onClick={() => setActiveGender('all')}
                                             >
-                                                <span className="brand-dot"></span>
-                                                {brand}
+                                                {isRTL ? 'الكل' : 'All'}
                                             </button>
                                         </li>
-                                    ))
-                                }
-                            </ul>
-                        </div>
-                    </div>
+                                        <li>
+                                            <button
+                                                className={activeGender === 'men' ? 'active' : ''}
+                                                onClick={() => setActiveGender('men')}
+                                            >
+                                                {isRTL ? 'رجالي' : 'Men'}
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                className={activeGender === 'women' ? 'active' : ''}
+                                                onClick={() => setActiveGender('women')}
+                                            >
+                                                {isRTL ? 'نسائي' : 'Women'}
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                className={activeGender === 'unisex' ? 'active' : ''}
+                                                onClick={() => setActiveGender('unisex')}
+                                            >
+                                                {isRTL ? 'للجنسين' : 'Unisex'}
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Brands Filter (Adaptive based on computed brands) */}
+                        {categoryBrands.length > 0 && (
+                            <div className="filter-block">
+                                <h3 className="filter-title">
+                                    <SlidersHorizontal size={18} />
+                                    {isRTL ? 'تصفية حسب الماركة' : 'Filter by Brand'}
+                                </h3>
+
+                                <div className="filter-content">
+                                    <div className="brand-search-wrapper">
+                                        <Search size={15} className="brand-search-icon" />
+                                        <input
+                                            type="text"
+                                            className="brand-search-input"
+                                            placeholder={isRTL ? 'ابحث عن ماركة...' : 'Search brand...'}
+                                            value={brandSearch}
+                                            onChange={(e) => setBrandSearch(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <ul className="filter-list brand-filter-list">
+                                        {!brandSearch && (
+                                            <li>
+                                                <button
+                                                    className={selectedBrands.length === 0 ? 'active' : ''}
+                                                    onClick={() => handleFilter('all')}
+                                                >
+                                                    {isRTL ? 'الكل' : 'All Brands'}
+                                                </button>
+                                            </li>
+                                        )}
+                                        {categoryBrands
+                                            .filter(b => b.toLowerCase().includes(brandSearch.toLowerCase()))
+                                            .map(brand => (
+                                                <li key={brand}>
+                                                    <button
+                                                        className={selectedBrands.includes(brand.toLowerCase()) ? 'active' : ''}
+                                                        onClick={() => handleFilter(brand.toLowerCase())}
+                                                    >
+                                                        <span className="brand-dot"></span>
+                                                        {brand}
+                                                    </button>
+                                                </li>
+                                            ))
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="filter-mobile-footer mobile-only">
