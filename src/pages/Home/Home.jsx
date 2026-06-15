@@ -228,7 +228,7 @@ const Home = () => {
             {perfumeProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{isRTL ? 'العطور الفاخرة' : 'Luxury Perfumes'}</h2>
+                        <h2 className="section-title">{isRTL ? 'العطور' : 'Perfumes'}</h2>
                         <p className="section-subtitle">
                             {isRTL ? 'تشكيلة واسعة من أرقى العطور العالمية' : 'A curated selection of the world\'s finest fragrances'}
                         </p>
@@ -257,7 +257,7 @@ const Home = () => {
                 <section className="section gift-box-special-section reveal">
                     <div className="container">
                         <div className="gift-box-header text-center">
-                            <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
+                            <h2 className="section-title">{t('gift_boxes.title', 'Gift Boxes')}</h2>
                             <p className="section-subtitle">
                                 {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
                             </p>
@@ -286,7 +286,7 @@ const Home = () => {
             {fashionProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{isRTL ? 'أزياء فاخرة' : 'Luxury Fashion'}</h2>
+                        <h2 className="section-title">{isRTL ? 'الأزياء' : 'Fashion'}</h2>
                         <p className="section-subtitle">
                             {isRTL ? 'أرقى الأزياء والملابس العالمية' : 'Designer clothing and luxury apparel'}
                         </p>
@@ -314,7 +314,7 @@ const Home = () => {
             {jewelleryProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{isRTL ? 'المجوهرات الفاخرة' : 'Fine Jewellery'}</h2>
+                        <h2 className="section-title">{isRTL ? 'المجوهرات' : 'Jewellery'}</h2>
                         <p className="section-subtitle">
                             {isRTL ? 'مجوهرات ذهبية وفضية وأحجار كريمة أصيلة' : 'Gold, silver and precious gemstone pieces'}
                         </p>
