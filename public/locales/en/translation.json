@@ -53,13 +53,21 @@
     "title": "New Arrivals",
     "subtitle": "Discover our latest luxury additions"
   },
+  "perfumes": {
+    "title": "Perfume Collection",
+    "subtitle": "Explore our curated selection of luxury fragrances"
+  },
   "mens": {
     "title": "Fashion Collection",
-    "subtitle": "Discover our exclusive fashion collection"
+    "subtitle": "Discover our exclusive fashion and lifestyle pieces"
   },
   "womens": {
     "title": "Jewellery Collection",
-    "subtitle": "Explore the most exquisite jewellery"
+    "subtitle": "Explore the most exquisite jewellery and accessories"
+  },
+  "gift_boxes": {
+    "title": "Luxury Gift Boxes",
+    "subtitle": "Perfectly curated sets for every special occasion"
   },
   "brand_story": {
     "our_story": "Our Story",

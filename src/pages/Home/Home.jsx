@@ -13,10 +13,11 @@ import './Home.css';
 const Home = () => {
     const { i18n, t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { featuredProducts, newArrivals, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
+    const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
-    const [showAllMens, setShowAllMens] = useState(false);
-    const [showAllWomens, setShowAllWomens] = useState(false);
+    const [showAllPerfumes, setShowAllPerfumes] = useState(false);
+    const [showAllFashion, setShowAllFashion] = useState(false);
+    const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [shuffledFeatured, setShuffledFeatured] = useState([]);
 
@@ -221,98 +222,136 @@ const Home = () => {
 
                 <div className="text-center section-view-more">
                     <button className="btn btn-outline" onClick={() => setShowAllNewArrivals(prev => !prev)}>
-                        {showAllNewArrivals
-                            ? t('common.view_less')
-                            : t('common.view_more')}
+                        {showAllNewArrivals ? t('common.view_less') : t('common.view_more')}
                     </button>
                 </div>
             </section>
 
-            {/* Men's Section */}
-            <section className="section container reveal">
-                <div className="section-header text-center">
-                    <h2 className="section-title">{t('mens.title')}</h2>
-                    <p className="section-subtitle">
-                        {t('mens.subtitle')}
-                    </p>
-                </div>
-
-                <div className={`products-grid-wrapper${showAllMens ? '' : ' collapsed'}`}>
-                    <div className="products-grid">
-                        {fashionProducts.map(product => (
-                            <ProductCard key={product.id} product={product} isRTL={isRTL} />
-                        ))}
-                    </div>
-                    {!showAllMens && <div className="products-grid-fade"></div>}
-                </div>
-
-                <div className="text-center section-view-more">
-                    <button className="btn btn-outline" onClick={() => setShowAllMens(prev => !prev)}>
-                        {showAllMens
-                            ? t('common.view_less')
-                            : t('common.view_more')}
-                    </button>
-                    <Link to="/category/fashion" className="btn btn-outline" style={{ marginLeft: '12px' }}>
-                        {t('common.view_all')}
-                    </Link>
-                </div>
-            </section>
-
-            {/* Women's Section */}
-            <section className="section container reveal">
-                <div className="section-header text-center">
-                    <h2 className="section-title">{t('womens.title')}</h2>
-                    <p className="section-subtitle">
-                        {t('womens.subtitle')}
-                    </p>
-                </div>
-
-                <div className={`products-grid-wrapper${showAllWomens ? '' : ' collapsed'}`}>
-                    <div className="products-grid">
-                        {jewelleryProducts.map(product => (
-                            <ProductCard key={product.id} product={product} isRTL={isRTL} />
-                        ))}
-                    </div>
-                    {!showAllWomens && <div className="products-grid-fade"></div>}
-                </div>
-
-                <div className="text-center section-view-more">
-                    <button className="btn btn-outline" onClick={() => setShowAllWomens(prev => !prev)}>
-                        {showAllWomens
-                            ? t('common.view_less')
-                            : t('common.view_more')}
-                    </button>
-                    <Link to="/category/jewellery" className="btn btn-outline" style={{ marginLeft: '12px' }}>
-                        {t('common.view_all')}
-                    </Link>
-                </div>
-            </section>
-
-            {/* Gift Boxes Section - Premium Redesign */}
-            <section className="section gift-box-special-section reveal">
-                <div className="container">
-                    <div className="gift-box-header text-center">
-                        <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
+            {/* ═══════════════════════════════════════
+                 PERFUME COLLECTION — Primary Category
+            ════════════════════════════════════════ */}
+            {perfumeProducts.length > 0 && (
+                <section className="section container reveal">
+                    <div className="section-header text-center">
+                        <h2 className="section-title">{t('perfumes.title', 'Perfume Collection')}</h2>
                         <p className="section-subtitle">
-                            {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
+                            {t('perfumes.subtitle', 'Explore our curated selection of luxury fragrances')}
                         </p>
                     </div>
 
-                    <div className="products-grid-wrapper">
+                    <div className={`products-grid-wrapper${showAllPerfumes ? '' : ' collapsed'}`}>
                         <div className="products-grid">
-                            {giftBoxProducts.slice(0, 4).map(product => (
+                            {perfumeProducts.map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))}
                         </div>
+                        {!showAllPerfumes && <div className="products-grid-fade"></div>}
                     </div>
 
-                    <div className="text-center section-view-more" style={{ marginTop: '50px' }}>
-                        <Link to="/category/gift-box" className="btn btn-gold">
-                            {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
+                    <div className="text-center section-view-more">
+                        <button className="btn btn-outline" onClick={() => setShowAllPerfumes(prev => !prev)}>
+                            {showAllPerfumes ? t('common.view_less') : t('common.view_more')}
+                        </button>
+                        <Link to="/shop" className="btn btn-outline" style={{ marginLeft: '12px' }}>
+                            {t('common.view_all')}
                         </Link>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
+
+            {/* ═══════════════════════════════════════
+                 FASHION COLLECTION
+            ════════════════════════════════════════ */}
+            {fashionProducts.length > 0 && (
+                <section className="section container reveal">
+                    <div className="section-header text-center">
+                        <h2 className="section-title">{t('mens.title')}</h2>
+                        <p className="section-subtitle">
+                            {t('mens.subtitle')}
+                        </p>
+                    </div>
+
+                    <div className={`products-grid-wrapper${showAllFashion ? '' : ' collapsed'}`}>
+                        <div className="products-grid">
+                            {fashionProducts.map(product => (
+                                <ProductCard key={product.id} product={product} isRTL={isRTL} />
+                            ))}
+                        </div>
+                        {!showAllFashion && <div className="products-grid-fade"></div>}
+                    </div>
+
+                    <div className="text-center section-view-more">
+                        <button className="btn btn-outline" onClick={() => setShowAllFashion(prev => !prev)}>
+                            {showAllFashion ? t('common.view_less') : t('common.view_more')}
+                        </button>
+                        <Link to="/category/fashion" className="btn btn-outline" style={{ marginLeft: '12px' }}>
+                            {t('common.view_all')}
+                        </Link>
+                    </div>
+                </section>
+            )}
+
+            {/* ═══════════════════════════════════════
+                 JEWELLERY COLLECTION
+            ════════════════════════════════════════ */}
+            {jewelleryProducts.length > 0 && (
+                <section className="section container reveal">
+                    <div className="section-header text-center">
+                        <h2 className="section-title">{t('womens.title')}</h2>
+                        <p className="section-subtitle">
+                            {t('womens.subtitle')}
+                        </p>
+                    </div>
+
+                    <div className={`products-grid-wrapper${showAllJewellery ? '' : ' collapsed'}`}>
+                        <div className="products-grid">
+                            {jewelleryProducts.map(product => (
+                                <ProductCard key={product.id} product={product} isRTL={isRTL} />
+                            ))}
+                        </div>
+                        {!showAllJewellery && <div className="products-grid-fade"></div>}
+                    </div>
+
+                    <div className="text-center section-view-more">
+                        <button className="btn btn-outline" onClick={() => setShowAllJewellery(prev => !prev)}>
+                            {showAllJewellery ? t('common.view_less') : t('common.view_more')}
+                        </button>
+                        <Link to="/category/jewellery" className="btn btn-outline" style={{ marginLeft: '12px' }}>
+                            {t('common.view_all')}
+                        </Link>
+                    </div>
+                </section>
+            )}
+
+            {/* ═══════════════════════════════════════
+                 GIFT BOX SECTION
+            ════════════════════════════════════════ */}
+            {giftBoxProducts.length > 0 && (
+                <section className="section gift-box-special-section reveal">
+                    <div className="container">
+                        <div className="gift-box-header text-center">
+                            <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
+                            <p className="section-subtitle">
+                                {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
+                            </p>
+                        </div>
+
+                        <div className="products-grid-wrapper">
+                            <div className="products-grid">
+                                {giftBoxProducts.slice(0, 4).map(product => (
+                                    <ProductCard key={product.id} product={product} isRTL={isRTL} />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="text-center section-view-more" style={{ marginTop: '50px' }}>
+                            <Link to="/category/gift-box" className="btn btn-gold">
+                                {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* AI Advisor Banner */}
             <section className="ai-advisor-banner-section reveal">
