@@ -12,15 +12,15 @@ const ActionSlider = ({
     const [isComplete, setIsComplete] = useState(false);
     const containerRef = useRef(null);
     const handleRef = useRef(null);
-    const isDragging = useRef(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     const handleStart = (e) => {
         if (isComplete) return;
-        isDragging.current = true;
+        setIsDragging(true);
     };
 
     const handleMove = (e) => {
-        if (!isDragging.current || isComplete) return;
+        if (!isDragging || isComplete) return;
 
         const container = containerRef.current;
         const handle = handleRef.current;
@@ -46,14 +46,14 @@ const ActionSlider = ({
         // Check for completion (90% threshold for organic feel)
         if (pos > maxPos * 0.95) {
             setIsComplete(true);
-            isDragging.current = false;
+            setIsDragging(false);
             onConfirm();
         }
     };
 
     const handleEnd = () => {
-        if (!isDragging.current || isComplete) return;
-        isDragging.current = false;
+        if (!isDragging || isComplete) return;
+        setIsDragging(false);
         // Snap back if not reached
         setSliderPos(0);
     };
@@ -70,7 +70,7 @@ const ActionSlider = ({
             window.removeEventListener('touchmove', handleMove);
             window.removeEventListener('touchend', handleEnd);
         };
-    }, [isComplete, isRTL]);
+    }, [isComplete, isRTL, isDragging]);
 
     return (
         <div 
@@ -88,7 +88,7 @@ const ActionSlider = ({
                 onTouchStart={handleStart}
                 style={{ 
                     transform: isRTL ? `translateX(-${sliderPos}px)` : `translateX(${sliderPos}px)`,
-                    transition: isDragging.current ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
             >
                 <ChevronRight size={20} className={isRTL ? 'rotate-180' : ''} />

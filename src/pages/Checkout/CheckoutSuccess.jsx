@@ -7,7 +7,8 @@ const CheckoutSuccess = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const orderId = location.state?.orderId || `ORD-${Date.now().toString().slice(-10)}`;
+    const [fallbackOrderId] = React.useState(`ORD-${Date.now().toString().slice(-10)}`);
+    const orderId = location.state?.orderId || fallbackOrderId;
     const isReservation = location.state?.isReservation || false;
 
     useEffect(() => {

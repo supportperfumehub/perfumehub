@@ -308,7 +308,7 @@ const PerfumeHubAI = () => {
                 <div className="aura-particle" style={{ '--x': '-100px', '--y': '150px', '--duration': '20s', bottom: '10%', right: '5%', width: '600px', height: '600px' }}></div>
                 
                 {/* Twinkling Gold Dust */}
-                {[...Array(20)].map((_, i) => (
+                {React.useMemo(() => [...Array(20)].map((_, i) => (
                     <div 
                         key={i} 
                         className="gold-dust" 
@@ -319,7 +319,7 @@ const PerfumeHubAI = () => {
                             '--delay': `-${Math.random() * 10}s`
                         }}
                     ></div>
-                ))}
+                )), [])}
             </div>
             
             <div className="ai-header" style={{ position: 'relative', zIndex: 2 }}>
