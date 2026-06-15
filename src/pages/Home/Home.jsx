@@ -11,11 +11,12 @@ import brandStoryImg from '../../assets/logo_no_border.png';
 import './Home.css';
 
 const Home = () => {
-    const { i18n, t } = useTranslation();
+    const { t } = useTranslation();
     const { isRTL } = useOutletContext();
     const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
+    const [showAllGifts, setShowAllGifts] = useState(false);
     const [showAllFashion, setShowAllFashion] = useState(false);
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -206,11 +207,8 @@ const Home = () => {
             <section className="section container reveal">
                 <div className="section-header text-center">
                     <h2 className="section-title">{t('new_arrivals.title')}</h2>
-                    <p className="section-subtitle">
-                        {t('new_arrivals.subtitle')}
-                    </p>
+                    <p className="section-subtitle">{t('new_arrivals.subtitle')}</p>
                 </div>
-
                 <div className={`products-grid-wrapper${showAllNewArrivals ? '' : ' collapsed'}`}>
                     <div className="products-grid">
                         {newArrivals.map(product => (
@@ -219,7 +217,6 @@ const Home = () => {
                     </div>
                     {!showAllNewArrivals && <div className="products-grid-fade"></div>}
                 </div>
-
                 <div className="text-center section-view-more">
                     <button className="btn btn-outline" onClick={() => setShowAllNewArrivals(prev => !prev)}>
                         {showAllNewArrivals ? t('common.view_less') : t('common.view_more')}
@@ -227,18 +224,15 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════
-                 PERFUME COLLECTION — Primary Category
-            ════════════════════════════════════════ */}
+            {/* Perfumes Section */}
             {perfumeProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{t('perfumes.title', 'Perfume Collection')}</h2>
+                        <h2 className="section-title">{isRTL ? 'العطور الفاخرة' : 'Luxury Perfumes'}</h2>
                         <p className="section-subtitle">
-                            {t('perfumes.subtitle', 'Explore our curated selection of luxury fragrances')}
+                            {isRTL ? 'تشكيلة واسعة من أرقى العطور العالمية' : 'A curated selection of the world\'s finest fragrances'}
                         </p>
                     </div>
-
                     <div className={`products-grid-wrapper${showAllPerfumes ? '' : ' collapsed'}`}>
                         <div className="products-grid">
                             {perfumeProducts.map(product => (
@@ -247,7 +241,6 @@ const Home = () => {
                         </div>
                         {!showAllPerfumes && <div className="products-grid-fade"></div>}
                     </div>
-
                     <div className="text-center section-view-more">
                         <button className="btn btn-outline" onClick={() => setShowAllPerfumes(prev => !prev)}>
                             {showAllPerfumes ? t('common.view_less') : t('common.view_more')}
@@ -259,18 +252,45 @@ const Home = () => {
                 </section>
             )}
 
-            {/* ═══════════════════════════════════════
-                 FASHION COLLECTION
-            ════════════════════════════════════════ */}
+            {/* Gift Boxes Section */}
+            {giftBoxProducts.length > 0 && (
+                <section className="section gift-box-special-section reveal">
+                    <div className="container">
+                        <div className="gift-box-header text-center">
+                            <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
+                            <p className="section-subtitle">
+                                {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
+                            </p>
+                        </div>
+                        <div className={`products-grid-wrapper${showAllGifts ? '' : ' collapsed'}`}>
+                            <div className="products-grid">
+                                {giftBoxProducts.map(product => (
+                                    <ProductCard key={product.id} product={product} isRTL={isRTL} />
+                                ))}
+                            </div>
+                            {!showAllGifts && <div className="products-grid-fade"></div>}
+                        </div>
+                        <div className="text-center section-view-more" style={{ marginTop: '32px' }}>
+                            <button className="btn btn-outline" onClick={() => setShowAllGifts(prev => !prev)}>
+                                {showAllGifts ? t('common.view_less') : t('common.view_more')}
+                            </button>
+                            <Link to="/category/gift-box" className="btn btn-gold" style={{ marginLeft: '12px' }}>
+                                {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Fashion Section */}
             {fashionProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{t('mens.title')}</h2>
+                        <h2 className="section-title">{isRTL ? 'أزياء فاخرة' : 'Luxury Fashion'}</h2>
                         <p className="section-subtitle">
-                            {t('mens.subtitle')}
+                            {isRTL ? 'أرقى الأزياء والملابس العالمية' : 'Designer clothing and luxury apparel'}
                         </p>
                     </div>
-
                     <div className={`products-grid-wrapper${showAllFashion ? '' : ' collapsed'}`}>
                         <div className="products-grid">
                             {fashionProducts.map(product => (
@@ -279,7 +299,6 @@ const Home = () => {
                         </div>
                         {!showAllFashion && <div className="products-grid-fade"></div>}
                     </div>
-
                     <div className="text-center section-view-more">
                         <button className="btn btn-outline" onClick={() => setShowAllFashion(prev => !prev)}>
                             {showAllFashion ? t('common.view_less') : t('common.view_more')}
@@ -291,18 +310,15 @@ const Home = () => {
                 </section>
             )}
 
-            {/* ═══════════════════════════════════════
-                 JEWELLERY COLLECTION
-            ════════════════════════════════════════ */}
+            {/* Jewellery Section */}
             {jewelleryProducts.length > 0 && (
                 <section className="section container reveal">
                     <div className="section-header text-center">
-                        <h2 className="section-title">{t('womens.title')}</h2>
+                        <h2 className="section-title">{isRTL ? 'المجوهرات الفاخرة' : 'Fine Jewellery'}</h2>
                         <p className="section-subtitle">
-                            {t('womens.subtitle')}
+                            {isRTL ? 'مجوهرات ذهبية وفضية وأحجار كريمة أصيلة' : 'Gold, silver and precious gemstone pieces'}
                         </p>
                     </div>
-
                     <div className={`products-grid-wrapper${showAllJewellery ? '' : ' collapsed'}`}>
                         <div className="products-grid">
                             {jewelleryProducts.map(product => (
@@ -311,7 +327,6 @@ const Home = () => {
                         </div>
                         {!showAllJewellery && <div className="products-grid-fade"></div>}
                     </div>
-
                     <div className="text-center section-view-more">
                         <button className="btn btn-outline" onClick={() => setShowAllJewellery(prev => !prev)}>
                             {showAllJewellery ? t('common.view_less') : t('common.view_more')}
@@ -319,36 +334,6 @@ const Home = () => {
                         <Link to="/category/jewellery" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                             {t('common.view_all')}
                         </Link>
-                    </div>
-                </section>
-            )}
-
-            {/* ═══════════════════════════════════════
-                 GIFT BOX SECTION
-            ════════════════════════════════════════ */}
-            {giftBoxProducts.length > 0 && (
-                <section className="section gift-box-special-section reveal">
-                    <div className="container">
-                        <div className="gift-box-header text-center">
-                            <h2 className="section-title">{t('gift_boxes.title', 'Luxury Gift Boxes')}</h2>
-                            <p className="section-subtitle">
-                                {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
-                            </p>
-                        </div>
-
-                        <div className="products-grid-wrapper">
-                            <div className="products-grid">
-                                {giftBoxProducts.slice(0, 4).map(product => (
-                                    <ProductCard key={product.id} product={product} isRTL={isRTL} />
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="text-center section-view-more" style={{ marginTop: '50px' }}>
-                            <Link to="/category/gift-box" className="btn btn-gold">
-                                {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
-                            </Link>
-                        </div>
                     </div>
                 </section>
             )}

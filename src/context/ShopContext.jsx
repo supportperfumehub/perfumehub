@@ -367,11 +367,13 @@ export const ShopProvider = ({ children }) => {
     const safeProducts = Array.isArray(products) ? products : [];
     const featuredProducts = safeProducts.filter(p => p?.isFeatured);
     const newArrivals = safeProducts.filter(p => p?.isNew);
-    const NON_PERFUME_CATS = ['fashion', 'jewellery', 'giftbox', 'gift-box'];
-    const perfumeProducts = safeProducts.filter(p => !Array.isArray(p?.category) || !p.category.some(c => NON_PERFUME_CATS.includes(c)));
     const fashionProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('fashion'));
     const jewelleryProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('jewellery'));
     const giftBoxProducts = safeProducts.filter(p => Array.isArray(p?.category) && (p.category.includes('giftbox') || p.category.includes('gift-box')));
+    const perfumeProducts = safeProducts.filter(p => {
+        const cats = Array.isArray(p?.category) ? p.category : [];
+        return !cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box');
+    });
 
     // Order Functions
     const updateOrderStatus = async (orderId, status) => {
@@ -518,10 +520,10 @@ export const ShopProvider = ({ children }) => {
         loading,
         featuredProducts,
         newArrivals,
-        perfumeProducts,
         fashionProducts,
         jewelleryProducts,
         giftBoxProducts,
+        perfumeProducts,
         discoverCampaigns,
         shops,
         addProduct,
