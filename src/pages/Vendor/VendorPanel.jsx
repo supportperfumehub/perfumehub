@@ -15,11 +15,6 @@ const VendorPanel = () => {
     const [shopData, setShopData] = useState(null);
     const [savingSettings, setSavingSettings] = useState(false);
 
-    // If somehow landed here without vendor role
-    if (!isVendor && user?.role !== 'admin') {
-        return <Navigate to="/" replace />;
-    }
-
     const shopId = user?.shop_id;
 
     useEffect(() => {
@@ -38,6 +33,11 @@ const VendorPanel = () => {
                 });
         }
     }, [shopId, activeTab, shopData, user]);
+
+    // If somehow landed here without vendor role (moved after hooks to prevent rules of hooks violation)
+    if (!isVendor && user?.role !== 'admin') {
+        return <Navigate to="/" replace />;
+    }
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];

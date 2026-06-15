@@ -244,11 +244,6 @@ const ShopsManager = ({ isRTL }) => {
         }
     };
 
-    const updatePhotoInput = (index, value) => {
-        const updated = [...photoInputs];
-        updated[index] = value;
-        setPhotoInputs(updated);
-    };
 
     const handleAddShop = async (e) => {
         e.preventDefault();
@@ -379,7 +374,6 @@ const ShopsManager = ({ isRTL }) => {
             {shops.map(shop => {
                 const isExpanded = expandedShop === shop.id;
                 const analytics = isExpanded ? getShopAnalytics(shop) : null;
-                const isEditing = editingShop === shop.id;
 
                 return (
                     <div key={shop.id} style={{ marginBottom: '16px', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', background: '#1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>

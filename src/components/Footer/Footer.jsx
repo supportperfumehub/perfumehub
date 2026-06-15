@@ -5,7 +5,7 @@ import { Facebook, Instagram, Twitter } from 'lucide-react';
 import logo from '../../assets/logo_transparent.png';
 import './Footer.css';
 
-const Footer = ({ isRTL }) => {
+const Footer = () => {
     const { t } = useTranslation();
     return (
         <footer className="footer">

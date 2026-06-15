@@ -12,7 +12,6 @@ const ArchiveManager = ({ isRTL }) => {
         type: '', // 'restore' or 'delete'
         item: null
     });
-    const [anchoredPositionStyles, setAnchoredPositionStyles] = useState({});
 
     const filteredBackups = backups.filter(item => {
         const matchesSearch = item.data?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 

@@ -7,7 +7,7 @@ import './Wishlist.css';
 
 const Wishlist = () => {
     const { isRTL } = useOutletContext();
-    const { wishlistItems, removeFromWishlist } = useContext(WishlistContext);
+    const { wishlistItems } = useContext(WishlistContext);
 
     useEffect(() => {
         // Scroll to top on mount

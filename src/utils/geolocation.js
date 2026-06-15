@@ -39,7 +39,7 @@ export const getLocationWithFallback = async () => {
             };
 
             // Cache for future fallback
-            try { localStorage.setItem('ph_user_location', JSON.stringify({ lat: loc.lat, lng: loc.lng })); } catch {}
+            try { localStorage.setItem('ph_user_location', JSON.stringify({ lat: loc.lat, lng: loc.lng })); } catch (storageErr) { console.warn('Could not cache GPS location:', storageErr); }
             return loc;
         } catch (e) {
             // GPS blocked or timed out — fall through silently
@@ -65,7 +65,7 @@ export const getLocationWithFallback = async () => {
             };
         }
     } catch (e) {
-        console.log('IP geolocation failed, falling back');
+        console.warn('IP geolocation failed, falling back:', e?.message || e);
     }
 
     // Layer 3: Previously saved location
@@ -83,7 +83,7 @@ export const getLocationWithFallback = async () => {
                 };
             }
         }
-    } catch {}
+    } catch (storageErr) { console.warn('Could not read saved location:', storageErr); }
 
     // Layer 4: Platform default (Doha, Qatar)
     return {

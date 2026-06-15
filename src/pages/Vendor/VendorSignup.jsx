@@ -7,7 +7,7 @@ import api from '../../utils/api_v1_0_2';
 import './VendorSignup.css';
 
 const VendorSignup = () => {
-    const { t } = useTranslation();
+    useTranslation();
     const { isRTL } = useOutletContext();
     const { user } = useContext(AuthContext);
     const fileInputRef = useRef(null);

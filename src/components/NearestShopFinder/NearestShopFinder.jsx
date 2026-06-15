@@ -6,7 +6,7 @@ import './NearestShopFinder.css';
 import api from '../../utils/api_v1_0_2';
 
 const NearestShopFinder = ({ isRTL }) => {
-    const { t } = useTranslation();
+    useTranslation();
     const navigate = useNavigate();
     const [shops, setShops] = useState([]);
     const [location, setLocation] = useState(null);

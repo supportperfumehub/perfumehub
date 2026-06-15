@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import './PromotionBar.css';
 
-const PromotionBar = ({ isRTL }) => {
+const PromotionBar = () => {
     const { t } = useTranslation();
     const coupons = useMemo(() => [
         t('promotion.welcome'),

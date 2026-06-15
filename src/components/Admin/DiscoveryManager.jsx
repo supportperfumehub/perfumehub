@@ -9,7 +9,7 @@ const DiscoveryManager = ({ isRTL }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filter, setFilter] = useState('all'); // all, featured, regular
+    const [filter] = useState('all'); // all, featured, regular
 
     const fetchData = async () => {
         if (!user?.id) return;
@@ -75,6 +75,7 @@ const DiscoveryManager = ({ isRTL }) => {
     });
 
     if (loading) return <div className="admin-section center-content"><TrendingUp size={32} className="spin gold-icon" /></div>;
+    if (error) return <div className="admin-section center-content" style={{ color: '#e74c3c' }}>Error: {error}</div>;
 
     return (
         <div className="admin-section animate-fade-in">

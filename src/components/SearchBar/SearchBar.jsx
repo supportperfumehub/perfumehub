@@ -11,7 +11,6 @@ const SearchBar = ({ isRTL }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
     const wrapperRef = useRef(null);
     const inputRef = useRef(null);
     const navigate = useNavigate();
@@ -33,11 +32,9 @@ const SearchBar = ({ isRTL }) => {
             if (!prev) {
                 // Focus input after it appears
                 setTimeout(() => inputRef.current?.focus(), 50);
-                setIsFocused(true);
             } else {
                 setQuery('');
                 setResults([]);
-                setIsFocused(false);
             }
             return !prev;
         });
@@ -91,7 +88,6 @@ const SearchBar = ({ isRTL }) => {
         setIsOpen(false);
         setQuery('');
         setResults([]);
-        setIsFocused(false);
         navigate(`/product/${id}`);
     };
 
@@ -126,7 +122,6 @@ const SearchBar = ({ isRTL }) => {
                         value={query}
                         onChange={handleSearch}
                         dir={isRTL ? 'rtl' : 'ltr'}
-                        onFocus={() => setIsFocused(true)}
                     />
                 </form>
             </div>
