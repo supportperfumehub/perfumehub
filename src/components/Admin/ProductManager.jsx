@@ -67,7 +67,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         stock: 10,
         sku: '',
         description: '',
-        shop_id: shopId || 'core'
+        shop_id: shopId || 'core',
+        attributes: {}
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -311,6 +312,170 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         }
     };
 
+    const handleAttributeChange = (key, value) => {
+        setFormData(prev => ({
+            ...prev,
+            attributes: {
+                ...(prev.attributes || {}),
+                [key]: value
+            }
+        }));
+    };
+
+    const renderAttributeFields = () => {
+        const categories = formData.category || [];
+        const isFashion = categories.includes('fashion');
+        const isJewellery = categories.includes('jewellery');
+        const isGiftBox = categories.includes('giftbox') || categories.includes('gift-box');
+
+        if (!isFashion && !isJewellery && !isGiftBox) return null;
+
+        const attributes = formData.attributes || {};
+
+        return (
+            <div className="form-column-attributes animate-fade-in" style={{ marginTop: '20px', padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(200, 169, 81, 0.2)', borderRadius: '12px', marginBottom: '20px' }}>
+                <div className="form-section-title" style={{ marginTop: 0, color: 'var(--color-gold)', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '15px' }}>
+                    <Plus size={16} /> {isRTL ? 'المواصفات والخصائص (Attributes)' : 'Category Specifications (Attributes)'}
+                </div>
+                
+                {isFashion && (
+                    <div className="form-row grid-3">
+                        <div className="form-group">
+                            <label>{isRTL ? 'اللون' : 'Color'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.color || ''} 
+                                onChange={(e) => handleAttributeChange('color', e.target.value)} 
+                                placeholder="e.g. Nero Black"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'المادة' : 'Material'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.material || ''} 
+                                onChange={(e) => handleAttributeChange('material', e.target.value)} 
+                                placeholder="e.g. 100% Cashmere"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'البلد المصنع' : 'Origin / Manufacturer'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.origin || ''} 
+                                onChange={(e) => handleAttributeChange('origin', e.target.value)} 
+                                placeholder="e.g. Italy"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {isJewellery && (
+                    <div className="form-row grid-3" style={{ gap: '15px' }}>
+                        <div className="form-group">
+                            <label>{isRTL ? 'نوع المعدن' : 'Metal / Material'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.material || ''} 
+                                onChange={(e) => handleAttributeChange('material', e.target.value)} 
+                                placeholder="e.g. 18K Yellow Gold"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'نوع الحجر' : 'Stone Type'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.stone || ''} 
+                                onChange={(e) => handleAttributeChange('stone', e.target.value)} 
+                                placeholder="e.g. Brilliant Round Diamond"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'الوزن (قيراط)' : 'Carat Weight'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.carat || ''} 
+                                onChange={(e) => handleAttributeChange('carat', e.target.value)} 
+                                placeholder="e.g. 0.85 ct"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'النقاء / العيار' : 'Clarity / Purity'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.purity || ''} 
+                                onChange={(e) => handleAttributeChange('purity', e.target.value)} 
+                                placeholder="e.g. VVS1 / G Color"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'الشهادة' : 'Certification'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.certification || ''} 
+                                onChange={(e) => handleAttributeChange('certification', e.target.value)} 
+                                placeholder="e.g. GIA Certified"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {isGiftBox && (
+                    <div className="form-row grid-2" style={{ gap: '15px' }}>
+                        <div className="form-group">
+                            <label>{isRTL ? 'موضوع الصندوق' : 'Theme'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.theme || ''} 
+                                onChange={(e) => handleAttributeChange('theme', e.target.value)} 
+                                placeholder="e.g. Imperial Oud / Celebration"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'أبعاد الصندوق' : 'Dimensions'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.dimensions || ''} 
+                                onChange={(e) => handleAttributeChange('dimensions', e.target.value)} 
+                                placeholder="e.g. 25cm x 20cm x 12cm"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'نوع التغليف' : 'Packaging Type'}</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={attributes.packaging || ''} 
+                                onChange={(e) => handleAttributeChange('packaging', e.target.value)} 
+                                placeholder="e.g. Handcrafted Wooden Chest"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>{isRTL ? 'محتويات الصندوق' : 'Contents'}</label>
+                            <textarea 
+                                className="form-control" 
+                                value={attributes.contents || ''} 
+                                onChange={(e) => handleAttributeChange('contents', e.target.value)} 
+                                placeholder="e.g. Perfume, dates box, organic honey..."
+                                rows="2"
+                            ></textarea>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
@@ -344,7 +509,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
             baseNotes: formData.baseNotes?.trim() || '',
-            shop_id: shopId !== undefined ? shopId : (formData.shop_id && formData.shop_id !== 'core' ? Number(formData.shop_id) : null)
+            shop_id: shopId !== undefined ? shopId : (formData.shop_id && formData.shop_id !== 'core' ? Number(formData.shop_id) : null),
+            attributes: formData.attributes || {}
         };
         delete productData.images;
 
@@ -377,7 +543,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             topNotes: product.topNotes || '',
             middleNotes: product.middleNotes || '',
             baseNotes: product.baseNotes || '',
-            shop_id: product.shop_id || 'core'
+            shop_id: product.shop_id || 'core',
+            attributes: product.attributes || {}
         });
         setEditingId(product.id);
         setIsSkuAuto(false); // Set to false when editing existing product to prevent accidental changes
@@ -837,6 +1004,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 </button>
                             </div>
                         </div>
+
+                        {renderAttributeFields()}
 
                         <div className="form-group">
                             <label>{isRTL ? 'وصف المنتج' : 'Product Description'}</label>
