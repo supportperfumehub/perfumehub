@@ -56,14 +56,36 @@ function App() {
       { threshold: window.innerWidth < 768 ? 0.05 : 0.1 }
     );
 
-    const timer = setTimeout(() => {
+    const observeNewElements = () => {
       const revealElements = document.querySelectorAll('.reveal:not(.active)');
       revealElements.forEach((el) => observer.observe(el));
-    }, 100);
+    };
+
+    // Run initially
+    observeNewElements();
+
+    // Set up MutationObserver to detect dynamically added components (e.g. async products list)
+    const mutationObserver = new MutationObserver((mutations) => {
+      let hasNewNodes = false;
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0) {
+          hasNewNodes = true;
+          break;
+        }
+      }
+      if (hasNewNodes) {
+        observeNewElements();
+      }
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
 
     return () => {
-      clearTimeout(timer);
       observer.disconnect();
+      mutationObserver.disconnect();
     };
   }, [location.pathname]);
 

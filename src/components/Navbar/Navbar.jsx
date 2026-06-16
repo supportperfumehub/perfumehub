@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store } from 'lucide-react';
+import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan } from 'lucide-react';
 import logo from '../../assets/logo_transparent.png';
 import SearchBar from '../SearchBar/SearchBar';
 import { AuthContext } from '../../context/AuthContext';
@@ -101,6 +101,12 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
                                     </Link>
                                 )}
+                                {(isVendor || isAdmin) && (
+                                    <Link to="/verify" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <Scan size={18} />
+                                        <span>{isRTL ? 'التحقق من الحجز' : 'Verify Reservation'}</span>
+                                    </Link>
+                                )}
                                 <button className="mobile-nav-link" onClick={() => { logout(); setIsMobileMenuOpen(false); }}>
                                     <LogOut size={18} />
                                     <span>{t('navbar.logout')}</span>
@@ -159,6 +165,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         {isVendor && (
                             <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
                                 <Store size={20} />
+                            </Link>
+                        )}
+                        {(isVendor || isAdmin) && (
+                            <Link to="/verify" className="icon-btn" title={isRTL ? 'التحقق من الحجز' : 'Verify Reservation'}>
+                                <Scan size={20} />
                             </Link>
                         )}
                         
