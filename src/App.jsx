@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Layout from './components/Layout/Layout';
@@ -28,6 +28,8 @@ import ShippingPolicy from './pages/Legal/ShippingPolicy';
 import Contact from './pages/Contact/Contact';
 import FAQ from './pages/FAQ/FAQ';
 
+import { ShopContext } from './context/ShopContext';
+
 function App() {
   const { i18n } = useTranslation();
   const [isRTL, setIsRTL] = useState(i18n.language === 'ar');
@@ -41,9 +43,16 @@ function App() {
     document.documentElement.lang = isRTL ? 'ar' : 'en';
   }, [isRTL]);
 
+  const { products, loading } = useContext(ShopContext);
   const location = useLocation();
 
   useEffect(() => {
+    // Fallback for environments/browsers without IntersectionObserver support
+    if (!window.IntersectionObserver) {
+      document.querySelectorAll('.reveal').forEach((el) => el.classList.add('active'));
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -53,7 +62,10 @@ function App() {
           }
         });
       },
-      { threshold: window.innerWidth < 768 ? 0.05 : 0.1 }
+      { 
+        rootMargin: window.innerWidth < 768 ? '0px 0px -30px 0px' : '0px 0px -60px 0px',
+        threshold: 0 
+      }
     );
 
     const observeNewElements = () => {
@@ -87,7 +99,7 @@ function App() {
       observer.disconnect();
       mutationObserver.disconnect();
     };
-  }, [location.pathname]);
+  }, [location.pathname, products?.length, loading]);
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'ar' ? 'en' : 'ar';
