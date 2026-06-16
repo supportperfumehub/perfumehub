@@ -39,6 +39,12 @@
     width: 220px; /* Slightly reduced on desktop to allow more room for navigation links */
 }
 
+@media (max-width: 1200px) {
+    .search-bar-expand.expanded {
+        width: 150px;
+    }
+}
+
 .search-bar-form {
     position: relative;
     display: flex;

@@ -213,8 +213,31 @@
     gap: 20px;
 }
 
+/* Medium Screen Desktop Compression */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    .navbar-links {
+        gap: 18px;
+    }
+    .navbar-links a {
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+    }
+    .navbar-icons {
+        gap: 12px;
+    }
+    .icons-row {
+        gap: 12px;
+    }
+    .user-nav-name {
+        display: none !important;
+    }
+    .lang-toggle .lang-text {
+        display: none !important;
+    }
+}
+
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .navbar {
         transform: translateY(32px); /* Mobile promotion bar height */
         padding-top: 12px;
