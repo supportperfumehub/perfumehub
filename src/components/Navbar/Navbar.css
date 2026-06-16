@@ -81,14 +81,14 @@
 
 .navbar-links {
     display: flex;
-    gap: 35px;
+    gap: 24px; /* Reduced from 35px to fit all screens */
 }
 
 .navbar-links a {
-    font-size: 1rem;
+    font-size: 0.95rem; /* Reduced from 1rem */
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px; /* Reduced from 2px */
     position: relative;
     white-space: nowrap;
     transition: opacity 0.3s ease;
@@ -122,7 +122,7 @@
 .navbar-icons {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 14px; /* Reduced from 20px */
 }
 
 .icon-btn {
@@ -147,27 +147,35 @@
 }
 
 .user-nav-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--color-gold);
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-transform: capitalize;
-    letter-spacing: 0.5px;
+    display: none; /* Hide by default to prevent overflow */
 }
 
-@media (max-width: 992px) {
+@media (min-width: 1400px) {
     .user-nav-name {
-        display: none;
+        display: inline-block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--color-gold);
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-transform: capitalize;
+        letter-spacing: 0.5px;
     }
 }
 
 .lang-toggle .lang-text {
-    font-family: var(--font-body);
-    font-size: 0.85rem;
-    font-weight: 600;
+    display: none; /* Hide by default */
+}
+
+@media (min-width: 1400px) {
+    .lang-toggle .lang-text {
+        display: inline;
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
 }
 
 .cart-btn {
@@ -210,7 +218,7 @@
 .icons-row {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 14px; /* Reduced from 20px */
 }
 
 /* Medium Screen Desktop Compression */
