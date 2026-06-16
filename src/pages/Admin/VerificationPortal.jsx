@@ -50,7 +50,7 @@ const VerificationPortal = () => {
 
     return (
         <div className="container" style={{ maxWidth: '500px', padding: '100px 20px' }}>
-            <div className="admin-card" style={{ padding: '30px', textAlign: 'center', background: '#1e293b' }}>
+            <div className="admin-card" style={{ padding: '30px', textAlign: 'center', background: '#1e293b', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
                 <div style={{ background: 'rgba(200, 169, 81, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                     <Scan size={32} color="#c8a951" />
                 </div>
@@ -68,7 +68,22 @@ const VerificationPortal = () => {
                         maxLength="6"
                         value={code}
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                        style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '8px', fontWeight: '800', height: '80px', marginBottom: '20px', background: '#0f172a' }}
+                        style={{ 
+                            width: '100%', 
+                            boxSizing: 'border-box', 
+                            fontSize: '2rem', 
+                            textAlign: 'center', 
+                            letterSpacing: '8px', 
+                            fontWeight: '800', 
+                            height: '80px', 
+                            marginBottom: '20px', 
+                            background: '#0f172a', 
+                            color: '#fff', 
+                            border: '1px solid rgba(200, 169, 81, 0.3)', 
+                            borderRadius: '12px', 
+                            outline: 'none',
+                            transition: 'border-color 0.2s'
+                        }}
                     />
                     <button type="submit" className="btn btn-gold" style={{ width: '100%', height: '56px' }} disabled={loading || code.length < 6}>
                         {loading ? <RefreshCw className="spin" /> : (isRTL ? 'تحقق الآن' : 'Verify Now')}
