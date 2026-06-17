@@ -28,10 +28,10 @@
 @media (max-width: 768px) {
     .modern-hero {
         height: auto;
-        min-height: 0;
+        min-height: 180px;
         margin-top: -80px;
-        padding-top: 60px;
-        padding-bottom: 0;
+        padding-top: 90px;
+        padding-bottom: 5px;
     }
 }
 
@@ -183,10 +183,10 @@
         margin-bottom: 5px;
     }
     .modern-hero-content {
-        margin-top: 0;
+        margin-top: 5px;
     }
     .hero-logo-container-custom {
-        margin: 0 auto;
+        margin: 10px auto 5px;
     }
     .horizontal-logo-box {
         width: 280px;
@@ -203,12 +203,12 @@
     .horizontal-logo-pre-tagline {
         font-size: 0.7rem;
         letter-spacing: 3px;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
     }
     .horizontal-logo-tagline {
         font-size: 0.7rem;
         letter-spacing: 3px;
-        margin-top: 5px;
+        margin-top: 8px;
     }
 }
 
