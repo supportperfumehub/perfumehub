@@ -94,7 +94,11 @@ export class AuthService {
     async issueTokens(user) {
         const payload = { id: user.id, email: user.email, role: user.role };
         const accessToken = generateAccessToken(payload);
-        const refreshToken = generateRefreshToken({ id: user.id, version: user.refresh_token_version || 0 });
+        const refreshToken = generateRefreshToken({ 
+            id: user.id, 
+            version: user.refresh_token_version || 0,
+            jti: crypto.randomUUID()
+        });
 
         // Save refresh token
         const expiresAt = new Date();
