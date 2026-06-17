@@ -72,7 +72,28 @@ const DiscoveryManager = ({ isRTL }) => {
                     {isRTL ? 'إدارة الاكتشاف' : 'Discovery Manager'}
                 </h2>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn btn-outline" onClick={fetchData}>
+                    <button 
+                        className="btn btn-outline" 
+                        onClick={fetchData}
+                        style={{ 
+                            borderColor: 'rgba(255, 255, 255, 0.3)', 
+                            color: '#ffffff',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease',
+                            padding: '8px 16px',
+                            cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#c8a951';
+                            e.currentTarget.style.color = '#c8a951';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.background = 'transparent';
+                        }}
+                    >
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
                     <button className="btn btn-primary">
