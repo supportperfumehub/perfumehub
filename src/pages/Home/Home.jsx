@@ -189,33 +189,47 @@ const Home = () => {
                 </div>
                 <div className="premium-boutiques-scroll">
                     {shops.length > 0 ? (
-                        shops.filter(s => s.is_recommended || s.is_featured).map((shop) => (
-                            <div key={shop.id} className="premium-card boutique-card animate-fade-in">
-                                <div 
-                                    className="boutique-image-container" 
-                                    style={{ 
-                                        backgroundImage: `url(${shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        backgroundRepeat: 'no-repeat',
-                                        height: '150px',
-                                        backgroundColor: '#1a1a1a',
-                                        borderRadius: '12px 12px 0 0'
-                                    }}
-                                ></div>
-                                <div className="boutique-info">
-                                    <h4 style={{ margin: 0 }}>{shop.name}</h4>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                                        <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                                            {'⭐'.repeat(Math.round(shop.rating_avg || 5))} {shop.rating_avg || '5.0'}
-                                        </span>
-                                        <Link to={`/shop?shop_id=${shop.id}`} className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
-                                            {isRTL ? 'زيارة' : 'Visit'}
-                                        </Link>
+                        (() => {
+                            const activeShops = shops.filter(s => s.status?.toUpperCase() === 'ACTIVE');
+                            const featuredShops = activeShops.filter(s => s.is_recommended || s.is_featured);
+                            const displayShops = featuredShops.length > 0 ? featuredShops : activeShops;
+
+                            if (displayShops.length === 0) {
+                                return (
+                                    <div style={{ padding: '20px', color: '#666', fontStyle: 'italic' }}>
+                                        {isRTL ? 'لا توجد متاجر نشطة حالياً' : 'No active boutiques available.'}
+                                    </div>
+                                );
+                            }
+
+                            return displayShops.map((shop) => (
+                                <div key={shop.id} className="premium-card boutique-card animate-fade-in">
+                                    <div 
+                                        className="boutique-image-container" 
+                                        style={{ 
+                                            backgroundImage: `url(${shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            backgroundRepeat: 'no-repeat',
+                                            height: '150px',
+                                            backgroundColor: '#1a1a1a',
+                                            borderRadius: '12px 12px 0 0'
+                                        }}
+                                    ></div>
+                                    <div className="boutique-info">
+                                        <h4 style={{ margin: 0 }}>{shop.name}</h4>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                            <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                                                {'⭐'.repeat(Math.round(shop.rating_avg || 5))} {shop.rating_avg || '5.0'}
+                                            </span>
+                                            <Link to={`/shop?shop_id=${shop.id}`} className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                                                {isRTL ? 'زيارة' : 'Visit'}
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            ));
+                        })()
                     ) : (
                         <div style={{ padding: '20px', color: '#666', fontStyle: 'italic' }}>
                             {isRTL ? 'جاري تحميل المتاجر...' : 'Loading premium boutiques...'}

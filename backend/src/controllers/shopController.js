@@ -15,7 +15,7 @@ export class ShopController {
     getAllShops = async (req, res, next) => {
         try {
             const filters = {
-                status: req.query.status,
+                status: req.query.status ? req.query.status.toUpperCase() : undefined,
                 owner_id: req.query.owner_id
             };
             const shops = await this.shopService.getShops(filters, req.user);
