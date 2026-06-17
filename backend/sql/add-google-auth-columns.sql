@@ -1,0 +1,6 @@
+-- Migration: Add Google Auth columns to customers table
+-- Run this script in your Supabase SQL Editor
+
+ALTER TABLE customers 
+ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'email',
+ADD COLUMN IF NOT EXISTS supabase_id TEXT;
