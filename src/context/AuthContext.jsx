@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(user);
                 console.log('User Role from Server:', user.role);
                 const adminFlag = user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin';
-                const vendorFlag = user.role === 'vendor' || !!user.shop_id;
+                const vendorFlag = user.role === 'vendor';
                 console.log('Setting isAdmin:', adminFlag, 'isVendor:', vendorFlag);
                 setIsAdmin(adminFlag);
                 setIsVendor(vendorFlag);
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (user) {
             setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
-            setIsVendor(user.role === 'vendor' || !!user.shop_id);
+            setIsVendor(user.role === 'vendor');
         }
     }, [user]);
 
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
                             setAccessToken(accessToken);
                             setUser(user);
                             setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
-                            setIsVendor(user.role === 'vendor' || !!user.shop_id);
+                            setIsVendor(user.role === 'vendor');
                         }
                     } catch (error) {
                         console.error('Failed to sync Google login with backend:', error);
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor' || !!data.user.shop_id);
+                setIsVendor(data.user.role === 'vendor');
                 return { success: true, user: data.user };
             }
             return { success: false, message: data.error || 'Login failed' };
@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor' || !!data.user.shop_id);
+                setIsVendor(data.user.role === 'vendor');
                 setRequires2FA(false);
                 setPendingUserId(null);
                 return { success: true, user: data.user };

@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock, Upload, Phone, MapPin } from 'lucide-react';
+import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock, Upload, Phone, MapPin, Clock } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 import './VendorSignup.css';
 
@@ -31,6 +31,30 @@ const VendorSignup = () => {
                     </h2>
                     <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="submit-request-btn" style={{ marginTop: '30px' }}>
                         {isRTL ? 'اذهب إلى لوحة التحكم' : 'Go to Dashboard'}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // Pending shop request — show "Under Review" screen
+    if (user && user.shop_id && user.role === 'customer') {
+        return (
+            <div className="vendor-signup-page">
+                <div className="vendor-signup-container text-center">
+                    <div className="upload-icon-circle animate-pulse" style={{ width: '80px', height: '80px', margin: '0 auto', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid var(--color-gold)' }}>
+                        <Clock size={40} style={{ color: 'var(--color-gold)' }} />
+                    </div>
+                    <h2 className="vendor-signup-title" style={{ marginTop: '20px' }}>
+                        {isRTL ? 'طلبك قيد المراجعة' : 'Your request is under review'}
+                    </h2>
+                    <p className="vendor-signup-subtitle" style={{ marginBottom: '30px', marginTop: '10px' }}>
+                        {isRTL
+                            ? 'لقد تم استلام طلب الانضمام كبائع الخاص بك وهو قيد المراجعة حاليًا من قبل الإدارة. يرجى الانتظار لحين التفعيل.'
+                            : 'We have received your vendor application. It is currently being reviewed by the administration. Please wait for activation.'}
+                    </p>
+                    <Link to="/" className="submit-request-btn">
+                        {isRTL ? 'العودة للصفحة الرئيسية' : 'Return to Home'}
                     </Link>
                 </div>
             </div>
