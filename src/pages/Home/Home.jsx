@@ -218,10 +218,7 @@ const Home = () => {
                                     ></div>
                                     <div className="boutique-info">
                                         <h4 style={{ margin: 0 }}>{shop.name}</h4>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                                            <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                {'⭐'.repeat(Math.round(shop.rating_avg || 5))} {shop.rating_avg || '5.0'}
-                                            </span>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '8px' }}>
                                             <Link to={`/shop?shop_id=${shop.id}`} className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
                                                 {isRTL ? 'زيارة' : 'Visit'}
                                             </Link>
