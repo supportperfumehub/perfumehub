@@ -55,7 +55,7 @@ const VerificationPortal = () => {
                     <Scan size={32} color="#c8a951" />
                 </div>
                 
-                <h1 style={{ fontSize: '1.5rem', marginBottom: '10px' }}>{isRTL ? 'تحقق من الحجز' : 'Verify Reservation'}</h1>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: '#ffffff', marginBottom: '10px', letterSpacing: '0.5px' }}>{isRTL ? 'تحقق من الحجز' : 'Verify Reservation'}</h1>
                 <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '30px' }}>
                     {isRTL ? 'أدخل الرمز المكون من 6 أرقام والموجود في بريد العميل' : 'Enter the 6-digit code from the customer\'s confirmation email.'}
                 </p>
