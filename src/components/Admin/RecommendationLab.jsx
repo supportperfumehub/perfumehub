@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Settings, Save, RefreshCw, AlertTriangle, Info, Sliders, Map, TrendingUp } from 'lucide-react';
+import api from '../../utils/api_v1_0_2';
 
 const RecommendationLab = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -14,14 +15,10 @@ const RecommendationLab = ({ isRTL }) => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const res = await fetch('/api/admin/algorithm-config', {
-                headers: { 'x-user-id': user.id }
-            });
-            if (!res.ok) throw new Error('Failed to fetch algorithm configuration');
-            const data = await res.json();
-            setConfig(data);
+            const res = await api.get('/admin/algorithm-config');
+            setConfig(res.data);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setLoading(false);
         }
@@ -39,19 +36,11 @@ const RecommendationLab = ({ isRTL }) => {
         setError(null);
         setSuccess(false);
         try {
-            const res = await fetch(`/api/admin/algorithm-config/${config.id}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.id 
-                },
-                body: JSON.stringify(config)
-            });
-            if (!res.ok) throw new Error('Failed to save configuration');
+            await api.put(`/admin/algorithm-config/${config.id}`, config);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setSaving(false);
         }
@@ -69,10 +58,33 @@ const RecommendationLab = ({ isRTL }) => {
     );
 
     if (!config) return (
-        <div className="admin-section text-center">
-            <AlertTriangle size={48} color="#f87171" />
-            <p>{isRTL ? 'لم يتم العثور على تكوين نشط' : 'No active configuration found'}</p>
-            <button className="btn btn-outline" onClick={fetchConfig}>{isRTL ? 'تحديث' : 'Retry'}</button>
+        <div className="admin-section text-center" style={{ padding: '40px 20px' }}>
+            <AlertTriangle size={48} color="#f87171" style={{ marginBottom: '15px' }} />
+            <p style={{ color: '#94a3b8', marginBottom: '15px' }}>{isRTL ? 'لم يتم العثور على تكوين نشط' : 'No active configuration found'}</p>
+            <button 
+                className="btn btn-outline" 
+                onClick={fetchConfig}
+                style={{ 
+                    borderColor: 'rgba(255, 255, 255, 0.3)', 
+                    color: '#ffffff',
+                    background: 'transparent',
+                    transition: 'all 0.2s ease',
+                    padding: '8px 16px',
+                    cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#c8a951';
+                    e.currentTarget.style.color = '#c8a951';
+                    e.currentTarget.style.background = 'rgba(200, 169, 81, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.background = 'transparent';
+                }}
+            >
+                {isRTL ? 'تحديث' : 'Retry'}
+            </button>
         </div>
     );
 
@@ -94,7 +106,32 @@ const RecommendationLab = ({ isRTL }) => {
                     {isRTL ? 'مختبر الخوارزميات' : 'Recommendation Lab'}
                 </h2>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn btn-outline" onClick={fetchConfig} disabled={saving}>
+                    <button 
+                        className="btn btn-outline" 
+                        onClick={fetchConfig} 
+                        disabled={saving}
+                        style={{ 
+                            borderColor: 'rgba(255, 255, 255, 0.3)', 
+                            color: '#ffffff',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#c8a951';
+                            e.currentTarget.style.color = '#c8a951';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.background = 'transparent';
+                        }}
+                    >
                         <RefreshCw size={16} /> {isRTL ? 'إعادة ضبط' : 'Reset'}
                     </button>
                     <button className="btn btn-primary" onClick={handleSave} disabled={saving || !isBalanced}>
