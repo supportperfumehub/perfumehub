@@ -6,7 +6,7 @@ import api from '../utils/api_v1_0_2';
 export const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
-    const { user, isVendor } = useContext(AuthContext);
+    const { user, isVendor, loading: authLoading, isAdmin, isAuthenticated } = useContext(AuthContext);
 
     // Products start empty — always loaded fresh from database
     const [products, setProducts] = useState([]);
@@ -209,16 +209,25 @@ export const ShopProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // Debounce slightly to wait for auth state on mount
+        if (authLoading) return; // Wait for silent refresh to complete
+
         const timer = setTimeout(() => {
             fetchProducts();
-            fetchOrders();
-            fetchCoupons();
-            fetchBackups();
             fetchShops();
+
+            // Authenticated user only fetches
+            if (isAuthenticated) {
+                fetchOrders();
+            }
+
+            // Admin only fetches
+            if (isAdmin) {
+                fetchCoupons();
+                fetchBackups();
+            }
         }, 100);
         return () => clearTimeout(timer);
-    }, [isVendor, user?.shop_id]);
+    }, [authLoading, isVendor, isAdmin, isAuthenticated, user?.shop_id]);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_products', JSON.stringify(products));
@@ -537,6 +546,7 @@ export const ShopProvider = ({ children }) => {
         addCoupon,
         updateCoupon,
         deleteCoupon,
+        fetchCoupons,
         incrementCouponUsage,
         toast,
         showToast,

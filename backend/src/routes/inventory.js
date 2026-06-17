@@ -10,10 +10,7 @@ router.get('/', async (req, res) => {
     try {
         let query = supabase
             .from('vendor_inventory')
-            .select(`
-                *,
-                products (*)
-            `);
+            .select('*');
 
         const admin = req.user;
 

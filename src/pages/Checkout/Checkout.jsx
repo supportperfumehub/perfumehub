@@ -13,7 +13,7 @@ const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isRTL } = useOutletContext();
-    const { placeOrder, coupons, showToast, incrementCouponUsage } = useContext(ShopContext);
+    const { placeOrder, coupons, showToast, incrementCouponUsage, fetchCoupons } = useContext(ShopContext);
     const { clearCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
 
@@ -68,7 +68,10 @@ const Checkout = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
         if (!orderData) navigate('/shop');
-    }, [orderData, navigate]);
+        if (fetchCoupons) {
+            fetchCoupons();
+        }
+    }, [orderData, navigate, fetchCoupons]);
 
     if (!orderData) return null;
 

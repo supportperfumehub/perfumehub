@@ -12,7 +12,7 @@ const Cart = () => {
     const { isRTL } = useOutletContext();
     const navigate = useNavigate();
     const { cartItems, removeFromCart, updateQuantity, clearCart, getCartTotal } = useContext(CartContext);
-    const { coupons, showToast } = useContext(ShopContext);
+    const { coupons, showToast, fetchCoupons } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
     const [orderStatus, setOrderStatus] = useState(null);
     const [couponCode, setCouponCode] = useState('');
@@ -20,7 +20,10 @@ const Cart = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
+        if (fetchCoupons) {
+            fetchCoupons();
+        }
+    }, [fetchCoupons]);
 
     const handleCheckout = () => {
         if (cartItems.length === 0) return;
