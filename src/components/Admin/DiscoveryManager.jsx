@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp } from 'lucide-react';
+import api from '../../utils/api_v1_0_2';
 
 const DiscoveryManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -16,16 +17,14 @@ const DiscoveryManager = ({ isRTL }) => {
         try {
             setLoading(true);
             const [shopsRes, campaignsRes] = await Promise.all([
-                fetch('/api/admin/shops', { headers: { 'x-user-id': user.id } }),
-                fetch('/api/admin/discover-campaigns', { headers: { 'x-user-id': user.id } })
+                api.get('/admin/shops'),
+                api.get('/admin/discover-campaigns')
             ]);
             
-            if (!shopsRes.ok || !campaignsRes.ok) throw new Error('Failed to fetch discovery data');
-            
-            setShops(await shopsRes.json());
-            setCampaigns(await campaignsRes.json());
+            setShops(shopsRes.data);
+            setCampaigns(campaignsRes.data);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setLoading(false);
         }
@@ -40,28 +39,16 @@ const DiscoveryManager = ({ isRTL }) => {
     const toggleFeatured = async (shopId, currentStatus) => {
         if (!user?.id) return;
         try {
-            const res = await fetch(`/api/admin/shops/${shopId}/feature`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
-                body: JSON.stringify({ is_featured: !currentStatus })
-            });
-            if (res.ok) {
-                setShops(prev => prev.map(s => s.id === shopId ? { ...s, is_featured: !currentStatus } : s));
-            }
+            await api.patch(`/admin/shops/${shopId}/feature`, { is_featured: !currentStatus });
+            setShops(prev => prev.map(s => s.id === shopId ? { ...s, is_featured: !currentStatus } : s));
         } catch (err) { alert('Failed to update shop status'); }
     };
 
     const updateBoost = async (shopId, value) => {
         try {
             const multiplier = parseFloat(value);
-            const res = await fetch(`/api/admin/shops/${shopId}/boost`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
-                body: JSON.stringify({ manual_boost_multiplier: multiplier })
-            });
-            if (res.ok) {
-                setShops(prev => prev.map(s => s.id === shopId ? { ...s, manual_boost_multiplier: multiplier } : s));
-            }
+            await api.patch(`/admin/shops/${shopId}/boost`, { manual_boost_multiplier: multiplier });
+            setShops(prev => prev.map(s => s.id === shopId ? { ...s, manual_boost_multiplier: multiplier } : s));
         } catch (err) { alert('Failed to update boost'); }
     };
 
