@@ -19,6 +19,7 @@ const shopController = new ShopController(shopService);
 router.get('/', shopController.getAllShops);
 router.get('/nearest', shopController.getNearest);
 router.get('/nearest-for-product', shopController.getNearestForProduct);
+router.post('/manual', shopController.registerManual);
 
 /**
  * Admin Routes

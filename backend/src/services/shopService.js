@@ -1,4 +1,5 @@
 import { AppError } from '../middleware/errorHandler.js';
+import bcrypt from 'bcryptjs';
 
 export class ShopService {
     constructor(shopRepository, userRepository) {
@@ -35,6 +36,62 @@ export class ShopService {
         await this.userRepository.update(owner_id, { shop_id: shop.id });
 
         return shop;
+    }
+
+    async registerShopManual(data) {
+        const { ownerName, ownerEmail, ownerPassword, shopName, address, whatsapp_number, images, is_recommended, adminCreated, reqUser } = data;
+
+        // Check if user already exists
+        const existingUser = await this.userRepository.findByEmail(ownerEmail);
+        if (existingUser) {
+            throw new AppError('Email already exists', 400);
+        }
+
+        // Hash user password
+        const passwordHash = await bcrypt.hash(ownerPassword, parseInt(process.env.BCRYPT_ROUNDS || '12'));
+
+        const userRole = (adminCreated && reqUser && ['super_admin', 'regional_admin', 'admin'].includes(reqUser.role)) ? 'vendor' : 'customer';
+        const shopStatus = (adminCreated && reqUser && ['super_admin', 'regional_admin', 'admin'].includes(reqUser.role)) ? 'APPROVED' : 'PENDING';
+
+        // Create user
+        const user = await this.userRepository.create({
+            name: ownerName,
+            email: ownerEmail,
+            password_hash: passwordHash,
+            role: userRole,
+            email_verified: false
+        });
+
+        // Create shop payload
+        const shopPayload = {
+            owner_id: user.id,
+            name: shopName,
+            address,
+            images: images || [],
+            status: shopStatus,
+            whatsapp_number: whatsapp_number || null
+        };
+
+        if (is_recommended !== undefined) {
+            shopPayload.is_recommended = is_recommended;
+        }
+
+        // Create shop
+        const shop = await this.shopRepository.create(shopPayload);
+
+        // Update user with shop_id
+        await this.userRepository.update(user.id, { shop_id: shop.id });
+
+        return {
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            },
+            shop,
+            message: shopStatus === 'APPROVED' ? 'Vendor added successfully' : 'Vendor request submitted'
+        };
     }
 
     async updateShopStatus(id, status, admin) {

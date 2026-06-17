@@ -1,3 +1,6 @@
+import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.js';
+import { supabase } from '../config/supabaseClient.js';
+
 /**
  * Controller for Shop domain
  */
@@ -60,6 +63,46 @@ export class ShopController {
         try {
             const shop = await this.shopService.registerShop(req.body);
             res.status(201).json({ success: true, shop });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/shops/manual
+     */
+    registerManual = async (req, res, next) => {
+        try {
+            let reqUser = null;
+            const token = extractTokenFromHeader(req);
+            if (token) {
+                const decoded = verifyAccessToken(token);
+                if (decoded) {
+                    const { data: user } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('id', decoded.id)
+                        .single();
+                    if (user) {
+                        reqUser = user;
+                    }
+                }
+            }
+
+            const { adminCreated } = req.body;
+            if (adminCreated && (!reqUser || !['super_admin', 'regional_admin', 'admin'].includes(reqUser.role))) {
+                return res.status(403).json({ success: false, error: 'Forbidden: Insufficient permissions to create shop as admin' });
+            }
+
+            const result = await this.shopService.registerShopManual({
+                ...req.body,
+                reqUser
+            });
+
+            res.status(201).json({
+                success: true,
+                ...result
+            });
         } catch (error) {
             next(error);
         }
