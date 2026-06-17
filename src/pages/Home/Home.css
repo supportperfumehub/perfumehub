@@ -5,7 +5,7 @@
 
 @media (max-width: 768px) {
     .home-page {
-        padding-top: 120px; /* Smaller mobile offset */
+        padding-top: 80px; /* Smaller mobile offset */
     }
 }
 
@@ -28,10 +28,10 @@
 @media (max-width: 768px) {
     .modern-hero {
         height: auto;
-        min-height: 250px;
-        margin-top: -120px;
-        padding-top: 120px;
-        padding-bottom: 10px;
+        min-height: 0;
+        margin-top: -80px;
+        padding-top: 60px;
+        padding-bottom: 0;
     }
 }
 
@@ -49,6 +49,94 @@
     color: #000;
     padding: 0 20px;
     margin-top: 40px; /* push down content slightly from top */
+}
+
+.hero-logo-container-custom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+}
+
+.horizontal-logo-box {
+    display: flex;
+    flex-direction: row;
+    width: 520px;
+    height: 75px;
+    border-top: 2px solid var(--color-gold);
+    border-bottom: 2px solid var(--color-gold);
+    border-left: none;
+    border-right: none;
+    background: transparent;
+    position: relative;
+    box-shadow: none; /* remove bounding shadow to emphasize edge merging */
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+}
+
+.horizontal-logo-box:hover {
+    transform: scale(1.02);
+}
+
+.logo-left-half {
+    flex: 1.1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to left, rgba(10, 10, 10, 0.95) 20%, rgba(255, 255, 255, 0) 100%);
+    border-right: 2px solid var(--color-gold);
+    padding-left: 20px;
+}
+
+.logo-north-text {
+    font-family: var(--font-body);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: var(--color-gold);
+    padding-left: 6px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.logo-right-half {
+    flex: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to right, rgba(212, 175, 55, 0.75) 20%, rgba(255, 255, 255, 0) 100%);
+    padding-right: 20px;
+}
+
+.logo-club-text {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--color-black);
+    text-transform: uppercase;
+}
+
+.horizontal-logo-pre-tagline {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 5px;
+    color: var(--color-gold-dark);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.horizontal-logo-tagline {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 5px;
+    color: var(--color-gold-dark);
+    margin-top: 12px;
+    text-transform: uppercase;
+    text-align: center;
 }
 
 .hero-title {
@@ -73,6 +161,18 @@
     opacity: 1;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 @media (max-width: 768px) {
     .hero-title {
         font-size: 2.8rem;
@@ -81,6 +181,34 @@
         font-size: 1.1rem;
         letter-spacing: 0.5px;
         margin-bottom: 5px;
+    }
+    .modern-hero-content {
+        margin-top: 0;
+    }
+    .hero-logo-container-custom {
+        margin: 0 auto;
+    }
+    .horizontal-logo-box {
+        width: 280px;
+        height: 70px;
+    }
+    .logo-north-text {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+    }
+    .logo-club-text {
+        font-size: 1.1rem;
+        letter-spacing: 1.5px;
+    }
+    .horizontal-logo-pre-tagline {
+        font-size: 0.7rem;
+        letter-spacing: 3px;
+        margin-bottom: 5px;
+    }
+    .horizontal-logo-tagline {
+        font-size: 0.7rem;
+        letter-spacing: 3px;
+        margin-top: 5px;
     }
 }
 

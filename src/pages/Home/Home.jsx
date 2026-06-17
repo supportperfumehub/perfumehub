@@ -8,6 +8,7 @@ import Newsletter from '../../components/Newsletter/Newsletter';
 import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
 import { ShopContext } from '../../context/ShopContext';
 import brandStoryImg from '../../assets/logo_no_border.png';
+import northClubLogo from '../../assets/north_club_logo.png';
 import './Home.css';
 
 const Home = () => {
@@ -60,8 +61,28 @@ const Home = () => {
             <section className="modern-hero animate-fade-in">
                 <div className="hero-background"></div>
                 <div className="modern-hero-content container">
-                    <p className="hero-subtitle">{t('home.intro_text', 'RESTORING INVENTORY - THE ESSENCE OF LUXURY')}</p>
-                    <h1 className="hero-title">{t('home.intro_title')}</h1>
+                    {/* CSS-based horizontal brand logo block */}
+                    <div className="hero-logo-container-custom animate-slide-up">
+                        <div className="horizontal-logo-pre-tagline">
+                            — PERFUME HUB TRADING —
+                        </div>
+                        <div className="horizontal-logo-box">
+                            <div className="logo-left-half">
+                                <span className="logo-north-text">NORTH</span>
+                            </div>
+                            <div className="logo-right-half">
+                                <span className="logo-club-text">CLUB PARIS</span>
+                            </div>
+                        </div>
+                        <div className="horizontal-logo-tagline">
+                            — {t('home.intro_text', 'THE ESSENCE OF TIMELESS LUXURY')} —
+                        </div>
+                    </div>
+                    {/* Screen reader and SEO friendly text */}
+                    <div className="sr-only">
+                        <p className="hero-subtitle">{t('home.intro_text', 'PERFUME HUB TRADING')}</p>
+                        <h1 className="hero-title">{t('home.intro_title', 'NORTH CLUB PARIS')}</h1>
+                    </div>
                 </div>
             </section>
 

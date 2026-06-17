@@ -18,8 +18,8 @@
     "lang_toggle_ar": "العربية (AR)"
   },
   "home": {
-    "intro_title": "رويال نارسيس",
-    "intro_text": "جوهر الفخامة"
+    "intro_title": "نورث كلوب باريس",
+    "intro_text": "جوهر الفخامة الخالدة"
   },
   "ai_advisor_banner": {
     "tagline": "مدعوم بالذكاء الاصطناعي",
@@ -248,6 +248,8 @@
     "shipping_policy": "سياسة الشحن",
     "all_perfumes": "جميع المنتجات",
     "arabic_perfumes": "صناديق الهدايا",
-    "rights_reserved": "جميع الحقوق محفوظة."
+    "rights_reserved": "جميع الحقوق محفوظة.",
+    "partner_title": "الشريك المهني",
+    "partner_name": "رويال نارسيس"
   }
 }

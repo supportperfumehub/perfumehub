@@ -15,6 +15,14 @@ const Footer = () => {
                     <p className="footer-desc">
                         {t('footer.description')}
                     </p>
+                    <div className="footer-partner" style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px', marginBottom: '15px' }}>
+                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-gold)', display: 'block', marginBottom: '3px' }}>
+                            {t('footer.partner_title', 'Professional Partner')}
+                        </span>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#fff', fontWeight: '500' }}>
+                            {t('footer.partner_name', 'Royal Narciss')}
+                        </p>
+                    </div>
                     <div className="social-links">
                         <a href="https://www.instagram.com/perfumehub__qa?igsh=MXZkNnNjeGwyNzE2Mg==" aria-label="Instagram"><Instagram size={20} /></a>
                         <a href="#" aria-label="Facebook"><Facebook size={20} /></a>

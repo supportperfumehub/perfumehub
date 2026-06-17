@@ -654,8 +654,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     value={filterShop} 
                                     onChange={(e) => setFilterShop(e.target.value)}
                                 >
-                                    <option value="all">{isRTL ? 'جميع المنتجات (رويال نارسيس + المتاجر)' : 'All Inventory (Royal Narciss + Shops)'}</option>
-                                    <option value="own">{isRTL ? 'منتجات رويال نارسيس فقط' : 'Royal Narciss Products'}</option>
+                                    <option value="all">{isRTL ? 'جميع المنتجات (نورث كلوب باريس + المتاجر)' : 'All Inventory (North Club Paris + Shops)'}</option>
+                                    <option value="own">{isRTL ? 'منتجات نورث كلوب باريس فقط' : 'North Club Paris Products'}</option>
                                     {shopsData.map(shop => (
                                         <option key={shop.id} value={shop.id}>{isRTL ? `متجر: ${shop.name}` : `Shop: ${shop.name}`}</option>
                                     ))}
@@ -798,7 +798,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     onChange={handleInputChange}
                                     style={{ border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)' }}
                                 >
-                                    <option value="core">{isRTL ? 'رويال نارسيس (المخزون الرئيسي)' : 'Royal Narciss (Core Inventory)'}</option>
+                                    <option value="core">{isRTL ? 'نورث كلوب باريس (المخزون الرئيسي)' : 'North Club Paris (Core Inventory)'}</option>
                                     {shopsData.map(shop => (
                                         <option key={shop.id} value={shop.id}>
                                             {isRTL ? `منتج لـ: ${shop.name}` : `Assign to: ${shop.name}`}
@@ -1191,7 +1191,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                     </span>
                                                 ) : (
                                                     <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                        {isRTL ? 'رويال نارسيس' : 'Royal Narciss'}
+                                                         {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
                                                     </span>
                                                 )}
                                             </div>
