@@ -112,10 +112,20 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             const cleanBrand = formatSegment(formData.brand, 2);
             const cleanName = formatSegment(formData.name, 2);
             
-            // Get code from mapping or use first 2 chars of custom type
-            let typeCode = typeCodes[formData.type];
-            if (!typeCode && formData.type) {
-                typeCode = formatSegment(formData.type, 2);
+            // Get code based on categories or mapping
+            let typeCode = '';
+            const categories = formData.category || [];
+            if (categories.includes('fashion')) {
+                typeCode = 'FSH';
+            } else if (categories.includes('jewellery')) {
+                typeCode = 'JWL';
+            } else if (categories.includes('giftbox') || categories.includes('gift-box')) {
+                typeCode = 'GBX';
+            } else {
+                typeCode = typeCodes[formData.type];
+                if (!typeCode && formData.type) {
+                    typeCode = formatSegment(formData.type, 2);
+                }
             }
             typeCode = typeCode || '';
             
@@ -126,7 +136,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
             setFormData(prev => ({ ...prev, sku: segments.join('-') }));
         }
-    }, [formData.brand, formData.name, formData.type, isSkuAuto, editingId]);
+    }, [formData.brand, formData.name, formData.type, formData.category, isSkuAuto, editingId]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked, options } = e.target;

@@ -295,8 +295,16 @@ const Checkout = () => {
             // 3. WHATSAPP OPENING (Mandatory for all orders now)
             const whatsappNumber = "97430301901";
             const itemsText = isCartMode
-                ? cartItems.map(item => `• ${item.product.name}${item.selectedSize ? ` (${item.selectedSize})` : ''} x${item.quantity}`).join('\n')
-                : `• ${singleProduct.name}${singleSize ? ` (${singleSize})` : ''} x${singleQty}`;
+                ? cartItems.map(item => {
+                    const sku = item.product.sku || (item.product.id ? `PH-${item.product.id}-24` : '');
+                    const skuPart = sku ? ` [${isRTL ? 'رمز' : 'Code'}: ${sku}]` : '';
+                    return `• ${item.product.name}${skuPart}${item.selectedSize ? ` (${item.selectedSize})` : ''} x${item.quantity}`;
+                }).join('\n')
+                : (() => {
+                    const sku = singleProduct.sku || (singleProduct.id ? `PH-${singleProduct.id}-24` : '');
+                    const skuPart = sku ? ` [${isRTL ? 'رمز' : 'Code'}: ${sku}]` : '';
+                    return `• ${singleProduct.name}${skuPart}${singleSize ? ` (${singleSize})` : ''} x${singleQty}`;
+                })();
 
             const couponText = discount > 0 ? `\n\u{1F3AB} *${isRTL ? 'كوبون:' : 'Coupon:'}* ${couponCode}` : '';
             const paymentText = isRTL ? `\u{1F4B5} *الدفع:* عند الاستلام (COD)` : `\u{1F4B5} *Payment:* Cash on Delivery (COD)`;

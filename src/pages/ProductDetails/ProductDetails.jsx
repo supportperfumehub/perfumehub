@@ -134,6 +134,7 @@ const ProductDetails = () => {
         : null;
     
     // Fallbacks
+    const productSku = product.sku || (product.id ? `PH-${product.id}-24` : '');
     let displayPrice = product.price;
     let orderStock = product.stock;
     
@@ -245,9 +246,25 @@ const ProductDetails = () => {
                         </span>
                     </div>
                     <h1 className="product-name">{product.name}</h1>
-                    <p className="product-type-large">
-                        {product.type}
-                        {selectedSize && ` • ${selectedSize}`}
+                    <p className="product-type-large" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>{product.type}</span>
+                        {selectedSize && <span>• {selectedSize}</span>}
+                        {productSku && (
+                            <span className="product-sku-tag" style={{ 
+                                fontSize: '0.75rem', 
+                                color: 'var(--text-secondary, #94a3b8)', 
+                                padding: '2px 8px', 
+                                background: 'rgba(255, 255, 255, 0.05)', 
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                marginLeft: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                letterSpacing: '0.5px'
+                            }}>
+                                {isRTL ? 'رمز المنتج:' : 'Code:'} {productSku}
+                            </span>
+                        )}
                     </p>
 
                     <div className="price-section">
