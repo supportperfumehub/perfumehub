@@ -8,7 +8,7 @@
     "server": "nodemon backend/src/server.js",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "start": "npm run dev:all",
-    "mobile": "start chrome --app=http://localhost:5173 --window-size=390,844",
+    "mobile": "start chrome --app=http://localhost:3000 --window-size=390,844",
     "db:init": "node scripts/init-db.js",
     "sync": "node scripts/sync-data.js",
     "sync:force": "node scripts/sync-data.js --force",
