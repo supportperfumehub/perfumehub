@@ -42,6 +42,20 @@ api.interceptors.request.use(
 );
 // Version: 1.0.2 - Cache Buster: 1777509540000
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // Response Interceptor: Handle 401 and Refresh Token
 api.interceptors.response.use(
     (response) => response,
@@ -72,21 +86,41 @@ api.interceptors.response.use(
 
         originalRequest._retry = true;
 
+        if (isRefreshing) {
+            return new Promise(function(resolve, reject) {
+                failedQueue.push({ resolve, reject });
+            })
+            .then(token => {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                return api(originalRequest);
+            })
+            .catch(err => {
+                return Promise.reject(err);
+            });
+        }
+
+        isRefreshing = true;
+
         try {
             // Attempt invisible refresh
             const response = await api.post('/auth/refresh', {}, { withCredentials: true });
             
             if (response.data.success) {
                 accessToken = response.data.accessToken;
+                processQueue(null, accessToken);
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                isRefreshing = false;
                 return api(originalRequest);
             }
         } catch (refreshError) {
+            processQueue(refreshError, null);
             accessToken = null;
             window.dispatchEvent(new Event('auth-logout'));
+            isRefreshing = false;
             return Promise.reject(refreshError);
         }
 
+        isRefreshing = false;
         return Promise.reject(error);
     }
 );

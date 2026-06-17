@@ -94,7 +94,7 @@ export class ShopService {
         };
     }
 
-    async updateShopStatus(id, status, admin) {
+    async updateShopStatus(id, status, admin, rejectionReason = undefined) {
         const shop = await this.shopRepository.findById(id);
         if (!shop) throw new AppError('Shop not found', 404);
 
@@ -103,11 +103,17 @@ export class ShopService {
             throw new AppError('Forbidden: Cannot modify shops outside your regions', 403);
         }
 
-        const updatedShop = await this.shopRepository.update(id, { 
+        const updates = {
             status: status.toUpperCase(),
             approved_by: status.toUpperCase() === 'APPROVED' ? admin.id : undefined,
             approved_at: status.toUpperCase() === 'APPROVED' ? new Date().toISOString() : undefined
-        });
+        };
+
+        if (status.toUpperCase() === 'REJECTED') {
+            updates.rejection_reason = rejectionReason || 'Administrative action';
+        }
+
+        const updatedShop = await this.shopRepository.update(id, updates);
 
         // Promote owner to vendor if approved
         if (status.toUpperCase() === 'APPROVED' || status.toUpperCase() === 'ACTIVE') {

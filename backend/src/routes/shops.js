@@ -25,6 +25,9 @@ router.post('/manual', shopController.registerManual);
  * Admin Routes
  */
 router.patch('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.updateStatus);
+router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.updateStatus);
+router.put('/:id/approve', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.approve);
+router.put('/:id/reject', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.reject);
 router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.deleteShop);
 
 /**

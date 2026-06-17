@@ -123,6 +123,33 @@ export class ShopController {
     };
 
     /**
+     * PUT /api/shops/:id/approve
+     */
+    approve = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const shop = await this.shopService.updateShopStatus(id, 'APPROVED', req.user);
+            res.status(200).json({ success: true, shop });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * PUT /api/shops/:id/reject
+     */
+    reject = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const { rejection_reason } = req.body;
+            const shop = await this.shopService.updateShopStatus(id, 'REJECTED', req.user, rejection_reason);
+            res.status(200).json({ success: true, shop });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
      * PUT /api/shops/:id
      */
     updateShop = async (req, res, next) => {
