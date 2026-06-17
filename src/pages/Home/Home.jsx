@@ -17,7 +17,6 @@ const Home = () => {
     const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
-    const [showAllGifts, setShowAllGifts] = useState(false);
     const [showAllFashion, setShowAllFashion] = useState(false);
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -284,35 +283,7 @@ const Home = () => {
                 </section>
             )}
 
-            {/* Gift Boxes Section */}
-            {giftBoxProducts.length > 0 && (
-                <section className="section gift-box-special-section reveal">
-                    <div className="container">
-                        <div className="gift-box-header text-center">
-                            <h2 className="section-title">{t('gift_boxes.title', 'Gift Boxes')}</h2>
-                            <p className="section-subtitle">
-                                {t('gift_boxes.subtitle', 'Perfectly curated sets for every occasion')}
-                            </p>
-                        </div>
-                        <div className={`products-grid-wrapper${showAllGifts ? '' : ' collapsed'}`}>
-                            <div className="products-grid">
-                                {giftBoxProducts.map(product => (
-                                    <ProductCard key={product.id} product={product} isRTL={isRTL} />
-                                ))}
-                            </div>
-                            {!showAllGifts && <div className="products-grid-fade"></div>}
-                        </div>
-                        <div className="text-center section-view-more" style={{ marginTop: '32px' }}>
-                            <button className="btn btn-outline" onClick={() => setShowAllGifts(prev => !prev)}>
-                                {showAllGifts ? t('common.view_less') : t('common.view_more')}
-                            </button>
-                            <Link to="/category/gift-box" className="btn btn-gold" style={{ marginLeft: '12px' }}>
-                                {isRTL ? 'تسوق جميع الصناديق' : 'Shop All Gift Boxes'}
-                            </Link>
-                        </div>
-                    </div>
-                </section>
-            )}
+
 
             {/* Fashion Section */}
             {fashionProducts.length > 0 && (

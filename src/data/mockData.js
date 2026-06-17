@@ -107,7 +107,59 @@ export const mockProducts = [
     { id: 22, name: "Royal Blend", brand: "French Avenue", type: "EDP (Eau de Parfum)", size: "100ml / 3.4 oz", price: 137, oldPrice: 160, discount: 14, isNew: false, image: "https://placehold.co/400x500/1a1a1a/d4af37?text=French+Ave+Royal", category: ["arabic", "gourmand", "warm"], gender: "unisex", description: "An intoxicating blend of cognac, cinnamon, and oak. Luxurious and warm.", stock: 35 },
     { id: 23, name: "Francique 63.55", brand: "French Avenue", type: "EDP (Eau de Parfum)", size: "100ml / 3.4 oz", price: 140, oldPrice: 170, discount: 18, isNew: true, image: "https://placehold.co/400x500/1a1a1a/d4af37?text=French+Ave+Francique", category: ["arabic", "fruity", "leather"], gender: "unisex", description: "Elegant blend of cardamom, leather, and fig. A unique and distinguished profile.", stock: 25 },
     { id: 24, name: "Imperial Oud", brand: "French Avenue", type: "EDP (Eau de Parfum)", size: "100ml / 3.4 oz", price: 147, oldPrice: 175, discount: 16, isNew: false, image: "https://placehold.co/400x500/1a1a1a/d4af37?text=French+Ave+Imperial", category: ["arabic", "oud", "spicy"], gender: "unisex", description: "A majestic oud fragrance surrounded by spices and dark woods.", stock: 20 },
-    { id: 25, name: "Liquid Brun", brand: "French Avenue", type: "EDP (Eau de Parfum)", size: "100ml / 3.4 oz", price: 140, oldPrice: 190, discount: 26, isNew: true, image: "https://placehold.co/400x500/1a1a1a/d4af37?text=French+Ave+Liquid", category: ["arabic", "warm", "spicy"], gender: "men", description: "A stunning warm spicy profile with exceptional longevity and projection.", stock: 45 }
+    { id: 25, name: "Liquid Brun", brand: "French Avenue", type: "EDP (Eau de Parfum)", size: "100ml / 3.4 oz", price: 140, oldPrice: 190, discount: 26, isNew: true, image: "https://placehold.co/400x500/1a1a1a/d4af37?text=French+Ave+Liquid", category: ["arabic", "warm", "spicy"], gender: "men", description: "A stunning warm spicy profile with exceptional longevity and projection.", stock: 45 },
+    // EXCLUSIVE ABAYAS
+    {
+        id: 372,
+        name: "Royal Velvet Dusk Abaya",
+        brand: "Al Motahajiba",
+        type: "Apparel",
+        size: ["S", "M", "L"],
+        price: 1200,
+        oldPrice: 1350,
+        discount: 11,
+        isNew: true,
+        image: ["/assets/products/royal_velvet_abaya.png"],
+        category: ["fashion", "abaya", "clothing"],
+        gender: "women",
+        description: "An exquisite velvet abaya featuring intricate hand-embroidered gold calligraphy details along the sleeves and hem. Crafted from the finest silk velvet for a majestic drape.",
+        stock: 12,
+        attributes: { color: "Midnight Black", material: "Silk Velvet", origin: "Qatar" }
+    },
+    {
+        id: 373,
+        name: "Pearl-Embellished Organza Abaya",
+        brand: "Waad Designs",
+        type: "Apparel",
+        size: ["S", "M", "L"],
+        price: 1550,
+        oldPrice: null,
+        discount: 0,
+        isNew: true,
+        image: ["/assets/products/pearl_organza_abaya.png"],
+        category: ["fashion", "abaya", "clothing"],
+        gender: "women",
+        description: "Lightweight and ethereal organza abaya adorned with hand-stitched freshwater pearls. Ideal for special occasions and elegant evening wear.",
+        stock: 8,
+        attributes: { color: "Pearl White", material: "Premium Organza & Silk", origin: "Qatar" }
+    },
+    {
+        id: 374,
+        name: "Classic Linen Summer Abaya",
+        brand: "Al Motahajiba",
+        type: "Apparel",
+        size: ["S", "M", "L", "XL"],
+        price: 850,
+        oldPrice: 950,
+        discount: 10,
+        isNew: false,
+        image: ["/assets/products/linen_abaya.png"],
+        category: ["fashion", "abaya", "clothing"],
+        gender: "women",
+        description: "A minimalist, breathable linen abaya designed for warm summer days. Combining casual comfort with understated elegance.",
+        stock: 15,
+        attributes: { color: "Sand Beige", material: "100% Pure Linen", origin: "Qatar" }
+    }
 ];
 
 export const featuredProducts = mockProducts.slice(0, 4);

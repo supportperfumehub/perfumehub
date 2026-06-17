@@ -43,7 +43,15 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const navLinks = [
         { name: t('navbar.home'), path: '/' },
         { name: t('navbar.shop'), path: '/shop' },
-        { name: t('navbar.men'), path: '/category/fashion' },
+        { 
+            name: t('navbar.men'), 
+            path: '/category/fashion',
+            hasDropdown: true,
+            dropdownItems: [
+                { name: t('navbar.all_fashion'), path: '/category/fashion' },
+                { name: t('navbar.abaya'), path: '/category/abaya' }
+            ]
+        },
         { name: t('navbar.women'), path: '/category/jewellery' },
         { name: t('navbar.arabic'), path: '/category/gift-box' },
         { name: t('navbar.ai_advisor'), path: '/ai-advisor' }
@@ -70,11 +78,34 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
 
                 {/* Desktop Navigation */}
                 <nav className={`navbar-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-                    {navLinks.map((link) => (
-                        <Link key={link.name} to={link.path} onClick={(e) => handleHomeClick(e, link.path)}>
-                            {link.name}
-                        </Link>
-                    ))}
+                    {navLinks.map((link) => {
+                        if (link.hasDropdown) {
+                            return (
+                                <div key={link.name} className="nav-item-dropdown">
+                                    <Link to={link.path} className="dropdown-toggle-link" onClick={(e) => handleHomeClick(e, link.path)}>
+                                        {link.name}
+                                    </Link>
+                                    <div className="dropdown-menu">
+                                        {link.dropdownItems.map(subItem => (
+                                            <Link 
+                                                key={subItem.name} 
+                                                to={subItem.path} 
+                                                className="dropdown-item"
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                            >
+                                                {subItem.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return (
+                            <Link key={link.name} to={link.path} onClick={(e) => handleHomeClick(e, link.path)}>
+                                {link.name}
+                            </Link>
+                        );
+                    })}
                     
                     {/* Mobile Only Links (Moved from Icons) */}
                     <div className="mobile-only-links">

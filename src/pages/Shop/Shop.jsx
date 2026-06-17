@@ -40,6 +40,7 @@ const Shop = () => {
     const [showResetModal, setShowResetModal] = useState(false);
     const [visibleCount, setVisibleCount] = useState(20);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [activeSubcategory, setActiveSubcategory] = useState('all');
 
     // Dynamically compute brands from mockProducts based on category
     const categoryBrands = React.useMemo(() => {
@@ -97,6 +98,11 @@ const Shop = () => {
                 (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
                 p.gender === type
             );
+        }
+
+        // Subcategory Filter (Fashion only)
+        if (type === 'fashion' && activeSubcategory !== 'all') {
+            result = result.filter(p => Array.isArray(p.category) && p.category.includes(activeSubcategory));
         }
 
         // Filter by shop ID
@@ -175,10 +181,11 @@ const Shop = () => {
 
         setProducts(result);
         setVisibleCount(20); // Reset visible count when filters change
-    }, [type, shopIdFilter, selectedBrands, selectedSizes, selectedColors, selectedMaterials, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts]);
+    }, [type, shopIdFilter, selectedBrands, selectedSizes, selectedColors, selectedMaterials, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts, activeSubcategory]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        setActiveSubcategory('all'); // Reset subcategory when page category changes
     }, [type]);
 
     const handleFilter = (brandName) => {
@@ -203,6 +210,7 @@ const Shop = () => {
             'jewellery': isRTL ? 'مجموعة المجوهرات' : 'Jewellery Collection',
             'arabic': isRTL ? 'صناديق الهدايا' : 'Gift Box',
             'gift-box': isRTL ? 'صناديق الهدايا' : 'Gift Box',
+            'abaya': isRTL ? 'مجموعة العبايات الحصرية' : 'Exclusive Abaya Collection',
         };
         return titles[type] || (isRTL ? 'التسوق' : 'Shop');
     };
@@ -210,6 +218,9 @@ const Shop = () => {
     const getPageSubtitle = () => {
         if (type === 'fashion') {
             return isRTL ? 'تصفح مجموعتنا الحصرية من الملابس والأزياء الفاخرة.' : 'Browse our exclusive collection of luxury apparel and fashion.';
+        }
+        if (type === 'abaya') {
+            return isRTL ? 'تصفح مجموعتنا الحصرية من العبايات الفاخرة المصممة بأيدي أشهر المصممين.' : 'Browse our premium hand-crafted luxury Abayas from Qatar\'s top designers.';
         }
         if (type === 'jewellery') {
             return isRTL ? 'اكتشف أرقى تصميمات المجوهرات والساعات الفاخرة.' : 'Discover the finest designs of luxury jewellery and watches.';
@@ -230,6 +241,7 @@ const Shop = () => {
         setSelectedColors([]);
         setSelectedMaterials([]);
         setBrandSearch('');
+        setActiveSubcategory('all');
         setShowResetModal(false);
     };
 
@@ -242,6 +254,7 @@ const Shop = () => {
             'jewellery': womenBanner,
             'arabic': arabicBanner,
             'gift-box': arabicBanner,
+            'abaya': womenBanner,
         };
         return banners[type] || allBanner;
     };
@@ -549,6 +562,44 @@ const Shop = () => {
                 </div>
 
                 <div className="shop-content">
+                    {/* Render subcategory pills for Fashion */}
+                    {type === 'fashion' && (
+                        <div className="subcategories-pills animate-fade-in" style={{
+                            display: 'flex',
+                            gap: '10px',
+                            flexWrap: 'wrap',
+                            marginBottom: '25px',
+                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            paddingBottom: '15px'
+                        }}>
+                            {[
+                                { id: 'all', label: isRTL ? 'الكل' : 'All Fashion' },
+                                { id: 'abaya', label: isRTL ? 'عبايات حصرية' : 'Exclusive Abayas' },
+                                { id: 'clothing', label: isRTL ? 'ملابس' : 'Apparel' },
+                                { id: 'accessories', label: isRTL ? 'إكسسوارات' : 'Accessories' },
+                                { id: 'eyewear', label: isRTL ? 'نظارات' : 'Eyewear' }
+                            ].map(pill => (
+                                <button
+                                    key={pill.id}
+                                    className={`btn ${activeSubcategory === pill.id ? 'btn-gold' : 'btn-outline'}`}
+                                    onClick={() => setActiveSubcategory(pill.id)}
+                                    style={{
+                                        padding: '8px 18px',
+                                        fontSize: '0.85rem',
+                                        borderRadius: '30px',
+                                        borderWidth: '1px',
+                                        backgroundColor: activeSubcategory === pill.id ? 'var(--color-gold)' : 'transparent',
+                                        color: activeSubcategory === pill.id ? '#000000' : 'inherit',
+                                        fontWeight: '700',
+                                        letterSpacing: '0.5px'
+                                    }}
+                                >
+                                    {pill.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="shop-controls">
                         <span>
                             {isRTL

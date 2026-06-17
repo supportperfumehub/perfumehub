@@ -66,7 +66,8 @@ async function syncData() {
             vibes: p.vibes || [],
             occasions: p.occasions || [],
             seasons: p.seasons || [],
-            sku: `MOCK-${p.brand.substring(0,3).toUpperCase()}-${p.name.substring(0,3).toUpperCase()}`
+            sku: `MOCK-${p.brand.substring(0,3).toUpperCase()}-${p.name.substring(0,3).toUpperCase()}`,
+            attributes: p.attributes || {}
         };
 
         if (nameToId.has(p.name)) {
