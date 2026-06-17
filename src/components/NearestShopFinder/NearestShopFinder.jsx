@@ -88,44 +88,6 @@ const NearestShopFinder = ({ isRTL }) => {
                 </p>
             </div>
 
-            <div className="shops-grid">
-                {displayedShops.length > 0 ? (
-                    displayedShops.map((shop) => (
-                        <div key={shop.id} className="shop-card">
-                            <div className="shop-image-container">
-                                {(shop.images?.[0] || shop.logo_url) 
-                                    ? <img src={shop.images?.[0] || shop.logo_url} alt={shop.name} /> 
-                                    : <Store size={40} color="#ddd" />}
-                            </div>
-                            <div className="shop-content">
-                                <div className="shop-info">
-                                    <h3>{shop.name}</h3>
-                                    <p className="shop-address"><MapPin size={14} /> {shop.address}</p>
-                                </div>
-                                
-                                {location && shop.distance !== Infinity && (
-                                    <div className="shop-distance">
-                                        <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
-                                    </div>
-                                )}
-
-                                <button 
-                                    className="shop-visit-btn"
-                                    onClick={() => navigate(`/shop?shop_id=${shop.id}`)}
-                                >
-                                    {isRTL ? 'زيارة المتجر' : 'Visit Shop'}
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="no-shops-found">
-                        <Store size={48} color="#ddd" />
-                        <p>{isRTL ? 'لم يتم العثور على متاجر' : 'No shops found nearby or matching criteria.'}</p>
-                    </div>
-                )}
-            </div>
-
             <div className="shop-finder-controls">
                 <button 
                     className={`btn btn-gold location-btn ${loadingLocation ? 'loading' : ''}`} 
@@ -152,6 +114,46 @@ const NearestShopFinder = ({ isRTL }) => {
                     <Search className="search-icon" size={20} />
                 </div>
             </div>
+
+            {(location || searchTerm.trim() !== '') && (
+                <div className="shops-grid">
+                    {displayedShops.length > 0 ? (
+                        displayedShops.map((shop) => (
+                            <div key={shop.id} className="shop-card">
+                                <div className="shop-image-container">
+                                    {(shop.images?.[0] || shop.logo_url) 
+                                        ? <img src={shop.images?.[0] || shop.logo_url} alt={shop.name} /> 
+                                        : <Store size={40} color="#ddd" />}
+                                </div>
+                                <div className="shop-content">
+                                    <div className="shop-info">
+                                        <h3>{shop.name}</h3>
+                                        <p className="shop-address"><MapPin size={14} /> {shop.address}</p>
+                                    </div>
+                                    
+                                    {location && shop.distance !== Infinity && (
+                                        <div className="shop-distance">
+                                            <strong>{shop.distance.toFixed(1)} km</strong> {isRTL ? 'بعيد عنك' : 'away'}
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        className="shop-visit-btn"
+                                        onClick={() => navigate(`/shop?shop_id=${shop.id}`)}
+                                    >
+                                        {isRTL ? 'زيارة المتجر' : 'Visit Shop'}
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="no-shops-found">
+                            <Store size={48} color="#ddd" />
+                            <p>{isRTL ? 'لم يتم العثور على متاجر' : 'No shops found nearby or matching criteria.'}</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </section>
     );
 };
