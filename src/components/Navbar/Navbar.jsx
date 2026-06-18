@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan } from 'lucide-react';
+import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan, ChevronDown } from 'lucide-react';
 import logo from '../../assets/logo_transparent.png';
 import SearchBar from '../SearchBar/SearchBar';
 import { AuthContext } from '../../context/AuthContext';
@@ -13,6 +13,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const { t } = useTranslation();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [expandedDropdown, setExpandedDropdown] = useState(null);
     const location = useLocation();
     const { user, isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
     const { getCartCount } = useContext(CartContext);
@@ -28,6 +29,12 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useEffect(() => {
+        if (!isMobileMenuOpen) {
+            setExpandedDropdown(null);
+        }
+    }, [isMobileMenuOpen]);
 
     const handleHomeClick = (e, path) => {
         setIsMobileMenuOpen(false);
@@ -81,17 +88,32 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     {navLinks.map((link) => {
                         if (link.hasDropdown) {
                             return (
-                                <div key={link.name} className="nav-item-dropdown">
-                                    <Link to={link.path} className="dropdown-toggle-link" onClick={(e) => handleHomeClick(e, link.path)}>
+                                <div key={link.name} className={`nav-item-dropdown ${expandedDropdown === link.name ? 'expanded' : ''}`}>
+                                    <Link 
+                                        to={link.path} 
+                                        className="dropdown-toggle-link" 
+                                        onClick={(e) => {
+                                            if (window.innerWidth <= 1024) {
+                                                e.preventDefault();
+                                                setExpandedDropdown(prev => prev === link.name ? null : link.name);
+                                            } else {
+                                                handleHomeClick(e, link.path);
+                                            }
+                                        }}
+                                    >
                                         {link.name}
+                                        <ChevronDown size={16} className="dropdown-chevron" />
                                     </Link>
-                                    <div className="dropdown-menu">
+                                    <div className={`dropdown-menu ${expandedDropdown === link.name ? 'mobile-show' : ''}`}>
                                         {link.dropdownItems.map(subItem => (
                                             <Link 
                                                 key={subItem.name} 
                                                 to={subItem.path} 
                                                 className="dropdown-item"
-                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                onClick={() => {
+                                                    setIsMobileMenuOpen(false);
+                                                    setExpandedDropdown(null);
+                                                }}
                                             >
                                                 {subItem.name}
                                             </Link>
