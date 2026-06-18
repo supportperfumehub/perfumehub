@@ -462,7 +462,8 @@
     transform: translateX(-50%) translateY(0);
 }
 
-.dropdown-item {
+.dropdown-item,
+.navbar.light-nav .navbar-links:not(.mobile-open) .dropdown-item {
     padding: 10px 20px !important;
     font-size: 0.825rem !important;
     font-weight: 700 !important;
@@ -475,6 +476,11 @@
     width: 100%;
     transition: all 0.2s ease !important;
     box-sizing: border-box;
+}
+
+.dropdown-item::after,
+.navbar.light-nav .navbar-links:not(.mobile-open) .dropdown-item::after {
+    display: none !important;
 }
 
 .dropdown-item:hover {
