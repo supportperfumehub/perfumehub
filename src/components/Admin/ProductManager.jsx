@@ -620,6 +620,48 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             cancelEdit();
         }
     };
+    const safeProducts = Array.isArray(products) ? products : [];
+    const shopFilteredProducts = safeProducts.filter(product => {
+        if (shopId) {
+            const isOwned = String(product.shop_id) === String(shopId);
+            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
+            if (!isOwned && !isLinked) return false;
+        }
+        if (!shopId) {
+            if (filterShop === 'own' && product.shop_id) return false;
+            if (filterShop !== 'all' && filterShop !== 'own' && String(product.shop_id) !== String(filterShop)) return false;
+        }
+        return true;
+    });
+
+    const getCategoryCounts = () => {
+        const counts = { all: 0, perfume: 0, fashion: 0, abaya: 0, giftbox: 0, jewellery: 0 };
+        shopFilteredProducts.forEach(product => {
+            counts.all++;
+            const cats = Array.isArray(product.category) ? product.category.map(c => c.toLowerCase()) : [];
+            
+            if (cats.includes('abaya')) {
+                counts.abaya++;
+            } else if (cats.includes('fashion')) {
+                counts.fashion++;
+            }
+            
+            if (cats.includes('jewellery')) {
+                counts.jewellery++;
+            }
+            
+            if (cats.includes('giftbox') || cats.includes('gift-box')) {
+                counts.giftbox++;
+            }
+            
+            if (!cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box') && !cats.includes('abaya')) {
+                counts.perfume++;
+            }
+        });
+        return counts;
+    };
+
+    const categoryCounts = getCategoryCounts();
 
     return (
         <div className="manager-content">
@@ -1173,12 +1215,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     borderBottom: '1px solid #1e293b' 
                 }}>
                     {[
-                        { id: 'all', labelEn: 'All Products', labelAr: 'جميع المنتجات' },
-                        { id: 'perfume', labelEn: 'Perfume', labelAr: 'العطور' },
-                        { id: 'fashion', labelEn: 'Fashion', labelAr: 'الأزياء' },
-                        { id: 'abaya', labelEn: 'Exclusive (Abaya)', labelAr: 'حصري (عبايات)' },
-                        { id: 'giftbox', labelEn: 'Gift Box', labelAr: 'علب الهدايا' },
-                        { id: 'jewellery', labelEn: 'Jewellery', labelAr: 'مجوهرات' }
+                        { id: 'all', labelEn: `All Products (${categoryCounts.all})`, labelAr: `جميع المنتجات (${categoryCounts.all})` },
+                        { id: 'perfume', labelEn: `Perfume (${categoryCounts.perfume})`, labelAr: `العطور (${categoryCounts.perfume})` },
+                        { id: 'fashion', labelEn: `Fashion (${categoryCounts.fashion})`, labelAr: `الأزياء (${categoryCounts.fashion})` },
+                        { id: 'abaya', labelEn: `Exclusive (Abaya) (${categoryCounts.abaya})`, labelAr: `حصري (عبايات) (${categoryCounts.abaya})` },
+                        { id: 'giftbox', labelEn: `Gift Box (${categoryCounts.giftbox})`, labelAr: `علب الهدايا (${categoryCounts.giftbox})` },
+                        { id: 'jewellery', labelEn: `Jewellery (${categoryCounts.jewellery})`, labelAr: `مجوهرات (${categoryCounts.jewellery})` }
                     ].map(cat => (
                         <button
                             type="button"
@@ -1211,22 +1253,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {[...products]
+                        {[...shopFilteredProducts]
                             .map((p, index) => ({ ...p, originalIndex: index }))
                             .filter(product => {
-                                // Vendor-specific bound manager isolation
-                                if (shopId) {
-                                    const isOwned = String(product.shop_id) === String(shopId);
-                                    const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
-                                    if (!isOwned && !isLinked) return false;
-                                }
-                                
-                                // Global Super Admin dynamic dropdown filter logic
-                                if (!shopId) {
-                                    if (filterShop === 'own' && product.shop_id) return false;
-                                    if (filterShop !== 'all' && filterShop !== 'own' && String(product.shop_id) !== String(filterShop)) return false;
-                                }
-
                                 // Category filter
                                 if (selectedCategory !== 'all') {
                                     const cats = Array.isArray(product.category) ? product.category.map(c => c.toLowerCase()) : [];
