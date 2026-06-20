@@ -94,11 +94,11 @@ const Home = () => {
                                 <div key={item.id} className="featured-slide">
                                     <div 
                                         className="featured-slide-dynamic-bg" 
-                                        style={{ backgroundImage: `url(${isShopCampaign ? (item.shop?.logo_url || '') : (Array.isArray(item.image) ? item.image[0] : item.image)})`, opacity: isShopCampaign ? 0.3 : 1 }}
+                                        style={{ backgroundImage: `url(${isShopCampaign ? (item.shop?.images?.[0] || item.shop?.logo_url || '') : (Array.isArray(item.image) ? item.image[0] : item.image)})`, opacity: isShopCampaign ? 0.3 : 1 }}
                                     ></div>
                                     <div className="featured-slide-img-container">
                                         <img 
-                                            src={isShopCampaign ? (item.shop?.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Shop') : (Array.isArray(item.image) ? item.image[0] : item.image)} 
+                                            src={isShopCampaign ? (item.shop?.images?.[0] || item.shop?.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Shop') : (Array.isArray(item.image) ? item.image[0] : item.image)} 
                                             alt={isShopCampaign ? item.shop?.name : item.name} 
                                             className="featured-slide-img" 
                                             loading="eager"
@@ -206,7 +206,7 @@ const Home = () => {
                                     <div 
                                         className="boutique-image-container" 
                                         style={{ 
-                                            backgroundImage: `url(${shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
+                                            backgroundImage: `url(${shop.images?.[0] || shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
                                             backgroundSize: 'cover',
                                             backgroundPosition: 'center',
                                             backgroundRepeat: 'no-repeat',
