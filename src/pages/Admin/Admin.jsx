@@ -12,7 +12,7 @@ import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders
+    Sparkles, Sliders, Package
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
@@ -37,6 +37,7 @@ const Admin = () => {
 
     const tabs = [
         { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
+        { id: 'products', label: isRTL ? 'المنتجات' : 'Products', icon: <Package size={20} /> },
         { id: 'orders', label: isRTL ? 'إدارة الطلبات' : 'Orders', icon: <ShoppingCart size={20} /> },
         // Regional admins might not control global coupons or recovery
         ...(isSuperAdmin ? [{ id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> }] : []),
