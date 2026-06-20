@@ -1,21 +1,92 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useOutletContext, Navigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { ShopContext } from '../../context/ShopContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import ReservationManager from '../../components/Admin/ReservationManager';
+import ConfirmModal from '../../components/Common/ConfirmModal';
 import '../Admin/Admin.css'; // Use the premium admin styles
-import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck } from 'lucide-react';
+import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
     const { isRTL } = useOutletContext();
     const { user, isVendor } = useContext(AuthContext);
-    const [activeTab, setActiveTab] = useState('products');
+    const { showToast } = useContext(ShopContext);
+    const shopId = user?.shop_id;
+    const [activeTab, setActiveTab] = useState(shopId ? 'products' : 'billing');
     const [shopData, setShopData] = useState(null);
     const [savingSettings, setSavingSettings] = useState(false);
 
-    const shopId = user?.shop_id;
+    useEffect(() => {
+        if (!shopId) {
+            setActiveTab('billing');
+        }
+    }, [shopId]);
+
+    // Billing & Subscriptions state
+    const [mySubscription, setMySubscription] = useState(null);
+    const [availablePlans, setAvailablePlans] = useState([]);
+    const [loadingBilling, setLoadingBilling] = useState(false);
+    const [subConfirmModal, setSubConfirmModal] = useState({
+        isOpen: false,
+        plan: null
+    });
+    const [cancelConfirmModal, setCancelConfirmModal] = useState(false);
+
+    const fetchBillingData = async () => {
+        if (!user?.id) return;
+        try {
+            setLoadingBilling(true);
+            const [subRes, plansRes] = await Promise.all([
+                api.get('/subscriptions/my-subscription'),
+                api.get('/subscriptions/plans')
+            ]);
+            setMySubscription(subRes.data && subRes.data.id ? subRes.data : null);
+            setAvailablePlans(plansRes.data || []);
+        } catch (error) {
+            console.error("Error fetching billing data:", error);
+        } finally {
+            setLoadingBilling(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'billing') {
+            fetchBillingData();
+        }
+    }, [activeTab, user?.id]);
+
+    const handleSubscribe = async () => {
+        const plan = subConfirmModal.plan;
+        if (!plan) return;
+        try {
+            const res = await api.post('/subscriptions/subscribe', { planId: plan.id });
+            if (res.status === 201 || res.data.id) {
+                showToast(isRTL ? 'تم الاشتراك بنجاح!' : 'Subscribed successfully!', 'success');
+                setSubConfirmModal({ isOpen: false, plan: null });
+                fetchBillingData();
+            }
+        } catch (error) {
+            console.error(error);
+            showToast(error.response?.data?.error || (isRTL ? 'فشل الاشتراك' : 'Subscription failed'), 'error');
+        }
+    };
+
+    const handleCancelSubscription = async () => {
+        try {
+            const res = await api.post('/subscriptions/cancel');
+            if (res.status === 200 || res.data.message) {
+                showToast(isRTL ? 'تم إلغاء الاشتراك بنجاح' : 'Subscription canceled successfully', 'success');
+                setCancelConfirmModal(false);
+                fetchBillingData();
+            }
+        } catch (error) {
+            console.error(error);
+            showToast(error.response?.data?.error || (isRTL ? 'فشل إلغاء الاشتراك' : 'Failed to cancel subscription'), 'error');
+        }
+    };
 
     useEffect(() => {
         if (shopId && activeTab === 'settings' && !shopData) {
@@ -34,8 +105,8 @@ const VendorPanel = () => {
         }
     }, [shopId, activeTab, shopData, user]);
 
-    // If somehow landed here without vendor role (moved after hooks to prevent rules of hooks violation)
-    if (!isVendor && user?.role !== 'admin') {
+    // If somehow landed here without vendor/admin/regional_admin role (moved after hooks to prevent rules of hooks violation)
+    if (!isVendor && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'regional_admin') {
         return <Navigate to="/" replace />;
     }
 
@@ -89,21 +160,16 @@ const VendorPanel = () => {
         setShopData({ ...shopData, images: updatedImages });
     };
 
-    if (!shopId) {
-        return (
-            <div className="container section text-center" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <Store size={64} color="#c8a951" style={{ marginBottom: '20px' }} />
-                <h2 style={{ color: '#fff' }}>{isRTL ? 'إعداد متجرك قيد المعالجة' : 'Your Shop is Pending Setup'}</h2>
-                <p style={{ color: '#94a3b8' }}>{isRTL ? 'تواصل مع الإدارة لتفعيل متجرك' : 'Contact admin to activate your shop.'}</p>
-            </div>
-        );
-    }
-
     const tabs = [
         { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <PackageIcon size={20} /> },
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
-        { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> }
+        { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> },
+        { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
+    ];
+
+    const filteredTabs = shopId ? tabs : [
+        { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
     ];
 
     return (
@@ -118,7 +184,7 @@ const VendorPanel = () => {
                 </div>
                 
                 <nav className="sidebar-nav">
-                    {tabs.map(tab => (
+                    {filteredTabs.map(tab => (
                         <button
                             key={tab.id}
                             className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
@@ -143,7 +209,7 @@ const VendorPanel = () => {
             <main className="admin-main">
                 <header className="main-header">
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h1>{tabs.find(t => t.id === activeTab)?.label}</h1>
+                        <h1>{filteredTabs.find(t => t.id === activeTab)?.label || (isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription')}</h1>
                         <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
                             {isRTL
                                 ? `مرحباً بك في متجرك، ${user?.name}`
@@ -153,10 +219,10 @@ const VendorPanel = () => {
                 </header>
 
                 <div className="main-content-wrapper">
-                    {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={shopId} />}
-                    {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={shopId} />}
-                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={shopId} />}
-                    {activeTab === 'settings' && (
+                    {activeTab === 'products' && shopId && <ProductManager isRTL={isRTL} shopId={shopId} />}
+                    {activeTab === 'orders' && shopId && <OrderManager isRTL={isRTL} shopId={shopId} />}
+                    {activeTab === 'reservations' && shopId && <ReservationManager isRTL={isRTL} shopId={shopId} />}
+                    {activeTab === 'settings' && shopId && (
                         <div className="admin-section">
                             <div className="manager-header">
                                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -178,13 +244,13 @@ const VendorPanel = () => {
                                             images: shopData.images
                                         });
                                         if (res.status === 200 || res.data.success) {
-                                            alert(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully');
+                                            showToast(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully', 'success');
                                         } else {
-                                            alert(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`);
+                                            showToast(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`, 'error');
                                         }
                                     } catch (e) {
                                         console.error(e);
-                                        alert(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'));
+                                        showToast(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'), 'error');
                                     } finally {
                                         setSavingSettings(false);
                                     }
@@ -270,6 +336,189 @@ const VendorPanel = () => {
                             ) : (
                                 <p style={{ color: '#94a3b8' }}>{isRTL ? 'جاري تحميل البيانات...' : 'Loading...'}</p>
                             )}
+                        </div>
+                    )}
+                    {activeTab === 'billing' && (
+                        <div className="admin-section">
+                            <div className="manager-header">
+                                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <CreditCard size={24} color="#c8a951" />
+                                    {isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription'}
+                                </h2>
+                            </div>
+
+                            {!shopId && (
+                                <div style={{ marginBottom: '24px', padding: '16px', background: 'rgba(200, 169, 81, 0.1)', border: '1px solid #c8a951', borderRadius: '12px', color: '#fff', fontSize: '0.95rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <ShieldCheck size={20} color="#c8a951" style={{ flexShrink: 0 }} />
+                                        <span>
+                                            {isRTL 
+                                                ? 'يرجى الاشتراك في خطة اشتراك لتفعيل متجرك وبدء بيع منتجاتك.' 
+                                                : 'Please subscribe to a plan to activate your shop and start selling.'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {loadingBilling ? (
+                                <div className="text-center p-4" style={{ color: '#94a3b8' }}>
+                                    {isRTL ? 'جاري تحميل بيانات الفوترة...' : 'Loading billing data...'}
+                                </div>
+                            ) : mySubscription ? (
+                                <div className="admin-card" style={{ padding: '30px', background: '#1e293b', border: '1px solid #334155' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+                                        <div>
+                                            <span style={{ background: '#c8a95122', color: '#c8a951', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                {isRTL ? 'خطة نشطة' : 'Active Plan'}
+                                            </span>
+                                            <h3 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#fff', marginTop: '12px', marginBottom: '8px' }}>
+                                                {mySubscription.plan?.name}
+                                            </h3>
+                                            <p style={{ color: '#94a3b8', fontSize: '0.95rem', maxWidth: '500px' }}>
+                                                {mySubscription.plan?.description}
+                                            </p>
+                                            
+                                            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
+                                                        {isRTL ? 'تكلفة الاشتراك' : 'Subscription Cost'}
+                                                    </div>
+                                                    <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#fff', marginTop: '4px' }}>
+                                                        {mySubscription.plan?.price} QAR / {isRTL ? (mySubscription.plan?.interval === 'year' ? 'سنة' : 'شهر') : mySubscription.plan?.interval}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
+                                                        {isRTL ? 'تاريخ التجديد التالي' : 'Next Renewal Date'}
+                                                    </div>
+                                                    <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#fff', marginTop: '4px' }}>
+                                                        {mySubscription.current_period_end ? new Date(mySubscription.current_period_end).toLocaleDateString(isRTL ? 'ar-QA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '12px', border: '1px solid #334155', minWidth: '250px' }}>
+                                            <h4 style={{ color: '#fff', marginBottom: '12px', fontSize: '0.95rem' }}>{isRTL ? 'ميزات الخطة' : 'Plan Features'}</h4>
+                                            {mySubscription.plan?.features && mySubscription.plan.features.length > 0 ? (
+                                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {mySubscription.plan.features.map((feature, idx) => (
+                                                        <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                                            <CheckCircle size={14} style={{ color: '#c8a951', flexShrink: 0 }} />
+                                                            <span>{feature}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{isRTL ? 'لا توجد ميزات مدرجة' : 'No features listed'}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginTop: '30px', borderTop: '1px solid #334155', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-outline" 
+                                            style={{ borderColor: '#ef444433', color: '#ef4444' }}
+                                            onClick={() => setCancelConfirmModal(true)}
+                                        >
+                                            {isRTL ? 'إلغاء الاشتراك' : 'Cancel Subscription'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                                        <h3 style={{ fontSize: '1.5rem', color: '#fff', fontWeight: '700' }}>
+                                            {isRTL ? 'اختر خطة لتنشيط متجرك' : 'Choose a Plan to Activate Your Shop'}
+                                        </h3>
+                                        <p style={{ color: '#94a3b8', marginTop: '6px', fontSize: '0.95rem' }}>
+                                            {isRTL 
+                                                ? 'اشترك لفتح ميزات البيع المتقدمة والترويج لمنتجاتك' 
+                                                : 'Subscribe to unlock advanced selling features and promote your products'}
+                                        </p>
+                                    </div>
+
+                                    <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                                        {availablePlans.map(plan => (
+                                            <div key={plan.id} className="admin-card" style={{ padding: '24px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <h4 style={{ fontSize: '1.3rem', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>{plan.name}</h4>
+                                                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: '1.4' }}>{plan.description}</p>
+                                                    
+                                                    <div style={{ margin: '20px 0', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                                        <span style={{ fontSize: '2rem', fontWeight: '800', color: '#c8a951' }}>{plan.price} QAR</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>/ {isRTL ? (plan.interval === 'year' ? 'سنوياً' : 'شهرياً') : plan.interval}</span>
+                                                    </div>
+
+                                                    {plan.features && plan.features.length > 0 && (
+                                                        <div style={{ borderTop: '1px solid #334155', paddingTop: '16px', marginTop: '16px' }}>
+                                                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                                {plan.features.map((feature, idx) => (
+                                                                    <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                                                        <CheckCircle size={14} style={{ color: '#c8a951', flexShrink: 0 }} />
+                                                                        <span>{feature}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-gold" 
+                                                    style={{ width: '100%', marginTop: '24px', height: '40px' }}
+                                                    onClick={() => setSubConfirmModal({ isOpen: true, plan })}
+                                                >
+                                                    {isRTL ? 'اشترك الآن' : 'Subscribe Now'}
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {availablePlans.length === 0 && (
+                                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '2px dashed #334155' }}>
+                                                <p style={{ color: '#94a3b8' }}>{isRTL ? 'لا توجد خطط اشتراك متاحة حالياً.' : 'No subscription plans available currently.'}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <ConfirmModal
+                                isOpen={subConfirmModal.isOpen}
+                                onClose={() => setSubConfirmModal({ isOpen: false, plan: null })}
+                                onConfirm={handleSubscribe}
+                                title={isRTL ? 'تأكيد الاشتراك' : 'Confirm Subscription'}
+                                message={
+                                    isRTL
+                                        ? `هل ترغب في الاشتراك في خطة "${subConfirmModal.plan?.name}" مقابل ${subConfirmModal.plan?.price} QAR؟`
+                                        : `Do you want to subscribe to the "${subConfirmModal.plan?.name}" plan for ${subConfirmModal.plan?.price} QAR?`
+                                }
+                                confirmText={isRTL ? 'اشترك' : 'Subscribe'}
+                                cancelText={isRTL ? 'إلغاء' : 'Cancel'}
+                                isRTL={isRTL}
+                                variant="gold"
+                                isPremium={true}
+                                iconType="alert"
+                            />
+
+                            <ConfirmModal
+                                isOpen={cancelConfirmModal}
+                                onClose={() => setCancelConfirmModal(false)}
+                                onConfirm={handleCancelSubscription}
+                                title={isRTL ? 'إلغاء الاشتراك' : 'Cancel Subscription'}
+                                message={
+                                    isRTL
+                                        ? 'هل أنت متأكد من إلغاء خطة اشتراكك الحالية؟ ستفقد إمكانية الوصول إلى الميزات المميزة.'
+                                        : 'Are you sure you want to cancel your current subscription plan? You will lose access to premium selling features.'
+                                }
+                                confirmText={isRTL ? 'إلغاء الاشتراك' : 'Cancel Subscription'}
+                                cancelText={isRTL ? 'إبقاء الاشتراك' : 'Keep Subscription'}
+                                isRTL={isRTL}
+                                variant="danger"
+                                iconType="trash"
+                            />
                         </div>
                     )}
                 </div>
