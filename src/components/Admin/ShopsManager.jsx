@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X } from 'lucide-react';
+import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X, Star } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
 import api from '../../utils/api_v1_0_2';
@@ -91,6 +91,21 @@ const ShopsManager = ({ isRTL }) => {
             }
         } catch (error) {
             console.error('Error updating shop status:', error);
+        }
+    };
+
+    const toggleShopRecommendation = async (id, currentIsRecommended) => {
+        try {
+            const response = await api.put(`/shops/${id}`, { is_recommended: !currentIsRecommended });
+            if (response.data.success) {
+                fetchShopsAndRegions();
+            } else {
+                alert(response.data.error || (isRTL ? 'فشل تحديث حالة التوصية' : 'Failed to update recommendation status'));
+            }
+        } catch (error) {
+            console.error('Error toggling shop recommendation:', error);
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
         }
     };
 
@@ -410,6 +425,37 @@ const ShopsManager = ({ isRTL }) => {
                             )}
                             <div style={{ marginLeft: isRTL ? '0' : 'auto', marginRight: isRTL ? 'auto' : '0' }}>{getStatusBadge(shop.status)}</div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                {user?.role === 'super_admin' && (
+                                    <button 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            toggleShopRecommendation(shop.id, shop.is_recommended); 
+                                        }} 
+                                        style={{ 
+                                            background: 'transparent', 
+                                            border: 'none', 
+                                            padding: '4px', 
+                                            cursor: 'pointer', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            borderRadius: '50%',
+                                            transition: 'all 0.2s',
+                                            marginRight: '4px'
+                                        }}
+                                        title={shop.is_recommended ? (isRTL ? 'إزالة من الموثوقة' : 'Remove from Trusted') : (isRTL ? 'إضافة إلى الموثوقة' : 'Add to Trusted')}
+                                    >
+                                        <Star 
+                                            size={20} 
+                                            fill={shop.is_recommended ? '#c8a951' : 'transparent'} 
+                                            color={shop.is_recommended ? '#c8a951' : '#94a3b8'} 
+                                            style={{ 
+                                                filter: shop.is_recommended ? 'drop-shadow(0 0 4px rgba(200,169,81,0.4))' : 'none',
+                                                transform: shop.is_recommended ? 'scale(1.1)' : 'scale(1)'
+                                            }}
+                                        />
+                                    </button>
+                                )}
                                 {shop.status !== 'active' && (
                                     <button onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'active'); }} style={{ background: '#2ecc71', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
                                         {isRTL ? 'تفعيل' : 'Approve'}
