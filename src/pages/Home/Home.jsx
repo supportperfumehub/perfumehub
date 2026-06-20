@@ -7,8 +7,8 @@ import ProductCard from '../../components/ProductCard/ProductCard';
 import Newsletter from '../../components/Newsletter/Newsletter';
 import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
 import { ShopContext } from '../../context/ShopContext';
-import brandStoryImg from '../../assets/logo_no_border.png';
-import northClubLogo from '../../assets/north_club_logo.png';
+import brandStoryImg from '../../assets/logo_no_border.webp';
+import northClubLogo from '../../assets/north_club_logo.webp';
 import './Home.css';
 
 const Home = () => {
@@ -344,7 +344,7 @@ const Home = () => {
             {/* AI Advisor Banner */}
             <section className="ai-advisor-banner-section reveal">
                 <div className="ai-advisor-banner-container container">
-                    <div className="ai-advisor-banner" style={{backgroundImage: "url('/assets/ai_advisor_bg.png')"}}>
+                    <div className="ai-advisor-banner" style={{backgroundImage: "url('/assets/ai_advisor_bg.webp')"}}>
                         <div className="ai-advisor-overlay"></div>
                         <div className="ai-advisor-content">
                             <span className="ai-advisor-tagline">{t('ai_advisor_banner.tagline')}</span>

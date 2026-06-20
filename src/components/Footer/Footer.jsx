@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
-import logo from '../../assets/logo_transparent.png';
+import logo from '../../assets/logo_transparent.webp';
 import './Footer.css';
 
 const Footer = () => {

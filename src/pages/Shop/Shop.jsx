@@ -7,10 +7,10 @@ import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
 import './Shop.css';
 
 // Import category banners
-import allBanner from '../../assets/shop_header_all.png';
-import menBanner from '../../assets/shop_header_men.png';
-import womenBanner from '../../assets/shop_header_women.png';
-import arabicBanner from '../../assets/shop_header_arabic.png';
+import allBanner from '../../assets/shop_header_all.webp';
+import menBanner from '../../assets/shop_header_men.webp';
+import womenBanner from '../../assets/shop_header_women.webp';
+import arabicBanner from '../../assets/shop_header_arabic.webp';
 
 const POPULAR_BRANDS = [
     'Chanel', 'Dior', 'Tom Ford', 'Gucci', 'Versace',

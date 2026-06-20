@@ -167,15 +167,15 @@ async function syncExternalData() {
             }
 
             // Luxury mapping for generic images
-            let mappedImage = "/assets/ext_modern.png"; // Fallback
+            let mappedImage = "/assets/ext_modern.webp"; // Fallback
             if (p.profile.includes('arabic') || p.profile.includes('oriental')) {
-                mappedImage = "/assets/ext_gold.png";
+                mappedImage = "/assets/ext_gold.webp";
             } else if (p.profile.includes('woody') || p.profile.includes('earthy')) {
-                mappedImage = "/assets/ext_dark.png";
+                mappedImage = "/assets/ext_dark.webp";
             } else if (p.profile.includes('fresh') || p.profile.includes('citrus')) {
-                mappedImage = "/assets/ext_blue.png";
+                mappedImage = "/assets/ext_blue.webp";
             } else if (p.profile.includes('floral') || p.profile.includes('spicy') || p.profile.includes('gourmand')) {
-                mappedImage = "/assets/ext_modern.png";
+                mappedImage = "/assets/ext_modern.webp";
             }
 
             const payload = {

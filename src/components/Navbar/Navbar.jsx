@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan, ChevronDown } from 'lucide-react';
-import logo from '../../assets/logo_transparent.png';
+import logo from '../../assets/logo_transparent.webp';
 import SearchBar from '../SearchBar/SearchBar';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';

@@ -27,7 +27,7 @@ async function addGlobalVendors() {
                 address: 'Tahlia St, Riyadh, KSA',
                 latitude: 24.7136,
                 longitude: 46.6753,
-                logo_url: '/assets/shops/shop_riyadh.png',
+                logo_url: '/assets/shops/shop_riyadh.webp',
                 status: 'active'
             }])
             .select();
@@ -61,7 +61,7 @@ async function addGlobalVendors() {
                 address: 'Dubai Mall, G Floor, Dubai, UAE',
                 latitude: 25.1972,
                 longitude: 55.2744,
-                logo_url: '/assets/shops/shop_dubai.png',
+                logo_url: '/assets/shops/shop_dubai.webp',
                 status: 'active'
             }])
             .select();
@@ -85,7 +85,7 @@ async function addGlobalVendors() {
                 discount: 10,
                 is_new: true,
                 is_featured: true,
-                image: '/assets/products/royal_oud.png',
+                image: '/assets/products/royal_oud.webp',
                 category: 'Oriental',
                 gender: 'Unisex',
                 description: 'A regal blend of pure Saudi Oud and amber, designed for Riyadh royalty.',
@@ -100,7 +100,7 @@ async function addGlobalVendors() {
                 type: 'EDP',
                 size: '75ml',
                 price: 550,
-                image: '/assets/products/desert_bloom.png',
+                image: '/assets/products/desert_bloom.webp',
                 category: 'Floral',
                 gender: 'Women',
                 description: 'The scent of blooming flowers in the heart of the Saudi desert.',
@@ -119,7 +119,7 @@ async function addGlobalVendors() {
                 discount: 15,
                 is_new: true,
                 is_featured: true,
-                image: '/assets/products/mirage_gold.png',
+                image: '/assets/products/mirage_gold.webp',
                 category: 'Luxury',
                 gender: 'Unisex',
                 description: 'The essence of Dubai luxury bottled. A complex gold-standard fragrance.',
@@ -134,7 +134,7 @@ async function addGlobalVendors() {
                 type: 'EDP',
                 size: '100ml',
                 price: 850,
-                image: '/assets/products/oasis_azure.png',
+                image: '/assets/products/oasis_azure.webp',
                 category: 'Fresh',
                 gender: 'Men',
                 description: 'Inspired by the fresh waters of the Dubai Marina at dusk.',
