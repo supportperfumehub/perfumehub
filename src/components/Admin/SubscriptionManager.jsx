@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { CreditCard, Plus, Edit, Trash2, CheckCircle, XCircle, DollarSign, Calendar, Zap, ShieldCheck } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+import ConfirmModal from '../Common/ConfirmModal';
 
 const SubscriptionManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -17,6 +18,11 @@ const SubscriptionManager = ({ isRTL }) => {
         description: '',
         features: [],
         is_active: true
+    });
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        planId: null,
+        planName: ''
     });
 
     const handleToggleForm = () => {
@@ -52,19 +58,27 @@ const SubscriptionManager = ({ isRTL }) => {
         setShowForm(true);
     };
 
-    const handleDelete = async (id) => {
-        console.log('[DEBUG] handleDelete clicked for plan id:', id);
+    const handleDeleteClick = (plan) => {
+        console.log('[DEBUG] handleDeleteClick for plan:', plan);
+        setConfirmModal({
+            isOpen: true,
+            planId: plan.id,
+            planName: plan.name
+        });
+    };
+
+    const handleConfirmDelete = async () => {
+        const { planId } = confirmModal;
+        console.log('[DEBUG] handleConfirmDelete for planId:', planId);
         if (!user?.id) {
-            console.warn('[DEBUG] handleDelete aborted: user.id is missing', user);
-            return;
-        }
-        if (!window.confirm(isRTL ? 'هل أنت متأكد من حذف هذه الخطة؟' : 'Are you sure you want to delete this plan?')) {
+            console.warn('[DEBUG] handleConfirmDelete aborted: user.id is missing', user);
             return;
         }
         try {
-            await api.delete(`/subscriptions/plans/${id}`, {
+            await api.delete(`/subscriptions/plans/${planId}`, {
                 headers: { 'x-user-id': user.id }
             });
+            setConfirmModal({ isOpen: false, planId: null, planName: '' });
             alert(isRTL ? 'تم حذف الخطة بنجاح' : 'Plan deleted successfully');
             fetchPlans();
         } catch (error) {
@@ -234,7 +248,7 @@ const SubscriptionManager = ({ isRTL }) => {
                                 <button className="btn btn-outline" style={{ flex: 1, height: '36px' }} onClick={() => handleEdit(plan)}>
                                     <Edit size={14} /> {isRTL ? 'تعديل' : 'Edit'}
                                 </button>
-                                <button className="btn btn-outline" style={{ flex: 1, height: '36px', borderColor: '#ef444433', color: '#ef4444' }} onClick={() => handleDelete(plan.id)}>
+                                <button className="btn btn-outline" style={{ flex: 1, height: '36px', borderColor: '#ef444433', color: '#ef4444' }} onClick={() => handleDeleteClick(plan)}>
                                     <Trash2 size={14} /> {isRTL ? 'حذف' : 'Delete'}
                                 </button>
                             </div>
@@ -250,6 +264,23 @@ const SubscriptionManager = ({ isRTL }) => {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={handleConfirmDelete}
+                title={isRTL ? 'حذف خطة الاشتراك' : 'Delete Subscription Plan'}
+                message={
+                    isRTL 
+                        ? `هل أنت متأكد من حذف الخطة "${confirmModal.planName}"؟ لا يمكن التراجع عن هذا الإجراء.`
+                        : `Are you sure you want to delete the plan "${confirmModal.planName}"? This action cannot be undone.`
+                }
+                confirmText={isRTL ? 'حذف' : 'Delete'}
+                cancelText={isRTL ? 'إلغاء' : 'Cancel'}
+                isRTL={isRTL}
+                variant="danger"
+                iconType="trash"
+            />
         </div>
     );
 };
