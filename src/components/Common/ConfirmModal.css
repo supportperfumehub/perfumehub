@@ -5,28 +5,48 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: transparent; /* No background darkening */
+    background: rgba(15, 23, 42, 0.75); /* Dark slate overlay */
+    backdrop-filter: blur(6px); /* Frosted glass effect */
     display: flex;
     justify-content: center;
     align-items: center; /* Center vertically and horizontally */
     z-index: 10005;
     pointer-events: auto;
+    transition: all 0.3s ease;
 }
 
 .centered-premium-content {
-    background: #ffffff;
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    border-radius: 28px; /* High boutique curvature */
-    width: 340px;
+    background: #1e293b; /* Premium slate dark background */
+    border: 1px solid rgba(200, 169, 81, 0.35); /* Refined gold border */
+    border-radius: 24px; /* High boutique curvature */
+    width: 360px;
     max-width: 90vw;
     padding: 35px 30px;
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.18), 0 0 1px rgba(212, 175, 55, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 1px rgba(200, 169, 81, 0.4);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     position: relative;
     overflow: visible;
+    color: #f8fafc;
+}
+
+.centered-premium-content .confirm-modal-text h3 {
+    font-family: 'Outfit', 'Montserrat', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.centered-premium-content .confirm-modal-text p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.88rem;
+    color: #94a3b8; /* Muted text */
+    line-height: 1.6;
+    margin: 0;
 }
 
 @media (max-width: 400px) {
@@ -53,20 +73,22 @@
     font-size: 1.1rem;
     margin-bottom: 8px;
     font-weight: 700;
+    color: #f8fafc;
 }
 
 .contextual-content .confirm-modal-text p {
     font-size: 0.85rem;
     line-height: 1.5;
-    color: #666;
+    color: #94a3b8;
     margin: 0;
 }
 
 /* Multi-variant Buttons */
 .confirm-modal-footer {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
+    margin-top: 25px;
 }
 
 .btn-modal {
@@ -84,20 +106,38 @@
 }
 
 .btn-cancel {
-    background: #f8f8f8;
-    color: #666;
+    background: #334155;
+    color: #cbd5e1;
+    border: 1px solid #475569;
 }
 
-.btn-cancel:hover { background: #f0f0f0; }
+.btn-cancel:hover { 
+    background: #475569; 
+    color: #f8fafc;
+    transform: translateY(-1px);
+}
 
 .btn-confirm.primary {
-    background: var(--color-gold, #D4AF37);
-    color: #fff;
+    background: #c8a951;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.btn-confirm.primary:hover {
+    background: #dfc27d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(200, 169, 81, 0.3);
 }
 
 .btn-confirm.danger {
-    background: #c62828;
-    color: #fff;
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.btn-confirm.danger:hover {
+    background: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 /* --- PREMIUM MATTE THEME (Black, White & Gold) --- */
