@@ -19,6 +19,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const [selectedCatalogProduct, setSelectedCatalogProduct] = useState(null);
     const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('all');
     const [sortBy, setSortBy] = useState('default');
     const [isSkuAuto, setIsSkuAuto] = useState(true);
     const [confirmModal, setConfirmModal] = useState({ 
@@ -1162,6 +1163,41 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 </div>
             )}
 
+            {!isBindingCatalog && (
+                <div className="category-tabs-container" style={{ 
+                    display: 'flex', 
+                    gap: '10px', 
+                    flexWrap: 'wrap', 
+                    marginBottom: '15px', 
+                    padding: '10px 0', 
+                    borderBottom: '1px solid #1e293b' 
+                }}>
+                    {[
+                        { id: 'all', labelEn: 'All Products', labelAr: 'جميع المنتجات' },
+                        { id: 'perfume', labelEn: 'Perfume', labelAr: 'العطور' },
+                        { id: 'fashion', labelEn: 'Fashion', labelAr: 'الأزياء' },
+                        { id: 'abaya', labelEn: 'Exclusive (Abaya)', labelAr: 'حصري (عبايات)' },
+                        { id: 'giftbox', labelEn: 'Gift Box', labelAr: 'علب الهدايا' },
+                        { id: 'jewellery', labelEn: 'Jewellery', labelAr: 'مجوهرات' }
+                    ].map(cat => (
+                        <button
+                            type="button"
+                            key={cat.id}
+                            className={`category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
+                            onClick={() => setSelectedCategory(cat.id)}
+                            style={{
+                                fontSize: '0.85rem',
+                                padding: '8px 18px',
+                                borderRadius: '20px',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            {isRTL ? cat.labelAr : cat.labelEn}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
@@ -1189,6 +1225,26 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 if (!shopId) {
                                     if (filterShop === 'own' && product.shop_id) return false;
                                     if (filterShop !== 'all' && filterShop !== 'own' && String(product.shop_id) !== String(filterShop)) return false;
+                                }
+
+                                // Category filter
+                                if (selectedCategory !== 'all') {
+                                    const cats = Array.isArray(product.category) ? product.category.map(c => c.toLowerCase()) : [];
+                                    if (selectedCategory === 'perfume') {
+                                        // Not fashion, jewellery, giftbox, gift-box, or abaya
+                                        if (cats.includes('fashion') || cats.includes('jewellery') || cats.includes('giftbox') || cats.includes('gift-box') || cats.includes('abaya')) {
+                                            return false;
+                                        }
+                                    } else if (selectedCategory === 'abaya') {
+                                        if (!cats.includes('abaya')) return false;
+                                    } else if (selectedCategory === 'fashion') {
+                                        // Under fashion category but not abaya
+                                        if (!cats.includes('fashion') || cats.includes('abaya')) return false;
+                                    } else if (selectedCategory === 'giftbox') {
+                                        if (!cats.includes('giftbox') && !cats.includes('gift-box')) return false;
+                                    } else if (selectedCategory === 'jewellery') {
+                                        if (!cats.includes('jewellery')) return false;
+                                    }
                                 }
 
                                 return product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
