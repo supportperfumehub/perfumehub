@@ -283,8 +283,24 @@ export const ShopProvider = ({ children }) => {
         setProducts(prevProducts => prevProducts.map(p => p.id === id ? { ...updatedProduct, id, _lastModified: now } : p));
 
         try {
-            await api.put(`/products/${id}`, updatedProduct);
-            showToast('Product updated successfully', 'success');
+            const product = products.find(p => p.id === id);
+            const myInventory = (isVendor && user?.shop_id) 
+                ? product?.inventories?.find(inv => String(inv.shop_id) === String(user.shop_id)) 
+                : null;
+
+            if (myInventory) {
+                await api.put(`/inventory/${myInventory.id}`, {
+                    price: Number(updatedProduct.price),
+                    stock: Number(updatedProduct.stock),
+                    is_active: updatedProduct.is_active !== undefined ? updatedProduct.is_active : true,
+                    pickup_available: updatedProduct.pickup_available !== undefined ? updatedProduct.pickup_available : true
+                });
+                showToast('Inventory updated successfully', 'success');
+            } else {
+                await api.put(`/products/${id}`, updatedProduct);
+                showToast('Product updated successfully', 'success');
+            }
+            await fetchProducts(); // refresh products to pull new inventory values
         } catch (error) {
             setProducts(previousProducts);
             showToast(`Update failed: ${error.response?.data?.error || error.message}`, 'error');

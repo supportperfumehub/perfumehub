@@ -74,6 +74,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const [formData, setFormData] = useState(initialFormState);
     const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '' });
     const [customCatInput, setCustomCatInput] = useState('');
+    const isEditingLinkedCatalog = editingId && shopId && String(formData.shop_id) !== String(shopId);
 
     const handleVariantInputChange = (e) => {
         const { name, value } = e.target;
@@ -534,7 +535,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         setShowForm(false);
         setEditingId(null);
     };
-
     const handleEdit = (product) => {
         const imageArray = Array.isArray(product.image)
             ? product.image
@@ -543,8 +543,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         const sanitizedSizes = Array.isArray(product.size) 
             ? product.size.map(s => typeof s === 'string' ? { name: s, price: product.price, oldPrice: product.oldPrice } : s)
             : [];
+            
+        const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+        const initialPrice = shopInventory ? shopInventory.price : product.price;
+        const initialStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
+
         setFormData({
             ...product,
+            price: initialPrice,
+            stock: initialStock,
             size: sanitizedSizes,
             images: imageArray,
             isFeatured: product.isFeatured || false,
@@ -561,7 +568,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         setShowForm(true);
         window.scrollTo(0, 0);
     };
-
     const handleDelete = (id, productName) => {
         setConfirmModal({
             isOpen: true,
@@ -773,7 +779,20 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        {/* Section 1: Basic Identity */}
+                        {isEditingLinkedCatalog ? (
+                            <div style={{ background: 'rgba(200, 169, 81, 0.05)', border: '1px solid rgba(200, 169, 81, 0.2)', padding: '15px 20px', borderRadius: '10px', marginBottom: '20px' }}>
+                                <h4 style={{ margin: '0 0 5px 0', color: 'var(--color-gold)' }}>
+                                    {isRTL ? 'تعديل بيانات المخزون فقط' : 'Editing Inventory Stock & Price Only'}
+                                </h4>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                                    {isRTL 
+                                        ? `هذا المنتج من الكتالوج العام ("${formData.name}"). يمكنك فقط تعديل الأسعار والمخزون الخاص بمتجرك.` 
+                                        : `This is a global catalog product ("${formData.name}"). You can only edit your shop's specific pricing and inventory.`}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Section 1: Basic Identity */}
                         <div className="form-row mixed-2-1">
                             <div className="form-group">
                                 <label>{isRTL ? 'اسم المنتج' : 'Product Name'}</label>
@@ -884,9 +903,27 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 <textarea name="baseNotes" className="form-control" value={formData.baseNotes} onChange={handleInputChange} rows="2"></textarea>
                             </div>
                         </div>
+                            </>
+                        )}
 
-                        {/* Dual Column Section: Pricing & Variants */}
-                        <div className="form-row-dual">
+                        {isEditingLinkedCatalog ? (
+                            <div style={{ maxWidth: '600px', margin: '0 auto 20px auto', background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(200, 169, 81, 0.1)' }}>
+                                <div className="form-section-title" style={{ marginTop: 0 }}>
+                                    <Plus size={16} /> {isRTL ? 'الأسعار والمخزون' : 'Pricing & Inventory'}
+                                </div>
+                                <div className="form-row grid-2" style={{ gap: '15px' }}>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'سعر البيع (ر.ق)' : 'Selling Price (QAR)'}</label>
+                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required min="1" step="0.5" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'الكمية المتوفرة' : 'Available Stock'}</label>
+                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="form-row-dual">
                             {/* Section 3: Pricing & Inventory */}
                             <div className="form-column">
                                 <div className="form-section-title">
@@ -966,8 +1003,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 )}
                             </div>
                         </div>
+                        )}
 
-                        {/* Section 4: Categorization & Description */}
+                        {!isEditingLinkedCatalog && (
+                            <>
+                                {/* Section 4: Categorization & Description */}
                         <div className="form-section-title">
                             <Plus size={16} /> {isRTL ? 'التصنيفات والوصف' : 'Categorization & Description'}
                         </div>
@@ -1107,6 +1147,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 </div>
                             </>
                         )}
+                            </>
+                        )}
 
                         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                             <button type="submit" className="btn btn-gold" style={{ flex: '1 0 200px', height: '50px', fontSize: '1.1rem' }}>
@@ -1137,7 +1179,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             .map((p, index) => ({ ...p, originalIndex: index }))
                             .filter(product => {
                                 // Vendor-specific bound manager isolation
-                                if (shopId && String(product.shop_id) !== String(shopId)) return false;
+                                if (shopId) {
+                                    const isOwned = String(product.shop_id) === String(shopId);
+                                    const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
+                                    if (!isOwned && !isLinked) return false;
+                                }
                                 
                                 // Global Super Admin dynamic dropdown filter logic
                                 if (!shopId) {
@@ -1158,105 +1204,113 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 if (sortBy === 'stock-desc') return (b.stock || 0) - (a.stock || 0);
                                 return a.originalIndex - b.originalIndex; // default
                             })
-                            .map(product => (
-                                <tr key={product.id}>
-                                    <td>
-                                        <div style={{ width: '50px', height: '50px', position: 'relative' }}>
-                                            <img 
-                                                src={Array.isArray(product.image) ? product.image[0] : product.image} 
-                                                alt={product.name} 
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
-                                                }}
-                                            />
-                                            <div className="admin-img-placeholder" style={{ display: 'none', width: '100%', height: '100%' }}>
-                                                <ImageOff size={20} />
+                            .map(product => {
+                                const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+                                const displayPrice = shopInventory ? shopInventory.price : product.price;
+                                const displayOldPrice = shopInventory ? null : product.oldPrice;
+                                const displayDiscount = shopInventory ? 0 : product.discount;
+                                const displayStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
+
+                                return (
+                                    <tr key={product.id}>
+                                        <td>
+                                            <div style={{ width: '50px', height: '50px', position: 'relative' }}>
+                                                <img 
+                                                    src={Array.isArray(product.image) ? product.image[0] : product.image} 
+                                                    alt={product.name} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'flex';
+                                                    }}
+                                                />
+                                                <div className="admin-img-placeholder" style={{ display: 'none', width: '100%', height: '100%' }}>
+                                                    <ImageOff size={20} />
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: '600', marginBottom: '2px', color: '#f8fafc' }}>{product.name}</div>
-                                        <small style={{ color: '#cbd5e1', display: 'block' }}>
-                                            {Array.isArray(product.size) 
-                                                ? product.size.map(s => typeof s === 'object' ? s.name : s).join(', ') 
-                                                : product.size}
-                                        </small>
-                                        {!shopId && (
-                                            <div style={{ marginTop: '6px' }}>
-                                                {product.shop_id ? (
-                                                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                        {shopsData.find(s => String(s.id) === String(product.shop_id))?.name || 'Vendor'}
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                         {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
+                                        </td>
+                                        <td>
+                                            <div style={{ fontWeight: '600', marginBottom: '2px', color: '#f8fafc' }}>{product.name}</div>
+                                            <small style={{ color: '#cbd5e1', display: 'block' }}>
+                                                {Array.isArray(product.size) 
+                                                    ? product.size.map(s => typeof s === 'object' ? s.name : s).join(', ') 
+                                                    : product.size}
+                                            </small>
+                                            {!shopId && (
+                                                <div style={{ marginTop: '6px' }}>
+                                                    {product.shop_id ? (
+                                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                            {shopsData.find(s => String(s.id) === String(product.shop_id))?.name || 'Vendor'}
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                             {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
+                                                         </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td>{product.brand}</td>
+                                        <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
+                                            <div className="price-display-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '100px' }}>
+                                                <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.1rem' }}>
+                                                    {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                                </div>
+                                                {displayOldPrice && (
+                                                    <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85rem' }}>
+                                                        {displayOldPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                                    </div>
+                                                )}
+                                                {displayDiscount > 0 && (
+                                                    <span style={{ 
+                                                        backgroundColor: '#ef4444', 
+                                                        color: 'white', 
+                                                        padding: '4px 8px', 
+                                                        borderRadius: '6px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: 'bold', 
+                                                        width: 'fit-content',
+                                                        display: 'inline-block',
+                                                        whiteSpace: 'nowrap',
+                                                        marginTop: '2px'
+                                                    }}>
+                                                        {displayDiscount}% OFF
                                                     </span>
                                                 )}
                                             </div>
-                                        )}
-                                    </td>
-                                    <td>{product.brand}</td>
-                                    <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
-                                        <div className="price-display-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '100px' }}>
-                                            <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.1rem' }}>
-                                                {product.price} {isRTL ? 'ر.ق' : 'QAR'}
+                                        </td>
+                                        <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
+                                            <span style={{ 
+                                                fontWeight: '700', 
+                                                color: displayStock > 10 ? '#22c55e' : (displayStock > 0 ? '#f59e0b' : '#ef4444'),
+                                                fontSize: '1.1rem'
+                                            }}>
+                                                {displayStock}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                <button 
+                                                    type="button" 
+                                                    className="admin-action-btn edit-btn" 
+                                                    onClick={(e) => { e.stopPropagation(); handleEdit(product); }} 
+                                                    title={isRTL ? 'تعديل' : 'Edit'}
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    className="admin-action-btn delete-btn" 
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
+                                                    title={isRTL ? 'حذف' : 'Delete'}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </div>
-                                            {product.oldPrice && (
-                                                <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85rem' }}>
-                                                    {product.oldPrice} {isRTL ? 'ر.ق' : 'QAR'}
-                                                </div>
-                                            )}
-                                            {product.discount > 0 && (
-                                                <span style={{ 
-                                                    backgroundColor: '#ef4444', 
-                                                    color: 'white', 
-                                                    padding: '4px 8px', 
-                                                    borderRadius: '6px', 
-                                                    fontSize: '0.75rem', 
-                                                    fontWeight: 'bold', 
-                                                    width: 'fit-content',
-                                                    display: 'inline-block',
-                                                    whiteSpace: 'nowrap',
-                                                    marginTop: '2px'
-                                                }}>
-                                                    {product.discount}% OFF
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
-                                        <span style={{ 
-                                            fontWeight: '700', 
-                                            color: product.stock > 10 ? '#22c55e' : (product.stock > 0 ? '#f59e0b' : '#ef4444'),
-                                            fontSize: '1.1rem'
-                                        }}>
-                                            {product.stock !== undefined ? product.stock : 10}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                            <button 
-                                                type="button" 
-                                                className="admin-action-btn edit-btn" 
-                                                onClick={(e) => { e.stopPropagation(); handleEdit(product); }} 
-                                                title={isRTL ? 'تعديل' : 'Edit'}
-                                            >
-                                                <Edit size={18} />
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                className="admin-action-btn delete-btn" 
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
-                                                title={isRTL ? 'حذف' : 'Delete'}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         {products.length === 0 && (
                             <tr>
                                 <td colSpan="5" className="text-center">{isRTL ? 'لا توجد منتجات' : 'No products found'}</td>

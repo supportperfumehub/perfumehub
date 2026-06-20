@@ -145,7 +145,10 @@ const ShopsManager = ({ isRTL }) => {
     // Get shop-specific analytics
     const getShopAnalytics = (shop) => {
         const shopId = shop.id;
-        const shopProducts = products.filter(p => p.shop_id === shopId);
+        const shopProducts = products.filter(p => 
+            String(p.shop_id) === String(shopId) || 
+            (p.inventories && p.inventories.some(inv => String(inv.shop_id) === String(shopId)))
+        );
         const shopOrders = orders.filter(o => {
             if (o.shop_ids && Array.isArray(o.shop_ids) && o.shop_ids.includes(shopId)) return true;
             if (o.items && Array.isArray(o.items)) return o.items.some(item => item.shop_id === shopId);
