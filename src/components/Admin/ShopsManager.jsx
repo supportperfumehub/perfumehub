@@ -7,7 +7,7 @@ import ProductManager from './ProductManager';
 import api from '../../utils/api_v1_0_2';
 
 const ShopsManager = ({ isRTL }) => {
-    const { products, orders } = useContext(ShopContext);
+    const { products, orders, showToast } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
     const [shops, setShops] = useState([]);
     const [regions, setRegions] = useState([]);
@@ -86,11 +86,14 @@ const ShopsManager = ({ isRTL }) => {
 
             if (response.data.success) {
                 fetchShopsAndRegions();
+                showToast(isRTL ? 'تم تحديث حالة المتجر بنجاح' : 'Shop status updated successfully', 'success');
             } else {
-                alert(response.data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'));
+                showToast(response.data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'), 'error');
             }
         } catch (error) {
             console.error('Error updating shop status:', error);
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 
@@ -99,13 +102,14 @@ const ShopsManager = ({ isRTL }) => {
             const response = await api.put(`/shops/${id}`, { is_recommended: !currentIsRecommended });
             if (response.data.success) {
                 fetchShopsAndRegions();
+                showToast(isRTL ? 'تم تحديث حالة التوصية بنجاح' : 'Recommendation status updated successfully', 'success');
             } else {
-                alert(response.data.error || (isRTL ? 'فشل تحديث حالة التوصية' : 'Failed to update recommendation status'));
+                showToast(response.data.error || (isRTL ? 'فشل تحديث حالة التوصية' : 'Failed to update recommendation status'), 'error');
             }
         } catch (error) {
             console.error('Error toggling shop recommendation:', error);
             const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
-            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
+            showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 
@@ -115,14 +119,14 @@ const ShopsManager = ({ isRTL }) => {
             if (response.data.success) {
                 setEditingShop(null);
                 fetchShopsAndRegions();
-                alert(isRTL ? 'تم تحديث بيانات المتجر' : 'Shop details updated');
+                showToast(isRTL ? 'تم تحديث بيانات المتجر' : 'Shop details updated', 'success');
             } else {
-                alert(`${isRTL ? 'فشل التحديث' : 'Failed to update'}: ${response.data.error || response.data.message || 'Unknown error'}`);
+                showToast(`${isRTL ? 'فشل التحديث' : 'Failed to update'}: ${response.data.error || response.data.message || 'Unknown error'}`, 'error');
             }
         } catch (error) {
             console.error('Error updating shop:', error);
             const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
-            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
+            showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 
@@ -139,11 +143,14 @@ const ShopsManager = ({ isRTL }) => {
                 fetchShopsAndRegions();
                 setShowConfirm(false);
                 setShopToDelete(null);
+                showToast(isRTL ? 'تم حذف المتجر بنجاح' : 'Shop deleted successfully', 'success');
             } else {
-                alert(`${isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop'}: ${response.data.message || response.data.error || 'Unknown error'}`);
+                showToast(`${isRTL ? 'فشل حذف المتجر' : 'Failed to delete shop'}: ${response.data.message || response.data.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
             console.error('Error deleting shop:', error);
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 
@@ -274,14 +281,14 @@ const ShopsManager = ({ isRTL }) => {
                 setFormData({ ownerName: '', ownerEmail: '', ownerPassword: '', shopName: '', address: '', whatsapp_number: '', region_id: '' });
                 setPhotoInputs(['']);
                 fetchShopsAndRegions();
-                alert(isRTL ? 'تم إنشاء المتجر بنجاح' : 'Vendor created successfully');
+                showToast(isRTL ? 'تم إنشاء المتجر بنجاح' : 'Vendor created successfully', 'success');
             } else {
-                alert(`${isRTL ? 'فشل إنشاء المتجر' : 'Failed to create vendor'}: ${response.data.error || response.data.message || 'Unknown error'}`);
+                showToast(`${isRTL ? 'فشل إنشاء المتجر' : 'Failed to create vendor'}: ${response.data.error || response.data.message || 'Unknown error'}`, 'error');
             }
         } catch (error) {
             console.error('Error creating vendor:', error);
             const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
-            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
+            showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 

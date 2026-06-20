@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { ShopContext } from '../../context/ShopContext';
 import { CreditCard, Plus, Edit, Trash2, CheckCircle, XCircle, DollarSign, Calendar, Zap, ShieldCheck } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 import ConfirmModal from '../Common/ConfirmModal';
 
 const SubscriptionManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
+    const { showToast } = useContext(ShopContext);
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -79,11 +81,11 @@ const SubscriptionManager = ({ isRTL }) => {
                 headers: { 'x-user-id': user.id }
             });
             setConfirmModal({ isOpen: false, planId: null, planName: '' });
-            alert(isRTL ? 'تم حذف الخطة بنجاح' : 'Plan deleted successfully');
+            showToast(isRTL ? 'تم حذف الخطة بنجاح' : 'Plan deleted successfully', 'success');
             fetchPlans();
         } catch (error) {
             console.error('Error deleting plan:', error);
-            alert(isRTL ? 'حدث خطأ أثناء حذف الخطة' : 'Error deleting plan');
+            showToast(isRTL ? 'حدث خطأ أثناء حذف الخطة' : 'Error deleting plan', 'error');
         }
     };
 
@@ -127,9 +129,10 @@ const SubscriptionManager = ({ isRTL }) => {
                 }
             });
 
-            alert(editingPlan 
+            showToast(editingPlan 
                 ? (isRTL ? 'تم تحديث الخطة بنجاح' : 'Plan updated successfully')
-                : (isRTL ? 'تم حفظ الخطة بنجاح' : 'Plan saved successfully')
+                : (isRTL ? 'تم حفظ الخطة بنجاح' : 'Plan saved successfully'),
+                'success'
             );
 
             setShowForm(false);
@@ -139,7 +142,7 @@ const SubscriptionManager = ({ isRTL }) => {
             fetchPlans();
         } catch (error) {
             console.error('Error saving plan:', error);
-            alert(isRTL ? 'حدث خطأ أثناء حفظ الخطة' : 'Error saving plan');
+            showToast(isRTL ? 'حدث خطأ أثناء حفظ الخطة' : 'Error saving plan', 'error');
         }
     };
 
