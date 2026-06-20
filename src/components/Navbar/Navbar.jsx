@@ -148,7 +148,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
-                                {isVendor && (
+                                {(isVendor || user?.role === 'regional_admin') && (
                                     <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <Store size={18} />
                                         <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
@@ -215,7 +215,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                 <Settings size={20} />
                             </Link>
                         )}
-                        {isVendor && (
+                        {(isVendor || user?.role === 'regional_admin') && (
                             <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
                                 <Store size={20} />
                             </Link>

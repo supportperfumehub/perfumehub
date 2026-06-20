@@ -107,12 +107,34 @@ const Profile = () => {
                                 </p>
                             </div>
                         )}
-                        {user && (user.role === 'vendor' || user.role === 'admin') && (
+                        {user && (user.role === 'super_admin' || user.role === 'admin') && (
                             <div style={{ marginTop: '20px', textAlign: 'center' }}>
                                 <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
-                                <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                                <Link to="/admin" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
                                     <Store size={18} />
-                                    {isRTL ? 'لوحة تحكم البائع' : 'Go to Dashboard'}
+                                    {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
+                                </Link>
+                            </div>
+                        )}
+                        {user && user.role === 'regional_admin' && (
+                            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'center' }}>
+                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '10px' }} />
+                                <Link to="/admin" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                                    <Store size={18} />
+                                    {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
+                                </Link>
+                                <Link to="/vendor" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', borderColor: 'var(--color-gold)', color: 'var(--color-gold)' }}>
+                                    <Store size={18} />
+                                    {isRTL ? 'لوحة البائع والاشتراكات' : 'Vendor & Subscriptions'}
+                                </Link>
+                            </div>
+                        )}
+                        {user && user.role === 'vendor' && (
+                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
+                                <Link to="/vendor" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                                    <Store size={18} />
+                                    {isRTL ? 'لوحة تحكم البائع' : 'Vendor Dashboard'}
                                 </Link>
                             </div>
                         )}
