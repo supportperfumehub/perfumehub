@@ -139,6 +139,7 @@ const ProductDetails = () => {
     let orderStock = product.stock;
     
     const selectedInventory = product.inventories?.find(i => i.id === selectedInventoryId);
+    const isReservationAvailable = selectedInventory ? selectedInventory.pickup_available !== false : false;
     if (selectedInventory) {
         displayPrice = selectedInventory.price;
         orderStock = selectedInventory.stock;
@@ -370,16 +371,18 @@ const ProductDetails = () => {
                                 <span className="qty-value">{quantity}</span>
                                 <button onClick={() => setQuantity(Math.min((orderStock !== undefined ? orderStock : 10), quantity + 1))} disabled={orderStock === 0}>+</button>
                             </div>
-                            <button
-                                className="btn-reserve-store"
-                                disabled={orderStock === 0}
-                                onClick={() => {
-                                    navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
-                                }}
-                            >
-                                <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
-                                <Store size={16} className="reserve-btn-icon" />
-                            </button>
+                            {isReservationAvailable && (
+                                <button
+                                    className="btn-reserve-store"
+                                    disabled={orderStock === 0}
+                                    onClick={() => {
+                                        navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
+                                    }}
+                                >
+                                    <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
+                                    <Store size={16} className="reserve-btn-icon" />
+                                </button>
+                            )}
                         </div>
 
                         <div className="options-card">
@@ -546,7 +549,7 @@ const ProductDetails = () => {
             {/* Sticky Action Bar */}
             <div className="sticky-action-bar">
                 <div className="container" style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: isReservationAvailable ? 1.2 : 1 }}>
                         <PrimaryCTA 
                             disabled={orderStock === 0}
                             onClick={() => {
@@ -562,17 +565,19 @@ const ProductDetails = () => {
                             )}
                         </PrimaryCTA>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <ReserveCTA
-                            disabled={orderStock === 0}
-                            onClick={() => {
-                                // TODO: Trigger Reserve flow bottom sheet
-                                navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
-                            }}
-                        >
-                            {t('product.reserve_in_shop', 'Reserve in Shop')}
-                        </ReserveCTA>
-                    </div>
+                    {isReservationAvailable && (
+                        <div style={{ flex: 1 }}>
+                            <ReserveCTA
+                                disabled={orderStock === 0}
+                                onClick={() => {
+                                    // TODO: Trigger Reserve flow bottom sheet
+                                    navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
+                                }}
+                            >
+                                {t('product.reserve_in_shop', 'Reserve in Shop')}
+                            </ReserveCTA>
+                        </div>
+                    )}
                 </div>
             </div>
 

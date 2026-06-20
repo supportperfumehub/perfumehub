@@ -69,6 +69,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         sku: '',
         description: '',
         shop_id: shopId || 'core',
+        pickup_available: true,
         attributes: {}
     };
 
@@ -548,6 +549,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
         const initialPrice = shopInventory ? shopInventory.price : product.price;
         const initialStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
+        const initialPickup = shopInventory 
+            ? shopInventory.pickup_available !== false 
+            : product.pickup_available !== false;
 
         setFormData({
             ...product,
@@ -562,12 +566,30 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             middleNotes: product.middleNotes || '',
             baseNotes: product.baseNotes || '',
             shop_id: product.shop_id || 'core',
+            pickup_available: initialPickup,
             attributes: product.attributes || {}
         });
         setEditingId(product.id);
         setIsSkuAuto(false); // Set to false when editing existing product to prevent accidental changes
         setShowForm(true);
         window.scrollTo(0, 0);
+    };
+    const toggleReservation = async (product) => {
+        const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+        const currentPickup = shopInventory 
+            ? shopInventory.pickup_available !== false 
+            : product.pickup_available !== false;
+        
+        const nextPickup = !currentPickup;
+
+        const updatedData = {
+            ...product,
+            price: shopInventory ? shopInventory.price : product.price,
+            stock: shopInventory ? shopInventory.stock : product.stock,
+            pickup_available: nextPickup
+        };
+
+        await updateProduct(product.id, updatedData);
     };
     const handleDelete = (id, productName) => {
         setConfirmModal({
@@ -964,6 +986,16 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                         <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
                                     </div>
                                 </div>
+                                <div className="premium-marking-section" style={{ marginTop: '15px', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '10px 15px' }}>
+                                    <div className="marking-label-group">
+                                        <label htmlFor="pickup_available_linked">{isRTL ? 'تفعيل حجز المتجر' : 'Enable Store Reservation'}</label>
+                                        <span className="marking-desc">{isRTL ? 'السماح للعملاء بحجز هذا المنتج في المتجر' : 'Allow customers to reserve this product in-store'}</span>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input type="checkbox" name="pickup_available" id="pickup_available_linked" checked={formData.pickup_available !== false} onChange={handleInputChange} />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
                             </div>
                         ) : (
                             <div className="form-row-dual">
@@ -1190,6 +1222,17 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 </div>
                             </>
                         )}
+                        
+                        <div className="premium-marking-section">
+                            <div className="marking-label-group">
+                                <label htmlFor="pickup_available">{isRTL ? 'تفعيل حجز المتجر' : 'Enable Store Reservation'}</label>
+                                <span className="marking-desc">{isRTL ? 'السماح للعملاء بحجز هذا المنتج في المتجر' : 'Allow customers to reserve this product in-store'}</span>
+                            </div>
+                            <label className="toggle-switch">
+                                <input type="checkbox" name="pickup_available" id="pickup_available" checked={formData.pickup_available !== false} onChange={handleInputChange} />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
                             </>
                         )}
 
@@ -1249,6 +1292,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             <th>{isRTL ? 'الماركة' : 'Brand'}</th>
                             <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'السعر' : 'Price'}</th>
                             <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                            <th style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
                             <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
@@ -1373,6 +1417,53 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 {displayStock}
                                             </span>
                                         </td>
+                                        <td style={{ verticalAlign: 'top', paddingTop: '16px', textAlign: 'center' }}>
+                                            {(() => {
+                                                const isPickupAvailable = shopInventory 
+                                                    ? shopInventory.pickup_available !== false 
+                                                    : product.pickup_available !== false;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            await toggleReservation(product);
+                                                        }}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            outline: 'none',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            padding: '4px'
+                                                        }}
+                                                        title={isRTL ? 'تشغيل/إيقاف حجز المتجر' : 'Toggle Shop Reservation'}
+                                                    >
+                                                        <div style={{
+                                                            width: '38px',
+                                                            height: '20px',
+                                                            backgroundColor: isPickupAvailable ? '#22c55e' : '#475569',
+                                                            borderRadius: '10px',
+                                                            position: 'relative',
+                                                            transition: 'background-color 0.2s'
+                                                        }}>
+                                                            <div style={{
+                                                                width: '16px',
+                                                                height: '16px',
+                                                                backgroundColor: '#ffffff',
+                                                                borderRadius: '50%',
+                                                                position: 'absolute',
+                                                                top: '2px',
+                                                                left: isPickupAvailable ? '20px' : '2px',
+                                                                transition: 'left 0.2s'
+                                                            }} />
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })()}
+                                        </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <button 
@@ -1398,7 +1489,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             })}
                         {products.length === 0 && (
                             <tr>
-                                <td colSpan="5" className="text-center">{isRTL ? 'لا توجد منتجات' : 'No products found'}</td>
+                                <td colSpan="7" className="text-center">{isRTL ? 'لا توجد منتجات' : 'No products found'}</td>
                             </tr>
                         )}
                     </tbody>
