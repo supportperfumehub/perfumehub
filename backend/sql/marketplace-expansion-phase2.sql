@@ -19,7 +19,7 @@ ADD COLUMN IF NOT EXISTS country_id INTEGER REFERENCES countries(id) ON DELETE C
 -- 2. MULTI-VENDOR FULFILLMENT (SUB-ORDERS)
 CREATE TABLE IF NOT EXISTS sub_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    parent_order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    parent_order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
     shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
     vendor_id INTEGER REFERENCES customers(id), -- Redundant but good for indexing
     
@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
 
 -- 4. AUTOMATED ORDER SPLITTING (POSTGRES RPC)
 -- This function is called after a main order is inserted to split it into sub-orders
-CREATE OR REPLACE FUNCTION split_order_to_vendors(p_order_id UUID)
+CREATE OR REPLACE FUNCTION split_order_to_vendors(p_order_id INTEGER)
 RETURNS void AS $$
 DECLARE
     order_record RECORD;
