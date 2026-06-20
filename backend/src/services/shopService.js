@@ -127,21 +127,30 @@ export class ShopService {
         const shop = await this.shopRepository.findById(id);
         if (!shop) throw new AppError('Shop not found', 404);
 
+        // Extract ownerName and ownerEmail so they are not sent to the shops table update
+        const { ownerName, ownerEmail, ...shopUpdates } = updates;
+
         // Ownership/Role checks
-        if (user.email === 'supportperfumehub@gmail.com') {
-            // Master Bypass for Main Admin
-            return this.shopRepository.update(id, updates);
+        if (user.email !== 'supportperfumehub@gmail.com') {
+            if (user.role === 'vendor' && shop.owner_id !== user.id) {
+                throw new AppError('Forbidden: Cannot update other shop', 403);
+            }
+
+            if (user.role === 'regional_admin' && !user.assignedRegionIds.includes(shop.region_id)) {
+                throw new AppError('Forbidden: Cannot update shops in other regions', 403);
+            }
         }
 
-        if (user.role === 'vendor' && shop.owner_id !== user.id) {
-            throw new AppError('Forbidden: Cannot update other shop', 403);
+        // Update owner details in customers table if updated
+        if (ownerName !== undefined || ownerEmail !== undefined) {
+            const customerUpdates = {};
+            if (ownerName !== undefined) customerUpdates.name = ownerName;
+            if (ownerEmail !== undefined) customerUpdates.email = ownerEmail;
+            
+            await this.userRepository.update(shop.owner_id, customerUpdates);
         }
 
-        if (user.role === 'regional_admin' && !user.assignedRegionIds.includes(shop.region_id)) {
-            throw new AppError('Forbidden: Cannot update shops in other regions', 403);
-        }
-
-        return this.shopRepository.update(id, updates);
+        return this.shopRepository.update(id, shopUpdates);
     }
 
     async deleteShop(id, admin) {

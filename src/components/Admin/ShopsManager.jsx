@@ -106,7 +106,8 @@ const ShopsManager = ({ isRTL }) => {
             }
         } catch (error) {
             console.error('Error updating shop:', error);
-            alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
         }
     };
 
@@ -264,7 +265,8 @@ const ShopsManager = ({ isRTL }) => {
             }
         } catch (error) {
             console.error('Error creating vendor:', error);
-            alert(isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error');
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            alert(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`);
         }
     };
 
