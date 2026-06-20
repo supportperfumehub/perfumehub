@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
+import api from '../../utils/api_v1_0_2';
 
 const typeCodes = {
     'Parfum': 'P',
@@ -35,12 +36,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         if (!shopId) { // Only fetch shop lists if we are running as global Super Admin
             const fetchShops = async () => {
                 try {
-                    const response = await fetch('/api/shops');
-                    if (response.ok) {
-                        const data = await response.json();
-                        const shopsList = Array.isArray(data) ? data : (data.shops || []);
-                        setShopsData(shopsList);
-                    }
+                    const response = await api.get('/shops');
+                    const shopsList = Array.isArray(response.data) ? response.data : (response.data.shops || []);
+                    setShopsData(shopsList);
                 } catch (error) {
                     console.error("Failed to fetch shops:", error);
                 }

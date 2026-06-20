@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { CreditCard, Plus, Edit, Trash2, CheckCircle, XCircle, DollarSign, Calendar, Zap, ShieldCheck } from 'lucide-react';
+import api from '../../utils/api_v1_0_2';
 
 const SubscriptionManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -20,13 +21,10 @@ const SubscriptionManager = ({ isRTL }) => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const res = await fetch('/api/subscriptions/plans', {
+            const res = await api.get('/subscriptions/plans', {
                 headers: { 'x-user-id': user.id }
             });
-            if (res.ok) {
-                const data = await res.json();
-                setPlans(data);
-            }
+            setPlans(res.data || []);
         } catch (error) {
             console.error('Error fetching plans:', error);
         } finally {
@@ -44,24 +42,19 @@ const SubscriptionManager = ({ isRTL }) => {
         e.preventDefault();
         if (!user?.id) return;
         try {
-            const method = editingPlan ? 'PUT' : 'POST';
-            const url = editingPlan ? `/api/subscriptions/plans/${editingPlan.id}` : '/api/subscriptions/plans';
+            const method = editingPlan ? 'put' : 'post';
+            const url = editingPlan ? `/subscriptions/plans/${editingPlan.id}` : '/subscriptions/plans';
             
-            const res = await fetch(url, {
-                method,
+            const res = await api[method](url, formData, {
                 headers: { 
-                    'Content-Type': 'application/json',
                     'x-user-id': user.id 
-                },
-                body: JSON.stringify(formData)
+                }
             });
 
-            if (res.ok) {
-                setShowForm(false);
-                setEditingPlan(null);
-                setFormData({ name: '', price: '', interval: 'month', description: '', features: [] });
-                fetchPlans();
-            }
+            setShowForm(false);
+            setEditingPlan(null);
+            setFormData({ name: '', price: '', interval: 'month', description: '', features: [] });
+            fetchPlans();
         } catch (error) {
             console.error('Error saving plan:', error);
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
+import api from '../../utils/api_v1_0_2';
 import './RegionsManager.css';
 
 const RegionsManager = ({ isRTL }) => {
@@ -43,16 +44,14 @@ const RegionsManager = ({ isRTL }) => {
 
     const fetchRegions = async () => {
         try {
-            const res = await fetch('/api/regions', {
+            const res = await api.get('/regions', {
                 headers: {
                     'x-user-id': user?.id
                 }
             });
-            if (!res.ok) throw new Error('Failed to fetch regions');
-            const data = await res.json();
-            setRegions(data || []);
+            setRegions(res.data || []);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setLoading(false);
         }
@@ -60,14 +59,12 @@ const RegionsManager = ({ isRTL }) => {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('/api/users?role=vendor', {
+            const res = await api.get('/users?role=vendor', {
                 headers: {
                     'x-user-id': user?.id
                 }
             });
-            if (!res.ok) throw new Error('Failed to fetch users');
-            const data = await res.json();
-            setUsers(data || []);
+            setUsers(res.data || []);
         } catch (err) {
             console.error('Fetch users error:', err);
         }
@@ -78,23 +75,18 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            const url = editingRegionId ? `/api/regions/${editingRegionId}` : '/api/regions';
-            const method = editingRegionId ? 'PUT' : 'POST';
+            const url = editingRegionId ? `/regions/${editingRegionId}` : '/regions';
+            const method = editingRegionId ? 'put' : 'post';
 
-            const res = await fetch(url, {
-                method: method,
+            const res = await api[method](url, {
+                name: newRegionName,
+                code: newRegionCode,
+                currencyCode: newCurrencyCode
+            }, {
                 headers: { 
-                    'Content-Type': 'application/json',
                     'x-user-id': user?.id
-                },
-                body: JSON.stringify({
-                    name: newRegionName,
-                    code: newRegionCode,
-                    currencyCode: newCurrencyCode
-                })
+                }
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to process region');
             
             setSuccessMessage(editingRegionId 
                 ? (isRTL ? 'تم تحديث المنطقة بنجاح' : 'Region updated successfully')
@@ -107,7 +99,7 @@ const RegionsManager = ({ isRTL }) => {
             setEditingRegionId(null);
             fetchRegions();
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         }
     };
 
@@ -142,20 +134,16 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            const res = await fetch(`/api/regions/${confirmModal.regionId}`, {
-                method: 'DELETE',
+            await api.delete(`/regions/${confirmModal.regionId}`, {
                 headers: {
                     'x-user-id': user?.id
                 }
             });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.error || 'Failed to delete region');
             
             setSuccessMessage(isRTL ? 'تم حذف المنطقة' : 'Region deleted successfully');
             fetchRegions();
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setConfirmModal({ isOpen: false, regionId: null, regionName: '' });
         }
@@ -166,26 +154,21 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            const res = await fetch('/api/regions/assign-admin', {
-                method: 'POST',
+            await api.post('/regions/assign-admin', {
+                admin_id: parseInt(assignAdminId),
+                region_id: parseInt(assignRegionId),
+                assigned_by: user?.id
+            }, {
                 headers: { 
-                    'Content-Type': 'application/json',
                     'x-user-id': user?.id
-                },
-                body: JSON.stringify({
-                    admin_id: parseInt(assignAdminId),
-                    region_id: parseInt(assignRegionId),
-                    assigned_by: user?.id
-                })
+                }
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to assign admin');
             
             setSuccessMessage(isRTL ? 'تم تعيين المشرف بنجاح' : 'Admin assigned successfully');
             setAssignAdminId('');
             setAssignRegionId('');
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         }
     };
 
