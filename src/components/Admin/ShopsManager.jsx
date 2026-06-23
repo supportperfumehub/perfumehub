@@ -221,54 +221,55 @@ const ShopsManager = ({ isRTL }) => {
     const handleImageUpload = (index, e, isEdit = false) => {
         const file = e.target.files[0];
         if (file) {
-            const objectUrl = URL.createObjectURL(file);
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
 
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-                if (isEdit) {
-                    const updatedImages = [...(editData.images || [])];
-                    if (index === -1) {
-                        updatedImages.push(compressedBase64);
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
                     } else {
-                        updatedImages[index] = compressedBase64;
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
                     }
-                    setEditData({ ...editData, images: updatedImages });
-                } else {
-                    const updated = [...photoInputs];
-                    updated[index] = compressedBase64;
-                    setPhotoInputs(updated);
-                }
-                URL.revokeObjectURL(objectUrl);
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                    if (isEdit) {
+                        const updatedImages = [...(editData.images || [])];
+                        if (index === -1) {
+                            updatedImages.push(compressedBase64);
+                        } else {
+                            updatedImages[index] = compressedBase64;
+                        }
+                        setEditData({ ...editData, images: updatedImages });
+                    } else {
+                        const updated = [...photoInputs];
+                        updated[index] = compressedBase64;
+                        setPhotoInputs(updated);
+                    }
+                };
+                img.onerror = () => {
+                    console.error("Failed to load image");
+                };
+                img.src = reader.result;
             };
-            img.onerror = () => {
-                console.error("Failed to load image");
-                URL.revokeObjectURL(objectUrl);
-            };
-            img.src = objectUrl;
+            reader.readAsDataURL(file);
         }
         e.target.value = ''; // Reset input to allow uploading same image
     };
