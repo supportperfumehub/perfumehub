@@ -222,57 +222,65 @@ const ShopsManager = ({ isRTL }) => {
         const fileInput = e.target;
         const file = fileInput.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            
+            if (!window._activeImageRefs) {
+                window._activeImageRefs = new Set();
+            }
+            window._activeImageRefs.add(img);
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
                     }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-                    if (isEdit) {
-                        const updatedImages = [...(editData.images || [])];
-                        if (index === -1) {
-                            updatedImages.push(compressedBase64);
-                        } else {
-                            updatedImages[index] = compressedBase64;
-                        }
-                        setEditData({ ...editData, images: updatedImages });
-                    } else {
-                        const updated = [...photoInputs];
-                        updated[index] = compressedBase64;
-                        setPhotoInputs(updated);
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
                     }
-                    fileInput.value = ''; // Reset input to allow uploading same image
-                };
-                img.onerror = () => {
-                    console.error("Failed to load image");
-                    fileInput.value = ''; // Reset on error too
-                };
-                img.src = reader.result;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                if (isEdit) {
+                    const updatedImages = [...(editData.images || [])];
+                    if (index === -1) {
+                        updatedImages.push(compressedBase64);
+                    } else {
+                        updatedImages[index] = compressedBase64;
+                    }
+                    setEditData({ ...editData, images: updatedImages });
+                } else {
+                    const updated = [...photoInputs];
+                    updated[index] = compressedBase64;
+                    setPhotoInputs(updated);
+                }
+                
+                fileInput.value = ''; // Reset input to allow uploading same image
+                URL.revokeObjectURL(objectUrl);
+                window._activeImageRefs.delete(img);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                console.error("Failed to load image");
+                fileInput.value = ''; // Reset on error too
+                URL.revokeObjectURL(objectUrl);
+                window._activeImageRefs.delete(img);
+            };
+            img.src = objectUrl;
         }
     };
 
