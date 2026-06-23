@@ -72,7 +72,11 @@ const VendorSignup = () => {
     };
 
     const handleFileUpload = (e) => {
-        const files = Array.from(e.target.files);
+        const fileInput = e.target;
+        const files = Array.from(fileInput.files);
+        let pending = files.length;
+        if (pending === 0) return;
+
         files.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -112,15 +116,23 @@ const VendorSignup = () => {
                         }
                         return [...prev, compressedBase64];
                     });
+
+                    pending--;
+                    if (pending === 0) {
+                        fileInput.value = ''; // Reset input to allow uploading same image
+                    }
                 };
                 img.onerror = () => {
                     console.error("Failed to load image");
+                    pending--;
+                    if (pending === 0) {
+                        fileInput.value = ''; // Reset on error too
+                    }
                 };
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
         });
-        e.target.value = ''; // Reset input to allow uploading same image
     };
 
     const handleSubmit = async (e) => {

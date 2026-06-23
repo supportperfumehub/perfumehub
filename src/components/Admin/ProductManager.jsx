@@ -284,7 +284,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     };
 
     const handleImageUpload = (index, e) => {
-        const file = e.target.files[0];
+        const fileInput = e.target;
+        const file = fileInput.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -316,15 +317,16 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     // Compress to JPEG with 0.7 quality to guarantee small payload size
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
                     handleImageChange(index, compressedBase64);
+                    fileInput.value = ''; // Reset input to allow uploading same image
                 };
                 img.onerror = () => {
                     console.error("Failed to load image");
+                    fileInput.value = ''; // Reset on error too
                 };
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
-        e.target.value = ''; // Reset input to allow uploading same image
     };
 
     const handleAttributeChange = (key, value) => {

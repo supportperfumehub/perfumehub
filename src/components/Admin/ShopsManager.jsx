@@ -219,7 +219,8 @@ const ShopsManager = ({ isRTL }) => {
     const addPhotoInput = () => setPhotoInputs([...photoInputs, '']);
     const removePhotoInput = (index) => setPhotoInputs(photoInputs.filter((_, i) => i !== index));
     const handleImageUpload = (index, e, isEdit = false) => {
-        const file = e.target.files[0];
+        const fileInput = e.target;
+        const file = fileInput.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -263,15 +264,16 @@ const ShopsManager = ({ isRTL }) => {
                         updated[index] = compressedBase64;
                         setPhotoInputs(updated);
                     }
+                    fileInput.value = ''; // Reset input to allow uploading same image
                 };
                 img.onerror = () => {
                     console.error("Failed to load image");
+                    fileInput.value = ''; // Reset on error too
                 };
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
-        e.target.value = ''; // Reset input to allow uploading same image
     };
 
 
