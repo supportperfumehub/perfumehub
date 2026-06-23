@@ -10,7 +10,7 @@ const VendorSignup = () => {
     useTranslation();
     const { isRTL } = useOutletContext();
     const { user } = useContext(AuthContext);
-    const fileInputRef = useRef(null);
+    // No ref needed for label-based upload triggers
 
     // Guest account fields
     const [guestData, setGuestData] = useState({ ownerName: '', ownerEmail: '', ownerPassword: '' });
@@ -335,21 +335,21 @@ const VendorSignup = () => {
                         <div className="photo-upload-container">
                             <input 
                                 type="file" 
-                                ref={fileInputRef} 
+                                id="vendor-signup-file-input"
                                 style={{ display: 'none' }} 
                                 accept="image/*" 
                                 multiple 
                                 onChange={handleFileUpload} 
                             />
                             {/* Local Upload Zone */}
-                            <div className="local-upload-zone" onClick={() => fileInputRef.current?.click()}>
+                            <label className="local-upload-zone" htmlFor="vendor-signup-file-input" style={{ display: 'block', cursor: 'pointer' }}>
                                 <div className="upload-icon-circle">
                                     <Upload size={20} />
                                 </div>
                                 <p className="upload-text">
                                     {isRTL ? 'اضغط لرفع الصور من' : 'Click to upload from'} <span>{isRTL ? 'جهازك' : 'Local Storage'}</span>
                                 </p>
-                            </div>
+                            </label>
 
                             <div className="photo-input-list">
                                 {photoInputs.map((url, index) => (

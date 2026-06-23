@@ -1154,13 +1154,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         <div className="image-manage-grid">
                             {formData.images.map((url, idx) => (
                                 <div key={idx} className="image-input-row">
-                                    <div 
+                                    <label 
                                         className="image-preview-box"
-                                        onClick={() => document.getElementById(`file-upload-${idx}`).click()}
+                                        htmlFor={`file-upload-${idx}`}
+                                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                     >
                                         {url ? <img src={url} alt="preview" /> : <Plus size={20} color="#94a3b8" />}
-                                    </div>
-                                    <input type="file" id={`file-upload-${idx}`} hidden accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
+                                    </label>
+                                    <input type="file" id={`file-upload-${idx}`} style={{ display: 'none' }} accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
                                     <div className="image-url-input-container">
                                         <input 
                                             type="url" 

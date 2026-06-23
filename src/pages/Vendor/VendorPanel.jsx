@@ -320,16 +320,16 @@ const VendorPanel = () => {
                                                     </button>
                                                 </div>
                                             ))}
-                                            <div 
-                                                onClick={() => document.getElementById('vendor-photo-upload').click()}
+                                            <label 
+                                                htmlFor="vendor-photo-upload"
                                                 style={{ height: '120px', borderRadius: '12px', border: '2px dashed #334155', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', background: 'rgba(255,255,255,0.02)', transition: 'all 0.2s ease' }}
                                                 onMouseOver={(e) => e.currentTarget.style.borderColor = '#c8a951'}
                                                 onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
                                             >
                                                 <Plus size={28} />
                                                 <span style={{ fontSize: '0.8rem', marginTop: '8px', fontWeight: '500' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
-                                            </div>
-                                            <input type="file" id="vendor-photo-upload" hidden accept="image/*" onChange={handleImageUpload} />
+                                            </label>
+                                            <input type="file" id="vendor-photo-upload" style={{ display: 'none' }} accept="image/*" onChange={handleImageUpload} />
                                         </div>
                                     </div>
                                     <button type="submit" className="btn btn-gold" disabled={savingSettings}>

@@ -386,12 +386,12 @@ const ShopsManager = ({ isRTL }) => {
                                                 </button>
                                             </>
                                         ) : (
-                                            <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => document.getElementById(`new-shop-photo-${index}`).click()}>
+                                            <label style={{ textAlign: 'center', cursor: 'pointer', display: 'block' }} htmlFor={`new-shop-photo-${index}`}>
                                                 <Image size={24} color="#334155" />
                                                 <div style={{ fontSize: '0.65rem', color: '#444', marginTop: '4px' }}>{isRTL ? 'رفع صورة' : 'Upload'}</div>
-                                            </div>
+                                            </label>
                                         )}
-                                        <input type="file" id={`new-shop-photo-${index}`} hidden accept="image/*" onChange={(e) => handleImageUpload(index, e)} />
+                                        <input type="file" id={`new-shop-photo-${index}`} style={{ display: 'none' }} accept="image/*" onChange={(e) => handleImageUpload(index, e)} />
                                     </div>
                                 ))}
                             </div>
@@ -761,14 +761,14 @@ const ShopsManager = ({ isRTL }) => {
                                                             </div>
                                                         </div>
                                                     ))}
-                                                    <div 
-                                                        onClick={() => document.getElementById('edit-shop-photo-upload').click()}
+                                                    <label 
+                                                        htmlFor="edit-shop-photo-upload"
                                                         style={{ height: '110px', borderRadius: '10px', border: '2px dashed #334155', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', background: 'rgba(255,255,255,0.02)' }}
                                                     >
                                                         <Plus size={24} />
                                                         <span style={{ fontSize: '0.75rem', marginTop: '5px' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
-                                                    </div>
-                                                    <input type="file" id="edit-shop-photo-upload" hidden accept="image/*" onChange={(e) => handleImageUpload(-1, e, true)} />
+                                                    </label>
+                                                    <input type="file" id="edit-shop-photo-upload" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleImageUpload(-1, e, true)} />
                                                 </div>
                                             </div>
                                         </div>
