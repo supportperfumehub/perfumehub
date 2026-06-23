@@ -286,41 +286,44 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const handleImageUpload = (index, e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
                     }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
 
-                    // Compress to JPEG with 0.7 quality to guarantee small payload size
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    handleImageChange(index, compressedBase64);
-                };
-                img.src = reader.result;
+                // Compress to JPEG with 0.7 quality to guarantee small payload size
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                handleImageChange(index, compressedBase64);
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                console.error("Failed to load image");
+                URL.revokeObjectURL(objectUrl);
+            };
+            img.src = objectUrl;
         }
+        e.target.value = ''; // Reset input to allow uploading same image
     };
 
     const handleAttributeChange = (key, value) => {
@@ -1155,8 +1158,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                         onClick={() => document.getElementById(`file-upload-${idx}`).click()}
                                     >
                                         {url ? <img src={url} alt="preview" /> : <Plus size={20} color="#94a3b8" />}
-                                        <input type="file" id={`file-upload-${idx}`} hidden accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
                                     </div>
+                                    <input type="file" id={`file-upload-${idx}`} hidden accept="image/*" onChange={(e) => handleImageUpload(idx, e)} />
                                     <div className="image-url-input-container">
                                         <input 
                                             type="url" 

@@ -74,21 +74,52 @@ const VendorSignup = () => {
     const handleFileUpload = (e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                // Add as a new photo input or fill the first empty one
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
                 setPhotoInputs(prev => {
                     const emptyIndex = prev.findIndex(url => !url);
                     if (emptyIndex !== -1) {
                         const updated = [...prev];
-                        updated[emptyIndex] = reader.result;
+                        updated[emptyIndex] = compressedBase64;
                         return updated;
                     }
-                    return [...prev, reader.result];
+                    return [...prev, compressedBase64];
                 });
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                console.error("Failed to load image");
+                URL.revokeObjectURL(objectUrl);
+            };
+            img.src = objectUrl;
         });
+        e.target.value = ''; // Reset input to allow uploading same image
     };
 
     const handleSubmit = async (e) => {
@@ -301,16 +332,16 @@ const VendorSignup = () => {
                         </h3>
                         
                         <div className="photo-upload-container">
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                style={{ display: 'none' }} 
+                                accept="image/*" 
+                                multiple 
+                                onChange={handleFileUpload} 
+                            />
                             {/* Local Upload Zone */}
                             <div className="local-upload-zone" onClick={() => fileInputRef.current?.click()}>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    style={{ display: 'none' }} 
-                                    accept="image/*" 
-                                    multiple 
-                                    onChange={handleFileUpload} 
-                                />
                                 <div className="upload-icon-circle">
                                     <Upload size={20} />
                                 </div>
