@@ -111,60 +111,71 @@ const VendorPanel = () => {
     }
 
     const handleImageUpload = (e) => {
-        const fileInput = e.target;
-        const file = fileInput.files[0];
-        if (file) {
-            const objectUrl = URL.createObjectURL(file);
-            const img = new Image();
-            
-            if (!window._activeImageRefs) {
-                window._activeImageRefs = new Set();
-            }
-            window._activeImageRefs.add(img);
-
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
+        try {
+            const fileInput = e.target;
+            const file = fileInput.files[0];
+            if (file) {
+                const objectUrl = URL.createObjectURL(file);
+                const img = new Image();
+                
+                if (!window._activeImageRefs) {
+                    window._activeImageRefs = new Set();
                 }
+                window._activeImageRefs.add(img);
 
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
 
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                
-                const currentImages = Array.isArray(shopData.images) ? shopData.images : [];
-                setShopData({
-                    ...shopData,
-                    images: [...currentImages, compressedBase64]
-                });
-                
-                fileInput.value = ''; // Reset input to allow uploading same image
-                URL.revokeObjectURL(objectUrl);
-                window._activeImageRefs.delete(img);
-            };
-            img.onerror = () => {
-                console.error("Failed to load image");
-                fileInput.value = ''; // Reset on error too
-                URL.revokeObjectURL(objectUrl);
-                window._activeImageRefs.delete(img);
-            };
-            img.src = objectUrl;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        const currentImages = Array.isArray(shopData.images) ? shopData.images : [];
+                        setShopData({
+                            ...shopData,
+                            images: [...currentImages, compressedBase64]
+                        });
+                        
+                        fileInput.value = ''; // Reset input to allow uploading same image
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    } catch (loadErr) {
+                        alert("Error during image load processing: " + loadErr.message);
+                        fileInput.value = '';
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    }
+                };
+                img.onerror = () => {
+                    alert("Failed to load image object.");
+                    fileInput.value = ''; // Reset on error too
+                    URL.revokeObjectURL(objectUrl);
+                    window._activeImageRefs.delete(img);
+                };
+                img.src = objectUrl;
+            }
+        } catch (err) {
+            alert("Error in handleImageUpload: " + err.message);
         }
     };
 
@@ -339,7 +350,7 @@ const VendorPanel = () => {
                                                 <Plus size={28} />
                                                 <span style={{ fontSize: '0.8rem', marginTop: '8px', fontWeight: '500' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
                                             </label>
-                                            <input type="file" id="vendor-photo-upload" style={{ display: 'none' }} accept="image/*" onChange={handleImageUpload} />
+                                            <input type="file" id="vendor-photo-upload" style={{ opacity: 0, position: 'absolute', zIndex: -1, width: '1px', height: '1px', overflow: 'hidden' }} accept="image/*" onChange={handleImageUpload} />
                                         </div>
                                     </div>
                                     <button type="submit" className="btn btn-gold" disabled={savingSettings}>

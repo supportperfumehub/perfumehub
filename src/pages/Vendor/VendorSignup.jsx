@@ -72,74 +72,88 @@ const VendorSignup = () => {
     };
 
     const handleFileUpload = (e) => {
-        const fileInput = e.target;
-        const files = Array.from(fileInput.files);
-        let pending = files.length;
-        if (pending === 0) return;
+        try {
+            const fileInput = e.target;
+            const files = Array.from(fileInput.files);
+            let pending = files.length;
+            if (pending === 0) return;
 
-        if (!window._activeImageRefs) {
-            window._activeImageRefs = new Set();
+            if (!window._activeImageRefs) {
+                window._activeImageRefs = new Set();
+            }
+
+            files.forEach(file => {
+                const objectUrl = URL.createObjectURL(file);
+                const img = new Image();
+                window._activeImageRefs.add(img);
+
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                        setPhotoInputs(prev => {
+                            const emptyIndex = prev.findIndex(url => !url);
+                            if (emptyIndex !== -1) {
+                                const updated = [...prev];
+                                updated[emptyIndex] = compressedBase64;
+                                return updated;
+                            }
+                            return [...prev, compressedBase64];
+                        });
+
+                        pending--;
+                        if (pending === 0) {
+                            fileInput.value = ''; // Reset input to allow uploading same image
+                        }
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    } catch (loadErr) {
+                        alert("Error during image load processing: " + loadErr.message);
+                        pending--;
+                        if (pending === 0) {
+                            fileInput.value = '';
+                        }
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    }
+                };
+                img.onerror = () => {
+                    alert("Failed to load image object.");
+                    pending--;
+                    if (pending === 0) {
+                        fileInput.value = ''; // Reset on error too
+                    }
+                    URL.revokeObjectURL(objectUrl);
+                    window._activeImageRefs.delete(img);
+                };
+                img.src = objectUrl;
+            });
+        } catch (err) {
+            alert("Error in handleFileUpload: " + err.message);
         }
-
-        files.forEach(file => {
-            const objectUrl = URL.createObjectURL(file);
-            const img = new Image();
-            window._activeImageRefs.add(img);
-
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-                setPhotoInputs(prev => {
-                    const emptyIndex = prev.findIndex(url => !url);
-                    if (emptyIndex !== -1) {
-                        const updated = [...prev];
-                        updated[emptyIndex] = compressedBase64;
-                        return updated;
-                    }
-                    return [...prev, compressedBase64];
-                });
-
-                pending--;
-                if (pending === 0) {
-                    fileInput.value = ''; // Reset input to allow uploading same image
-                }
-                URL.revokeObjectURL(objectUrl);
-                window._activeImageRefs.delete(img);
-            };
-            img.onerror = () => {
-                console.error("Failed to load image");
-                pending--;
-                if (pending === 0) {
-                    fileInput.value = ''; // Reset on error too
-                }
-                URL.revokeObjectURL(objectUrl);
-                window._activeImageRefs.delete(img);
-            };
-            img.src = objectUrl;
-        });
     };
 
     const handleSubmit = async (e) => {
@@ -352,14 +366,14 @@ const VendorSignup = () => {
                         </h3>
                         
                         <div className="photo-upload-container">
-                            <input 
-                                type="file" 
-                                id="vendor-signup-file-input"
-                                style={{ display: 'none' }} 
-                                accept="image/*" 
-                                multiple 
-                                onChange={handleFileUpload} 
-                            />
+                             <input 
+                                 type="file" 
+                                 id="vendor-signup-file-input"
+                                 style={{ opacity: 0, position: 'absolute', zIndex: -1, width: '1px', height: '1px', overflow: 'hidden' }} 
+                                 accept="image/*" 
+                                 multiple 
+                                 onChange={handleFileUpload} 
+                             />
                             {/* Local Upload Zone */}
                             <label className="local-upload-zone" htmlFor="vendor-signup-file-input" style={{ display: 'block', cursor: 'pointer' }}>
                                 <div className="upload-icon-circle">
