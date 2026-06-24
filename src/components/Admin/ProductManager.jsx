@@ -289,7 +289,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             const file = fileInput.files[0];
             if (file) {
                 const objectUrl = URL.createObjectURL(file);
-                const img = new Image();
+                const img = new window.Image();
                 
                 if (!window._activeImageRefs) {
                     window._activeImageRefs = new Set();

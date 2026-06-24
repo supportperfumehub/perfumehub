@@ -84,7 +84,7 @@ const VendorSignup = () => {
 
             files.forEach(file => {
                 const objectUrl = URL.createObjectURL(file);
-                const img = new Image();
+                const img = new window.Image();
                 window._activeImageRefs.add(img);
 
                 img.onload = () => {
