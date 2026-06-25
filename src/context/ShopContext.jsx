@@ -8,15 +8,24 @@ export const ShopContext = createContext();
 export const ShopProvider = ({ children }) => {
     const { user, isVendor, loading: authLoading, isAdmin, isAuthenticated } = useContext(AuthContext);
 
-    // Products start empty — always loaded fresh from database
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Initialize products from cache to enable instant loading
+    const [products, setProducts] = useState(() => {
+        const saved = localStorage.getItem('perfumehub_products');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [loading, setLoading] = useState(() => {
+        const saved = localStorage.getItem('perfumehub_products');
+        return saved ? false : true;
+    });
     const [backups, setBackups] = useState([]);
     const [discoverCampaigns, setDiscoverCampaigns] = useState([]);
     const [shops, setShops] = useState([]);
 
-    // Initial orders - Start empty and fetch from database
-    const [orders, setOrders] = useState([]);
+    // Initialize orders from cache to enable instant loading
+    const [orders, setOrders] = useState(() => {
+        const saved = localStorage.getItem('perfumehub_orders');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     const [coupons, setCoupons] = useState(() => {
         const savedCoupons = localStorage.getItem('perfumehub_coupons');
@@ -208,26 +217,29 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
+    // Fetch products and shops immediately and in parallel, regardless of auth loading state
     useEffect(() => {
-        if (authLoading) return; // Wait for silent refresh to complete
-
         const timer = setTimeout(() => {
             fetchProducts();
             fetchShops();
-
-            // Authenticated user only fetches
-            if (isAuthenticated) {
-                fetchOrders();
-            }
-
-            // Admin only fetches
-            if (isAdmin) {
-                fetchCoupons();
-                fetchBackups();
-            }
         }, 100);
         return () => clearTimeout(timer);
-    }, [authLoading, isVendor, isAdmin, isAuthenticated, user?.shop_id]);
+    }, [isVendor, user?.shop_id]);
+
+    // Fetch user orders when authentication is active
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchOrders();
+        }
+    }, [isAuthenticated, isVendor, user?.shop_id]);
+
+    // Fetch administrative catalog components
+    useEffect(() => {
+        if (isAdmin) {
+            fetchCoupons();
+            fetchBackups();
+        }
+    }, [isAdmin]);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_products', JSON.stringify(products));

@@ -5,7 +5,10 @@ import { supabase } from '../utils/supabaseClient';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('perfumehub_user');
+        return saved ? JSON.parse(saved) : null;
+    });
     const [loading, setLoading] = useState(true);
     const [requires2FA, setRequires2FA] = useState(false);
     const [pendingUserId, setPendingUserId] = useState(null);
@@ -31,15 +34,27 @@ export const AuthProvider = ({ children }) => {
                 const { accessToken, user } = response.data;
                 setAccessToken(accessToken);
                 setUser(user);
+                localStorage.setItem('perfumehub_user', JSON.stringify(user));
                 console.log('User Role from Server:', user.role);
                 const adminFlag = user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin';
                 const vendorFlag = user.role === 'vendor';
                 console.log('Setting isAdmin:', adminFlag, 'isVendor:', vendorFlag);
                 setIsAdmin(adminFlag);
                 setIsVendor(vendorFlag);
+            } else {
+                setUser(null);
+                localStorage.removeItem('perfumehub_user');
+                setIsAdmin(false);
+                setIsVendor(false);
             }
         } catch (error) {
             console.log('No active session found.');
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                setUser(null);
+                localStorage.removeItem('perfumehub_user');
+                setIsAdmin(false);
+                setIsVendor(false);
+            }
         } finally {
             setLoading(false);
         }
@@ -49,6 +64,9 @@ export const AuthProvider = ({ children }) => {
         if (user) {
             setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
             setIsVendor(user.role === 'vendor');
+        } else {
+            setIsAdmin(false);
+            setIsVendor(false);
         }
     }, [user]);
 
@@ -69,6 +87,7 @@ export const AuthProvider = ({ children }) => {
                             const { accessToken, user } = response.data;
                             setAccessToken(accessToken);
                             setUser(user);
+                            localStorage.setItem('perfumehub_user', JSON.stringify(user));
                             setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
                             setIsVendor(user.role === 'vendor');
                         }
@@ -107,6 +126,7 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
+                localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
                 setIsVendor(data.user.role === 'vendor');
                 return { success: true, user: data.user };
@@ -125,6 +145,7 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setAccessToken(data.accessToken);
                 setUser(data.user);
+                localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
                 setIsVendor(data.user.role === 'vendor');
                 setRequires2FA(false);
@@ -155,6 +176,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setAccessToken(null);
             setUser(null);
+            localStorage.removeItem('perfumehub_user');
             setIsAdmin(false);
             setIsVendor(false);
             setRequires2FA(false);
@@ -217,7 +239,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

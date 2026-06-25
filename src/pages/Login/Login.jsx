@@ -40,6 +40,16 @@ const Login = () => {
         }
     }, []);
 
+    // Redirect authenticated users away from Login/Register page
+    React.useEffect(() => {
+        if (user) {
+            const role = user.role;
+            const origin = location.state?.from?.pathname
+                || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
+            navigate(origin, { replace: true });
+        }
+    }, [user, navigate, location.state]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
