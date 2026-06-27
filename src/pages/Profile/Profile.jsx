@@ -4,7 +4,7 @@ import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
-import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
 
@@ -28,6 +28,67 @@ const Profile = () => {
     // Fetch user reservations
     const [reservations, setReservations] = useState([]);
     const [resvLoading, setResvLoading] = useState(true);
+
+    // Two-Factor Authentication (2FA) State & Operations
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.two_factor_enabled || false);
+    const [setup2FAData, setSetup2FAData] = useState(null);
+    const [otpVerifyCode, setOtpVerifyCode] = useState('');
+    const [is2FALoading, setIs2FALoading] = useState(false);
+    const [show2FAForm, setShow2FAForm] = useState(false);
+
+    const handleInitiate2FA = async () => {
+        setIs2FALoading(true);
+        try {
+            const res = await api.post('/auth/2fa/setup');
+            if (res.data.success) {
+                setSetup2FAData({
+                    secret: res.data.secret,
+                    qrCodeUrl: res.data.qrCodeUrl
+                });
+                setShow2FAForm(true);
+            }
+        } catch (e) {
+            console.error("2FA setup failed:", e);
+            alert(isRTL ? "فشل بدء إعداد التحقق الثنائي." : "Failed to start 2FA setup.");
+        } finally {
+            setIs2FALoading(false);
+        }
+    };
+
+    const handleConfirm2FA = async () => {
+        if (!otpVerifyCode) return;
+        setIs2FALoading(true);
+        try {
+            const res = await api.post('/auth/2fa/enable', { token: otpVerifyCode });
+            if (res.data.success) {
+                setTwoFactorEnabled(true);
+                setShow2FAForm(false);
+                setSetup2FAData(null);
+                setOtpVerifyCode('');
+                alert(isRTL ? "تم تفعيل التحقق الثنائي بنجاح!" : "Two-factor authentication enabled successfully!");
+            }
+        } catch (e) {
+            console.error("2FA verification failed:", e);
+            alert(e.response?.data?.error || (isRTL ? "رمز التحقق غير صحيح." : "Invalid verification code."));
+        } finally {
+            setIs2FALoading(false);
+        }
+    };
+
+    const handleDisable2FA = async () => {
+        if (!window.confirm(isRTL ? "هل أنت متأكد من تعطيل التحقق الثنائي؟" : "Are you sure you want to disable 2FA?")) return;
+        setIs2FALoading(true);
+        try {
+            await api.put(`/users/${user.id}`, { two_factor_enabled: false, two_factor_secret: null });
+            setTwoFactorEnabled(false);
+            alert(isRTL ? "تم تعطيل التحقق الثنائي." : "2FA disabled successfully.");
+        } catch (e) {
+            console.error("Failed to disable 2FA:", e);
+            alert(isRTL ? "فشل تعطيل التحقق الثنائي." : "Failed to disable 2FA.");
+        } finally {
+            setIs2FALoading(false);
+        }
+    };
 
     useEffect(() => {
         const fetchReservations = async () => {
@@ -138,6 +199,94 @@ const Profile = () => {
                                 </Link>
                             </div>
                         )}
+
+                        {/* Two-Factor Authentication (2FA) Setup */}
+                        <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'left', direction: isRTL ? 'rtl' : 'ltr' }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#1e293b' }}>
+                                <ShieldCheck size={18} style={{ color: 'var(--color-gold)' }} />
+                                {isRTL ? 'التحقق الثنائي (2FA)' : 'Two-Factor Authentication'}
+                            </h4>
+                            
+                            {twoFactorEnabled ? (
+                                <div>
+                                    <p style={{ fontSize: '0.8rem', color: '#16a34a', margin: '0 0 10px 0', fontWeight: '600' }}>
+                                        ✓ {isRTL ? 'نشط ومفعل' : 'Enabled and protecting your account'}
+                                    </p>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline" 
+                                        onClick={handleDisable2FA}
+                                        disabled={is2FALoading}
+                                        style={{ width: '100%', padding: '6px', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef444433' }}
+                                    >
+                                        {isRTL ? 'تعطيل التحقق الثنائي' : 'Disable 2FA'}
+                                    </button>
+                                </div>
+                            ) : show2FAForm && setup2FAData ? (
+                                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0' }}>
+                                        {isRTL 
+                                            ? 'امسح الرمز أدناه بتطبيق Google Authenticator ثم أدخل رمز التحقق.' 
+                                            : 'Scan this QR code with Google Authenticator or custom TOTP app.'}
+                                    </p>
+                                    <div style={{ textAlign: 'center', margin: '10px 0' }}>
+                                        <img src={setup2FAData.qrCodeUrl} alt="QR Code" style={{ width: '130px', height: '130px', background: '#fff', padding: '4px', border: '1px solid #cbd5e1', display: 'inline-block' }} />
+                                    </div>
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                                            {isRTL ? 'أو أدخل المفتاح يدوياً:' : 'Or manual setup key:'}
+                                        </label>
+                                        <code style={{ fontSize: '0.75rem', display: 'block', background: '#e2e8f0', padding: '4px', borderRadius: '4px', wordBreak: 'break-all', textAlign: 'center' }}>
+                                            {setup2FAData.secret}
+                                        </code>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="123456" 
+                                            maxLength="6"
+                                            value={otpVerifyCode}
+                                            onChange={(e) => setOtpVerifyCode(e.target.value)}
+                                            style={{ flex: 1, padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px', height: '32px', minWidth: 0 }}
+                                        />
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-gold" 
+                                            onClick={handleConfirm2FA}
+                                            disabled={is2FALoading || !otpVerifyCode}
+                                            style={{ padding: '0 10px', fontSize: '0.8rem', height: '32px' }}
+                                        >
+                                            {isRTL ? 'تفعيل' : 'Enable'}
+                                        </button>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        className="text-link" 
+                                        onClick={() => { setShow2FAForm(false); setSetup2FAData(null); }}
+                                        style={{ fontSize: '0.75rem', marginTop: '8px', color: '#64748b', display: 'block', textAlign: 'center', width: '100%' }}
+                                    >
+                                        {isRTL ? 'إلغاء' : 'Cancel'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0' }}>
+                                        {isRTL 
+                                            ? 'قم بحماية حسابك بإضافة خطوة أمان إضافية باستخدام تطبيق التحقق.' 
+                                            : 'Add an extra layer of security to your account using a generator application.'}
+                                    </p>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-gold" 
+                                        onClick={handleInitiate2FA}
+                                        disabled={is2FALoading}
+                                        style={{ width: '100%', padding: '6px', fontSize: '0.8rem' }}
+                                    >
+                                        {is2FALoading ? (isRTL ? 'جاري التحميل...' : 'Loading...') : (isRTL ? 'تفعيل التحقق الثنائي' : 'Setup 2FA')}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

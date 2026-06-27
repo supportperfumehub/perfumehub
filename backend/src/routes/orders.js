@@ -79,16 +79,19 @@ router.post('/',
     async (req, res) => {
     const { 
         customerName, email, phone, total, shippingAddress, 
-        paymentMethod, items, fulfillment_type = 'delivery', pickup_shop_id 
+        paymentMethod, items, fulfillment_type = 'delivery', pickup_shop_id,
+        couponCode
     } = req.body;
     
     try {
-        // --- 1. Fulfillment Validation ---
+        // --- 1. Fulfillment & Price Validation ---
         if (fulfillment_type === 'pickup' && !pickup_shop_id) {
             return res.status(400).json({ error: 'pickup_shop_id is required for reserve in shop orders.' });
         }
 
         const shopIdsSet = new Set();
+        let calculatedSubtotal = 0;
+
         if (items && Array.isArray(items)) {
             for (const item of items) {
                 const shopId = item.shop_id || (item.product && item.product.shop_id);
@@ -100,14 +103,63 @@ router.post('/',
                 if (fulfillment_type === 'pickup' && shopId !== pickup_shop_id) {
                     return res.status(400).json({ error: 'Mixed cart detected. Reserve in shop must only contain items from the selected pickup shop.' });
                 }
+
+                // Verify and sum subtotal price from DB
+                const productId = item.product_id || (item.product && item.product.id);
+                const { data: dbInv } = await supabase
+                    .from('vendor_inventory')
+                    .select('price')
+                    .eq('product_id', productId)
+                    .eq('shop_id', shopId)
+                    .single();
+
+                if (!dbInv) {
+                    return res.status(400).json({ error: `Product ${productId} is not available at shop ${shopId}.` });
+                }
+
+                const itemPrice = dbInv.price + (item.isGiftWrapped ? 10 : 0);
+                calculatedSubtotal += itemPrice * (item.quantity || 1);
             }
         } else {
              return res.status(400).json({ error: 'Order must contain items.' });
         }
         const shop_ids = Array.from(shopIdsSet);
 
-        // --- 2. Inventory Lock & Decrement ---
-        // Optimistically attempt to decrement stock for every item
+        // Apply discount if coupon is specified
+        let calculatedDiscountAmount = 0;
+        if (couponCode) {
+            const { data: coupon } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('code', couponCode.toUpperCase())
+                .eq('is_active', true)
+                .single();
+            
+            if (coupon) {
+                const expiry = coupon.expiry_date ? new Date(coupon.expiry_date) : null;
+                const isExpired = expiry && expiry < new Date();
+                const isLimitReached = coupon.usage_limit && (coupon.usage_count >= coupon.usage_limit);
+
+                if (!isExpired && !isLimitReached) {
+                    if (coupon.discount_type === 'percentage') {
+                        calculatedDiscountAmount = (calculatedSubtotal * coupon.discount_value) / 100;
+                    } else if (coupon.discount_type === 'flat' || coupon.discount_type === 'amount') {
+                        calculatedDiscountAmount = coupon.discount_value;
+                    }
+                }
+            }
+        }
+
+        const calculatedTotal = Math.max(0, calculatedSubtotal - calculatedDiscountAmount);
+        
+        // Allow a tiny margin of 0.05 for rounding differences
+        if (Math.abs(calculatedTotal - total) > 0.05) {
+            return res.status(400).json({ 
+                error: `Order total verification failed. Calculated total: ${calculatedTotal}, provided: ${total}` 
+            });
+        }
+
+        // --- 2. Inventory Lock & Decrement (Optimistic Concurrency Control) ---
         for (const item of items) {
             const shopId = item.shop_id || item.product.shop_id;
             const productId = item.product_id || item.product.id;
@@ -117,7 +169,7 @@ router.post('/',
                 // Verify pickup is available for this item
                 const { data: invCheck } = await supabase
                     .from('vendor_inventory')
-                    .select('pickup_available, stock')
+                    .select('pickup_available')
                     .eq('product_id', productId)
                     .eq('shop_id', shopId)
                     .single();
@@ -127,27 +179,39 @@ router.post('/',
                 }
             }
 
-            // Using Supabase REST for atomic-like update by ensuring stock is >= quantity
-            // Fetch current stock first (since exact REST decrement is tricky without RPC, we'll do a strict read-modify-write)
-            const { data: currentInv, error: invQueryError } = await supabase
-                .from('vendor_inventory')
-                .select('id, stock')
-                .eq('product_id', productId)
-                .eq('shop_id', shopId)
-                .single();
+            // Retry loop for OCC
+            let success = false;
+            let retries = 3;
+            while (retries > 0 && !success) {
+                const { data: currentInv, error: invQueryError } = await supabase
+                    .from('vendor_inventory')
+                    .select('id, stock')
+                    .eq('product_id', productId)
+                    .eq('shop_id', shopId)
+                    .single();
 
-            if (invQueryError || !currentInv || currentInv.stock < quantity) {
-                 return res.status(400).json({ error: `Insufficient stock for product ${productId} at shop ${shopId}.` });
-            }
+                if (invQueryError || !currentInv || currentInv.stock < quantity) {
+                     return res.status(400).json({ error: `Insufficient stock for product ${productId} at shop ${shopId}.` });
+                }
 
-            const { error: stockUpdateError } = await supabase
-                .from('vendor_inventory')
-                .update({ stock: currentInv.stock - quantity })
-                .eq('id', currentInv.id)
-                .gte('stock', quantity); // Optimistic concurrency check
+                // Update only if stock hasn't changed since we queried it
+                const { data: updated, error: stockUpdateError } = await supabase
+                    .from('vendor_inventory')
+                    .update({ stock: currentInv.stock - quantity })
+                    .eq('id', currentInv.id)
+                    .eq('stock', currentInv.stock)
+                    .select();
 
-            if (stockUpdateError) {
-                return res.status(409).json({ error: `Failed to lock stock for product ${productId}. Please try again.` });
+                if (!stockUpdateError && updated && updated.length > 0) {
+                    success = true;
+                } else {
+                    retries--;
+                    if (retries === 0) {
+                        return res.status(409).json({ error: `Conflict locking stock for product ${productId}. Please try again.` });
+                    }
+                    // Exponential backoff
+                    await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 10));
+                }
             }
         }
 
@@ -176,12 +240,46 @@ router.post('/',
         const newOrderId = data[0].id;
 
         // --- 4. Split Order into Sub-Orders (RPC) ---
-        // This triggers the database logic to create vendor-specific fulfillment units
         const { error: rpcError } = await supabase.rpc('split_order_to_vendors', { p_order_id: newOrderId });
-        
         if (rpcError) {
             console.error('Order split RPC failed:', rpcError);
-            // Non-critical for the user, but needs logging/retry
+        }
+
+        // --- 5. Increment Coupon Usage ---
+        if (couponCode && calculatedDiscountAmount > 0) {
+            try {
+                const { data: coupon } = await supabase
+                    .from('coupons')
+                    .select('*')
+                    .eq('code', couponCode.toUpperCase())
+                    .single();
+                
+                if (coupon) {
+                    const customerEmail = email ? email.toLowerCase() : null;
+                    const customerPhone = phone ? phone.trim() : null;
+                    const customerIP = req.ip || req.headers['x-forwarded-for'] || null;
+
+                    const usedBy = coupon.used_by || [];
+                    const usedByPhones = coupon.used_by_phones || [];
+                    const usedByIPs = coupon.used_by_ips || [];
+
+                    if (customerEmail && !usedBy.includes(customerEmail)) usedBy.push(customerEmail);
+                    if (customerPhone && !usedByPhones.includes(customerPhone)) usedByPhones.push(customerPhone);
+                    if (customerIP && !usedByIPs.includes(customerIP)) usedByIPs.push(customerIP);
+
+                    await supabase
+                        .from('coupons')
+                        .update({
+                            usage_count: (coupon.usage_count || 0) + 1,
+                            used_by: usedBy,
+                            used_by_phones: usedByPhones,
+                            used_by_ips: usedByIPs
+                        })
+                        .eq('id', coupon.id);
+                }
+            } catch (couponErr) {
+                console.error('Failed to increment coupon usage:', couponErr);
+            }
         }
 
         res.status(201).json({ id: newOrderId, message: 'Order created successfully' });

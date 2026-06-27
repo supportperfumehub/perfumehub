@@ -94,8 +94,8 @@ const VendorPanel = () => {
                 .then(response => {
                     const data = response.data;
                     const shopsList = Array.isArray(data) ? data : (data.shops || []);
-                    // Find THIS user's shop by owner_id or ID
-                    const myShop = shopsList.find(s => s.owner_id === user?.id || s.id === shopId);
+                    // Backend already filters the list to only return the vendor's own shop
+                    const myShop = shopsList[0];
                     setShopData(myShop || {});
                 })
                 .catch(err => {

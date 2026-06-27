@@ -17,10 +17,11 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [isVendorLogin, setIsVendorLogin] = useState(false);
 
-    const { user, login, register, forgotPassword, loginWithGoogle } = useContext(AuthContext);
+    const { user, login, register, forgotPassword, loginWithGoogle, requires2FA, verify2FA } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
+    const [otpCode, setOtpCode] = useState('');
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
@@ -28,6 +29,7 @@ const Login = () => {
         setIsForgotPassword(false);
         setError('');
         setIsResetSent(false);
+        setOtpCode('');
     };
 
     // Load remembered email on mount
@@ -54,6 +56,21 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
+        if (requires2FA) {
+            const result = await verify2FA(otpCode);
+            if (result.success) {
+                showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
+                const role = result.user?.role;
+                const origin = location.state?.from?.pathname
+                    || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
+                navigate(origin);
+            } else {
+                setError(result.message);
+                showToast(result.message, 'error');
+            }
+            return;
+        }
+
         if (isForgotPassword) {
             const result = await forgotPassword(email);
             if (result.success) {
@@ -69,6 +86,10 @@ const Login = () => {
         if (isLogin) {
             const result = await login(email, password);
             if (result.success) {
+                if (result.requires2FA) {
+                    showToast(isRTL ? "يرجى إدخال رمز التحقق الثنائي" : "Please enter 2FA code", 'info');
+                    return;
+                }
                 showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
                 const role = result.user?.role;
                 
@@ -138,66 +159,86 @@ const Login = () => {
                     {error && <div className="error-message">{error}</div>}
 
                     <div className="form-content">
-                        {!isLogin && !isForgotPassword && (
+                        {requires2FA ? (
                             <div className="form-group slide-down">
-                                <label>{isRTL ? 'الاسم الكامل' : 'Full Name'}</label>
-                                <div className="input-with-icon">
-                                    <User size={18} className="input-icon" />
-                                    <input 
-                                        type="text" 
-                                        placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'} 
-                                        required={!isLogin} 
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="form-group">
-                            <label>{isRTL ? 'البريد الإلكتروني' : 'Email Address'}</label>
-                            <div className="input-with-icon">
-                                <Mail size={18} className="input-icon" />
-                                <input
-                                    type="email"
-                                    placeholder={isRTL ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {!isForgotPassword && (
-                            <div className="form-group">
-                                <label>{isRTL ? 'كلمة المرور' : 'Password'}</label>
+                                <label>{isRTL ? 'رمز التحقق (2FA)' : '2FA Verification Code'}</label>
                                 <div className="input-with-icon">
                                     <Lock size={18} className="input-icon" />
                                     <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        type="text"
+                                        placeholder={isRTL ? 'أدخل الرمز المكون من 6 أرقام' : 'Enter 6-digit OTP code'}
+                                        value={otpCode}
+                                        onChange={(e) => setOtpCode(e.target.value)}
+                                        maxLength="6"
                                         required
                                     />
-                                    <button 
-                                        type="button" 
-                                        className="password-toggle-icon"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        aria-label={showPassword ? "Hide password" : "Show password"}
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
                                 </div>
                             </div>
+                        ) : (
+                            <>
+                                {!isLogin && !isForgotPassword && (
+                                    <div className="form-group slide-down">
+                                        <label>{isRTL ? 'الاسم الكامل' : 'Full Name'}</label>
+                                        <div className="input-with-icon">
+                                            <User size={18} className="input-icon" />
+                                            <input 
+                                                type="text" 
+                                                placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'} 
+                                                required={!isLogin} 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="form-group">
+                                    <label>{isRTL ? 'البريد الإلكتروني' : 'Email Address'}</label>
+                                    <div className="input-with-icon">
+                                        <Mail size={18} className="input-icon" />
+                                        <input
+                                            type="email"
+                                            placeholder={isRTL ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                {!isForgotPassword && (
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'كلمة المرور' : 'Password'}</label>
+                                        <div className="input-with-icon">
+                                            <Lock size={18} className="input-icon" />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="password-toggle-icon"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
-                    {isLogin && !isForgotPassword && (
+                    {isLogin && !isForgotPassword && !requires2FA && (
                         <div className="login-options">
                             <label className="remember-me">
                                 <input 
                                     type="checkbox" 
                                     checked={rememberMe} 
                                     onChange={(e) => setRememberMe(e.target.checked)} 
+                                    disabled={requires2FA}
                                 />
                                 <span className="checkmark"></span>
                                 <span className="remember-text">{isRTL ? 'تذكرني' : 'Remember Me'}</span>
@@ -225,7 +266,9 @@ const Login = () => {
                     ) : (
                         <button type="submit" className="btn btn-gold login-btn">
                             <span>
-                                {isForgotPassword 
+                                {requires2FA ? (
+                                    isRTL ? 'التحقق من الرمز' : 'Verify Code'
+                                ) : isForgotPassword 
                                     ? (isRTL ? 'إرسال رابط التعيين' : 'Send Reset Link')
                                     : (isRTL
                                         ? (isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب')

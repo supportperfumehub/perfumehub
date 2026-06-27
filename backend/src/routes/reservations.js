@@ -91,6 +91,14 @@ router.post('/:id/confirm', authenticateUser, verifyRole(['vendor', 'super_admin
             if (!resv || resv.shop_id !== user.shop_id) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
+        } else if (user.role === 'regional_admin') {
+            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
+            if (!resv) return res.status(404).json({ error: 'Reservation not found' });
+            
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
+            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+            }
         }
 
         const { data, error } = await supabase
@@ -121,6 +129,14 @@ router.post('/:id/complete', authenticateUser, verifyRole(['vendor', 'super_admi
             if (!resv || resv.shop_id !== user.shop_id) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
+        } else if (user.role === 'regional_admin') {
+            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
+            if (!resv) return res.status(404).json({ error: 'Reservation not found' });
+            
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
+            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+            }
         }
 
         const { data, error } = await supabase.rpc('complete_reservation', {
@@ -148,6 +164,12 @@ router.post('/:id/cancel', authenticateUser, async (req, res) => {
         // Customers can cancel their own, vendors can cancel their shop's
         if (user.role === 'customer' && resv.customer_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
         if (user.role === 'vendor' && resv.shop_id !== user.shop_id) return res.status(403).json({ error: 'Forbidden' });
+        if (user.role === 'regional_admin') {
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
+            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+            }
+        }
 
         const { data, error } = await supabase.rpc('cancel_reservation', {
             p_reservation_id: id,
@@ -185,6 +207,18 @@ router.post('/verify', authenticateUser, verifyRole(['vendor', 'super_admin', 'r
         // If vendor, restrict to their shop
         if (user.role === 'vendor') {
             query = query.eq('shop_id', user.shop_id);
+        } else if (user.role === 'regional_admin') {
+            const { data: shops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', user.assignedRegionIds);
+            
+            const shopIds = shops ? shops.map(s => s.id) : [];
+            if (shopIds.length > 0) {
+                query = query.in('shop_id', shopIds);
+            } else {
+                return res.status(403).json({ error: 'Forbidden: You have no shops in your assigned regions.' });
+            }
         }
 
         const { data, error } = await query;

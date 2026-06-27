@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { supabase } from './config/supabaseClient.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
+import { authenticateUser, verifyRole } from './middleware/auth.js';
 
 // Import Routes
 import authRoutes from './routes/auth.js';
@@ -106,8 +107,8 @@ const apiRouter = express.Router();
 // Health Check in API
 apiRouter.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Recovery Tool in API
-apiRouter.post('/admin/recover-all-products', async (req, res) => {
+// Recovery Tool in API (Admins Only)
+apiRouter.post('/admin/recover-all-products', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     try {
         const { products } = req.body;
         if (!products || !Array.isArray(products)) {
@@ -149,8 +150,8 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Mount the API Router to /api
-app.use('/api', (req, res, next) => {
+// Mount the API Router to /api with global rate limiting
+app.use('/api', apiLimiter, (req, res, next) => {
     res.setHeader('X-PerfumeHub-Version', '1.0.2-RESTORED');
     next();
 }, apiRouter);
