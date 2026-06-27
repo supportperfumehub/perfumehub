@@ -1311,13 +1311,13 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th>{isRTL ? 'الصورة' : 'Image'}</th>
-                            <th>{isRTL ? 'المنتج' : 'Product'}</th>
-                            <th>{isRTL ? 'الماركة' : 'Brand'}</th>
-                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'السعر' : 'Price'}</th>
-                            <th style={{ whiteSpace: 'nowrap' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
-                            <th style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
-                            <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                            <th style={{ minWidth: '70px' }}>{isRTL ? 'الصورة' : 'Image'}</th>
+                            <th style={{ minWidth: '180px' }}>{isRTL ? 'المنتج' : 'Product'}</th>
+                            <th style={{ minWidth: '140px' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '100px' }}>{isRTL ? 'السعر' : 'Price'}</th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '80px' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                            <th style={{ whiteSpace: 'nowrap', textAlign: 'center', minWidth: '100px' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
+                            <th style={{ textAlign: 'center', minWidth: '100px' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
