@@ -74,6 +74,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const [formData, setFormData] = useState(initialFormState);
     const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '' });
     const [customCatInput, setCustomCatInput] = useState('');
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [isAiLoading, setIsAiLoading] = useState(false);
     const isEditingLinkedCatalog = editingId && shopId && String(formData.shop_id) !== String(shopId);
 
     const handleVariantInputChange = (e) => {
@@ -345,6 +347,113 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             }
         } catch (err) {
             alert("Error in handleImageUpload: " + err.message);
+        }
+    };
+
+    const handleAiAutofill = async () => {
+        if (!formData.name) return;
+        setIsAiLoading(true);
+        try {
+            const response = await api.post('/products/ai-autofill', { prompt: formData.name });
+            const data = response.data;
+            if (data) {
+                setFormData(prev => ({
+                    ...prev,
+                    brand: data.brand || prev.brand,
+                    type: data.type || prev.type,
+                    gender: data.gender || prev.gender,
+                    description: data.description || prev.description,
+                    topNotes: data.topNotes || prev.topNotes,
+                    middleNotes: data.middleNotes || prev.middleNotes,
+                    baseNotes: data.baseNotes || prev.baseNotes,
+                    category: Array.isArray(data.categories) ? data.categories : prev.category
+                }));
+                alert(isRTL ? 'تم ملء بيانات المنتج بنجاح!' : 'Product metadata autofilled successfully!');
+            }
+        } catch (error) {
+            console.error("AI Autofill failed:", error);
+            alert(isRTL ? 'فشل الملء التلقائي الذكي' : 'Smart Autofill failed');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const processFiles = (files) => {
+        Array.from(files).forEach((file) => {
+            if (file) {
+                const objectUrl = URL.createObjectURL(file);
+                const img = new window.Image();
+                
+                if (!window._activeImageRefs) {
+                    window._activeImageRefs = new Set();
+                }
+                window._activeImageRefs.add(img);
+
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        setFormData(prev => {
+                            const currentImages = prev.images.filter(imgUrl => imgUrl !== '');
+                            return {
+                                ...prev,
+                                images: [...currentImages, compressedBase64]
+                            };
+                        });
+
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    } catch (loadErr) {
+                        console.error("Error during image load processing:", loadErr);
+                        URL.revokeObjectURL(objectUrl);
+                        window._activeImageRefs.delete(img);
+                    }
+                };
+                img.onerror = () => {
+                    console.error("Failed to load image object.");
+                    URL.revokeObjectURL(objectUrl);
+                    window._activeImageRefs.delete(img);
+                };
+                img.src = objectUrl;
+            }
+        });
+    };
+
+    const handleImageDrop = (e) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        if (e.dataTransfer.files) {
+            processFiles(e.dataTransfer.files);
+        }
+    };
+
+    const handleBulkImageUpload = (e) => {
+        if (e.target.files) {
+            processFiles(e.target.files);
+            e.target.value = ''; // Reset
         }
     };
 
@@ -883,8 +992,19 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 {/* Section 1: Basic Identity */}
                         <div className="form-row mixed-2-1">
                             <div className="form-group">
-                                <label>{isRTL ? 'اسم المنتج' : 'Product Name'}</label>
-                                <input type="text" name="name" className="form-control" value={formData.name} onChange={handleInputChange} required />
+                                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>{isRTL ? 'اسم المنتج' : 'Product Name'}</span>
+                                    <button 
+                                        type="button" 
+                                        className="text-btn-gold" 
+                                        style={{ fontSize: '0.85rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-gold)' }}
+                                        onClick={handleAiAutofill}
+                                        disabled={isAiLoading || !formData.name}
+                                    >
+                                        {isAiLoading ? (isRTL ? 'جاري التحليل...' : 'Analyzing...') : (isRTL ? '🪄 ملء تلقائي ذكي' : '🪄 Smart Autofill')}
+                                    </button>
+                                </label>
+                                <input type="text" name="name" className="form-control" value={formData.name} onChange={handleInputChange} required placeholder={isRTL ? 'مثال: Creed Aventus 100ml' : 'e.g. Creed Aventus 100ml'} />
                             </div>
                             <div className="form-group">
                                 <label>{isRTL ? 'الماركة' : 'Brand'}</label>
@@ -974,23 +1094,27 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </div>
 
                         {/* Section 2: Olfactory Notes */}
-                        <div className="form-section-title">
-                            <Plus size={16} /> {isRTL ? 'مكونات العطر' : 'Fragrance Notes'}
-                        </div>
-                        <div className="form-row grid-3">
-                            <div className="form-group">
-                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'الإفتتاحية (Top)' : 'Top Notes'}</label>
-                                <textarea name="topNotes" className="form-control" value={formData.topNotes} onChange={handleInputChange} rows="2"></textarea>
-                            </div>
-                            <div className="form-group">
-                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القلب (Middle)' : 'Middle Notes'}</label>
-                                <textarea name="middleNotes" className="form-control" value={formData.middleNotes} onChange={handleInputChange} rows="2"></textarea>
-                            </div>
-                            <div className="form-group">
-                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القاعدة (Base)' : 'Base Notes'}</label>
-                                <textarea name="baseNotes" className="form-control" value={formData.baseNotes} onChange={handleInputChange} rows="2"></textarea>
-                            </div>
-                        </div>
+                        {showAdvanced && (
+                            <>
+                                <div className="form-section-title">
+                                    <Plus size={16} /> {isRTL ? 'مكونات العطر' : 'Fragrance Notes'}
+                                </div>
+                                <div className="form-row grid-3">
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'الإفتتاحية (Top)' : 'Top Notes'}</label>
+                                        <textarea name="topNotes" className="form-control" value={formData.topNotes} onChange={handleInputChange} rows="2"></textarea>
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القلب (Middle)' : 'Middle Notes'}</label>
+                                        <textarea name="middleNotes" className="form-control" value={formData.middleNotes} onChange={handleInputChange} rows="2"></textarea>
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القاعدة (Base)' : 'Base Notes'}</label>
+                                        <textarea name="baseNotes" className="form-control" value={formData.baseNotes} onChange={handleInputChange} rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                             </>
                         )}
 
@@ -1062,6 +1186,31 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     <Plus size={16} /> {isRTL ? 'إدارة الأحجام والأسعار (Variants)' : 'Size & Price Variants'}
                                 </div>
                                 
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '15px' }}>
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                                        {isRTL ? 'إضافة سريعة لمقاس:' : 'Quick Add Size:'}
+                                    </span>
+                                    {['50ml', '75ml', '100ml', '150ml', '200ml'].map(preset => (
+                                        <button
+                                            type="button"
+                                            key={preset}
+                                            className="category-pill"
+                                            style={{ padding: '4px 10px', fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                                            onClick={() => {
+                                                const existingPrice = formData.price || '';
+                                                const existingOldPrice = formData.oldPrice || '';
+                                                if (formData.size.some(s => s.name === preset)) return;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    size: [...prev.size, { name: preset, price: existingPrice, oldPrice: existingOldPrice }]
+                                                }));
+                                            }}
+                                        >
+                                            + {preset}
+                                        </button>
+                                    ))}
+                                </div>
+
                                 <div className="variant-input-grid">
                                     <div className="form-group">
                                         <label>{isRTL ? 'الحجم' : 'Size'}</label>
@@ -1105,58 +1254,95 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
                         {!isEditingLinkedCatalog && (
                             <>
-                                {/* Section 4: Categorization & Description */}
-                        <div className="form-section-title">
-                            <Plus size={16} /> {isRTL ? 'التصنيفات والوصف' : 'Categorization & Description'}
-                        </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'الفئات' : 'Categories'}</label>
-                            <div className="category-pills" style={{ marginBottom: '10px' }}>
-                                {[
-                                    ...availableCategories,
-                                    ...(formData.category || [])
-                                        .filter(val => !availableCategories.find(ac => ac.value === val))
-                                        .map(val => ({ value: val, label: val.charAt(0).toUpperCase() + val.slice(1) }))
-                                ].map(cat => (
+                                {/* Advanced Settings Toggle */}
+                                <div 
+                                    style={{ 
+                                        margin: '25px 0', 
+                                        borderTop: '1px solid rgba(255,255,255,0.05)', 
+                                        borderBottom: '1px solid rgba(255,255,255,0.05)', 
+                                        padding: '15px 0' 
+                                    }}
+                                >
                                     <button
                                         type="button"
-                                        key={cat.value}
-                                        className={`category-pill ${formData.category?.includes(cat.value) ? 'active' : ''}`}
-                                        onClick={() => handleCategoryToggle(cat.value)}
+                                        className="btn btn-outline"
+                                        onClick={() => setShowAdvanced(!showAdvanced)}
+                                        style={{ 
+                                            width: '100%', 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center', 
+                                            padding: '12px 20px', 
+                                            fontSize: '0.95rem',
+                                            background: 'rgba(255, 255, 255, 0.01)',
+                                            borderColor: 'rgba(200, 169, 81, 0.3)',
+                                            cursor: 'pointer',
+                                            borderRadius: '8px'
+                                        }}
                                     >
-                                        {cat.label}
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            ⚙️ {isRTL ? 'المواصفات والخيارات المتقدمة (الفئات، المكونات، السمات)' : 'Advanced Specifications & Options (Categories, Notes, Attributes)'}
+                                        </span>
+                                        <span style={{ color: 'var(--color-gold)' }}>{showAdvanced ? '▲' : '▼'}</span>
                                     </button>
-                                ))}
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    placeholder={isRTL ? 'إضافة فئات مخصصة (افصل بينها بفاصلة)...' : 'Add custom categories (comma-separated)...'}
-                                    value={customCatInput}
-                                    onChange={(e) => setCustomCatInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addCustomCategory();
-                                        }
-                                    }}
-                                />
-                                <button 
-                                    type="button" 
-                                    className="btn btn-gold" 
-                                    onClick={addCustomCategory}
-                                    style={{ height: '44px', padding: '0 20px', whiteSpace: 'nowrap' }}
-                                >
-                                    {isRTL ? 'إضافة' : 'ADD'}
-                                </button>
-                            </div>
-                        </div>
+                                </div>
 
-                        {renderAttributeFields()}
+                                {showAdvanced && (
+                                    <>
+                                        {/* Section 4: Categorization */}
+                                        <div className="form-section-title">
+                                            <Plus size={16} /> {isRTL ? 'التصنيفات والسمات' : 'Categorization & Attributes'}
+                                        </div>
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'الفئات' : 'Categories'}</label>
+                                            <div className="category-pills" style={{ marginBottom: '10px' }}>
+                                                {[
+                                                    ...availableCategories,
+                                                    ...(formData.category || [])
+                                                        .filter(val => !availableCategories.find(ac => ac.value === val))
+                                                        .map(val => ({ value: val, label: val.charAt(0).toUpperCase() + val.slice(1) }))
+                                                ].map(cat => (
+                                                    <button
+                                                        type="button"
+                                                        key={cat.value}
+                                                        className={`category-pill ${formData.category?.includes(cat.value) ? 'active' : ''}`}
+                                                        onClick={() => handleCategoryToggle(cat.value)}
+                                                    >
+                                                        {cat.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder={isRTL ? 'إضافة فئات مخصصة (افصل بينها بفاصلة)...' : 'Add custom categories (comma-separated)...'}
+                                                    value={customCatInput}
+                                                    onChange={(e) => setCustomCatInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            addCustomCategory();
+                                                        }
+                                                    }}
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-gold" 
+                                                    onClick={addCustomCategory}
+                                                    style={{ height: '44px', padding: '0 20px', whiteSpace: 'nowrap' }}
+                                                >
+                                                    {isRTL ? 'إضافة' : 'ADD'}
+                                                </button>
+                                            </div>
+                                        </div>
 
-                        <div className="form-group">
-                            <label>{isRTL ? 'وصف المنتج' : 'Product Description'}</label>
+                                        {renderAttributeFields()}
+                                    </>
+                                )}
+
+                                <div className="form-group" style={{ marginTop: '20px' }}>
+                                    <label>{isRTL ? 'وصف المنتج' : 'Product Description'}</label>
                             <textarea 
                                 name="description" 
                                 className="form-control" 
@@ -1172,6 +1358,46 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             <Plus size={16} /> {isRTL ? 'صور المنتج' : 'Product Media (URLs or Upload)'}
                         </div>
                         
+                        {/* Drag and Drop zone */}
+                        <div 
+                            className="image-dropzone"
+                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('dragover'); }}
+                            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('dragover'); }}
+                            onDrop={handleImageDrop}
+                            onClick={() => document.getElementById('bulk-file-upload').click()}
+                            style={{
+                                border: '2px dashed var(--color-gold)',
+                                borderRadius: '12px',
+                                padding: '30px',
+                                textAlign: 'center',
+                                background: 'rgba(200, 169, 81, 0.02)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                marginBottom: '20px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px'
+                            }}
+                        >
+                            <Plus size={36} color="var(--color-gold)" />
+                            <span style={{ fontWeight: '600' }}>
+                                {isRTL ? 'اسحب وأفلت الصور هنا، أو انقر للتصفح' : 'Drag & drop images here, or click to browse'}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                {isRTL ? 'يدعم صيغ JPG, PNG, WEBP (حجم أقصى 800x800 مضغوط تلقائياً)' : 'Supports JPG, PNG, WEBP (auto-compressed to 800x800)'}
+                            </span>
+                            <input 
+                                type="file" 
+                                id="bulk-file-upload" 
+                                multiple 
+                                accept="image/*" 
+                                style={{ display: 'none' }} 
+                                onChange={handleBulkImageUpload} 
+                            />
+                        </div>
+
                         <div className="image-manage-grid">
                             {formData.images.map((url, idx) => (
                                 <div key={idx} className="image-input-row">
@@ -1221,42 +1447,46 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </div>
 
                         {/* Section 7: Final Options (Admin Only - not for vendors) */}
-                        {!shopId && (
+                        {showAdvanced && (
                             <>
-                                <div className="premium-marking-section">
-                                    <div className="marking-label-group">
-                                        <label htmlFor="isNew">{isRTL ? 'تمييز كـ "وصل حديثاً"' : 'Mark as New Arrival'}</label>
-                                        <span className="marking-desc">{isRTL ? 'سيظهر في قسم الوصل حديثاً' : 'Will appear in New Arrivals section'}</span>
-                                    </div>
-                                    <label className="toggle-switch">
-                                        <input type="checkbox" name="isNew" id="isNew" checked={formData.isNew} onChange={handleInputChange} />
-                                        <span className="toggle-slider"></span>
-                                    </label>
-                                </div>
+                                {!shopId && (
+                                    <>
+                                        <div className="premium-marking-section">
+                                            <div className="marking-label-group">
+                                                <label htmlFor="isNew">{isRTL ? 'تمييز كـ "وصل حديثاً"' : 'Mark as New Arrival'}</label>
+                                                <span className="marking-desc">{isRTL ? 'سيظهر في قسم الوصل حديثاً' : 'Will appear in New Arrivals section'}</span>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input type="checkbox" name="isNew" id="isNew" checked={formData.isNew} onChange={handleInputChange} />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
 
+                                        <div className="premium-marking-section">
+                                            <div className="marking-label-group">
+                                                <label htmlFor="isFeatured">{isRTL ? 'تمييز كـ "منتج مميز"' : 'Mark as Featured Product'}</label>
+                                                <span className="marking-desc">{isRTL ? 'سيظهر في شريط الواجهة' : 'Will appear in the Featured sliding banner'}</span>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input type="checkbox" name="isFeatured" id="isFeatured" checked={formData.isFeatured} onChange={handleInputChange} />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </>
+                                )}
+                                
                                 <div className="premium-marking-section">
                                     <div className="marking-label-group">
-                                        <label htmlFor="isFeatured">{isRTL ? 'تمييز كـ "منتج مميز"' : 'Mark as Featured Product'}</label>
-                                        <span className="marking-desc">{isRTL ? 'سيظهر في شريط الواجهة' : 'Will appear in the Featured sliding banner'}</span>
+                                        <label htmlFor="pickup_available">{isRTL ? 'تفعيل حجز المتجر' : 'Enable Store Reservation'}</label>
+                                        <span className="marking-desc">{isRTL ? 'السماح للعملاء بحجز هذا المنتج في المتجر' : 'Allow customers to reserve this product in-store'}</span>
                                     </div>
                                     <label className="toggle-switch">
-                                        <input type="checkbox" name="isFeatured" id="isFeatured" checked={formData.isFeatured} onChange={handleInputChange} />
+                                        <input type="checkbox" name="pickup_available" id="pickup_available" checked={formData.pickup_available !== false} onChange={handleInputChange} />
                                         <span className="toggle-slider"></span>
                                     </label>
                                 </div>
                             </>
                         )}
-                        
-                        <div className="premium-marking-section">
-                            <div className="marking-label-group">
-                                <label htmlFor="pickup_available">{isRTL ? 'تفعيل حجز المتجر' : 'Enable Store Reservation'}</label>
-                                <span className="marking-desc">{isRTL ? 'السماح للعملاء بحجز هذا المنتج في المتجر' : 'Allow customers to reserve this product in-store'}</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" name="pickup_available" id="pickup_available" checked={formData.pickup_available !== false} onChange={handleInputChange} />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
                             </>
                         )}
 
