@@ -178,6 +178,13 @@ html[dir="rtl"] .checkout-page .section-title {
 .checkout-sidebar {
     position: sticky;
     top: 120px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+.checkout-sidebar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome, Safari, and Opera */
 }
 
 .order-summary {
