@@ -149,25 +149,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     
                     {/* Mobile Only Links (Moved from Icons) */}
                     <div className="mobile-only-links">
-                        {activeRegion && (
-                            <div className="mobile-region-selector" style={{ display: 'flex', flexDirection: 'column', width: '100%', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '15px', marginBottom: '10px' }}>
-                                <label style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px', paddingLeft: '12px', paddingRight: '12px' }}>
-                                    {isRTL ? 'البلد / العملة' : 'Country / Currency'}
-                                </label>
-                                <select 
-                                    value={activeRegion.id} 
-                                    onChange={(e) => changeRegion(e.target.value)} 
-                                    className="form-control"
-                                    style={{ background: '#121212', border: '1px solid rgba(200, 169, 81, 0.2)', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem', width: 'calc(100% - 24px)', margin: '0 auto' }}
-                                >
-                                    {regions.map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.name} ({r.currency_code})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
                         <button className="mobile-nav-link" onClick={toggleLanguage}>
                             <Globe size={18} />
                             <span>{isRTL ? t('navbar.lang_toggle_en') : t('navbar.lang_toggle_ar')}</span>
@@ -218,8 +199,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
 
                 {/* Icons and Search */}
                 <div className="navbar-icons">
-                    <SearchBar isRTL={isRTL} />
-
                     {activeRegion && (
                         <div className="region-selector-dropdown-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <button 
@@ -260,6 +239,8 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                             </div>
                         </div>
                     )}
+
+                    <SearchBar isRTL={isRTL} />
                     
                     <div className="hide-mobile icons-row">
                         {/* User Profile / Login (Desktop Only) */}

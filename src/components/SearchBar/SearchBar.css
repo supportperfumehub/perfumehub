@@ -1,9 +1,7 @@
-/* Search wrapper — always visible, collapses to icon only by default */
 .search-bar-wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
     margin: 0;
 }
 
@@ -32,11 +30,17 @@
     position: relative;
     width: 0;
     overflow: hidden;
-    transition: width 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .search-bar-expand.expanded {
-    width: 220px; /* Slightly reduced on desktop to allow more room for navigation links */
+    width: 220px;
+    margin-left: 8px;
+}
+
+[dir="rtl"] .search-bar-expand.expanded {
+    margin-left: 0;
+    margin-right: 8px;
 }
 
 @media (max-width: 1200px) {
