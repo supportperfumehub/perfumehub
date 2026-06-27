@@ -6,6 +6,7 @@ import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store } from 'lucide-react';
+import { RegionContext } from '../../context/RegionContext';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -13,6 +14,7 @@ const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isRTL } = useOutletContext();
+    const { isSupported } = useContext(RegionContext);
     const { placeOrder, coupons, showToast, incrementCouponUsage, fetchCoupons } = useContext(ShopContext);
     const { clearCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
@@ -153,6 +155,11 @@ const Checkout = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (!isSupported) {
+            setError(isRTL ? 'عذراً، الشراء والتوصيل غير متاح في منطقتك.' : 'Sorry, purchasing and delivery are not available in your location.');
+            return;
+        }
 
         if (orderData.isReservation) {
             if (!formData.fullName || !formData.phone || !pickupShopId || !pickupDateTime) {
@@ -592,7 +599,12 @@ const Checkout = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" className="btn-confirm" disabled={isSubmitting}>
+                            <button 
+                                type="submit" 
+                                className="btn-confirm" 
+                                disabled={isSubmitting || !isSupported}
+                                style={!isSupported ? { opacity: 0.5, cursor: 'not-allowed', background: '#555' } : {}}
+                            >
                                 {isSubmitting 
                                     ? t('checkout.processing') 
                                     : (orderData.isReservation ? t('checkout.confirm_reservation', 'Confirm Reservation') : (isRTL ? 'تأكيد الطلب عبر واتساب' : 'Confirm Order via WhatsApp'))}

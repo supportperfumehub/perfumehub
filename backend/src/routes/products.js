@@ -57,7 +57,27 @@ router.get('/', async (req, res) => {
             .select('*')
             .order('created_at', { ascending: false });
 
-        // Removed shop_id scope because products is now a global catalog
+        if (req.query.region_id) {
+            // Get all product IDs that have active inventory in this region
+            const { data: regionShops } = await supabase
+                .from('shops')
+                .select('id')
+                .eq('region_id', req.query.region_id);
+            
+            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
+            if (shopIds.length > 0) {
+                const { data: activeProductInvs } = await supabase
+                    .from('vendor_inventory')
+                    .select('product_id')
+                    .eq('is_active', true)
+                    .in('shop_id', shopIds);
+                
+                const productIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
+                query = query.in('id', productIds);
+            } else {
+                return res.json([]);
+            }
+        }
 
         const { data, error } = await withTimeout(query);
 

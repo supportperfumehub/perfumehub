@@ -40,7 +40,8 @@ export class ShopController {
 
             const filters = {
                 status: req.query.status ? req.query.status.toUpperCase() : undefined,
-                owner_id: req.query.owner_id
+                owner_id: req.query.owner_id,
+                region_id: req.query.region_id
             };
             const shops = await this.shopService.getShops(filters, reqUser);
             res.status(200).json(shops);

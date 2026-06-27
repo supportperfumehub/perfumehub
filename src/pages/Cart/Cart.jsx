@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CartContext } from '../../context/CartContext';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
+import { RegionContext } from '../../context/RegionContext';
 import { ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
 import './Cart.css';
 
@@ -12,6 +13,7 @@ const Cart = () => {
     const { isRTL } = useOutletContext();
     const navigate = useNavigate();
     const { cartItems, removeFromCart, updateQuantity, clearCart, getCartTotal } = useContext(CartContext);
+    const { isSupported } = useContext(RegionContext);
     const { coupons, showToast, fetchCoupons } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
     const [orderStatus, setOrderStatus] = useState(null);
@@ -185,9 +187,21 @@ const Cart = () => {
                                     <span>{Math.round(finalTotal)} {t('common.currency')}</span>
                                 </div>
 
-                                <button className="checkout-btn" onClick={handleCheckout}>
+                                <button 
+                                    className="checkout-btn" 
+                                    onClick={handleCheckout}
+                                    disabled={!isSupported}
+                                    style={!isSupported ? { opacity: 0.5, cursor: 'not-allowed', background: '#555' } : {}}
+                                >
                                     {t('cart.checkout')}
                                 </button>
+                                {!isSupported && (
+                                    <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '10px', textAlign: 'center', fontWeight: 'bold' }}>
+                                        {isRTL 
+                                            ? 'عذراً، الشراء والتوصيل غير متاح في بلدك حالياً.'
+                                            : 'Sorry, purchasing and delivery are not available in your location.'}
+                                    </p>
+                                )}
 
                                 <div className="cart-badges">
                                     <div className="badge small" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

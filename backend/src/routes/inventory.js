@@ -14,6 +14,16 @@ router.get('/', async (req, res) => {
 
         const admin = req.user;
 
+        // Filter by region if requested
+        if (req.query.region_id) {
+            const { data: regionShops } = await supabase
+                .from('shops')
+                .select('id')
+                .eq('region_id', req.query.region_id);
+            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
+            query = query.in('shop_id', shopIds);
+        }
+
         // If specific shop requested
         if (req.query.shop_id) {
             query = query.eq('shop_id', req.query.shop_id);

@@ -574,3 +574,71 @@
         padding-left: 0 !important;
     }
 }
+
+/* Multi-Country Region Selector Styles */
+.region-selector-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.region-selector-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(18, 18, 18, 0.98);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 170px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+}
+
+.region-selector-dropdown-container:hover .region-selector-menu {
+    display: flex;
+}
+
+.region-selector-item {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.region-selector-item:hover,
+.region-selector-item.active {
+    background: rgba(212, 175, 55, 0.08) !important;
+    color: var(--color-gold, #d4af37) !important;
+}
+
+/* Light Theme overrides for Region Selector */
+.navbar.light-nav .region-selector-dropdown-container button {
+    color: #333 !important;
+}
+
+.navbar.light-nav .region-selector-menu {
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.navbar.light-nav .region-selector-item {
+    color: #333;
+}
+
+.navbar.light-nav .region-selector-item:hover,
+.navbar.light-nav .region-selector-item.active {
+    background: rgba(0, 0, 0, 0.03) !important;
+    color: var(--color-gold, #d4af37) !important;
+}

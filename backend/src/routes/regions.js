@@ -1,18 +1,42 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { authenticateUser, verifyRole } from '../middleware/auth.js';
+import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.js';
 
 const router = express.Router();
 
 // Get all regions
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         let query = supabase.from('regions').select('*').order('name');
         
+        let reqUser = null;
+        const token = extractTokenFromHeader(req);
+        if (token) {
+            const decoded = verifyAccessToken(token);
+            if (decoded) {
+                const { data: user } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .eq('id', decoded.id)
+                    .single();
+                if (user) {
+                    if (user.role === 'regional_admin') {
+                        const { data: mappings } = await supabase
+                            .from('admin_region_mapping')
+                            .select('region_id')
+                            .eq('admin_id', user.id);
+                        user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
+                    }
+                    reqUser = user;
+                }
+            }
+        }
+
         // Scoping for regional admins
-        if (req.user && req.user.role === 'regional_admin') {
-            if (req.user.assignedRegionIds && req.user.assignedRegionIds.length > 0) {
-                query = query.in('id', req.user.assignedRegionIds);
+        if (reqUser && reqUser.role === 'regional_admin') {
+            if (reqUser.assignedRegionIds && reqUser.assignedRegionIds.length > 0) {
+                query = query.in('id', reqUser.assignedRegionIds);
             } else {
                 return res.json([]);
             }

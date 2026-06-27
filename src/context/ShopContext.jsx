@@ -1,12 +1,14 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { mockProducts } from '../data/mockData';
 import { AuthContext } from './AuthContext';
+import { RegionContext } from './RegionContext';
 import api from '../utils/api_v1_0_2';
 
 export const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
     const { user, isVendor, loading: authLoading, isAdmin, isAuthenticated } = useContext(AuthContext);
+    const { activeRegion } = useContext(RegionContext);
 
     // Initialize products from cache to enable instant loading
     const [products, setProducts] = useState(() => {
@@ -44,14 +46,19 @@ export const ShopProvider = ({ children }) => {
         try {
             setLoading(true);
             let url = '/products';
+            let params = {};
             if (isVendor && user?.shop_id) {
-                url += `?shop_id=${user.shop_id}`;
+                params.shop_id = user.shop_id;
+            } else if (activeRegion) {
+                params.region_id = activeRegion.id;
             }
+
+            const invUrl = activeRegion ? `/inventory?region_id=${activeRegion.id}` : '/inventory';
 
             // Parallel fetch to gather products, inventory, and discover campaigns using standardized api instance
             const [productsRes, invRes, discRes] = await Promise.all([
-                api.get(url),
-                api.get('/inventory'),
+                api.get(url, { params }),
+                api.get(invUrl),
                 api.get('/discover').catch(() => ({ data: [] }))
             ]);
             
@@ -208,7 +215,8 @@ export const ShopProvider = ({ children }) => {
 
     const fetchShops = async () => {
         try {
-            const response = await api.get('/shops');
+            const url = activeRegion ? `/shops?region_id=${activeRegion.id}` : '/shops';
+            const response = await api.get(url);
             if (Array.isArray(response.data)) {
                 setShops(response.data);
             }
@@ -224,7 +232,7 @@ export const ShopProvider = ({ children }) => {
             fetchShops();
         }, 100);
         return () => clearTimeout(timer);
-    }, [isVendor, user?.shop_id]);
+    }, [isVendor, user?.shop_id, activeRegion]);
 
     // Fetch user orders when authentication is active
     useEffect(() => {

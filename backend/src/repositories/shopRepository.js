@@ -8,6 +8,7 @@ export class ShopRepository {
         if (filters.status) query = query.eq('status', filters.status);
         if (filters.owner_id) query = query.eq('owner_id', filters.owner_id);
         if (filters.region_ids) query = query.in('region_id', filters.region_ids);
+        if (filters.region_id) query = query.eq('region_id', filters.region_id);
 
         const { data, error } = await withTimeout(query);
         if (error) throw error;
