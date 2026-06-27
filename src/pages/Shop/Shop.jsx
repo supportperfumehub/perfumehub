@@ -3,6 +3,7 @@ import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import { ShopContext } from '../../context/ShopContext';
+import { RegionContext } from '../../context/RegionContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
 import './Shop.css';
 
@@ -25,6 +26,7 @@ const Shop = () => {
     const [searchParams] = useSearchParams();
     const shopIdFilter = searchParams.get('shop_id');
     const { products: mockProducts } = useContext(ShopContext);
+    const { activeRegion } = useContext(RegionContext);
 
     const [products, setProducts] = useState(mockProducts);
     const [selectedBrands, setSelectedBrands] = useState([]);
@@ -288,12 +290,23 @@ const Shop = () => {
         return banners[type] || allBanner;
     };
 
+    const regionName = activeRegion?.name || 'Qatar';
+    const dynamicTitle = isRTL 
+        ? `المتجر | بيرفيوم هوب - عطور وفخامة في ${regionName}`
+        : `Shop | PerfumeHub - Luxury Fragrances & Marketplace ${regionName}`;
+    const dynamicDesc = isRTL
+        ? `تسوق أفضل العطور والساعات والمجوهرات في ${regionName}. وجهتك الأولى للفخامة مع توصيل سريع.`
+        : `Shop the best perfumes, watches, and jewellery in ${regionName}. Your premier destination for luxury with fast delivery.`;
+    const dynamicCanonical = activeRegion?.code 
+        ? `https://perfumehub.com/${activeRegion.code.toLowerCase()}/shop`
+        : "https://perfumehub.com/shop";
+
     return (
         <div className="shop-page">
             <Helmet>
-                <title>{isRTL ? 'المتجر | بيرفيوم هوب - عطور وفخامة في قطر' : 'Shop | PerfumeHub - Luxury Fragrances & Marketplace Qatar'}</title>
-                <meta name="description" content={isRTL ? 'تسوق أفضل العطور والساعات والمجوهرات في قطر. وجهتك الأولى للفخامة مع توصيل سريع في الدوحة.' : 'Shop the best perfumes, watches, and jewellery in Qatar. Your premier destination for luxury with fast delivery in Doha.'} />
-                <link rel="canonical" href="https://perfumehubqa.com/shop" />
+                <title>{dynamicTitle}</title>
+                <meta name="description" content={dynamicDesc} />
+                <link rel="canonical" href={dynamicCanonical} />
             </Helmet>
             <div 
                 className="shop-header" 

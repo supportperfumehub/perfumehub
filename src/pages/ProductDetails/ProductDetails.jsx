@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
+import { RegionContext } from '../../context/RegionContext';
 import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
 import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
 import { getLocationWithFallback } from '../../utils/geolocation';
@@ -31,6 +32,7 @@ const ProductDetails = () => {
     const { products: mockProducts, placeOrder } = useContext(ShopContext);
     const { addToCart } = useContext(CartContext);
     const { toggleWishlist, isInWishlist } = useContext(WishlistContext);
+    const { activeRegion } = useContext(RegionContext);
     const [product, setProduct] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [selectedSize, setSelectedSize] = useState(null);
@@ -108,27 +110,6 @@ const ProductDetails = () => {
         ? product.description.substring(0, 155)
         : t('product.meta_desc', { name: product.name, brand: product.brand });
 
-    const jsonLd = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": product.name,
-        "image": productImageUrl,
-        "description": metaDescription,
-        "brand": {
-            "@type": "Brand",
-            "name": product.brand
-        },
-        "sku": product.sku || `PH-${product.id}-24`,
-        "offers": {
-            "@type": "Offer",
-            "url": window.location.href,
-            "priceCurrency": "QAR",
-            "price": product.price,
-            "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-            "itemCondition": "https://schema.org/NewCondition"
-        }
-    };
-
     const selectedVariant = Array.isArray(product.size) 
         ? product.size.find(s => (typeof s === 'object' ? s.name : s) === selectedSize)
         : null;
@@ -156,19 +137,46 @@ const ProductDetails = () => {
         ? Math.round((1 - displayPrice / displayOldPrice) * 100)
         : product.discount;
 
+    const regionName = activeRegion?.name || 'Qatar';
+    const dynamicTitle = `${product.name} | ${product.brand} - Buy Online in ${regionName}`;
+    const dynamicDesc = product.description
+        ? `${product.description.substring(0, 140)}... Buy ${product.name} by ${product.brand} in ${regionName} at PerfumeHub.`
+        : t('product.meta_desc', { name: product.name, brand: product.brand });
+
+    const jsonLd = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": product.name,
+        "image": productImageUrl,
+        "description": metaDescription,
+        "brand": {
+            "@type": "Brand",
+            "name": product.brand
+        },
+        "sku": productSku,
+        "offers": {
+            "@type": "Offer",
+            "url": window.location.href,
+            "priceCurrency": activeRegion?.currency_code || "QAR",
+            "price": displayPrice,
+            "availability": orderStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "itemCondition": "https://schema.org/NewCondition"
+        }
+    };
+
     return (
         <div className="product-details-page">
             <Helmet>
-                <title>{product.name} | {product.brand} - PerfumeHub</title>
-                <meta name="description" content={metaDescription} />
-                <meta property="og:title" content={`${product.name} | ${product.brand} - PerfumeHub`} />
-                <meta property="og:description" content={metaDescription} />
+                <title>{dynamicTitle}</title>
+                <meta name="description" content={dynamicDesc} />
+                <meta property="og:title" content={dynamicTitle} />
+                <meta property="og:description" content={dynamicDesc} />
                 <meta property="og:image" content={productImageUrl} />
                 <meta property="og:url" content={window.location.href} />
                 <meta property="og:type" content="product" />
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={`${product.name} | ${product.brand}`} />
-                <meta name="twitter:description" content={metaDescription} />
+                <meta name="twitter:title" content={dynamicTitle} />
+                <meta name="twitter:description" content={dynamicDesc} />
                 <meta name="twitter:image" content={productImageUrl} />
                 <script type="application/ld+json">
                     {JSON.stringify(jsonLd)}

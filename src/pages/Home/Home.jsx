@@ -7,6 +7,7 @@ import ProductCard from '../../components/ProductCard/ProductCard';
 import Newsletter from '../../components/Newsletter/Newsletter';
 import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
 import { ShopContext } from '../../context/ShopContext';
+import { RegionContext } from '../../context/RegionContext';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
 import './Home.css';
@@ -15,6 +16,7 @@ const Home = () => {
     const { t } = useTranslation();
     const { isRTL } = useOutletContext();
     const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
+    const { activeRegion } = useContext(RegionContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
     const [showAllFashion, setShowAllFashion] = useState(false);
@@ -48,13 +50,21 @@ const Home = () => {
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % heroItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev === 0 ? heroItems.length - 1 : prev - 1));
 
+    const regionName = activeRegion?.name || 'Qatar';
+    const seoTitle = `PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in ${regionName}`;
+    const seoDescription = `Shop authentic luxury perfumes, fashion, and jewellery in ${regionName} at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery.`;
+    const seoKeywords = `perfume, perfumehub, ${regionName.toLowerCase()} perfume, perfumes ${regionName.toLowerCase()}, buy perfume online ${regionName.toLowerCase()}, luxury fragrances ${regionName.toLowerCase()}, fashion ${regionName.toLowerCase()}, jewellery ${regionName.toLowerCase()}, perfume hub ${regionName.toLowerCase()}`;
+    const seoCanonical = activeRegion?.code 
+        ? `https://perfumehub.com/${activeRegion.code.toLowerCase()}`
+        : "https://perfumehub.com/";
+
     return (
         <div className="home-page">
             <Helmet>
-                <title>PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in Qatar</title>
-                <meta name="description" content="Shop authentic luxury perfumes, fashion, and jewellery in Qatar at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery across Doha." />
-                <meta name="keywords" content="perfume, perfumehub, qatar perfume, perfumes qatar, buy perfume online qatar, luxury fragrances qatar, fashion qatar, jewellery qatar, perfume hub qatar, scent genie, luxury marketplace qatar" />
-                <link rel="canonical" href="https://perfumehubqa.com/" />
+                <title>{seoTitle}</title>
+                <meta name="description" content={seoDescription} />
+                <meta name="keywords" content={seoKeywords} />
+                <link rel="canonical" href={seoCanonical} />
             </Helmet>
             {/* Modern Minimalist Hero */}
             <section className="modern-hero animate-fade-in">
