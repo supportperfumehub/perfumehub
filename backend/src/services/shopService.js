@@ -11,6 +11,9 @@ export class ShopService {
         if (user && user.role === 'regional_admin') {
             filters.region_ids = user.assignedRegionIds;
         }
+        if (user && user.role === 'vendor') {
+            filters.owner_id = user.id;
+        }
         return this.shopRepository.findAll(filters);
     }
 

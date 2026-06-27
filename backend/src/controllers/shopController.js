@@ -14,11 +14,35 @@ export class ShopController {
      */
     getAllShops = async (req, res, next) => {
         try {
+            let reqUser = null;
+            const token = extractTokenFromHeader(req);
+            if (token) {
+                const decoded = verifyAccessToken(token);
+                if (decoded) {
+                    const { data: user } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('id', decoded.id)
+                        .single();
+                    if (user) {
+                        // Regional Scoping
+                        if (user.role === 'regional_admin') {
+                            const { data: mappings } = await supabase
+                                .from('admin_region_mapping')
+                                .select('region_id')
+                                .eq('admin_id', user.id);
+                            user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
+                        }
+                        reqUser = user;
+                    }
+                }
+            }
+
             const filters = {
                 status: req.query.status ? req.query.status.toUpperCase() : undefined,
                 owner_id: req.query.owner_id
             };
-            const shops = await this.shopService.getShops(filters, req.user);
+            const shops = await this.shopService.getShops(filters, reqUser);
             res.status(200).json(shops);
         } catch (error) {
             next(error);
