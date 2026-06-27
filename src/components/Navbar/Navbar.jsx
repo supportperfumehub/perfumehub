@@ -25,6 +25,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const { getCartCount } = useContext(CartContext);
     const { wishlistItems } = useContext(WishlistContext);
     const { regions, activeRegion, changeRegion } = useContext(RegionContext);
+    const [isRegionMenuOpen, setIsRegionMenuOpen] = useState(false);
 
     // Check if the current route is the home page
     const isHomePage = location.pathname === '/';
@@ -35,6 +36,16 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const handleDocumentClick = () => {
+            setIsRegionMenuOpen(false);
+        };
+        document.addEventListener('click', handleDocumentClick);
+        return () => {
+            document.removeEventListener('click', handleDocumentClick);
+        };
     }, []);
 
     useEffect(() => {
@@ -208,6 +219,47 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                 {/* Icons and Search */}
                 <div className="navbar-icons">
                     <SearchBar isRTL={isRTL} />
+
+                    {activeRegion && (
+                        <div className="region-selector-dropdown-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <button 
+                                className="icon-btn" 
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px', fontSize: '0.9rem', cursor: 'pointer', height: '40px', background: 'transparent', border: 'none' }}
+                                title={isRTL ? 'اختر البلد' : 'Select Country'}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsRegionMenuOpen(prev => !prev);
+                                }}
+                            >
+                                <img 
+                                    src={getFlagUrl(activeRegion.code)} 
+                                    alt={activeRegion.name} 
+                                    style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                />
+                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{activeRegion.code}</span>
+                                <ChevronDown size={12} />
+                            </button>
+                            <div className="region-selector-menu" style={{ display: isRegionMenuOpen ? 'flex' : undefined }}>
+                                {regions.map(r => (
+                                    <button 
+                                        key={r.id} 
+                                        onClick={() => {
+                                            changeRegion(r.id);
+                                            setIsRegionMenuOpen(false);
+                                        }} 
+                                        className={`region-selector-item ${r.id === activeRegion.id ? 'active' : ''}`}
+                                    >
+                                        <img 
+                                            src={getFlagUrl(r.code)} 
+                                            alt={r.name} 
+                                            style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                        />
+                                        <span>{r.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     
                     {/* User Profile / Login (Mobile & Desktop) */}
                     <div className="user-access">
@@ -224,40 +276,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     </div>
 
                     <div className="hide-mobile icons-row">
-                        {activeRegion && (
-                            <div className="region-selector-dropdown-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <button 
-                                    className="icon-btn" 
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px', fontSize: '0.9rem', cursor: 'pointer', height: '40px', background: 'transparent', border: 'none', color: '#fff' }}
-                                    title={isRTL ? 'اختر البلد' : 'Select Country'}
-                                >
-                                    <img 
-                                        src={getFlagUrl(activeRegion.code)} 
-                                        alt={activeRegion.name} 
-                                        style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
-                                    />
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{activeRegion.code}</span>
-                                    <ChevronDown size={12} />
-                                </button>
-                                <div className="region-selector-menu">
-                                    {regions.map(r => (
-                                        <button 
-                                            key={r.id} 
-                                            onClick={() => changeRegion(r.id)} 
-                                            className={`region-selector-item ${r.id === activeRegion.id ? 'active' : ''}`}
-                                        >
-                                            <img 
-                                                src={getFlagUrl(r.code)} 
-                                                alt={r.name} 
-                                                style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
-                                            />
-                                            <span>{r.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        
                         <button className="icon-btn lang-toggle" onClick={toggleLanguage} title={isRTL ? 'English' : 'عربي'}>
                             <Globe size={20} />
                             <span className="lang-text">{isRTL ? 'EN' : 'AR'}</span>
