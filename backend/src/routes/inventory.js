@@ -16,12 +16,12 @@ router.get('/', async (req, res) => {
 
         // Filter by region if requested
         if (req.query.region_id) {
-            query = query.select(`
-                *,
-                shops!inner (
-                    region_id
-                )
-            `).eq('shops.region_id', req.query.region_id);
+            const { data: regionShops } = await supabase
+                .from('shops')
+                .select('id')
+                .eq('region_id', req.query.region_id);
+            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
+            query = query.in('shop_id', shopIds);
         }
 
         // If specific shop requested
@@ -50,14 +50,7 @@ router.get('/', async (req, res) => {
         const { data, error } = await withTimeout(query);
         if (error) throw error;
         
-        let sanitized = data;
-        if (Array.isArray(data)) {
-            sanitized = data.map(item => {
-                const { shops, ...rest } = item;
-                return rest;
-            });
-        }
-        res.json(sanitized);
+        res.json(data);
     } catch (error) {
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
