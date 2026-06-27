@@ -107,11 +107,35 @@ const Shop = () => {
 
         // Filter by shop ID
         if (shopIdFilter) {
-            result = result.filter(p => 
-                String(p.shop_id) === String(shopIdFilter) || 
-                String(p.vendor_id) === String(shopIdFilter) ||
-                p.shop_id === 'core' || p.shop_id === null
-            );
+            result = result
+                .filter(p => 
+                    String(p.shop_id) === String(shopIdFilter) || 
+                    String(p.vendor_id) === String(shopIdFilter) ||
+                    (p.inventories && p.inventories.some(inv => String(inv.shop_id) === String(shopIdFilter) && inv.is_active))
+                )
+                .map(p => {
+                    const shopInv = p.inventories?.find(inv => String(inv.shop_id) === String(shopIdFilter) && inv.is_active);
+                    if (shopInv) {
+                        const price = shopInv.price;
+                        const stock = shopInv.stock;
+                        let oldPrice = p.oldPrice;
+                        let discount = p.discount;
+                        if (oldPrice && oldPrice > price) {
+                            discount = Math.round((1 - price / oldPrice) * 100);
+                        } else {
+                            oldPrice = null;
+                            discount = 0;
+                        }
+                        return {
+                            ...p,
+                            price,
+                            stock,
+                            oldPrice,
+                            discount
+                        };
+                    }
+                    return p;
+                });
         }
 
         // Search Query
