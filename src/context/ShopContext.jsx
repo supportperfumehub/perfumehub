@@ -20,7 +20,14 @@ export const ShopProvider = ({ children }) => {
         return saved ? false : true;
     });
     const [backups, setBackups] = useState([]);
-    const [discoverCampaigns, setDiscoverCampaigns] = useState([]);
+    const [discoverCampaigns, setDiscoverCampaigns] = useState(() => {
+        try {
+            const saved = localStorage.getItem('perfumehub_discover_campaigns');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
     const [shops, setShops] = useState([]);
 
     // Initialize orders from cache to enable instant loading
@@ -260,6 +267,10 @@ export const ShopProvider = ({ children }) => {
     useEffect(() => {
         localStorage.setItem('perfumehub_coupons', JSON.stringify(coupons));
     }, [coupons]);
+
+    useEffect(() => {
+        localStorage.setItem('perfumehub_discover_campaigns', JSON.stringify(discoverCampaigns));
+    }, [discoverCampaigns]);
 
     // Toast Function
     const showToast = (message, type = 'success') => {

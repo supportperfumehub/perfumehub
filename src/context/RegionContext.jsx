@@ -5,8 +5,22 @@ import axios from 'axios';
 export const RegionContext = createContext();
 
 export const RegionProvider = ({ children }) => {
-    const [regions, setRegions] = useState([]);
-    const [activeRegion, setActiveRegion] = useState(null);
+    const [regions, setRegions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('perfumehub_regions');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+    const [activeRegion, setActiveRegion] = useState(() => {
+        try {
+            const saved = localStorage.getItem('perfumehub_active_region');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            return null;
+        }
+    });
     const [isSupported, setIsSupported] = useState(true);
     const [detectedCountry, setDetectedCountry] = useState('');
     const [loading, setLoading] = useState(true);
@@ -16,6 +30,7 @@ export const RegionProvider = ({ children }) => {
             const res = await api.get('/regions');
             const list = res.data || [];
             setRegions(list);
+            localStorage.setItem('perfumehub_regions', JSON.stringify(list));
             return list;
         } catch (err) {
             console.error('Failed to fetch regions:', err);
@@ -62,6 +77,7 @@ export const RegionProvider = ({ children }) => {
             if (matchedRegion) {
                 setActiveRegion(matchedRegion);
                 localStorage.setItem('perfumehub_selected_region_id', matchedRegion.id);
+                localStorage.setItem('perfumehub_active_region', JSON.stringify(matchedRegion));
             }
             setLoading(false);
         };
@@ -74,6 +90,7 @@ export const RegionProvider = ({ children }) => {
         if (matched) {
             setActiveRegion(matched);
             localStorage.setItem('perfumehub_selected_region_id', matched.id);
+            localStorage.setItem('perfumehub_active_region', JSON.stringify(matched));
             setIsSupported(true); 
             window.location.reload();
         }
