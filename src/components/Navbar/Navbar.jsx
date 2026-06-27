@@ -10,10 +10,9 @@ import { WishlistContext } from '../../context/WishlistContext';
 import { RegionContext } from '../../context/RegionContext';
 import './Navbar.css';
 
-const COUNTRY_FLAGS = {
-    'QA': '🇶🇦',
-    'AE': '🇦🇪',
-    'GB': '🇬🇧'
+const getFlagUrl = (code) => {
+    if (!code) return '';
+    return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
 };
 
 const Navbar = ({ isRTL, toggleLanguage }) => {
@@ -152,7 +151,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                 >
                                     {regions.map(r => (
                                         <option key={r.id} value={r.id}>
-                                            {COUNTRY_FLAGS[r.code] || '🌍'} {r.name} ({r.currency_code})
+                                            {r.name} ({r.currency_code})
                                         </option>
                                     ))}
                                 </select>
@@ -232,7 +231,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                     style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px', fontSize: '0.9rem', cursor: 'pointer', height: '40px', background: 'transparent', border: 'none', color: '#fff' }}
                                     title={isRTL ? 'اختر البلد' : 'Select Country'}
                                 >
-                                    <span>{COUNTRY_FLAGS[activeRegion.code] || '🌍'}</span>
+                                    <img 
+                                        src={getFlagUrl(activeRegion.code)} 
+                                        alt={activeRegion.name} 
+                                        style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                    />
                                     <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{activeRegion.code}</span>
                                     <ChevronDown size={12} />
                                 </button>
@@ -243,7 +246,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                             onClick={() => changeRegion(r.id)} 
                                             className={`region-selector-item ${r.id === activeRegion.id ? 'active' : ''}`}
                                         >
-                                            <span>{COUNTRY_FLAGS[r.code] || '🌍'}</span>
+                                            <img 
+                                                src={getFlagUrl(r.code)} 
+                                                alt={r.name} 
+                                                style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                            />
                                             <span>{r.name}</span>
                                         </button>
                                     ))}
