@@ -98,6 +98,11 @@ const Shop = () => {
                 (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
                 p.gender === type
             );
+        } else {
+            result = result.filter(p => {
+                const cats = Array.isArray(p.category) ? p.category : [];
+                return !cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box');
+            });
         }
 
         // Subcategory Filter (Fashion only)
