@@ -261,21 +261,21 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         </div>
                     )}
                     
-                    {/* User Profile / Login (Mobile & Desktop) */}
-                    <div className="user-access">
-                        {isAuthenticated ? (
-                            <Link to="/profile" className="icon-btn profile-nav-item" title={isRTL ? 'حسابي' : 'Profile'}>
-                                <User size={20} className="text-gold" />
-                                <span className="user-nav-name">{user?.name || (isRTL ? 'حسابي' : 'Profile')}</span>
-                            </Link>
-                        ) : (
-                            <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
-                                <User size={20} />
-                            </Link>
-                        )}
-                    </div>
-
                     <div className="hide-mobile icons-row">
+                        {/* User Profile / Login (Desktop Only) */}
+                        <div className="user-access">
+                            {isAuthenticated ? (
+                                <Link to="/profile" className="icon-btn profile-nav-item" title={isRTL ? 'حسابي' : 'Profile'}>
+                                    <User size={20} className="text-gold" />
+                                    <span className="user-nav-name">{user?.name || (isRTL ? 'حسابي' : 'Profile')}</span>
+                                </Link>
+                            ) : (
+                                <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
+                                    <User size={20} />
+                                </Link>
+                            )}
+                        </div>
+
                         <button className="icon-btn lang-toggle" onClick={toggleLanguage} title={isRTL ? 'English' : 'عربي'}>
                             <Globe size={20} />
                             <span className="lang-text">{isRTL ? 'EN' : 'AR'}</span>
