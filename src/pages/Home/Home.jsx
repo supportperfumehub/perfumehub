@@ -179,8 +179,20 @@ const Home = () => {
                 </section>
             ) : loading ? (
                 <section className="hero-slider-section container">
-                    <div className="featured-slider-container" style={{ minHeight: '450px', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto 40px', borderRadius: '12px' }}>
-                         <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--color-gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <div className="featured-slider-container" style={{ height: '450px', background: '#111', borderRadius: '12px', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div className="skeleton skeleton-line short" style={{ height: '20px', marginBottom: '20px' }}></div>
+                            <div className="skeleton skeleton-line long" style={{ height: '40px', marginBottom: '20px' }}></div>
+                            <div className="skeleton skeleton-line medium" style={{ height: '16px', marginBottom: '10px' }}></div>
+                            <div className="skeleton skeleton-line long" style={{ height: '16px', marginBottom: '30px' }}></div>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
+                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
+                            </div>
+                        </div>
+                        <div className="hide-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                            <div className="skeleton" style={{ width: '80%', height: '80%', borderRadius: '20px' }}></div>
+                        </div>
                     </div>
                 </section>
             ) : null}
@@ -236,13 +248,46 @@ const Home = () => {
                                 </div>
                             ));
                         })()
+                    ) : loading ? (
+                        [1, 2, 3, 4].map(idx => (
+                            <div key={idx} className="boutique-card-skeleton">
+                                <div className="skeleton skeleton-image" style={{ height: '140px', marginBottom: '16px' }}></div>
+                                <div className="skeleton skeleton-line short" style={{ marginBottom: '8px' }}></div>
+                                <div className="skeleton skeleton-line medium" style={{ marginBottom: '12px' }}></div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
+                                    <div className="skeleton" style={{ width: '70px', height: '28px', borderRadius: '4px' }}></div>
+                                </div>
+                            </div>
+                        ))
                     ) : (
                         <div style={{ padding: '20px', color: '#666', fontStyle: 'italic' }}>
-                            {isRTL ? 'جاري تحميل المتاجر...' : 'Loading premium boutiques...'}
+                            {isRTL ? 'لا توجد متاجر نشطة حالياً' : 'No active boutiques available.'}
                         </div>
                     )}
                 </div>
             </section>
+
+            {loading && (
+                <section className="section container">
+                    <div className="section-header text-center">
+                        <div className="skeleton skeleton-line short" style={{ height: '32px', margin: '0 auto 12px' }}></div>
+                        <div className="skeleton skeleton-line medium" style={{ height: '16px', margin: '0 auto' }}></div>
+                    </div>
+                    <div className="products-grid">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(idx => (
+                            <div key={idx} className="product-card-skeleton">
+                                <div className="skeleton skeleton-image" style={{ height: '220px', marginBottom: '16px' }}></div>
+                                <div className="skeleton skeleton-line short" style={{ marginBottom: '8px' }}></div>
+                                <div className="skeleton skeleton-line long" style={{ marginBottom: '12px' }}></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                                    <div className="skeleton" style={{ width: '80px', height: '20px', borderRadius: '4px' }}></div>
+                                    <div className="skeleton" style={{ width: '40px', height: '40px', borderRadius: '50%' }}></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* New Arrivals */}
             <section className="section container reveal">
