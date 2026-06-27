@@ -197,8 +197,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     </div>
                 </nav>
 
-                {/* Icons and Search */}
                 <div className="navbar-icons">
+                    <SearchBar isRTL={isRTL} />
+
                     {activeRegion && (
                         <div className="region-selector-dropdown-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <button 
@@ -239,8 +240,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                             </div>
                         </div>
                     )}
-
-                    <SearchBar isRTL={isRTL} />
                     
                     <div className="hide-mobile icons-row">
                         {/* User Profile / Login (Desktop Only) */}
