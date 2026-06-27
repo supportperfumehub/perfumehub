@@ -285,7 +285,7 @@
 
     .navbar-icons {
         margin-left: auto;
-        gap: 20px;
+        gap: 10px;
         min-width: 0;
     }
 
@@ -398,7 +398,7 @@
     }
 
     .navbar-icons {
-        gap: 12px;
+        gap: 10px;
     }
 
     .logo-image {

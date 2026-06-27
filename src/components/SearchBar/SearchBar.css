@@ -4,7 +4,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 0 10px;
+    margin: 0;
 }
 
 /* The toggle icon button (search/X) */
