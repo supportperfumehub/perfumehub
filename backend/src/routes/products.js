@@ -52,32 +52,37 @@ async function uploadImageToStorage(base64OrUrl, productName) {
 // Get all global products
 router.get('/', async (req, res) => {
     try {
+        if (req.query.region_id) {
+            // Get all product IDs that have active inventory in this region in a single joined select
+            const { data: productsInRegion, error: queryErr } = await supabase
+                .from('products')
+                .select(`
+                    *,
+                    vendor_inventory!inner (
+                        is_active,
+                        shops!inner (
+                            region_id
+                        )
+                    )
+                `)
+                .eq('vendor_inventory.is_active', true)
+                .eq('vendor_inventory.shops.region_id', req.query.region_id)
+                .order('created_at', { ascending: false });
+
+            if (queryErr) throw queryErr;
+
+            // Remove embedded join properties to match response shape contract exactly
+            const sanitized = productsInRegion.map(p => {
+                const { vendor_inventory, ...rest } = p;
+                return rest;
+            });
+            return res.json(sanitized);
+        }
+
         let query = supabase
             .from('products')
             .select('*')
             .order('created_at', { ascending: false });
-
-        if (req.query.region_id) {
-            // Get all product IDs that have active inventory in this region
-            const { data: regionShops } = await supabase
-                .from('shops')
-                .select('id')
-                .eq('region_id', req.query.region_id);
-            
-            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                const { data: activeProductInvs } = await supabase
-                    .from('vendor_inventory')
-                    .select('product_id')
-                    .eq('is_active', true)
-                    .in('shop_id', shopIds);
-                
-                const productIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
-                query = query.in('id', productIds);
-            } else {
-                return res.json([]);
-            }
-        }
 
         const { data, error } = await withTimeout(query);
 
