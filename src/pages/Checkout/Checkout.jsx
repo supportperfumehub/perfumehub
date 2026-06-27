@@ -14,7 +14,7 @@ const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isRTL } = useOutletContext();
-    const { isSupported } = useContext(RegionContext);
+    const { isSupported, activeRegion } = useContext(RegionContext);
     const { placeOrder, coupons, showToast, incrementCouponUsage, fetchCoupons } = useContext(ShopContext);
     const { clearCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
@@ -285,6 +285,8 @@ const Checkout = () => {
                 ? cartItems.map(item => `- ${item.product.name} (${item.product.brand})${item.selectedSize ? ` Size: ${item.selectedSize}` : ''} x${item.quantity}`).join('\n')
                 : `- ${singleProduct.name} (${singleProduct.brand})${singleSize ? ` Size: ${singleSize}` : ''} x${singleQty}`;
 
+            const currencySymbol = activeRegion?.currency_code || 'QAR';
+
             const formspreePayload = {
                 "Full Name": formData.fullName,
                 "Email": formData.email || 'N/A',
@@ -292,7 +294,7 @@ const Checkout = () => {
                 "Address": shippingAddress,
                 "Payment": paymentMethod,
                 "Items": itemsSummary,
-                "Total": `${Math.round(total)} QAR`,
+                "Total": `${Math.round(total)} ${currencySymbol}`,
                 "Coupon": couponCode || "None"
             };
 
@@ -320,8 +322,8 @@ const Checkout = () => {
             const paymentText = isRTL ? `\u{1F4B5} *الدفع:* عند الاستلام (COD)` : `\u{1F4B5} *Payment:* Cash on Delivery (COD)`;
             
             const messageText = isRTL
-                ? `\u{1F6CD} *طلب جديد: ${generatedOrderId}*${couponText}\n\u{1F464} *العميل:* ${formData.fullName}\n\u{1F4CD} *العنوان:* منطقة ${formData.zone}، شارع ${formData.street}، مبنى ${formData.building}، ${formData.city}\n${paymentText}\n\n*المنتجات:*\n${itemsText}\n\n\u{2705} *يرجى تأكيد طلبي.*`
-                : `\u{1F6CD} *New Order: ${generatedOrderId}*${couponText}\n\u{1F464} *Customer:* ${formData.fullName}\n\u{1F4CD} *Address:* Zone ${formData.zone}, Street ${formData.street}, Building ${formData.building}, ${formData.city}\n${paymentText}\n\n*Items:*\n${itemsText}\n\n\u{2705} *Please confirm my order.*`;
+                ? `\u{1F6CD} *طلب جديد: ${generatedOrderId}*${couponText}\n\u{1F464} *العميل:* ${formData.fullName}\n\u{1F4CD} *العنوان:* منطقة ${formData.zone}، شارع ${formData.street}، مبنى ${formData.building}، ${formData.city}\n${paymentText}\n\u{1F4B0} *الإجمالي:* ${Math.round(total)} ${currencySymbol}\n\n*المنتجات:*\n${itemsText}\n\n\u{2705} *يرجى تأكيد طلبي.*`
+                : `\u{1F6CD} *New Order: ${generatedOrderId}*${couponText}\n\u{1F464} *Customer:* ${formData.fullName}\n\u{1F4CD} *Address:* Zone ${formData.zone}, Street ${formData.street}, Building ${formData.building}, ${formData.city}\n${paymentText}\n\u{1F4B0} *Total:* ${Math.round(total)} ${currencySymbol}\n\n*Items:*\n${itemsText}\n\n\u{2705} *Please confirm my order.*`;
 
             const url = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(messageText)}`;
             window.open(url, '_blank');

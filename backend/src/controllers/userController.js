@@ -25,6 +25,9 @@ export class UserController {
     getUserProfile = async (req, res, next) => {
         try {
             const { id } = req.params;
+            if (req.user.id.toString() !== id.toString() && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
+                return res.status(403).json({ success: false, error: 'Forbidden: Cannot view other profiles' });
+            }
             const user = await this.userService.getUserProfile(id);
             res.status(200).json(user);
         } catch (error) {

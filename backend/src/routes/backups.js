@@ -1,10 +1,13 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
+import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const adminOnly = [authenticateUser, verifyRole(['super_admin', 'admin'])];
+
 // Get all backups
-router.get('/', async (req, res) => {
+router.get('/', adminOnly, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('backups')
@@ -19,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // Restore from backup
-router.post('/:id/restore', async (req, res) => {
+router.post('/:id/restore', adminOnly, async (req, res) => {
     const { id } = req.params;
     try {
         const { data: backup, error: fetchError } = await supabase
@@ -53,7 +56,7 @@ router.post('/:id/restore', async (req, res) => {
 });
 
 // Permanent Delete from backup
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminOnly, async (req, res) => {
     const { id } = req.params;
     try {
         const { error, count } = await supabase

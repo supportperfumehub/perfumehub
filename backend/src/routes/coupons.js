@@ -1,8 +1,11 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { withTimeout } from '../utils/timeout.js';
+import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const adminOnly = [authenticateUser, verifyRole(['super_admin', 'admin'])];
 
 // Get coupons
 router.get('/', async (req, res) => {
@@ -21,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create coupon
-router.post('/', async (req, res) => {
+router.post('/', adminOnly, async (req, res) => {
     const { code, discountType, discountValue, isActive, expiryDate, usageLimit, usageCount, usedBy } = req.body;
     try {
         const { data, error } = await supabase
@@ -47,7 +50,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update coupon
-router.put('/:id', async (req, res) => {
+router.put('/:id', adminOnly, async (req, res) => {
     const { id } = req.params;
     const { code, discountType, discountValue, isActive, expiryDate, usageLimit, usageCount, usedBy } = req.body;
     try {
@@ -76,7 +79,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete coupon (Soft Delete / Archive)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminOnly, async (req, res) => {
     const { id } = req.params;
     try {
         const { data: coupon, error: fetchError } = await supabase

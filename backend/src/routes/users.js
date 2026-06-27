@@ -15,7 +15,7 @@ const userController = new UserController(userService);
  * Routes
  */
 router.get('/', authenticateUser, verifyRole(['super_admin', 'admin']), userController.getAllUsers);
-router.get('/:id', userController.getUserProfile);
+router.get('/:id', authenticateUser, userController.getUserProfile);
 router.put('/:id', authenticateUser, userController.updateProfile);
 
 export default router;
