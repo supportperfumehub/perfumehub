@@ -19,6 +19,26 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const [isBindingCatalog, setIsBindingCatalog] = useState(false);
     const [selectedCatalogProduct, setSelectedCatalogProduct] = useState(null);
     const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
+    const [globalCatalog, setGlobalCatalog] = useState([]);
+    const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+    React.useEffect(() => {
+        if (isBindingCatalog) {
+            const fetchGlobalCatalog = async () => {
+                try {
+                    setLoadingCatalog(true);
+                    const response = await api.get('/products');
+                    setGlobalCatalog(Array.isArray(response.data) ? response.data : []);
+                } catch (error) {
+                    console.error("Failed to fetch global catalog:", error);
+                } finally {
+                    setLoadingCatalog(false);
+                }
+            };
+            fetchGlobalCatalog();
+        }
+    }, [isBindingCatalog]);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [sortBy, setSortBy] = useState('default');
@@ -899,32 +919,38 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 />
                             </div>
 
-                            <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
-                                {products.filter(p => !p._dummy && (p.name.toLowerCase().includes(catalogSearchTerm.toLowerCase()) || p.brand.toLowerCase().includes(catalogSearchTerm.toLowerCase()))).slice(0, 50).map(p => {
-                                    // Check if shop already owns this product
-                                    const alreadyHas = p.inventories?.some(inv => inv.shop_id === shopId);
-                                    return (
-                                        <div 
-                                            key={p.id} 
-                                            style={{ 
-                                                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', cursor: alreadyHas ? 'not-allowed' : 'pointer', opacity: alreadyHas ? 0.5 : 1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', gap: '8px' 
-                                            }}
-                                            onClick={() => !alreadyHas && handleCatalogSelect(p)}
-                                            onMouseOver={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'var(--color-gold)'; }}
-                                            onMouseOut={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                                        >
-                                            <div style={{ height: '100px', borderRadius: '8px', overflow: 'hidden', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {p.image && p.image[0] ? <img src={p.image[0]} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="" /> : <ImageOff size={24} color="#333" />}
+                            {loadingCatalog ? (
+                                <div style={{ padding: '40px', textAlign: 'center', color: '#c8a951' }}>
+                                    {isRTL ? 'جاري تحميل الكتالوج العالمي...' : 'Loading Global Catalog...'}
+                                </div>
+                            ) : (
+                                <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
+                                    {globalCatalog.filter(p => !p._dummy && (p.name.toLowerCase().includes(catalogSearchTerm.toLowerCase()) || p.brand.toLowerCase().includes(catalogSearchTerm.toLowerCase()))).slice(0, 50).map(p => {
+                                        // Check if shop already owns this product
+                                        const alreadyHas = products.some(ownedProd => ownedProd.id === p.id);
+                                        return (
+                                            <div 
+                                                key={p.id} 
+                                                style={{ 
+                                                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', cursor: alreadyHas ? 'not-allowed' : 'pointer', opacity: alreadyHas ? 0.5 : 1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', gap: '8px' 
+                                                }}
+                                                onClick={() => !alreadyHas && handleCatalogSelect(p)}
+                                                onMouseOver={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'var(--color-gold)'; }}
+                                                onMouseOut={(e) => { if(!alreadyHas) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                                            >
+                                                <div style={{ height: '100px', borderRadius: '8px', overflow: 'hidden', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {p.image && p.image[0] ? <img src={p.image[0]} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="" /> : <ImageOff size={24} color="#333" />}
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 4px', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h4>
+                                                    <div style={{ color: 'var(--color-gold)', fontSize: '0.8rem', marginBottom: '8px' }}>{p.brand}</div>
+                                                    {alreadyHas && <div style={{ fontSize: '0.75rem', color: '#e74c3c', background: 'rgba(231,76,60,0.1)', padding: '4px 8px', borderRadius: '4px', textAlign: 'center' }}>{isRTL ? 'مضاف مسبقاً' : 'Already in inventory'}</div>}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 4px', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h4>
-                                                <div style={{ color: 'var(--color-gold)', fontSize: '0.8rem', marginBottom: '8px' }}>{p.brand}</div>
-                                                {alreadyHas && <div style={{ fontSize: '0.75rem', color: '#e74c3c', background: 'rgba(231,76,60,0.1)', padding: '4px 8px', borderRadius: '4px', textAlign: 'center' }}>{isRTL ? 'مضاف مسبقاً' : 'Already in inventory'}</div>}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <form onSubmit={handleInventorySubmit}>
