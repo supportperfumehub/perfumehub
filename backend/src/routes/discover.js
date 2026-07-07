@@ -8,12 +8,15 @@ const router = express.Router();
 // Get active discover campaigns (Public)
 router.get('/', async (req, res) => {
     try {
-        const { data, error } = await withTimeout(supabase
+        const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')
             .select(`
                 *,
                 shop:shops (
                     id, name, logo_url, trust_score, tier, geo_location
+                ),
+                product:products (
+                    *
                 )
             `)
             .eq('active', true)
@@ -22,7 +25,56 @@ router.get('/', async (req, res) => {
             .order('created_at', { ascending: false }));
 
         if (error) throw error;
-        res.json(data);
+
+        const slides = [];
+        for (const c of campaigns) {
+            if (c.product_id && c.product) {
+                // Single product campaign
+                slides.push({
+                    id: `product-${c.product.id}-${c.id}`,
+                    campaign_id: c.id,
+                    product_id: c.product.id,
+                    type: 'product',
+                    placement_slot: c.placement_slot,
+                    product: c.product,
+                    shop: c.shop
+                });
+            } else if (c.shop_id && c.shop) {
+                // Pull active products for the shop (limited to 15 items to maintain performance)
+                const { data: shopInventory, error: invErr } = await supabase
+                    .from('vendor_inventory')
+                    .select(`
+                        price,
+                        products!inner (
+                            *
+                        )
+                    `)
+                    .eq('shop_id', c.shop_id)
+                    .eq('is_active', true)
+                    .limit(15);
+                
+                if (!invErr && shopInventory) {
+                    for (const item of shopInventory) {
+                        if (item.products) {
+                            slides.push({
+                                id: `shop-product-${item.products.id}-${c.id}`,
+                                campaign_id: c.id,
+                                product_id: item.products.id,
+                                type: 'product',
+                                placement_slot: c.placement_slot,
+                                product: {
+                                    ...item.products,
+                                    price: item.price // override with vendor price
+                                },
+                                shop: c.shop
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        res.json(slides);
     } catch (error) {
         console.error('Error fetching discover campaigns:', error);
         res.status(500).json({ error: 'Internal server error' });
