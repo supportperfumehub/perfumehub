@@ -24,7 +24,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const { user, isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
     const { getCartCount } = useContext(CartContext);
     const { wishlistItems } = useContext(WishlistContext);
-    const { regions, activeRegion, changeRegion } = useContext(RegionContext);
+    const { regions, activeRegion, changeRegion, isSupported, detectedCountry } = useContext(RegionContext);
     const [isRegionMenuOpen, setIsRegionMenuOpen] = useState(false);
 
     // Check if the current route is the home page
@@ -219,7 +219,33 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{activeRegion.code}</span>
                                 <ChevronDown size={12} />
                             </button>
-                            <div className="region-selector-menu" style={{ display: isRegionMenuOpen ? 'flex' : undefined }}>
+                            <div className="region-selector-menu" style={{ display: isRegionMenuOpen ? 'flex' : undefined, flexDirection: 'column' }}>
+                                {!isSupported && (
+                                    <div style={{
+                                        padding: '12px',
+                                        fontSize: '0.75rem',
+                                        color: '#ef4444',
+                                        background: 'rgba(239, 68, 68, 0.08)',
+                                        borderBottom: '1px solid rgba(239, 68, 68, 0.15)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '4px',
+                                        whiteSpace: 'normal',
+                                        width: '240px',
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        lineHeight: '1.4'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span>📍</span>
+                                            <span>{isRTL ? 'الخدمة غير متوفرة' : 'Service Not Available'}</span>
+                                        </div>
+                                        <div>
+                                            {isRTL 
+                                                ? `نحن لا نقوم بالتوصيل إلى ${detectedCountry || 'بلدك'} حالياً. يتم عرض كتالوج ${activeRegion?.name} الافتراضي.`
+                                                : `We do not deliver to ${detectedCountry || 'your country'} yet. Showing default catalog (${activeRegion?.name}).`}
+                                        </div>
+                                    </div>
+                                )}
                                 {regions.map(r => (
                                     <button 
                                         key={r.id} 

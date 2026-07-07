@@ -12,7 +12,7 @@ import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package
+    Sparkles, Sliders, Package, Bell
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
@@ -22,6 +22,7 @@ import './Admin.css';
 const Admin = () => {
     const { isRTL, user } = useOutletContext();
     const [activeTab, setActiveTab] = useState('shops');
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
     // Assume user object contains the role from context. 
     // Fallback to 'super_admin' or 'admin' for demo purposes if strictly not set.
@@ -87,10 +88,91 @@ const Admin = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="main-header">
+                <header className="main-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                     <h1>
                         {tabs.find(t => t.id === activeTab)?.label}
                     </h1>
+                    
+                    {/* Admin Panel Notification Dropdown */}
+                    <div className="admin-notifications-container" style={{ position: 'relative' }}>
+                        <button 
+                            className="icon-btn notification-btn"
+                            style={{ 
+                                background: 'rgba(255,255,255,0.05)', 
+                                border: '1px solid rgba(255,255,255,0.1)', 
+                                padding: '10px', 
+                                borderRadius: '12px', 
+                                color: '#f8fafc',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative',
+                                transition: 'all 0.2s',
+                                outline: 'none'
+                            }}
+                            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                            title={isRTL ? 'التنبيهات' : 'Notifications'}
+                        >
+                            <Bell size={20} />
+                            <span style={{ 
+                                position: 'absolute', 
+                                top: '-2px', 
+                                right: '-2px', 
+                                background: '#c8a951', 
+                                color: '#000', 
+                                fontSize: '10px', 
+                                fontWeight: 'bold', 
+                                width: '16px', 
+                                height: '16px', 
+                                borderRadius: '50%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                boxShadow: '0 0 8px #c8a951'
+                            }}>
+                                1
+                            </span>
+                        </button>
+                        
+                        {isNotificationOpen && (
+                            <div className="admin-notification-dropdown" style={{
+                                position: 'absolute',
+                                right: isRTL ? 'auto' : '0',
+                                left: isRTL ? '0' : 'auto',
+                                top: '50px',
+                                width: '320px',
+                                background: '#1e293b',
+                                border: '1px solid #334155',
+                                borderRadius: '16px',
+                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+                                zIndex: 1000,
+                                padding: '16px'
+                            }}>
+                                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#c8a951', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', fontFamily: 'Inter, sans-serif' }}>
+                                    {isRTL ? 'تنبيهات النظام' : 'System Notifications'}
+                                </h4>
+                                <div className="notification-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div className="notification-item" style={{
+                                        background: 'rgba(200, 169, 81, 0.05)',
+                                        borderLeft: isRTL ? 'none' : '3px solid #c8a951',
+                                        borderRight: isRTL ? '3px solid #c8a951' : 'none',
+                                        padding: '10px 12px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#f8fafc' }}>
+                                            {isRTL ? 'استعادة قاعدة البيانات' : 'Database Restoration'}
+                                        </div>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', lineHeight: '1.4' }}>
+                                            DATABASE RESTORATION v1.0.2 - 167 PRODUCTS SYNCED
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </header>
 
                 <div className="main-content-wrapper">

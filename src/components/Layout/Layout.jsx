@@ -30,19 +30,6 @@ const Layout = ({ isRTL, toggleLanguage }) => {
 
     return (
         <div className="app-layout">
-            <div style={{ background: '#FFD700', color: '#000', textAlign: 'center', padding: '5px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                DATABASE RESTORATION v1.0.2 - 167 PRODUCTS SYNCED
-            </div>
-            {!isSupported && activeRegion && (
-                <div style={{ background: '#e74c3c', color: '#fff', textAlign: 'center', padding: '8px 15px', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', zIndex: 1000 }}>
-                    <span>📍</span>
-                    <span>
-                        {isRTL 
-                            ? `نحن لا نقوم بالتوصيل إلى ${detectedCountry || 'بلدك'} حالياً. يتم عرض كتالوج ${activeRegion.name} الافتراضي.`
-                            : `We do not deliver to ${detectedCountry || 'your country'} yet. Showing our default catalog (${activeRegion.name}).`}
-                    </span>
-                </div>
-            )}
             {isHomePage && <PromotionBar isRTL={isRTL} />}
             <Toast
                 message={toast.message}
