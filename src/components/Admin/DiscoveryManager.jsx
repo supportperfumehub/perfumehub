@@ -23,20 +23,45 @@ const DiscoveryManager = ({ isRTL }) => {
     });
     const [submitting, setSubmitting] = useState(false);
 
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        message: '',
+        onConfirm: null
+    });
+
+    const [alertModal, setAlertModal] = useState({
+        isOpen: false,
+        message: '',
+        isError: false
+    });
+
     const deleteCampaign = async (id) => {
-        if (!window.confirm(isRTL ? 'هل أنت متأكد من حذف هذه الحملة؟' : 'Are you sure you want to delete this campaign?')) return;
-        try {
-            await api.delete(`/admin/discover-campaigns/${id}`);
-            setCampaigns(prev => prev.filter(c => c.id !== id));
-        } catch (err) {
-            alert(err.response?.data?.error || err.message);
-        }
+        setConfirmModal({
+            isOpen: true,
+            message: isRTL ? 'هل أنت متأكد من حذف هذه الحملة؟' : 'Are you sure you want to delete this campaign?',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/discover-campaigns/${id}`);
+                    setCampaigns(prev => prev.filter(c => c.id !== id));
+                } catch (err) {
+                    setAlertModal({
+                        isOpen: true,
+                        message: err.response?.data?.error || err.message,
+                        isError: true
+                    });
+                }
+            }
+        });
     };
 
     const createCampaign = async (e) => {
         e.preventDefault();
         if (!newCampaign.shop_id || !newCampaign.placement_slot || !newCampaign.end_date) {
-            alert(isRTL ? 'الرجاء تعبئة الحقول المطلوبة' : 'Please fill in the required fields');
+            setAlertModal({
+                isOpen: true,
+                message: isRTL ? 'الرجاء تعبئة الحقول المطلوبة' : 'Please fill in the required fields',
+                isError: true
+            });
             return;
         }
         try {
@@ -52,7 +77,11 @@ const DiscoveryManager = ({ isRTL }) => {
             });
             fetchData();
         } catch (err) {
-            alert(err.response?.data?.error || err.message);
+            setAlertModal({
+                isOpen: true,
+                message: err.response?.data?.error || err.message,
+                isError: true
+            });
         } finally {
             setSubmitting(false);
         }
@@ -89,7 +118,9 @@ const DiscoveryManager = ({ isRTL }) => {
         try {
             await api.patch(`/admin/shops/${shopId}/feature`, { is_featured: !currentStatus });
             setShops(prev => prev.map(s => s.id === shopId ? { ...s, is_featured: !currentStatus } : s));
-        } catch (err) { alert('Failed to update shop status'); }
+        } catch (err) { 
+            setAlertModal({ isOpen: true, message: 'Failed to update shop status', isError: true });
+        }
     };
 
     const updateBoost = async (shopId, value) => {
@@ -97,7 +128,9 @@ const DiscoveryManager = ({ isRTL }) => {
             const multiplier = parseFloat(value);
             await api.patch(`/admin/shops/${shopId}/boost`, { manual_boost_multiplier: multiplier });
             setShops(prev => prev.map(s => s.id === shopId ? { ...s, manual_boost_multiplier: multiplier } : s));
-        } catch (err) { alert('Failed to update boost'); }
+        } catch (err) { 
+            setAlertModal({ isOpen: true, message: 'Failed to update boost', isError: true });
+        }
     };
 
     const filteredShops = shops.filter(s => {
@@ -437,6 +470,111 @@ const DiscoveryManager = ({ isRTL }) => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Premium Custom Confirmation Modal */}
+            {confirmModal.isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.75)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div className="admin-card" style={{
+                        width: '90%',
+                        maxWidth: '400px',
+                        padding: '24px',
+                        textAlign: 'center',
+                        border: '1px solid var(--color-gold)',
+                        borderRadius: '16px',
+                        background: '#0f172a',
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{ color: '#e2e8f0', fontSize: '1.1rem', marginBottom: '24px', fontWeight: '500', lineHeight: '1.5' }}>
+                            {confirmModal.message}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button 
+                                className="btn btn-outline"
+                                style={{
+                                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                                    color: '#fff',
+                                    padding: '8px 20px',
+                                    borderRadius: '8px'
+                                }}
+                                onClick={() => setConfirmModal({ isOpen: false, message: '', onConfirm: null })}
+                            >
+                                {isRTL ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button 
+                                className="btn btn-primary"
+                                style={{
+                                    padding: '8px 24px',
+                                    borderRadius: '8px'
+                                }}
+                                onClick={() => {
+                                    if (confirmModal.onConfirm) confirmModal.onConfirm();
+                                    setConfirmModal({ isOpen: false, message: '', onConfirm: null });
+                                }}
+                            >
+                                {isRTL ? 'موافق' : 'OK'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Premium Custom Alert Modal */}
+            {alertModal.isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.75)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div className="admin-card" style={{
+                        width: '90%',
+                        maxWidth: '400px',
+                        padding: '24px',
+                        textAlign: 'center',
+                        border: `1px solid ${alertModal.isError ? '#ef4444' : 'var(--color-gold)'}`,
+                        borderRadius: '16px',
+                        background: '#0f172a',
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{ color: '#f8fafc', fontSize: '1.1rem', marginBottom: '24px', fontWeight: '500', lineHeight: '1.5' }}>
+                            {alertModal.message}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button 
+                                className="btn btn-primary"
+                                style={{
+                                    padding: '8px 30px',
+                                    borderRadius: '8px'
+                                }}
+                                onClick={() => setAlertModal({ isOpen: false, message: '', isError: false })}
+                            >
+                                {isRTL ? 'موافق' : 'OK'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
