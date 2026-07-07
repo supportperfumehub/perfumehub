@@ -896,7 +896,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             </div>
 
             {isBindingCatalog && (
-                <div className="admin-form animate-fade-in" style={{ backgroundColor: 'rgba(200, 169, 81, 0.05)', border: '1px solid rgba(200, 169, 81, 0.2)' }}>
+                <div className="admin-form animate-fade-in" style={{ backgroundColor: 'rgba(200, 169, 81, 0.05)', border: '1px solid rgba(200, 169, 81, 0.2)', padding: '24px', borderRadius: '16px', marginBottom: '30px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 style={{ margin: 0, color: 'var(--color-gold)' }}>
                             <Store size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
@@ -962,7 +962,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     <h4 style={{ margin: '0 0 5px 0', fontSize: '1.2rem' }}>{selectedCatalogProduct.name}</h4>
                                     <div style={{ color: 'var(--color-gold)' }}>{selectedCatalogProduct.brand} • {selectedCatalogProduct.type}</div>
                                 </div>
-                                <button type="button" className="btn" onClick={() => setSelectedCatalogProduct(null)} style={{ marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0, padding: '8px 15px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>
+                                <button type="button" className="btn" onClick={() => setSelectedCatalogProduct(null)} style={{ marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0, padding: '8px 15px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.15)' }}>
                                     {isRTL ? 'تغيير المنتج' : 'Change Product'}
                                 </button>
                             </div>
@@ -978,12 +978,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 </div>
                             </div>
                             
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                <button type="submit" className="btn btn-gold" style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                <button type="submit" className="btn btn-gold" style={{ flex: 1, padding: '10px 24px' }}>
                                     <Plus size={18} />
                                     {isRTL ? 'إضافة لمخزون المتجر' : 'Add to Shop Inventory'}
                                 </button>
-                                <button type="button" className="btn" onClick={cancelEdit} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+                                <button type="button" className="btn" onClick={cancelEdit} style={{ background: 'rgba(255,255,255,0.1)', color: '#f8fafc', padding: '10px 24px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                     {isRTL ? 'إلغاء' : 'Cancel'}
                                 </button>
                             </div>

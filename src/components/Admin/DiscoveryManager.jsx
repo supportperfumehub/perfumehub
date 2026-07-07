@@ -177,7 +177,7 @@ const DiscoveryManager = ({ isRTL }) => {
                     >
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
-                    <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+                    <button className="btn btn-gold" onClick={() => setIsModalOpen(true)}>
                         <Plus size={16} /> {isRTL ? 'حملة جديدة' : 'New Campaign'}
                     </button>
                 </div>
@@ -456,15 +456,15 @@ const DiscoveryManager = ({ isRTL }) => {
                                     type="button" 
                                     className="btn btn-outline"
                                     onClick={() => setIsModalOpen(false)}
-                                    style={{ padding: '10px 20px', borderColor: '#334155', color: '#94a3b8', cursor: 'pointer' }}
+                                    style={{ padding: '10px 24px', borderColor: '#334155', color: '#f8fafc', background: 'transparent', cursor: 'pointer' }}
                                 >
                                     {isRTL ? 'إلغاء' : 'Cancel'}
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="btn btn-primary"
+                                    className="btn btn-gold"
                                     disabled={submitting}
-                                    style={{ padding: '10px 20px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+                                    style={{ padding: '10px 24px', cursor: submitting ? 'not-allowed' : 'pointer' }}
                                 >
                                     {submitting ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ الحملة' : 'Save Campaign')}
                                 </button>
@@ -517,10 +517,11 @@ const DiscoveryManager = ({ isRTL }) => {
                                 {isRTL ? 'إلغاء' : 'Cancel'}
                             </button>
                             <button 
-                                className="btn btn-primary"
+                                className="btn btn-gold"
                                 style={{
                                     padding: '8px 24px',
-                                    borderRadius: '8px'
+                                    borderRadius: '8px',
+                                    color: '#000'
                                 }}
                                 onClick={() => {
                                     if (confirmModal.onConfirm) confirmModal.onConfirm();
@@ -565,10 +566,11 @@ const DiscoveryManager = ({ isRTL }) => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <button 
-                                className="btn btn-primary"
+                                className="btn btn-gold"
                                 style={{
                                     padding: '8px 30px',
-                                    borderRadius: '8px'
+                                    borderRadius: '8px',
+                                    color: '#000'
                                 }}
                                 onClick={() => setAlertModal({ isOpen: false, message: '', isError: false })}
                             >
