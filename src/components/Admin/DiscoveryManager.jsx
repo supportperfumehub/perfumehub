@@ -12,6 +12,49 @@ const DiscoveryManager = ({ isRTL }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter] = useState('all'); // all, featured, regular
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newCampaign, setNewCampaign] = useState({
+        shop_id: '',
+        placement_slot: 'homepage_featured',
+        start_date: '',
+        end_date: ''
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const deleteCampaign = async (id) => {
+        if (!window.confirm(isRTL ? 'هل أنت متأكد من حذف هذه الحملة؟' : 'Are you sure you want to delete this campaign?')) return;
+        try {
+            await api.delete(`/admin/discover-campaigns/${id}`);
+            setCampaigns(prev => prev.filter(c => c.id !== id));
+        } catch (err) {
+            alert(err.response?.data?.error || err.message);
+        }
+    };
+
+    const createCampaign = async (e) => {
+        e.preventDefault();
+        if (!newCampaign.shop_id || !newCampaign.placement_slot || !newCampaign.end_date) {
+            alert(isRTL ? 'الرجاء تعبئة الحقول المطلوبة' : 'Please fill in the required fields');
+            return;
+        }
+        try {
+            setSubmitting(true);
+            await api.post('/admin/discover-campaigns', newCampaign);
+            setIsModalOpen(false);
+            setNewCampaign({
+                shop_id: '',
+                placement_slot: 'homepage_featured',
+                start_date: '',
+                end_date: ''
+            });
+            fetchData();
+        } catch (err) {
+            alert(err.response?.data?.error || err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const fetchData = async () => {
         if (!user?.id) return;
         try {
@@ -96,7 +139,7 @@ const DiscoveryManager = ({ isRTL }) => {
                     >
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
-                    <button className="btn btn-primary">
+                    <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
                         <Plus size={16} /> {isRTL ? 'حملة جديدة' : 'New Campaign'}
                     </button>
                 </div>
@@ -141,7 +184,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                 <td><span className="status-badge" style={{ background: '#334155' }}>{camp.placement_slot}</span></td>
                                 <td>{new Date(camp.start_date).toLocaleDateString()} - {new Date(camp.end_date).toLocaleDateString()}</td>
                                 <td>{camp.active ? <span style={{ color: '#34d399' }}>Active</span> : <span>Ended</span>}</td>
-                                <td><button className="admin-action-btn delete-btn"><Trash2 size={16} /></button></td>
+                                <td><button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)}><Trash2 size={16} /></button></td>
                             </tr>
                         ))}
                     </tbody>
@@ -215,6 +258,152 @@ const DiscoveryManager = ({ isRTL }) => {
                     </tbody>
                 </table>
             </div>
+
+            {isModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '16px',
+                        width: '100%',
+                        maxWidth: '500px',
+                        padding: '24px',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0, color: '#f8fafc' }}>
+                                {isRTL ? 'إنشاء حملة اكتشاف جديدة' : 'Create New Discover Campaign'}
+                            </h3>
+                            <button 
+                                onClick={() => setIsModalOpen(false)} 
+                                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                            >
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={createCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'اختر المتجر *' : 'Select Shop *'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={newCampaign.shop_id}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, shop_id: e.target.value })}
+                                    required
+                                >
+                                    <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
+                                    {shops.map(shop => (
+                                        <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'مكان العرض *' : 'Placement Slot *'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={newCampaign.placement_slot}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, placement_slot: e.target.value })}
+                                    required
+                                >
+                                    <option value="homepage_featured">{isRTL ? 'الرئيسية - مميز' : 'Homepage Featured'}</option>
+                                    <option value="search_top">{isRTL ? 'البحث - في الأعلى' : 'Search Top'}</option>
+                                    <option value="category_header">{isRTL ? 'ترويسة الفئة' : 'Category Header'}</option>
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                        {isRTL ? 'تاريخ البدء' : 'Start Date'}
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        className="form-control"
+                                        style={{
+                                            background: '#0f172a',
+                                            border: '1px solid #334155',
+                                            color: '#f8fafc',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            width: '100%'
+                                        }}
+                                        value={newCampaign.start_date}
+                                        onChange={(e) => setNewCampaign({ ...newCampaign, start_date: e.target.value })}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                        {isRTL ? 'تاريخ الانتهاء *' : 'End Date *'}
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        className="form-control"
+                                        style={{
+                                            background: '#0f172a',
+                                            border: '1px solid #334155',
+                                            color: '#f8fafc',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            width: '100%'
+                                        }}
+                                        value={newCampaign.end_date}
+                                        onChange={(e) => setNewCampaign({ ...newCampaign, end_date: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline"
+                                    onClick={() => setIsModalOpen(false)}
+                                    style={{ padding: '10px 20px', borderColor: '#334155', color: '#94a3b8', cursor: 'pointer' }}
+                                >
+                                    {isRTL ? 'إلغاء' : 'Cancel'}
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="btn btn-primary"
+                                    disabled={submitting}
+                                    style={{ padding: '10px 20px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+                                >
+                                    {submitting ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ الحملة' : 'Save Campaign')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -129,4 +129,52 @@ router.get('/discover-campaigns', superAdminOnly, async (req, res, next) => {
     }
 });
 
+// POST /api/admin/discover-campaigns
+router.post('/discover-campaigns', superAdminOnly, async (req, res, next) => {
+    const { shop_id, placement_slot, start_date, end_date } = req.body;
+
+    if (!shop_id || !placement_slot || !end_date) {
+        return res.status(400).json({ error: 'Missing required campaign parameters.' });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('discover_campaigns')
+            .insert([{
+                shop_id,
+                placement_slot,
+                start_date: start_date || new Date().toISOString(),
+                end_date,
+                active: true
+            }])
+            .select();
+
+        if (error) throw error;
+        
+        // Also automatically upgrade the shop's tier to 'premium' for the duration
+        await supabase.from('shops').update({ tier: 'premium' }).eq('id', shop_id);
+
+        res.status(201).json({ id: data[0].id, message: 'Discover campaign created successfully', campaign: data[0] });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// DELETE /api/admin/discover-campaigns/:id
+router.delete('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => {
+    const { id } = req.params;
+
+    try {
+        const { error } = await supabase
+            .from('discover_campaigns')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ message: 'Discover campaign deleted successfully' });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
