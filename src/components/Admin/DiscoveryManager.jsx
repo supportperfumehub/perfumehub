@@ -7,6 +7,7 @@ const DiscoveryManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
     const [shops, setShops] = useState([]);
     const [campaigns, setCampaigns] = useState([]);
+    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -17,7 +18,8 @@ const DiscoveryManager = ({ isRTL }) => {
         shop_id: '',
         placement_slot: 'homepage_featured',
         start_date: '',
-        end_date: ''
+        end_date: '',
+        product_id: null
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -45,7 +47,8 @@ const DiscoveryManager = ({ isRTL }) => {
                 shop_id: '',
                 placement_slot: 'homepage_featured',
                 start_date: '',
-                end_date: ''
+                end_date: '',
+                product_id: null
             });
             fetchData();
         } catch (err) {
@@ -59,13 +62,15 @@ const DiscoveryManager = ({ isRTL }) => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const [shopsRes, campaignsRes] = await Promise.all([
+            const [shopsRes, campaignsRes, productsRes] = await Promise.all([
                 api.get('/admin/shops'),
-                api.get('/admin/discover-campaigns')
+                api.get('/admin/discover-campaigns'),
+                api.get('/products')
             ]);
             
             setShops(shopsRes.data);
             setCampaigns(campaignsRes.data);
+            setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
         } catch (err) {
             setError(err.response?.data?.error || err.message);
         } finally {
@@ -180,7 +185,14 @@ const DiscoveryManager = ({ isRTL }) => {
                             <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{isRTL ? 'لا توجد حملات نشطة حالياً' : 'No active campaigns found'}</td></tr>
                         ) : campaigns.map(camp => (
                             <tr key={camp.id}>
-                                <td>{camp.shop_name}</td>
+                                <td>
+                                    <div>{camp.shop_name}</div>
+                                    {camp.product_name && (
+                                        <div style={{ fontSize: '0.75rem', color: '#c8a951', marginTop: '2px' }}>
+                                            📢 {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
+                                        </div>
+                                    )}
+                                </td>
                                 <td><span className="status-badge" style={{ background: '#334155' }}>{camp.placement_slot}</span></td>
                                 <td>{new Date(camp.start_date).toLocaleDateString()} - {new Date(camp.end_date).toLocaleDateString()}</td>
                                 <td>{camp.active ? <span style={{ color: '#34d399' }}>Active</span> : <span>Ended</span>}</td>
@@ -312,6 +324,30 @@ const DiscoveryManager = ({ isRTL }) => {
                                     <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
                                     {shops.map(shop => (
                                         <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'اختر المنتج (اختياري)' : 'Select Product (Optional)'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={newCampaign.product_id || ''}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, product_id: e.target.value ? Number(e.target.value) : null })}
+                                >
+                                    <option value="">{isRTL ? '-- اختر منتجاً (للإعلان عن منتج معين) --' : '-- Select a Product (to advertise specific item) --'}</option>
+                                    {products.map(prod => (
+                                        <option key={prod.id} value={prod.id}>{prod.name} ({prod.brand})</option>
                                     ))}
                                 </select>
                             </div>

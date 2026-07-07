@@ -62,18 +62,14 @@ export const ShopProvider = ({ children }) => {
 
             const invUrl = activeRegion ? `/inventory?region_id=${activeRegion.id}` : '/inventory';
 
-            // Parallel fetch to gather products, inventory, and discover campaigns using standardized api instance
-            const [productsRes, invRes, discRes] = await Promise.all([
+            // Parallel fetch to gather products and inventory using standardized api instance
+            const [productsRes, invRes] = await Promise.all([
                 api.get(url, { params }),
-                api.get(invUrl),
-                api.get('/discover').catch(() => ({ data: [] }))
+                api.get(invUrl)
             ]);
             
             const data = productsRes.data;
             const invData = invRes.data;
-            const discData = discRes.data;
-
-            setDiscoverCampaigns(discData);
 
             // Group inventory by product_id
             const inventoryByProduct = {};
@@ -232,11 +228,23 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    // Fetch products and shops immediately and in parallel, regardless of auth loading state
+    const fetchDiscoverCampaigns = async () => {
+        try {
+            const response = await api.get('/discover');
+            if (Array.isArray(response.data)) {
+                setDiscoverCampaigns(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching discover campaigns:', error);
+        }
+    };
+
+    // Fetch products, shops, and discover campaigns immediately and in parallel, regardless of auth loading state
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchProducts();
             fetchShops();
+            fetchDiscoverCampaigns();
         }, 100);
         return () => clearTimeout(timer);
     }, [isVendor, user?.shop_id, activeRegion]);
