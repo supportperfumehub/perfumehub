@@ -927,7 +927,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
                                     {globalCatalog.filter(p => !p._dummy && (p.name.toLowerCase().includes(catalogSearchTerm.toLowerCase()) || p.brand.toLowerCase().includes(catalogSearchTerm.toLowerCase()))).slice(0, 50).map(p => {
                                         // Check if shop already owns this product
-                                        const alreadyHas = products.some(ownedProd => ownedProd.id === p.id);
+                                        const alreadyHas = shopFilteredProducts.some(ownedProd => ownedProd.id === p.id);
                                         return (
                                             <div 
                                                 key={p.id} 
