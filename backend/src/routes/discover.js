@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Get active discover campaigns (Public)
 router.get('/', async (req, res) => {
+    res.setHeader('Cache-Control', 'private, max-age=30');
     try {
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')

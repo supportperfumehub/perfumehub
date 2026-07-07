@@ -51,6 +51,7 @@ async function uploadImageToStorage(base64OrUrl, productName) {
 
 // Get all global products
 router.get('/', async (req, res) => {
+    res.setHeader('Cache-Control', 'private, max-age=30');
     try {
         let query = supabase
             .from('products')
@@ -95,6 +96,7 @@ router.get('/', async (req, res) => {
 
 // Get single product
 router.get('/:id', async (req, res) => {
+    res.setHeader('Cache-Control', 'private, max-age=60');
     try {
         const { data, error } = await supabase
             .from('products')

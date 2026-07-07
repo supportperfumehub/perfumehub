@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Get all regions
 router.get('/', async (req, res) => {
+    res.setHeader('Cache-Control', 'private, max-age=60');
     try {
         let query = supabase.from('regions').select('*').order('name');
         

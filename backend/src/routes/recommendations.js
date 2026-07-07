@@ -9,11 +9,16 @@ const router = express.Router();
 const recommendationRepository = new RecommendationRepository();
 const recommendationController = new RecommendationController(recommendationRepository);
 
+const cache30 = (req, res, next) => {
+    res.setHeader('Cache-Control', 'private, max-age=30');
+    next();
+};
+
 /**
  * Public Routes
  */
 // GET /api/recommendations/vendors/:productId
-router.get('/vendors/:productId', recommendationController.getRecommendedVendors);
+router.get('/vendors/:productId', cache30, recommendationController.getRecommendedVendors);
 
 /**
  * Admin API (Tunable Weights & Manual Boosts)

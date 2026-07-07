@@ -13,12 +13,17 @@ const shopRepository = new ShopRepository();
 const shopService = new ShopService(shopRepository, userRepository);
 const shopController = new ShopController(shopService);
 
+const cache60 = (req, res, next) => {
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    next();
+};
+
 /**
  * Public & Admin Routes (Controller handles RBAC)
  */
-router.get('/', shopController.getAllShops);
-router.get('/nearest', shopController.getNearest);
-router.get('/nearest-for-product', shopController.getNearestForProduct);
+router.get('/', cache60, shopController.getAllShops);
+router.get('/nearest', cache60, shopController.getNearest);
+router.get('/nearest-for-product', cache60, shopController.getNearestForProduct);
 router.post('/manual', shopController.registerManual);
 
 /**
