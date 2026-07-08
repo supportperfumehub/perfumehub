@@ -58,6 +58,27 @@ const Home = () => {
         ? `https://perfumehub.com/${activeRegion.code.toLowerCase()}`
         : "https://perfumehub.com/";
 
+    const websiteSchema = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "PerfumeHub",
+        "url": seoCanonical,
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": `${seoCanonical}shop?search={search_term_string}`,
+            "query-input": "required name=search_term_string"
+        }
+    };
+
+    const storeSchema = {
+        "@context": "https://schema.org",
+        "@type": "OnlineStore",
+        "name": "PerfumeHub",
+        "url": seoCanonical,
+        "logo": `${seoCanonical}favicon.png`,
+        "description": seoDescription
+    };
+
     return (
         <div className="home-page">
             <Helmet>
@@ -65,6 +86,8 @@ const Home = () => {
                 <meta name="description" content={seoDescription} />
                 <meta name="keywords" content={seoKeywords} />
                 <link rel="canonical" href={seoCanonical} />
+                <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+                <script type="application/ld+json">{JSON.stringify(storeSchema)}</script>
             </Helmet>
             {/* Modern Minimalist Hero */}
             <section className="modern-hero animate-fade-in">
