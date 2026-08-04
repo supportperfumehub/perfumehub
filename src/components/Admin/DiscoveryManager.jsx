@@ -266,7 +266,7 @@ const DiscoveryManager = ({ isRTL }) => {
                     <Sparkles size={24} color="#c8a951" />
                     {isRTL ? 'إدارة الاكتشاف' : 'Discovery Manager'}
                 </h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="manager-header-actions">
                     <button 
                         className="btn btn-outline" 
                         onClick={fetchData}
@@ -274,7 +274,6 @@ const DiscoveryManager = ({ isRTL }) => {
                             borderColor: 'rgba(255, 255, 255, 0.3)', 
                             color: '#ffffff',
                             background: 'transparent',
-                            transition: 'all 0.2s ease',
                             padding: '8px 16px',
                             cursor: 'pointer'
                         }}
@@ -305,7 +304,7 @@ const DiscoveryManager = ({ isRTL }) => {
             </div>
 
             {/* Stats Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div className="admin-stats-grid">
                 <div className="admin-card" style={{ padding: '20px', textAlign: 'center' }}>
                     <div style={{ color: '#c8a951', marginBottom: '8px' }}><Sparkles size={24} /></div>
                     <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{shops.filter(s => s.is_featured).length}</div>
@@ -347,8 +346,8 @@ const DiscoveryManager = ({ isRTL }) => {
                                         </div>
                                     )}
                                 </td>
-                                <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
-                                <td>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
+                                <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
+                                <td style={{ whiteSpace: 'nowrap' }}>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
                                 <td>
                                     <button
                                         onClick={() => toggleCampaignActive(camp)}
@@ -360,6 +359,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '4px',
+                                            whiteSpace: 'nowrap',
                                             color: camp.active ? '#34d399' : '#94a3b8'
                                         }}
                                     >
@@ -384,14 +384,14 @@ const DiscoveryManager = ({ isRTL }) => {
             </div>
 
             {/* Featured Shop Toggle List */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div className="discovery-section-header">
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc' }}>
                     <Store size={18} style={{ marginRight: '8px' }} />
                     {isRTL ? 'تحرير المتاجر المميزة' : 'Feature Shops & Boosts'}
                 </h3>
                 
                 {/* Filter Tabs */}
-                <div style={{ display: 'flex', gap: '8px', background: '#0f172a', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div className="filter-tabs-container">
                     <button
                         onClick={() => setFilter('all')}
                         style={{
