@@ -1,7 +1,183 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check } from 'lucide-react';
+import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check, ChevronDown } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+
+const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const selectedProduct = products.find(p => String(p.id) === String(value));
+
+    const filteredProducts = products.filter(p => {
+        if (!searchTerm.trim()) return true;
+        const term = searchTerm.toLowerCase();
+        const sku = (p.sku || `PH-${p.id}-24`).toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        const brand = (p.brand || '').toLowerCase();
+        const idStr = String(p.id);
+        return name.includes(term) || brand.includes(term) || sku.includes(term) || idStr.includes(term);
+    });
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getProductCode = (prod) => prod.sku || (prod.id ? `PH-${prod.id}-24` : '');
+
+    return (
+        <div ref={dropdownRef} className="searchable-select-container" style={{ position: 'relative', width: '100%' }}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    background: '#0f172a',
+                    border: '1px solid #334155',
+                    color: '#f8fafc',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    width: '100%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'space-between',
+                    minHeight: '44px'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedProduct ? (
+                        <>
+                            <span style={{ fontWeight: '600', color: '#f8fafc' }}>{selectedProduct.name}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({selectedProduct.brand})</span>
+                            <span style={{ fontSize: '0.72rem', background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(200, 169, 81, 0.3)', fontWeight: '600', fontFamily: 'monospace' }}>
+                                Code: {getProductCode(selectedProduct)}
+                            </span>
+                        </>
+                    ) : (
+                        <span style={{ color: '#64748b' }}>{placeholder || (isRTL ? '-- اختر منتجاً (اختياري) --' : '-- Select a Product (Optional) --')}</span>
+                    )}
+                </div>
+                <ChevronDown size={16} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+            </div>
+
+            {isOpen && (
+                <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    right: 0,
+                    zIndex: 9999,
+                    background: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                    padding: '8px',
+                    maxHeight: '280px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                }}>
+                    <div style={{ position: 'relative' }}>
+                        <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input
+                            type="text"
+                            placeholder={isRTL ? 'ابحث باسم المنتج، الماركة، أو الكود...' : 'Search product name, brand, or code...'}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            style={{
+                                width: '100%',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                color: '#f8fafc',
+                                padding: '8px 12px 8px 32px',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div
+                            onClick={() => { onChange(null); setIsOpen(false); setSearchTerm(''); }}
+                            style={{
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '0.82rem',
+                                color: '#94a3b8',
+                                background: !value ? 'rgba(200, 169, 81, 0.1)' : 'transparent',
+                                borderBottom: '1px dashed #334155'
+                            }}
+                        >
+                            🚫 {isRTL ? 'بدون منتج (حملة متجر فقط)' : 'None (Shop Banner Only)'}
+                        </div>
+
+                        {filteredProducts.length === 0 ? (
+                            <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+                                {isRTL ? 'لم يتم العثور على منتجات مطابقة' : 'No matching products found'}
+                            </div>
+                        ) : (
+                            filteredProducts.map(prod => {
+                                const isSelected = String(prod.id) === String(value);
+                                const code = getProductCode(prod);
+                                return (
+                                    <div
+                                        key={prod.id}
+                                        onClick={() => { onChange(prod.id); setIsOpen(false); setSearchTerm(''); }}
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justify: 'space-between',
+                                            alignItems: 'center',
+                                            background: isSelected ? 'rgba(200, 169, 81, 0.2)' : 'transparent',
+                                            transition: 'background 0.15s'
+                                        }}
+                                        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                        onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '500', color: isSelected ? '#c8a951' : '#f8fafc' }}>
+                                                {prod.name}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                {prod.brand} {prod.type ? `• ${prod.type}` : ''}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                background: '#0f172a',
+                                                color: '#c8a951',
+                                                padding: '2px 8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #334155',
+                                                fontFamily: 'monospace'
+                                            }}>
+                                                {code}
+                                            </span>
+                                            {isSelected && <CheckCircle size={14} color="#c8a951" />}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const DiscoveryManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -571,24 +747,13 @@ const DiscoveryManager = ({ isRTL }) => {
                                 <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
                                     {isRTL ? 'اختر المنتج (اختياري)' : 'Select Product (Optional)'}
                                 </label>
-                                <select 
-                                    className="form-control"
-                                    style={{
-                                        background: '#0f172a',
-                                        border: '1px solid #334155',
-                                        color: '#f8fafc',
-                                        padding: '10px 14px',
-                                        borderRadius: '8px',
-                                        width: '100%'
-                                    }}
-                                    value={newCampaign.product_id || ''}
-                                    onChange={(e) => setNewCampaign({ ...newCampaign, product_id: e.target.value ? Number(e.target.value) : null })}
-                                >
-                                    <option value="">{isRTL ? '-- اختر منتجاً (للإعلان عن منتج معين) --' : '-- Select a Product (to advertise specific item) --'}</option>
-                                    {products.map(prod => (
-                                        <option key={prod.id} value={prod.id}>{prod.name} ({prod.brand})</option>
-                                    ))}
-                                </select>
+                                <SearchableProductSelect
+                                    products={products}
+                                    value={newCampaign.product_id}
+                                    onChange={(prodId) => setNewCampaign({ ...newCampaign, product_id: prodId })}
+                                    isRTL={isRTL}
+                                    placeholder={isRTL ? '-- اختر منتجاً (للإعلان عن منتج معين) --' : '-- Select a Product (Optional) --'}
+                                />
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -742,24 +907,13 @@ const DiscoveryManager = ({ isRTL }) => {
                                 <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
                                     {isRTL ? 'اختر المنتج (اختياري)' : 'Select Product (Optional)'}
                                 </label>
-                                <select 
-                                    className="form-control"
-                                    style={{
-                                        background: '#0f172a',
-                                        border: '1px solid #334155',
-                                        color: '#f8fafc',
-                                        padding: '10px 14px',
-                                        borderRadius: '8px',
-                                        width: '100%'
-                                    }}
-                                    value={editCampaignData.product_id || ''}
-                                    onChange={(e) => setEditCampaignData({ ...editCampaignData, product_id: e.target.value ? Number(e.target.value) : null })}
-                                >
-                                    <option value="">{isRTL ? '-- اختر منتجاً --' : '-- Select a Product --'}</option>
-                                    {products.map(prod => (
-                                        <option key={prod.id} value={prod.id}>{prod.name} ({prod.brand})</option>
-                                    ))}
-                                </select>
+                                <SearchableProductSelect
+                                    products={products}
+                                    value={editCampaignData.product_id}
+                                    onChange={(prodId) => setEditCampaignData({ ...editCampaignData, product_id: prodId })}
+                                    isRTL={isRTL}
+                                    placeholder={isRTL ? '-- اختر منتجاً --' : '-- Select a Product (Optional) --'}
+                                />
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
