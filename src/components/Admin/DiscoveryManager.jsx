@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp } from 'lucide-react';
+import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const DiscoveryManager = ({ isRTL }) => {
@@ -11,8 +11,13 @@ const DiscoveryManager = ({ isRTL }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filter] = useState('all'); // all, featured, regular
+    const [filter, setFilter] = useState('all'); // all, featured, regular
 
+    // Local inputs for shop boost multiplier (prevents API call on every single keystroke)
+    const [boostInputs, setBoostInputs] = useState({});
+    const [savingBoostId, setSavingBoostId] = useState(null);
+
+    // Create Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newCampaign, setNewCampaign] = useState({
         shop_id: '',
@@ -21,6 +26,11 @@ const DiscoveryManager = ({ isRTL }) => {
         end_date: '',
         product_id: null
     });
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editCampaignData, setEditCampaignData] = useState(null);
+
     const [submitting, setSubmitting] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState({
@@ -35,6 +45,41 @@ const DiscoveryManager = ({ isRTL }) => {
         isError: false
     });
 
+    const fetchData = async () => {
+        if (!user?.id) return;
+        try {
+            setLoading(true);
+            const [shopsRes, campaignsRes, productsRes] = await Promise.all([
+                api.get('/admin/shops'),
+                api.get('/admin/discover-campaigns'),
+                api.get('/products')
+            ]);
+            
+            const shopsData = Array.isArray(shopsRes.data) ? shopsRes.data : [];
+            setShops(shopsData);
+            
+            // Populate boost inputs
+            const initialBoosts = {};
+            shopsData.forEach(s => {
+                initialBoosts[s.id] = s.manual_boost_multiplier !== undefined ? s.manual_boost_multiplier : 1.0;
+            });
+            setBoostInputs(initialBoosts);
+
+            setCampaigns(Array.isArray(campaignsRes.data) ? campaignsRes.data : []);
+            setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+        } catch (err) {
+            setError(err.response?.data?.error || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user?.id) {
+            fetchData();
+        }
+    }, [user?.id]);
+
     const deleteCampaign = async (id) => {
         setConfirmModal({
             isOpen: true,
@@ -43,6 +88,7 @@ const DiscoveryManager = ({ isRTL }) => {
                 try {
                     await api.delete(`/admin/discover-campaigns/${id}`);
                     setCampaigns(prev => prev.filter(c => c.id !== id));
+                    window.dispatchEvent(new Event('discover-campaigns-updated'));
                 } catch (err) {
                     setAlertModal({
                         isOpen: true,
@@ -66,7 +112,7 @@ const DiscoveryManager = ({ isRTL }) => {
         }
         try {
             setSubmitting(true);
-            await api.post('/admin/discover-campaigns', newCampaign);
+            const res = await api.post('/admin/discover-campaigns', newCampaign);
             setIsModalOpen(false);
             setNewCampaign({
                 shop_id: '',
@@ -75,7 +121,13 @@ const DiscoveryManager = ({ isRTL }) => {
                 end_date: '',
                 product_id: null
             });
-            fetchData();
+
+            if (res.data && res.data.campaign) {
+                setCampaigns(prev => [res.data.campaign, ...prev]);
+            } else {
+                fetchData();
+            }
+            window.dispatchEvent(new Event('discover-campaigns-updated'));
         } catch (err) {
             setAlertModal({
                 isOpen: true,
@@ -87,31 +139,59 @@ const DiscoveryManager = ({ isRTL }) => {
         }
     };
 
-    const fetchData = async () => {
-        if (!user?.id) return;
+    const openEditModal = (camp) => {
+        setEditCampaignData({
+            id: camp.id,
+            shop_id: camp.shop_id || '',
+            placement_slot: camp.placement_slot || 'homepage_featured',
+            start_date: camp.start_date ? camp.start_date.split('T')[0] : '',
+            end_date: camp.end_date ? camp.end_date.split('T')[0] : '',
+            product_id: camp.product_id || null,
+            active: camp.active !== undefined ? camp.active : true
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const updateCampaign = async (e) => {
+        e.preventDefault();
+        if (!editCampaignData) return;
+
         try {
-            setLoading(true);
-            const [shopsRes, campaignsRes, productsRes] = await Promise.all([
-                api.get('/admin/shops'),
-                api.get('/admin/discover-campaigns'),
-                api.get('/products')
-            ]);
+            setSubmitting(true);
+            const res = await api.put(`/admin/discover-campaigns/${editCampaignData.id}`, editCampaignData);
+            setIsEditModalOpen(false);
             
-            setShops(shopsRes.data);
-            setCampaigns(campaignsRes.data);
-            setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+            if (res.data && res.data.campaign) {
+                setCampaigns(prev => prev.map(c => c.id === editCampaignData.id ? res.data.campaign : c));
+            } else {
+                fetchData();
+            }
+            window.dispatchEvent(new Event('discover-campaigns-updated'));
         } catch (err) {
-            setError(err.response?.data?.error || err.message);
+            setAlertModal({
+                isOpen: true,
+                message: err.response?.data?.error || err.message,
+                isError: true
+            });
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
-    useEffect(() => {
-        if (user?.id) {
-            fetchData();
+    const toggleCampaignActive = async (camp) => {
+        try {
+            const newActive = !camp.active;
+            const res = await api.put(`/admin/discover-campaigns/${camp.id}`, { active: newActive });
+            setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, active: newActive } : c));
+            window.dispatchEvent(new Event('discover-campaigns-updated'));
+        } catch (err) {
+            setAlertModal({
+                isOpen: true,
+                message: err.response?.data?.error || err.message,
+                isError: true
+            });
         }
-    }, [user?.id]);
+    };
 
     const toggleFeatured = async (shopId, currentStatus) => {
         if (!user?.id) return;
@@ -123,21 +203,55 @@ const DiscoveryManager = ({ isRTL }) => {
         }
     };
 
-    const updateBoost = async (shopId, value) => {
+    const handleBoostChange = (shopId, val) => {
+        setBoostInputs(prev => ({ ...prev, [shopId]: val }));
+    };
+
+    const saveBoost = async (shopId) => {
+        const value = boostInputs[shopId];
+        const multiplier = parseFloat(value);
+        if (isNaN(multiplier) || multiplier < 0.1 || multiplier > 10.0) return;
+
+        const currentShop = shops.find(s => s.id === shopId);
+        if (currentShop && currentShop.manual_boost_multiplier === multiplier) return;
+
         try {
-            const multiplier = parseFloat(value);
+            setSavingBoostId(shopId);
             await api.patch(`/admin/shops/${shopId}/boost`, { manual_boost_multiplier: multiplier });
             setShops(prev => prev.map(s => s.id === shopId ? { ...s, manual_boost_multiplier: multiplier } : s));
-        } catch (err) { 
+        } catch (err) {
             setAlertModal({ isOpen: true, message: 'Failed to update boost', isError: true });
+        } finally {
+            setSavingBoostId(null);
         }
+    };
+
+    const clearAllCampaigns = async () => {
+        setConfirmModal({
+            isOpen: true,
+            message: isRTL ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف؟' : 'Are you sure you want to clear ALL discover campaigns?',
+            onConfirm: async () => {
+                try {
+                    await api.delete('/admin/discover-campaigns/clear-all');
+                    setCampaigns([]);
+                    window.dispatchEvent(new Event('discover-campaigns-updated'));
+                } catch (err) {
+                    setAlertModal({
+                        isOpen: true,
+                        message: err.response?.data?.error || err.message,
+                        isError: true
+                    });
+                }
+            }
+        });
     };
 
     const filteredShops = shops.filter(s => {
         if (filter === 'featured' && !s.is_featured) return false;
+        if (filter === 'regular' && s.is_featured) return false;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            return s.name.toLowerCase().includes(q) || s.id.includes(q);
+            return (s.name && s.name.toLowerCase().includes(q)) || (s.id && s.id.toLowerCase().includes(q));
         }
         return true;
     });
@@ -164,19 +278,26 @@ const DiscoveryManager = ({ isRTL }) => {
                             padding: '8px 16px',
                             cursor: 'pointer'
                         }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#c8a951';
-                            e.currentTarget.style.color = '#c8a951';
-                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.08)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                            e.currentTarget.style.color = '#ffffff';
-                            e.currentTarget.style.background = 'transparent';
-                        }}
                     >
+                        <RefreshCw size={14} style={{ marginRight: '6px' }} />
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
+                    {campaigns.length > 0 && (
+                        <button 
+                            className="btn btn-outline"
+                            onClick={clearAllCampaigns}
+                            style={{
+                                borderColor: '#ef4444',
+                                color: '#ef4444',
+                                background: 'transparent',
+                                padding: '8px 16px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <Trash2 size={14} style={{ marginRight: '6px' }} />
+                            {isRTL ? 'مسح الكل' : 'Clear All'}
+                        </button>
+                    )}
                     <button className="btn btn-gold" onClick={() => setIsModalOpen(true)}>
                         <Plus size={16} /> {isRTL ? 'حملة جديدة' : 'New Campaign'}
                     </button>
@@ -197,7 +318,7 @@ const DiscoveryManager = ({ isRTL }) => {
                 </div>
             </div>
 
-            {/* Campaign Table (Coming soon placeholder in design) */}
+            {/* Campaign Table */}
             <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#f8fafc' }}>
                 <Megaphone size={18} style={{ marginRight: '8px' }} />
                 {isRTL ? 'الحملات الإعلانية' : 'Active Campaigns'}
@@ -219,17 +340,43 @@ const DiscoveryManager = ({ isRTL }) => {
                         ) : campaigns.map(camp => (
                             <tr key={camp.id}>
                                 <td>
-                                    <div>{camp.shop_name}</div>
+                                    <div style={{ fontWeight: '600', color: '#f8fafc' }}>{camp.shop_name}</div>
                                     {camp.product_name && (
                                         <div style={{ fontSize: '0.75rem', color: '#c8a951', marginTop: '2px' }}>
                                             📢 {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
                                         </div>
                                     )}
                                 </td>
-                                <td><span className="status-badge" style={{ background: '#334155' }}>{camp.placement_slot}</span></td>
-                                <td>{new Date(camp.start_date).toLocaleDateString()} - {new Date(camp.end_date).toLocaleDateString()}</td>
-                                <td>{camp.active ? <span style={{ color: '#34d399' }}>Active</span> : <span>Ended</span>}</td>
-                                <td><button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)}><Trash2 size={16} /></button></td>
+                                <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
+                                <td>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
+                                <td>
+                                    <button
+                                        onClick={() => toggleCampaignActive(camp)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            color: camp.active ? '#34d399' : '#94a3b8'
+                                        }}
+                                    >
+                                        {camp.active ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                        {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
+                                    </button>
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="admin-action-btn edit-btn" onClick={() => openEditModal(camp)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)} title={isRTL ? 'حذف' : 'Delete'}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -237,10 +384,59 @@ const DiscoveryManager = ({ isRTL }) => {
             </div>
 
             {/* Featured Shop Toggle List */}
-            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#f8fafc' }}>
-                <Store size={18} style={{ marginRight: '8px' }} />
-                {isRTL ? 'تحرير المتاجر المميزة' : 'Feature Shops & Boosts'}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc' }}>
+                    <Store size={18} style={{ marginRight: '8px' }} />
+                    {isRTL ? 'تحرير المتاجر المميزة' : 'Feature Shops & Boosts'}
+                </h3>
+                
+                {/* Filter Tabs */}
+                <div style={{ display: 'flex', gap: '8px', background: '#0f172a', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
+                    <button
+                        onClick={() => setFilter('all')}
+                        style={{
+                            background: filter === 'all' ? '#334155' : 'transparent',
+                            color: filter === 'all' ? '#f8fafc' : '#94a3b8',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isRTL ? 'الكل' : 'All'}
+                    </button>
+                    <button
+                        onClick={() => setFilter('featured')}
+                        style={{
+                            background: filter === 'featured' ? '#c8a951' : 'transparent',
+                            color: filter === 'featured' ? '#000' : '#94a3b8',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: filter === 'featured' ? '600' : '400',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isRTL ? 'المميزة فقط' : 'Featured Only'}
+                    </button>
+                    <button
+                        onClick={() => setFilter('regular')}
+                        style={{
+                            background: filter === 'regular' ? '#334155' : 'transparent',
+                            color: filter === 'regular' ? '#f8fafc' : '#94a3b8',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isRTL ? 'العادية فقط' : 'Regular Only'}
+                    </button>
+                </div>
+            </div>
             
             <div className="admin-search-container" style={{ marginBottom: '20px' }}>
                 <span className="admin-search-icon"><Search size={16} /></span>
@@ -264,7 +460,9 @@ const DiscoveryManager = ({ isRTL }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredShops.map(shop => (
+                        {filteredShops.length === 0 ? (
+                            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}</td></tr>
+                        ) : filteredShops.map(shop => (
                             <tr key={shop.id}>
                                 <td>
                                     <div style={{ fontWeight: '600' }}>{shop.name}</div>
@@ -284,13 +482,20 @@ const DiscoveryManager = ({ isRTL }) => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <input 
                                             type="number" 
-                                            step="0.1" min="0.1" max="5.0"
+                                            step="0.1" min="0.1" max="10.0"
                                             className="form-control" 
                                             style={{ width: '80px', height: '36px', fontSize: '0.9rem' }}
-                                            value={shop.manual_boost_multiplier}
-                                            onChange={(e) => updateBoost(shop.id, e.target.value)}
+                                            value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
+                                            onChange={(e) => handleBoostChange(shop.id, e.target.value)}
+                                            onBlur={() => saveBoost(shop.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.target.blur();
+                                                }
+                                            }}
                                         />
                                         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>x</span>
+                                        {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
                                     </div>
                                 </td>
                                 <td>
@@ -304,6 +509,7 @@ const DiscoveryManager = ({ isRTL }) => {
                 </table>
             </div>
 
+            {/* Create Campaign Modal */}
             {isModalOpen && (
                 <div style={{
                     position: 'fixed',
@@ -467,6 +673,190 @@ const DiscoveryManager = ({ isRTL }) => {
                                     style={{ padding: '10px 24px', cursor: submitting ? 'not-allowed' : 'pointer' }}
                                 >
                                     {submitting ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ الحملة' : 'Save Campaign')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Campaign Modal */}
+            {isEditModalOpen && editCampaignData && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '16px',
+                        width: '100%',
+                        maxWidth: '500px',
+                        padding: '24px',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0, color: '#f8fafc' }}>
+                                {isRTL ? 'تعديل حملة الاكتشاف' : 'Edit Discover Campaign'}
+                            </h3>
+                            <button 
+                                onClick={() => { setIsEditModalOpen(false); setEditCampaignData(null); }} 
+                                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                            >
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={updateCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'اختر المتجر *' : 'Select Shop *'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={editCampaignData.shop_id}
+                                    onChange={(e) => setEditCampaignData({ ...editCampaignData, shop_id: e.target.value })}
+                                    required
+                                >
+                                    <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
+                                    {shops.map(shop => (
+                                        <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'اختر المنتج (اختياري)' : 'Select Product (Optional)'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={editCampaignData.product_id || ''}
+                                    onChange={(e) => setEditCampaignData({ ...editCampaignData, product_id: e.target.value ? Number(e.target.value) : null })}
+                                >
+                                    <option value="">{isRTL ? '-- اختر منتجاً --' : '-- Select a Product --'}</option>
+                                    {products.map(prod => (
+                                        <option key={prod.id} value={prod.id}>{prod.name} ({prod.brand})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                    {isRTL ? 'مكان العرض *' : 'Placement Slot *'}
+                                </label>
+                                <select 
+                                    className="form-control"
+                                    style={{
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                    value={editCampaignData.placement_slot}
+                                    onChange={(e) => setEditCampaignData({ ...editCampaignData, placement_slot: e.target.value })}
+                                    required
+                                >
+                                    <option value="homepage_featured">{isRTL ? 'الرئيسية - مميز' : 'Homepage Featured'}</option>
+                                    <option value="search_top">{isRTL ? 'البحث - في الأعلى' : 'Search Top'}</option>
+                                    <option value="category_header">{isRTL ? 'ترويسة الفئة' : 'Category Header'}</option>
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                        {isRTL ? 'تاريخ البدء' : 'Start Date'}
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        className="form-control"
+                                        style={{
+                                            background: '#0f172a',
+                                            border: '1px solid #334155',
+                                            color: '#f8fafc',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            width: '100%'
+                                        }}
+                                        value={editCampaignData.start_date}
+                                        onChange={(e) => setEditCampaignData({ ...editCampaignData, start_date: e.target.value })}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '500' }}>
+                                        {isRTL ? 'تاريخ الانتهاء *' : 'End Date *'}
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        className="form-control"
+                                        style={{
+                                            background: '#0f172a',
+                                            border: '1px solid #334155',
+                                            color: '#f8fafc',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            width: '100%'
+                                        }}
+                                        value={editCampaignData.end_date}
+                                        onChange={(e) => setEditCampaignData({ ...editCampaignData, end_date: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                <input 
+                                    type="checkbox"
+                                    id="edit_campaign_active"
+                                    checked={editCampaignData.active}
+                                    onChange={(e) => setEditCampaignData({ ...editCampaignData, active: e.target.checked })}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="edit_campaign_active" style={{ color: '#f8fafc', fontSize: '14px', cursor: 'pointer' }}>
+                                    {isRTL ? 'حملة نشطة' : 'Active Campaign'}
+                                </label>
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline"
+                                    onClick={() => { setIsEditModalOpen(false); setEditCampaignData(null); }}
+                                    style={{ padding: '10px 24px', borderColor: '#334155', color: '#f8fafc', background: 'transparent', cursor: 'pointer' }}
+                                >
+                                    {isRTL ? 'إلغاء' : 'Cancel'}
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="btn btn-gold"
+                                    disabled={submitting}
+                                    style={{ padding: '10px 24px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+                                >
+                                    {submitting ? (isRTL ? 'جاري التحديث...' : 'Updating...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
                                 </button>
                             </div>
                         </form>

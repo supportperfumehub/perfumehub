@@ -7,8 +7,13 @@ const router = express.Router();
 
 // Get active discover campaigns (Public)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'private, max-age=30');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
+        const nowIso = new Date().toISOString();
+        const todayStartIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')
             .select(`
@@ -21,16 +26,19 @@ router.get('/', async (req, res) => {
                 )
             `)
             .eq('active', true)
-            .gte('end_date', new Date().toISOString())
-            .lte('start_date', new Date().toISOString())
+            .gte('end_date', todayStartIso)
+            .lte('start_date', nowIso)
             .order('created_at', { ascending: false }));
 
         if (error) throw error;
+        if (!campaigns || campaigns.length === 0) {
+            return res.json([]);
+        }
 
         const slides = [];
         for (const c of campaigns) {
             if (c.product_id && c.product) {
-                // Single product campaign
+                // Product-specific campaign slide
                 slides.push({
                     id: `product-${c.product.id}-${c.id}`,
                     campaign_id: c.id,
@@ -41,37 +49,15 @@ router.get('/', async (req, res) => {
                     shop: c.shop
                 });
             } else if (c.shop_id && c.shop) {
-                // Pull active products for the shop (limited to 15 items to maintain performance)
-                const { data: shopInventory, error: invErr } = await supabase
-                    .from('vendor_inventory')
-                    .select(`
-                        price,
-                        products!inner (
-                            *
-                        )
-                    `)
-                    .eq('shop_id', c.shop_id)
-                    .eq('is_active', true)
-                    .limit(15);
-                
-                if (!invErr && shopInventory) {
-                    for (const item of shopInventory) {
-                        if (item.products) {
-                            slides.push({
-                                id: `shop-product-${item.products.id}-${c.id}`,
-                                campaign_id: c.id,
-                                product_id: item.products.id,
-                                type: 'product',
-                                placement_slot: c.placement_slot,
-                                product: {
-                                    ...item.products,
-                                    price: item.price // override with vendor price
-                                },
-                                shop: c.shop
-                            });
-                        }
-                    }
-                }
+                // Shop campaign banner slide
+                slides.push({
+                    id: `shop-${c.shop.id}-${c.id}`,
+                    campaign_id: c.id,
+                    shop_id: c.shop.id,
+                    type: 'shop',
+                    placement_slot: c.placement_slot,
+                    shop: c.shop
+                });
             }
         }
 

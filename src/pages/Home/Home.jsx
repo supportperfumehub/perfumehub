@@ -15,29 +15,20 @@ import './Home.css';
 const Home = () => {
     const { t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
+    const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, discoverLoading, shops } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
     const [showAllFashion, setShowAllFashion] = useState(false);
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [shuffledFeatured, setShuffledFeatured] = useState([]);
 
     // Determine what powers the Hero Banners 
-    const heroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
+    const heroItems = (discoverCampaigns && Array.isArray(discoverCampaigns) && discoverCampaigns.length > 0) 
         ? discoverCampaigns 
-        : shuffledFeatured;
+        : [];
         
     const isShopCampaign = discoverCampaigns && discoverCampaigns.length > 0;
-
-    useEffect(() => {
-        if (featuredProducts && featuredProducts.length > 0) {
-            setShuffledFeatured([...featuredProducts].sort(() => 0.5 - Math.random()));
-        } else {
-            setShuffledFeatured([]);
-        }
-    }, [featuredProducts]);
 
     useEffect(() => {
         if (heroItems.length <= 1) return;
@@ -119,7 +110,23 @@ const Home = () => {
             </section>
 
             {/* Featured Hero (Discover Banners) */}
-            {heroItems.length > 0 ? (
+            {discoverLoading || loading ? (
+                <section className="hero-slider-section container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                    <div className="featured-slider-container" style={{ height: '420px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: '16px', display: 'flex', flexDirection: 'row', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
+                        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '16px' }}>
+                            <div className="skeleton skeleton-line short" style={{ height: '20px', width: '30%', borderRadius: '4px', background: 'rgba(255,255,255,0.08)' }}></div>
+                            <div className="skeleton skeleton-line long" style={{ height: '36px', width: '70%', borderRadius: '6px', background: 'rgba(255,255,255,0.12)' }}></div>
+                            <div className="skeleton skeleton-line medium" style={{ height: '18px', width: '50%', borderRadius: '4px', background: 'rgba(255,255,255,0.06)' }}></div>
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+                                <div className="skeleton" style={{ width: '140px', height: '44px', borderRadius: '8px', background: 'rgba(200, 169, 81, 0.2)' }}></div>
+                            </div>
+                        </div>
+                        <div className="hide-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                            <div className="skeleton" style={{ width: '70%', height: '80%', borderRadius: '16px', background: 'rgba(255,255,255,0.05)' }}></div>
+                        </div>
+                    </div>
+                </section>
+            ) : heroItems.length > 0 ? (
                 <section className="hero-slider-section container" style={{ animation: 'fadeIn 1s ease-out' }}>
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
@@ -239,24 +246,6 @@ const Home = () => {
                                 </div>
                             </>
                         )}
-                    </div>
-                </section>
-            ) : loading ? (
-                <section className="hero-slider-section container">
-                    <div className="featured-slider-container" style={{ height: '450px', background: '#111', borderRadius: '12px', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
-                        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <div className="skeleton skeleton-line short" style={{ height: '20px', marginBottom: '20px' }}></div>
-                            <div className="skeleton skeleton-line long" style={{ height: '40px', marginBottom: '20px' }}></div>
-                            <div className="skeleton skeleton-line medium" style={{ height: '16px', marginBottom: '10px' }}></div>
-                            <div className="skeleton skeleton-line long" style={{ height: '16px', marginBottom: '30px' }}></div>
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
-                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
-                            </div>
-                        </div>
-                        <div className="hide-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-                            <div className="skeleton" style={{ width: '80%', height: '80%', borderRadius: '20px' }}></div>
-                        </div>
                     </div>
                 </section>
             ) : null}

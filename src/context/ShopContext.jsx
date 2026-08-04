@@ -28,6 +28,7 @@ export const ShopProvider = ({ children }) => {
             return [];
         }
     });
+    const [discoverLoading, setDiscoverLoading] = useState(true);
     const [shops, setShops] = useState([]);
 
     // Initialize orders from cache to enable instant loading
@@ -230,12 +231,15 @@ export const ShopProvider = ({ children }) => {
 
     const fetchDiscoverCampaigns = async () => {
         try {
+            setDiscoverLoading(true);
             const response = await api.get('/discover');
             if (Array.isArray(response.data)) {
                 setDiscoverCampaigns(response.data);
             }
         } catch (error) {
             console.error('Error fetching discover campaigns:', error);
+        } finally {
+            setDiscoverLoading(false);
         }
     };
 
@@ -246,7 +250,16 @@ export const ShopProvider = ({ children }) => {
             fetchShops();
             fetchDiscoverCampaigns();
         }, 100);
-        return () => clearTimeout(timer);
+
+        const handleDiscoverUpdate = () => {
+            fetchDiscoverCampaigns();
+        };
+        window.addEventListener('discover-campaigns-updated', handleDiscoverUpdate);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('discover-campaigns-updated', handleDiscoverUpdate);
+        };
     }, [isVendor, user?.shop_id, activeRegion]);
 
     // Fetch user orders when authentication is active
@@ -589,6 +602,7 @@ export const ShopProvider = ({ children }) => {
         giftBoxProducts,
         perfumeProducts,
         discoverCampaigns,
+        discoverLoading,
         shops,
         addProduct,
         updateProduct,
