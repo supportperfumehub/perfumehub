@@ -5,7 +5,7 @@ import api from '../../utils/api_v1_0_2';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store, Tag, Check, User, Mail, Phone, Sparkles } from 'lucide-react';
+import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store, Tag, Check, User, Mail, Phone, Sparkles, ChevronDown } from 'lucide-react';
 import { RegionContext } from '../../context/RegionContext';
 import './Checkout.css';
 
@@ -39,6 +39,7 @@ const Checkout = () => {
     const [userIP, setUserIP] = useState('');
     const [fulfillmentType, setFulfillmentType] = useState(orderData?.isReservation ? 'pickup' : 'delivery');
     const [pickupShopId, setPickupShopId] = useState(orderData?.shop_id || '');
+    const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
     const [pickupDateTime, setPickupDateTime] = useState('');
     const [shops, setShops] = useState([]);
 
@@ -416,42 +417,54 @@ const Checkout = () => {
                             </div>
 
                             {(fulfillmentType === 'pickup' || orderData.isReservation) && (
-                                <div className="shop-selection-container">
-                                    <label className="shop-selection-label">
-                                        <Store size={16} /> {isRTL ? 'اختر الفرع للاستلام' : 'Select Shop Location for Pickup'}
+                                <div className="shop-select-group">
+                                    <label className="form-group-label">
+                                        <Store size={15} /> {isRTL ? 'اختر الفرع للاستلام' : 'Select Shop Location for Pickup'}
                                     </label>
                                     
-                                    <div className="shop-cards-grid">
-                                        {shops.map(shop => {
-                                            const isSelected = String(pickupShopId) === String(shop.id);
-                                            return (
-                                                <div 
-                                                    key={shop.id}
-                                                    className={`shop-card ${isSelected ? 'selected' : ''}`}
-                                                    onClick={() => setPickupShopId(shop.id)}
-                                                >
-                                                    <div className="shop-card-radio">
-                                                        <div className="radio-circle">
-                                                            {isSelected && <div className="radio-inner" />}
+                                    <div className="custom-shop-dropdown">
+                                        <button
+                                            type="button"
+                                            className={`custom-shop-trigger ${isShopDropdownOpen ? 'open' : ''}`}
+                                            onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
+                                        >
+                                            <div className="selected-shop-info">
+                                                <MapPin size={16} className="shop-icon" />
+                                                <span className="selected-shop-name">
+                                                    {shops.find(s => String(s.id) === String(pickupShopId))?.name || (isRTL ? 'اختر الفرع' : 'Select a Shop')}
+                                                </span>
+                                                {shops.find(s => String(s.id) === String(pickupShopId))?.address && (
+                                                    <span className="selected-shop-addr">
+                                                        ({shops.find(s => String(s.id) === String(pickupShopId))?.address})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <ChevronDown size={18} className={`chevron-icon ${isShopDropdownOpen ? 'rotated' : ''}`} />
+                                        </button>
+
+                                        {isShopDropdownOpen && (
+                                            <div className="custom-shop-options">
+                                                {shops.map(shop => {
+                                                    const isSelected = String(pickupShopId) === String(shop.id);
+                                                    return (
+                                                        <div
+                                                            key={shop.id}
+                                                            className={`shop-option-item ${isSelected ? 'selected' : ''}`}
+                                                            onClick={() => {
+                                                                setPickupShopId(shop.id);
+                                                                setIsShopDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <div className="option-main-info">
+                                                                <span className="option-name">{shop.name}</span>
+                                                                <span className="option-address">{shop.address}</span>
+                                                            </div>
+                                                            {isSelected && <Check size={16} className="option-check-icon" />}
                                                         </div>
-                                                    </div>
-                                                    <div className="shop-card-content">
-                                                        <div className="shop-card-header">
-                                                            <span className="shop-name">{shop.name}</span>
-                                                            {isSelected && (
-                                                                <span className="shop-selected-badge">
-                                                                    <Check size={12} /> {isRTL ? 'محدد' : 'Selected'}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="shop-card-address">
-                                                            <MapPin size={14} className="address-icon" />
-                                                            <span>{shop.address}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
