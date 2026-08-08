@@ -5,7 +5,7 @@ import { CartContext } from '../../context/CartContext';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import { RegionContext } from '../../context/RegionContext';
-import { ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
+import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag } from 'lucide-react';
 import './Cart.css';
 
 const Cart = () => {
@@ -119,14 +119,17 @@ const Cart = () => {
                                     <div className="cart-item-details">
                                         <div className="cart-item-header">
                                             <h3 className="cart-item-title">
-                                                <Link to={`/product/${item.product.id}`}>{item.product.name} {item.selectedSize ? `(${item.selectedSize})` : ''}</Link>
+                                                <Link to={`/product/${item.product.id}`}>
+                                                    {item.product.name} {item.selectedSize && item.selectedSize !== 'default' ? `(${item.selectedSize})` : ''}
+                                                </Link>
                                             </h3>
                                             <button
                                                 className="remove-btn"
                                                 onClick={() => removeFromCart(item.product.id, item.isGiftWrapped, item.selectedSize)}
                                                 title={t('cart.remove')}
+                                                aria-label={t('cart.remove')}
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                         <p className="cart-item-brand text-muted">{item.product.brand}</p>
@@ -153,17 +156,25 @@ const Cart = () => {
                             <div className="cart-summary">
                                 <h3>{isRTL ? 'ملخص الطلب' : 'Order Summary'}</h3>
                                 
-                                <div className="cart-coupon" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fcfcfc', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                <div className="cart-coupon-section">
+                                    <label className="coupon-label">
+                                        <Tag size={15} /> {isRTL ? 'رمز الخصم / الكوبون' : 'Have a Promo Code?'}
+                                    </label>
+                                    <div className="coupon-input-group">
                                         <input
                                             type="text"
-                                            className="form-control"
-                                            placeholder={t('cart.coupon_placeholder')}
+                                            className="coupon-input"
+                                            placeholder={isRTL ? 'أدخل كود الخصم' : 'Enter coupon code'}
                                             value={couponCode}
                                             onChange={(e) => setCouponCode(e.target.value)}
-                                            style={{ flex: 1, marginBottom: 0, fontSize: '0.85rem', height: '38px', borderRadius: '8px' }}
                                         />
-                                        <button className="btn btn-outline" onClick={applyCoupon} style={{ height: '38px', padding: '0 15px', fontSize: '0.85rem', borderRadius: '8px' }}>{t('cart.apply')}</button>
+                                        <button 
+                                            className="coupon-apply-btn" 
+                                            type="button" 
+                                            onClick={applyCoupon}
+                                        >
+                                            {t('cart.apply')}
+                                        </button>
                                     </div>
                                 </div>
 
