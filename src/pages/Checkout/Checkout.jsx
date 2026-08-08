@@ -5,7 +5,7 @@ import api from '../../utils/api_v1_0_2';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store } from 'lucide-react';
+import { CreditCard, Truck, AlertCircle, CalendarDays, Clock, MapPin, Store, Tag, Check, User, Mail, Phone, Sparkles } from 'lucide-react';
 import { RegionContext } from '../../context/RegionContext';
 import './Checkout.css';
 
@@ -47,6 +47,9 @@ const Checkout = () => {
              try {
                  const res = await api.get('/shops?status=active');
                  setShops(res.data);
+                 if (res.data && res.data.length > 0 && !pickupShopId) {
+                     setPickupShopId(res.data[0].id);
+                 }
              } catch (err) {
                  console.error("Failed to fetch shops:", err);
              }
@@ -68,7 +71,6 @@ const Checkout = () => {
     }, []);
 
     useEffect(() => {
-        window.scrollTo(0, 0);
         if (!orderData) navigate('/shop');
         if (fetchCoupons) {
             fetchCoupons();
@@ -374,34 +376,83 @@ const Checkout = () => {
                             {fulfillmentType === 'delivery' ? (
                                 <h3><Truck size={20} /> {t('checkout.shipping_address')}</h3>
                             ) : (
-                                <h3><Truck size={20} /> {isRTL ? 'معلومات العميل' : 'Customer Details'}</h3>
+                                <h3><User size={20} /> {isRTL ? 'معلومات العميل والفرع' : 'Customer & Shop Details'}</h3>
                             )}
 
                             <div className="form-group">
-                                <label>{t('checkout.full_name')}</label>
-                                <input type="text" name="fullName" value={formData.fullName} onChange={handleInputChange} required />
+                                <label><User size={15} /> {t('checkout.full_name')}</label>
+                                <input 
+                                    type="text" 
+                                    name="fullName" 
+                                    value={formData.fullName} 
+                                    onChange={handleInputChange} 
+                                    placeholder={isRTL ? 'مثال: محمد الأحمد' : 'e.g. John Doe'}
+                                    required 
+                                />
                             </div>
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>{t('checkout.email')}</label>
-                                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} />
+                                    <label><Mail size={15} /> {t('checkout.email')}</label>
+                                    <input 
+                                        type="email" 
+                                        name="email" 
+                                        value={formData.email} 
+                                        onChange={handleInputChange} 
+                                        placeholder="name@example.com"
+                                    />
                                 </div>
                                 <div className="form-group">
-                                    <label>{t('checkout.phone')}</label>
-                                    <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required />
+                                    <label><Phone size={15} /> {t('checkout.phone')}</label>
+                                    <input 
+                                        type="tel" 
+                                        name="phone" 
+                                        value={formData.phone} 
+                                        onChange={handleInputChange} 
+                                        placeholder="+974 5500 0000"
+                                        required 
+                                    />
                                 </div>
                             </div>
 
-                            {fulfillmentType === 'pickup' && (
-                                <div className="form-group" style={{ marginTop: '15px' }}>
-                                    <label>{isRTL ? 'اختر المتجر للاستلام' : 'Select Shop for Pickup'}</label>
-                                    <select className="form-control" value={pickupShopId} onChange={(e) => setPickupShopId(e.target.value)} required style={{ height: '48px', width: '100%' }}>
-                                        <option value="" disabled>{isRTL ? 'اختر متجرنا' : '-- Select a Shop --'}</option>
-                                        {shops.map(shop => (
-                                            <option key={shop.id} value={shop.id}>{shop.name} ({shop.address})</option>
-                                        ))}
-                                    </select>
+                            {(fulfillmentType === 'pickup' || orderData.isReservation) && (
+                                <div className="shop-selection-container">
+                                    <label className="shop-selection-label">
+                                        <Store size={16} /> {isRTL ? 'اختر الفرع للاستلام' : 'Select Shop Location for Pickup'}
+                                    </label>
+                                    
+                                    <div className="shop-cards-grid">
+                                        {shops.map(shop => {
+                                            const isSelected = String(pickupShopId) === String(shop.id);
+                                            return (
+                                                <div 
+                                                    key={shop.id}
+                                                    className={`shop-card ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => setPickupShopId(shop.id)}
+                                                >
+                                                    <div className="shop-card-radio">
+                                                        <div className="radio-circle">
+                                                            {isSelected && <div className="radio-inner" />}
+                                                        </div>
+                                                    </div>
+                                                    <div className="shop-card-content">
+                                                        <div className="shop-card-header">
+                                                            <span className="shop-name">{shop.name}</span>
+                                                            {isSelected && (
+                                                                <span className="shop-selected-badge">
+                                                                    <Check size={12} /> {isRTL ? 'محدد' : 'Selected'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="shop-card-address">
+                                                            <MapPin size={14} className="address-icon" />
+                                                            <span>{shop.address}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
@@ -566,10 +617,25 @@ const Checkout = () => {
                             </div>
 
                             {/* Coupon */}
-                            <div className="cart-coupon" style={{ marginBottom: '20px', paddingTop: '20px', borderTop: '1px solid #f9f9f9' }}>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input type="text" className="form-control" placeholder={t('cart.coupon_placeholder')} value={couponCode} onChange={e => setCouponCode(e.target.value)} style={{ flex: 1, marginBottom: 0, height: '38px', fontSize: '0.85rem' }} />
-                                    <button className="btn btn-outline" type="button" onClick={applyCoupon} style={{ height: '38px', padding: '0 12px', fontSize: '0.8rem' }}>{t('cart.apply')}</button>
+                            <div className="checkout-coupon-section">
+                                <label className="coupon-label">
+                                    <Tag size={15} /> {isRTL ? 'رمز الخصم / الكوبون' : 'Have a Promo Code?'}
+                                </label>
+                                <div className="coupon-input-group">
+                                    <input 
+                                        type="text" 
+                                        className="coupon-input" 
+                                        placeholder={isRTL ? 'أدخل كود الخصم' : 'Enter coupon code'} 
+                                        value={couponCode} 
+                                        onChange={e => setCouponCode(e.target.value)} 
+                                    />
+                                    <button 
+                                        className="coupon-apply-btn" 
+                                        type="button" 
+                                        onClick={applyCoupon}
+                                    >
+                                        {t('cart.apply')}
+                                    </button>
                                 </div>
                             </div>
 

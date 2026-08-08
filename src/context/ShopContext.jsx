@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { mockProducts } from '../data/mockData';
 import { AuthContext } from './AuthContext';
 import { RegionContext } from './RegionContext';
@@ -182,7 +182,7 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const fetchCoupons = async () => {
+    const fetchCoupons = useCallback(async () => {
         try {
             const response = await api.get('/coupons');
             const data = response.data;
@@ -206,7 +206,7 @@ export const ShopProvider = ({ children }) => {
         } catch (error) {
             console.error('Error fetching coupons:', error);
         }
-    };
+    }, []);
 
     const fetchBackups = async () => {
         try {

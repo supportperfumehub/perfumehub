@@ -21,7 +21,6 @@ const Cart = () => {
     const [discount, setDiscount] = useState(0);
 
     useEffect(() => {
-        window.scrollTo(0, 0);
         if (fetchCoupons) {
             fetchCoupons();
         }

@@ -57,39 +57,59 @@ html[dir="rtl"] .checkout-page .section-title {
     background: #f0f0f0;
 }
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+.checkout-section .form-group {
     margin-bottom: 20px;
 }
 
-.form-group {
+.checkout-section .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
     margin-bottom: 0;
 }
 
 .form-group label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 8px;
-    color: #666;
+    color: #333;
+    letter-spacing: 0.2px;
 }
 
-.form-group input {
+.form-group label svg {
+    color: var(--color-gold, #c8a951);
+    flex-shrink: 0;
+}
+
+.form-group input,
+.form-group select {
     width: 100%;
     height: 48px;
     padding: 0 16px;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
     font-size: 0.95rem;
-    transition: all 0.2s;
+    color: #1a1a1a;
+    background-color: #fff;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+    line-height: 1.2;
 }
 
-.form-group input:focus {
-    border-color: var(--color-gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+.form-group input::placeholder {
+    color: #aaa;
+    font-weight: 400;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--color-gold, #c8a951);
+    box-shadow: 0 0 0 4px rgba(200, 169, 81, 0.12);
     outline: none;
+    background-color: #fff;
 }
 
 .payment-options {
@@ -338,4 +358,211 @@ html[dir="rtl"] .checkout-page .section-title {
     .form-group:last-child {
         margin-bottom: 0;
     }
+}
+
+/* Premium Shop Selection Cards */
+.shop-selection-container {
+    margin-top: 20px;
+    margin-bottom: 24px;
+}
+
+.shop-selection-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 14px;
+}
+
+.shop-cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shop-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 20px;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 14px;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.shop-card:hover {
+    border-color: #ccc;
+    background: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.shop-card.selected {
+    border-color: var(--color-gold, #c8a951);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(212, 175, 55, 0.01));
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.12);
+}
+
+.shop-card-radio {
+    padding-top: 2px;
+}
+
+.radio-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.shop-card.selected .radio-circle {
+    border-color: var(--color-gold, #c8a951);
+}
+
+.radio-inner {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-gold, #c8a951);
+}
+
+.shop-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shop-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.shop-name {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.2px;
+}
+
+.shop-selected-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-gold, #c8a951);
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.shop-card-address {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+.address-icon {
+    color: var(--color-gold, #c8a951);
+    flex-shrink: 0;
+}
+
+/* Premium Coupon Section */
+.checkout-coupon-section {
+    margin-bottom: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.coupon-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.coupon-label svg {
+    color: var(--color-gold, #c8a951);
+}
+
+.coupon-input-group {
+    display: flex;
+    align-items: center;
+    background: #fafafa;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.25s ease;
+}
+
+.coupon-input-group:focus-within {
+    border-color: var(--color-gold, #c8a951);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(200, 169, 81, 0.12);
+}
+
+.coupon-input {
+    flex: 1;
+    height: 42px;
+    border: none;
+    background: transparent;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    outline: none;
+}
+
+.coupon-input::placeholder {
+    font-weight: 400;
+    color: #aaa;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.coupon-apply-btn {
+    height: 42px;
+    padding: 0 20px;
+    background: var(--color-black, #1a1a1a);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coupon-apply-btn:hover {
+    background: var(--color-gold, #c8a951);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(200, 169, 81, 0.3);
 }
