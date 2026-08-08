@@ -93,15 +93,18 @@ export const ShopProvider = ({ children }) => {
                     
                     // Calculate price & stock from inventory
                     const productInventories = inventoryByProduct[p.id] || [];
-                    let lowestPrice = p.price || 0; // API fallback
-                    let totalStock = p.stock || 0;
+                    let lowestPrice = Number(p.price) || 0; // Base product price
+                    let totalStock = Number(p.stock) || 0;
                     let activeInventories = [];
 
                     if (productInventories.length > 0) {
                         activeInventories = productInventories.filter(i => i.is_active);
                         if (activeInventories.length > 0) {
-                            lowestPrice = Math.min(...activeInventories.map(i => i.price));
-                            totalStock = activeInventories.reduce((acc, i) => acc + i.stock, 0);
+                            // If base price is not set, fallback to lowest active inventory price
+                            if (!lowestPrice || lowestPrice === 0) {
+                                lowestPrice = Math.min(...activeInventories.map(i => Number(i.price)));
+                            }
+                            totalStock = activeInventories.reduce((acc, i) => acc + Number(i.stock), 0);
                         }
                     }
 
@@ -111,10 +114,10 @@ export const ShopProvider = ({ children }) => {
                         price: lowestPrice,
                         stock: totalStock,
                         inventories: activeInventories,
-                        oldPrice: p.old_price,
+                        oldPrice: p.old_price !== undefined ? Number(p.old_price) : p.oldPrice,
                         type: p.type,
-                        isNew: p.is_new,
-                        isFeatured: p.is_featured,
+                        isNew: p.is_new !== undefined ? p.is_new : p.isNew,
+                        isFeatured: p.is_featured !== undefined ? p.is_featured : p.isFeatured,
                         notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
                         vibes: typeof p.vibes === 'string' ? JSON.parse(p.vibes || '[]') : (p.vibes || []),
                         occasions: typeof p.occasions === 'string' ? JSON.parse(p.occasions || '[]') : (p.occasions || []),
@@ -145,6 +148,11 @@ export const ShopProvider = ({ children }) => {
                     });
 
                     const finalProducts = [...localOnly, ...merged].sort((a, b) => (b.id || 0) - (a.id || 0));
+                    try {
+                        localStorage.setItem('perfumehub_products', JSON.stringify(finalProducts));
+                    } catch (e) {
+                        console.error('Failed to update localStorage product cache:', e);
+                    }
                     return finalProducts;
                 });
             }
