@@ -665,10 +665,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             size: formData.size,
             image: filteredImages.length === 1 ? filteredImages[0] : filteredImages,
             isFeatured: formData.isFeatured,
-            price: basePrice,
-            oldPrice: baseOldPrice,
-            discount: baseDiscount,
-            stock: formData.stock !== undefined ? Number(formData.stock) : Number(formData.stock) || 0,
+            price: Number(basePrice),
+            oldPrice: baseOldPrice ? Number(baseOldPrice) : null,
+            old_price: baseOldPrice ? Number(baseOldPrice) : null,
+            discount: Number(baseDiscount),
+            stock: formData.stock !== undefined ? Number(formData.stock) : 0,
             sku: formData.sku?.trim() || '',
             description: formData.description?.trim() || '',
             topNotes: formData.topNotes?.trim() || '',
@@ -680,9 +681,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         delete productData.images;
 
         if (editingId) {
-            updateProduct(editingId, productData);
+            await updateProduct(editingId, productData);
         } else {
-            addProduct(productData);
+            await addProduct(productData);
         }
 
         setFormData(initialFormState);

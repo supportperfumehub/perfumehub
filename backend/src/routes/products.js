@@ -126,9 +126,9 @@ router.post('/',
         validateRequest
     ],
     async (req, res) => {
-    // Note: price and stock are no longer needed on the global product, but keeping them as base/MSRP for now if needed.
     const { 
-        name, brand, type, size, isNew, isFeatured,
+        name, brand, type, size, price, oldPrice, old_price, discount, stock, shop_id,
+        isNew, is_new, isFeatured, is_featured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, attributes
@@ -143,18 +143,27 @@ router.post('/',
             imageUrls = await uploadImageToStorage(image, name);
         }
 
+        const insertPayload = {
+            name, brand, type, size,
+            price: price !== undefined ? Number(price) : 0,
+            old_price: oldPrice !== undefined ? Number(oldPrice) : (old_price !== undefined ? Number(old_price) : null),
+            discount: discount !== undefined ? Number(discount) : 0,
+            stock: stock !== undefined ? Number(stock) : 10,
+            shop_id: (shop_id === 'core' || !shop_id) ? null : shop_id,
+            is_new: isNew !== undefined ? isNew : is_new,
+            is_featured: isFeatured !== undefined ? isFeatured : is_featured,
+            image: imageUrls, category, gender,
+            description, sku: sku || null,
+            notes: notes || [], vibes: vibes || [], occasions: occasions || [],
+            reason: reason || null, seasons: seasons || [],
+            top_notes: topNotes || null, middle_notes: middleNotes || null,
+            base_notes: baseNotes || null,
+            attributes: attributes || {}
+        };
+
         const { data, error } = await supabase
             .from('products')
-            .insert([{
-                name, brand, type, size, 
-                is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
-                description, sku: sku || null,
-                notes: notes || [], vibes: vibes || [], occasions: occasions || [],
-                reason: reason || null, seasons: seasons || [],
-                top_notes: topNotes || null, middle_notes: middleNotes || null,
-                base_notes: baseNotes || null,
-                attributes: attributes || {}
-            }])
+            .insert([insertPayload])
             .select();
 
         if (error) throw error;
@@ -169,7 +178,8 @@ router.post('/',
 router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { 
-        name, brand, type, size, isNew, isFeatured,
+        name, brand, type, size, price, oldPrice, old_price, discount, stock, shop_id,
+        isNew, is_new, isFeatured, is_featured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, attributes
@@ -184,19 +194,35 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             imageUrls = await uploadImageToStorage(image, name);
         }
 
+        const updatePayload = {
+            name, brand, type, size,
+            is_new: isNew !== undefined ? isNew : is_new,
+            is_featured: isFeatured !== undefined ? isFeatured : is_featured,
+            image: imageUrls, category, gender,
+            description, sku: sku || null,
+            notes: notes !== undefined ? notes : undefined,
+            vibes: vibes !== undefined ? vibes : undefined,
+            occasions: occasions !== undefined ? occasions : undefined,
+            reason: reason !== undefined ? reason : undefined,
+            seasons: seasons !== undefined ? seasons : undefined,
+            top_notes: topNotes !== undefined ? topNotes : undefined,
+            middle_notes: middleNotes !== undefined ? middleNotes : undefined,
+            base_notes: baseNotes !== undefined ? baseNotes : undefined,
+            attributes: attributes !== undefined ? attributes : undefined
+        };
+
+        if (price !== undefined) updatePayload.price = Number(price);
+        if (oldPrice !== undefined) updatePayload.old_price = Number(oldPrice);
+        else if (old_price !== undefined) updatePayload.old_price = Number(old_price);
+        if (discount !== undefined) updatePayload.discount = Number(discount);
+        if (stock !== undefined) updatePayload.stock = Number(stock);
+        if (shop_id !== undefined) {
+            updatePayload.shop_id = (shop_id === 'core' || !shop_id) ? null : shop_id;
+        }
+
         const { data, error } = await supabase
             .from('products')
-            .update({
-                name, brand, type, size,
-                is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
-                description, sku: sku || null,
-                notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
-                reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
-                top_notes: topNotes !== undefined ? topNotes : undefined,
-                middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-                base_notes: baseNotes !== undefined ? baseNotes : undefined,
-                attributes: attributes !== undefined ? attributes : undefined
-            })
+            .update(updatePayload)
             .eq('id', id)
             .select();
 
