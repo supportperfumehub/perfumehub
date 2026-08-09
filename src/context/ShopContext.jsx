@@ -65,8 +65,8 @@ export const ShopProvider = ({ children }) => {
 
             // Parallel fetch to gather products and inventory using standardized api instance
             const [productsRes, invRes] = await Promise.all([
-                api.get(url, { params }),
-                api.get(invUrl)
+                api.get(url, { params: { ...params, _t: Date.now() }, headers: { 'Cache-Control': 'no-cache' } }),
+                api.get(invUrl, { params: { _t: Date.now() }, headers: { 'Cache-Control': 'no-cache' } })
             ]);
             
             const data = productsRes.data;

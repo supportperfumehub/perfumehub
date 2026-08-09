@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Get inventory for a shop (or all accessible shops for admins)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'private, max-age=30');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     try {
         let query = supabase
             .from('vendor_inventory')
