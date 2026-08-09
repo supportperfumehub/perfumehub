@@ -195,22 +195,27 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             imageUrls = await uploadImageToStorage(image, name);
         }
 
-        const updatePayload = {
-            name, brand, type, size,
-            is_new: isNew !== undefined ? isNew : is_new,
-            is_featured: isFeatured !== undefined ? isFeatured : is_featured,
-            image: imageUrls, category, gender,
-            description, sku: sku || null,
-            notes: notes !== undefined ? notes : undefined,
-            vibes: vibes !== undefined ? vibes : undefined,
-            occasions: occasions !== undefined ? occasions : undefined,
-            reason: reason !== undefined ? reason : undefined,
-            seasons: seasons !== undefined ? seasons : undefined,
-            top_notes: topNotes !== undefined ? topNotes : undefined,
-            middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-            base_notes: baseNotes !== undefined ? baseNotes : undefined,
-            attributes: attributes !== undefined ? attributes : undefined
-        };
+        const updatePayload = {};
+        if (name !== undefined) updatePayload.name = name;
+        if (brand !== undefined) updatePayload.brand = brand;
+        if (type !== undefined) updatePayload.type = type;
+        if (size !== undefined) updatePayload.size = size;
+        if (isNew !== undefined || is_new !== undefined) updatePayload.is_new = isNew !== undefined ? isNew : is_new;
+        if (isFeatured !== undefined || is_featured !== undefined) updatePayload.is_featured = isFeatured !== undefined ? isFeatured : is_featured;
+        if (imageUrls !== undefined) updatePayload.image = imageUrls;
+        if (category !== undefined) updatePayload.category = category;
+        if (gender !== undefined) updatePayload.gender = gender;
+        if (description !== undefined) updatePayload.description = description;
+        if (sku !== undefined) updatePayload.sku = sku || null;
+        if (notes !== undefined) updatePayload.notes = notes;
+        if (vibes !== undefined) updatePayload.vibes = vibes;
+        if (occasions !== undefined) updatePayload.occasions = occasions;
+        if (reason !== undefined) updatePayload.reason = reason;
+        if (seasons !== undefined) updatePayload.seasons = seasons;
+        if (topNotes !== undefined) updatePayload.top_notes = topNotes;
+        if (middleNotes !== undefined) updatePayload.middle_notes = middleNotes;
+        if (baseNotes !== undefined) updatePayload.base_notes = baseNotes;
+        if (attributes !== undefined) updatePayload.attributes = attributes;
 
         if (price !== undefined) updatePayload.price = Number(price);
         if (oldPrice !== undefined) updatePayload.old_price = Number(oldPrice);
@@ -218,7 +223,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
         if (discount !== undefined) updatePayload.discount = Number(discount);
         if (stock !== undefined) updatePayload.stock = Number(stock);
         if (shop_id !== undefined) {
-            updatePayload.shop_id = (shop_id === 'core' || !shop_id) ? null : shop_id;
+            updatePayload.shop_id = (shop_id === 'core' || shop_id === '' || shop_id === null) ? null : shop_id;
         }
 
         let { data, error } = await supabase

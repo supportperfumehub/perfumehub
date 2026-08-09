@@ -340,10 +340,17 @@ export const ShopProvider = ({ children }) => {
     };
 
     const updateProduct = async (id, updatedProduct) => {
-        // Optimistic update
         const previousProducts = [...products];
         const now = Date.now();
-        setProducts(prevProducts => prevProducts.map(p => String(p.id) === String(id) ? { ...p, ...updatedProduct, id, _lastModified: now } : p));
+
+        // 1. Optimistic state and localStorage update
+        setProducts(prevProducts => {
+            const updatedList = prevProducts.map(p => String(p.id) === String(id) ? { ...p, ...updatedProduct, id, _lastModified: now } : p);
+            try {
+                localStorage.setItem('perfumehub_products', JSON.stringify(updatedList));
+            } catch (e) {}
+            return updatedList;
+        });
 
         try {
             const product = products.find(p => String(p.id) === String(id));
@@ -360,11 +367,31 @@ export const ShopProvider = ({ children }) => {
                 });
                 showToast('Inventory updated successfully', 'success');
             } else {
-                await api.put(`/products/${id}`, updatedProduct);
+                const response = await api.put(`/products/${id}`, updatedProduct);
+                if (response.data && response.data.product) {
+                    const serverProd = response.data.product;
+                    const timestamp = Date.now();
+                    setProducts(prev => {
+                        const newList = prev.map(p => String(p.id) === String(id) ? { 
+                            ...p, 
+                            ...updatedProduct,
+                            price: serverProd.price !== undefined ? Number(serverProd.price) : Number(updatedProduct.price),
+                            oldPrice: serverProd.old_price !== undefined ? Number(serverProd.old_price) : Number(updatedProduct.oldPrice),
+                            stock: serverProd.stock !== undefined ? Number(serverProd.stock) : Number(updatedProduct.stock),
+                            _lastModified: timestamp 
+                        } : p);
+                        try {
+                            localStorage.setItem('perfumehub_products', JSON.stringify(newList));
+                        } catch (e) {}
+                        return newList;
+                    });
+                }
                 showToast('Product updated successfully', 'success');
             }
-            await fetchProducts(); // refresh products to pull new inventory values
+            // Fetch products in background
+            fetchProducts();
         } catch (error) {
+            console.error('Update product error:', error);
             setProducts(previousProducts);
             showToast(`Update failed: ${error.response?.data?.error || error.message}`, 'error');
         }
