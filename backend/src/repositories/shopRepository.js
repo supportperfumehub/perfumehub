@@ -3,7 +3,7 @@ import { withTimeout } from '../utils/timeout.js';
 
 export class ShopRepository {
     async findAll(filters = {}) {
-        let query = supabase.from('shops').select('*, customers!shops_owner_id_fkey(name, email)');
+        let query = supabase.from('shops').select('*, customers:owner_id(name, email)');
         
         if (filters.status) query = query.eq('status', filters.status);
         if (filters.owner_id) query = query.eq('owner_id', filters.owner_id);
