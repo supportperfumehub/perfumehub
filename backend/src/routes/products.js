@@ -177,6 +177,7 @@ router.post('/',
 // Update product (Global Catalog - Admins Only)
 router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
+    const numericId = isNaN(id) ? id : parseInt(id, 10);
     const { 
         name, brand, type, size, price, oldPrice, old_price, discount, stock, shop_id,
         isNew, is_new, isFeatured, is_featured,
@@ -220,17 +221,49 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             updatePayload.shop_id = (shop_id === 'core' || !shop_id) ? null : shop_id;
         }
 
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('products')
             .update(updatePayload)
-            .eq('id', id)
+            .eq('id', numericId)
             .select();
 
         if (error) throw error;
-        res.json({ message: 'Global product updated successfully' });
+
+        // If numeric ID didn't update any row, try string ID
+        if (!data || data.length === 0) {
+            const result = await supabase
+                .from('products')
+                .update(updatePayload)
+                .eq('id', String(id))
+                .select();
+            if (result.error) throw result.error;
+            data = result.data;
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: `Product with id ${id} not found in database` });
+        }
+
+        // Also sync product_inventories if price or stock was updated
+        if (price !== undefined || stock !== undefined) {
+            const invUpdate = {};
+            if (price !== undefined) invUpdate.price = Number(price);
+            if (stock !== undefined) invUpdate.stock = Number(stock);
+
+            try {
+                await supabase
+                    .from('product_inventories')
+                    .update(invUpdate)
+                    .eq('product_id', numericId);
+            } catch (invErr) {
+                console.warn('Inventory sync notice:', invErr.message);
+            }
+        }
+
+        res.json({ message: 'Global product updated successfully', product: data[0] });
     } catch (error) {
         console.error('Error updating product:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message || 'Internal server error' });
     }
 });
 

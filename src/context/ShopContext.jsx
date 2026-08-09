@@ -104,7 +104,10 @@ export const ShopProvider = ({ children }) => {
                             if (!lowestPrice || lowestPrice === 0) {
                                 lowestPrice = Math.min(...activeInventories.map(i => Number(i.price)));
                             }
-                            totalStock = activeInventories.reduce((acc, i) => acc + Number(i.stock), 0);
+                            // If base stock is not set, fallback to total inventory stock
+                            if (!totalStock || totalStock === 0) {
+                                totalStock = activeInventories.reduce((acc, i) => acc + Number(i.stock), 0);
+                            }
                         }
                     }
 
@@ -131,11 +134,11 @@ export const ShopProvider = ({ children }) => {
 
                 setProducts(prevProducts => {
                     const now = Date.now();
-                    const serverIds = new Set(mappedProducts.map(p => p.id));
+                    const serverIds = new Set(mappedProducts.map(p => String(p.id)));
                     
                     const merged = mappedProducts.map(serverProd => {
-                        const localProd = prevProducts.find(p => p.id === serverProd.id);
-                        if (localProd && localProd._lastModified && (now - localProd._lastModified < 5000)) {
+                        const localProd = prevProducts.find(p => String(p.id) === String(serverProd.id));
+                        if (localProd && localProd._lastModified && (now - localProd._lastModified < 10000)) {
                             return localProd;
                         }
                         return serverProd;
@@ -340,10 +343,10 @@ export const ShopProvider = ({ children }) => {
         // Optimistic update
         const previousProducts = [...products];
         const now = Date.now();
-        setProducts(prevProducts => prevProducts.map(p => p.id === id ? { ...updatedProduct, id, _lastModified: now } : p));
+        setProducts(prevProducts => prevProducts.map(p => String(p.id) === String(id) ? { ...p, ...updatedProduct, id, _lastModified: now } : p));
 
         try {
-            const product = products.find(p => p.id === id);
+            const product = products.find(p => String(p.id) === String(id));
             const myInventory = (isVendor && user?.shop_id) 
                 ? product?.inventories?.find(inv => String(inv.shop_id) === String(user.shop_id)) 
                 : null;
