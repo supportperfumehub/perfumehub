@@ -644,25 +644,29 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // If there are variants, the base price/oldPrice should be from the first variant
-        let basePrice = Number(formData.price);
+        let basePrice = Number(formData.price) || 0;
         let baseOldPrice = formData.oldPrice ? Number(formData.oldPrice) : null;
         let baseDiscount = formData.discount ? Number(formData.discount) : 0;
 
-        if (formData.size.length > 0) {
-            basePrice = formData.size[0].price;
-            baseOldPrice = formData.size[0].oldPrice;
-            if (baseOldPrice && baseOldPrice > basePrice) {
-                baseDiscount = Math.round((1 - basePrice / baseOldPrice) * 100);
-            } else {
-                baseDiscount = 0;
-            }
+        if (baseOldPrice && baseOldPrice > basePrice) {
+            baseDiscount = Math.round((1 - basePrice / baseOldPrice) * 100);
         }
+
+        // If sizes exist, ensure size[0] is updated with the edited base price
+        const updatedSizes = Array.isArray(formData.size) ? formData.size.map((s, idx) => {
+            if (idx === 0) {
+                if (typeof s === 'string') {
+                    return { name: s, price: basePrice, oldPrice: baseOldPrice };
+                }
+                return { ...s, price: basePrice, oldPrice: baseOldPrice };
+            }
+            return s;
+        }) : [];
 
         const filteredImages = formData.images.filter(url => url.trim() !== '');
         const productData = {
             ...formData,
-            size: formData.size,
+            size: updatedSizes,
             image: filteredImages.length === 1 ? filteredImages[0] : filteredImages,
             isFeatured: formData.isFeatured,
             price: Number(basePrice),
@@ -1182,23 +1186,20 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     <div className="form-group">
                                         <label>
                                             {isRTL ? 'السعر (ر.ق)' : 'Base Price'}
-                                            {formData.size.length > 0 && <span className="label-hint"> ({isRTL ? 'محكوم بالأحجام' : 'Controlled by sizes'})</span>}
                                         </label>
-                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required={formData.size.length === 0} disabled={formData.size.length > 0} />
+                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required />
                                     </div>
                                     <div className="form-group">
                                         <label>
                                             {isRTL ? 'السعر القديم' : 'Old Price'}
-                                            {formData.size.length > 0 && <span className="label-hint"> ({isRTL ? 'تعديل من الأحجام' : 'Edit from sizes'})</span>}
                                         </label>
-                                        <input type="number" name="oldPrice" className="form-control" value={formData.oldPrice} onChange={handleInputChange} disabled={formData.size.length > 0} />
+                                        <input type="number" name="oldPrice" className="form-control" value={formData.oldPrice} onChange={handleInputChange} />
                                     </div>
                                     <div className="form-group">
                                         <label>
                                             {isRTL ? 'الخصم %' : 'Discount %'}
-                                            {formData.size.length > 0 && <span className="label-hint"> ({isRTL ? 'آلي من الأحجام' : 'Auto from sizes'})</span>}
                                         </label>
-                                        <input type="number" name="discount" className="form-control" value={formData.discount} onChange={handleInputChange} disabled={formData.size.length > 0} />
+                                        <input type="number" name="discount" className="form-control" value={formData.discount} onChange={handleInputChange} />
                                     </div>
                                     <div className="form-group">
                                         <label>{isRTL ? 'المخزون' : 'Stock'}</label>
