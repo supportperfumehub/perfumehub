@@ -52,7 +52,8 @@ export const ShopProvider = ({ children }) => {
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            let url = '/products';
+            const cacheBuster = Date.now();
+            let url = `/products?_t=${cacheBuster}`;
             let params = {};
             if (isVendor && user?.shop_id) {
                 params.shop_id = user.shop_id;
@@ -60,12 +61,14 @@ export const ShopProvider = ({ children }) => {
                 params.region_id = activeRegion.id;
             }
 
-            const invUrl = activeRegion ? `/inventory?region_id=${activeRegion.id}` : '/inventory';
+            const invUrl = activeRegion 
+                ? `/inventory?region_id=${activeRegion.id}&_t=${cacheBuster}` 
+                : `/inventory?_t=${cacheBuster}`;
 
-            // Parallel fetch to gather products and inventory using standardized api instance
+            // Parallel fetch to gather products and inventory with explicit cache-busting
             const [productsRes, invRes] = await Promise.all([
-                api.get(url, { params }),
-                api.get(invUrl)
+                api.get(url, { params, headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
+                api.get(invUrl, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
             ]);
             
             const data = productsRes.data;
@@ -90,27 +93,20 @@ export const ShopProvider = ({ children }) => {
                         images = [p.image.trim()];
                     }
                     
-                    // Calculate price & stock from inventory
+                    // Master price from product catalog row
                     const productInventories = inventoryByProduct[p.id] || [];
-                    let lowestPrice = p.price || 0; // API fallback
-                    let totalStock = p.stock || 0;
-                    let activeInventories = [];
-
-                    if (productInventories.length > 0) {
-                        activeInventories = productInventories.filter(i => i.is_active);
-                        if (activeInventories.length > 0) {
-                            lowestPrice = Math.min(...activeInventories.map(i => i.price));
-                            totalStock = activeInventories.reduce((acc, i) => acc + i.stock, 0);
-                        }
-                    }
+                    const activeInventories = productInventories.filter(i => i.is_active);
+                    const totalStock = activeInventories.length > 0
+                        ? activeInventories.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
+                        : (p.stock || 0);
 
                     return {
                         ...p,
                         image: images,
-                        price: lowestPrice,
+                        price: p.price !== undefined ? Number(p.price) : 0,
                         stock: totalStock,
                         inventories: activeInventories,
-                        oldPrice: p.old_price,
+                        oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
                         type: p.type,
                         isNew: p.is_new,
                         isFeatured: p.is_featured,
@@ -125,31 +121,12 @@ export const ShopProvider = ({ children }) => {
                     };
                 });
 
-                setProducts(prevProducts => {
-                    const now = Date.now();
-                    const serverIds = new Set(mappedProducts.map(p => p.id));
-                    
-                    const merged = mappedProducts.map(serverProd => {
-                        const localProd = prevProducts.find(p => p.id === serverProd.id);
-                        if (localProd && localProd._lastModified && (now - localProd._lastModified < 5000)) {
-                            return localProd;
-                        }
-                        return serverProd;
-                    });
-
-                    const localOnly = prevProducts.filter(p => {
-                        const isOnServer = serverIds.has(p.id);
-                        const isFresh = p._lastModified && (now - p._lastModified < 10000);
-                        return !isOnServer && isFresh;
-                    });
-
-                    const finalProducts = [...localOnly, ...merged].sort((a, b) => (b.id || 0) - (a.id || 0));
-                    return finalProducts;
-                });
+                const sortedProducts = mappedProducts.sort((a, b) => (b.id || 0) - (a.id || 0));
+                setProducts(sortedProducts);
+                localStorage.setItem('perfumehub_products', JSON.stringify(sortedProducts));
             }
         } catch (error) {
             console.error('Error fetching products:', error);
-            // Keep current products on error (do NOT fall back to mock data)
         } finally {
             setLoading(false);
         }
@@ -183,7 +160,7 @@ export const ShopProvider = ({ children }) => {
 
     const fetchCoupons = async () => {
         try {
-            const response = await api.get('/coupons');
+            const response = await api.get(`/coupons?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
             const data = response.data;
             if (Array.isArray(data)) {
                 // Map Supabase snake_case to frontend camelCase
@@ -209,7 +186,7 @@ export const ShopProvider = ({ children }) => {
 
     const fetchBackups = async () => {
         try {
-            const response = await api.get('/backups');
+            const response = await api.get(`/backups?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
             setBackups(response.data);
         } catch (error) {
             console.error('Error fetching backups:', error);
@@ -218,8 +195,8 @@ export const ShopProvider = ({ children }) => {
 
     const fetchShops = async () => {
         try {
-            const url = activeRegion ? `/shops?region_id=${activeRegion.id}` : '/shops';
-            const response = await api.get(url);
+            const url = activeRegion ? `/shops?region_id=${activeRegion.id}&_t=${Date.now()}` : `/shops?_t=${Date.now()}`;
+            const response = await api.get(url, { headers: { 'Cache-Control': 'no-cache' } });
             if (Array.isArray(response.data)) {
                 setShops(response.data);
             }
@@ -230,7 +207,7 @@ export const ShopProvider = ({ children }) => {
 
     const fetchDiscoverCampaigns = async () => {
         try {
-            const response = await api.get('/discover');
+            const response = await api.get(`/discover?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
             if (Array.isArray(response.data)) {
                 setDiscoverCampaigns(response.data);
             }
@@ -316,10 +293,23 @@ export const ShopProvider = ({ children }) => {
     };
 
     const updateProduct = async (id, updatedProduct) => {
-        // Optimistic update
         const previousProducts = [...products];
-        const now = Date.now();
-        setProducts(prevProducts => prevProducts.map(p => p.id === id ? { ...updatedProduct, id, _lastModified: now } : p));
+        const updatedList = products.map(p => {
+            if (p.id === id) {
+                return {
+                    ...p,
+                    ...updatedProduct,
+                    id,
+                    price: updatedProduct.price !== undefined ? Number(updatedProduct.price) : p.price,
+                    oldPrice: updatedProduct.oldPrice !== undefined ? (updatedProduct.oldPrice ? Number(updatedProduct.oldPrice) : null) : p.oldPrice,
+                    discount: updatedProduct.discount !== undefined ? Number(updatedProduct.discount) : p.discount,
+                    stock: updatedProduct.stock !== undefined ? Number(updatedProduct.stock) : p.stock
+                };
+            }
+            return p;
+        });
+        setProducts(updatedList);
+        localStorage.setItem('perfumehub_products', JSON.stringify(updatedList));
 
         try {
             const product = products.find(p => p.id === id);
@@ -339,7 +329,7 @@ export const ShopProvider = ({ children }) => {
                 await api.put(`/products/${id}`, updatedProduct);
                 showToast('Product updated successfully', 'success');
             }
-            await fetchProducts(); // refresh products to pull new inventory values
+            await fetchProducts(); // refresh products to pull new inventory values with cache buster
         } catch (error) {
             setProducts(previousProducts);
             showToast(`Update failed: ${error.response?.data?.error || error.message}`, 'error');

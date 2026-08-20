@@ -117,22 +117,34 @@ export class AuthService {
             throw new AppError('Invalid refresh token', 401);
         }
 
-        const storedToken = await this.userRepository.findRefreshToken(oldRefreshToken);
-        if (!storedToken || storedToken.is_revoked || new Date(storedToken.expires_at) < new Date()) {
-            // Potential theft! Revoke everything for this user if it was a reused token
-            if (storedToken && storedToken.is_revoked) {
-                await this.userRepository.revokeAllUserTokens(storedToken.user_id);
-                throw new AppError('Token theft detected. All sessions revoked.', 401);
-            }
-            throw new AppError('Expired or invalid session', 401);
-        }
-
-        // Revoke the old token and issue a new pair
-        await this.userRepository.revokeRefreshToken(oldRefreshToken);
-        
         const user = await this.userRepository.findById(decoded.id);
         if (!user) throw new AppError('User no longer exists', 401);
 
+        const storedToken = await this.userRepository.findRefreshToken(oldRefreshToken);
+
+        // Graceful handling for concurrent requests: if token was recently revoked, return current active session
+        if (storedToken && storedToken.is_revoked) {
+            const activeToken = await this.userRepository.findActiveUserRefreshToken(user.id);
+            if (activeToken && new Date(activeToken.expires_at) > new Date()) {
+                const accessToken = generateAccessToken(user);
+                return {
+                    accessToken,
+                    refreshToken: activeToken.token,
+                    user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id }
+                };
+            }
+            throw new AppError('Session expired. Please log in again.', 401);
+        }
+
+        if (storedToken && new Date(storedToken.expires_at) < new Date()) {
+            throw new AppError('Expired session', 401);
+        }
+
+        // Revoke the old token and issue a new pair
+        if (storedToken) {
+            await this.userRepository.revokeRefreshToken(oldRefreshToken);
+        }
+        
         const tokens = await this.issueTokens(user);
         return {
             ...tokens,

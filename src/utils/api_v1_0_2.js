@@ -8,19 +8,23 @@ const api = axios.create({
     withCredentials: true
 });
 
-// Memoized access token (in-memory)
-let accessToken = null;
+// Memoized access token (with localStorage fallback for instant boot)
+let accessToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_token') : null;
 
 export const setAccessToken = (token) => {
     accessToken = token;
+    if (typeof window !== 'undefined') {
+        if (token) {
+            localStorage.setItem('perfumehub_token', token);
+        } else {
+            localStorage.removeItem('perfumehub_token');
+        }
+    }
 };
 
 // Request Interceptor: Inject Access Token and Normalize URL
 api.interceptors.request.use(
     (config) => {
-        // Trace URL for debugging
-        console.log('[API Debug] Original URL:', config.url);
-        
         // Aggressive Fail-Safe: Replace any double /api prefix anywhere in the URL
         if (config.url) {
             config.url = config.url.replace(/\/api\/api\//g, '/api/');
@@ -31,16 +35,14 @@ api.interceptors.request.use(
             }
         }
         
-        console.log('[API Debug] Final URL:', config.url);
-        
-        if (accessToken) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
+        const tokenToUse = accessToken || (typeof window !== 'undefined' ? localStorage.getItem('perfumehub_token') : null);
+        if (tokenToUse) {
+            config.headers.Authorization = `Bearer ${tokenToUse}`;
         }
         return config;
     },
     (error) => Promise.reject(error)
 );
-// Version: 1.0.2 - Cache Buster: 1777509540000
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -78,7 +80,7 @@ api.interceptors.response.use(
 
         // If we already tried refreshing once and failed, logout
         if (originalRequest._retry) {
-            accessToken = null;
+            setAccessToken(null);
             // Notify AuthContext or event bus to logout
             window.dispatchEvent(new Event('auth-logout'));
             return Promise.reject(error);
@@ -102,20 +104,27 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-            // Attempt invisible refresh
-            const response = await api.post('/auth/refresh', {}, { withCredentials: true });
+            // Attempt invisible refresh using both cookies and localStorage backup token
+            const backupRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
+            const response = await api.post('/auth/refresh', { refreshToken: backupRefreshToken }, { withCredentials: true });
             
             if (response.data.success) {
-                accessToken = response.data.accessToken;
-                processQueue(null, accessToken);
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                const newAccessToken = response.data.accessToken;
+                setAccessToken(newAccessToken);
+                if (response.data.refreshToken && typeof window !== 'undefined') {
+                    localStorage.setItem('perfumehub_refresh_token', response.data.refreshToken);
+                }
+                processQueue(null, newAccessToken);
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 isRefreshing = false;
                 return api(originalRequest);
             }
         } catch (refreshError) {
             processQueue(refreshError, null);
-            accessToken = null;
-            window.dispatchEvent(new Event('auth-logout'));
+            setAccessToken(null);
+            if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+                window.dispatchEvent(new Event('auth-logout'));
+            }
             isRefreshing = false;
             return Promise.reject(refreshError);
         }

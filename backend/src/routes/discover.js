@@ -7,7 +7,9 @@ const router = express.Router();
 
 // Get active discover campaigns (Public)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'private, max-age=30');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')
@@ -30,6 +32,19 @@ router.get('/', async (req, res) => {
         const slides = [];
         for (const c of campaigns) {
             if (c.product_id && c.product) {
+                let prodData = { ...c.product };
+                if (c.shop_id) {
+                    const { data: invRow } = await supabase
+                        .from('vendor_inventory')
+                        .select('price')
+                        .eq('product_id', c.product.id)
+                        .eq('shop_id', c.shop_id)
+                        .eq('is_active', true)
+                        .maybeSingle();
+                    if (invRow && invRow.price) {
+                        prodData.price = invRow.price;
+                    }
+                }
                 // Single product campaign
                 slides.push({
                     id: `product-${c.product.id}-${c.id}`,
@@ -37,7 +52,7 @@ router.get('/', async (req, res) => {
                     product_id: c.product.id,
                     type: 'product',
                     placement_slot: c.placement_slot,
-                    product: c.product,
+                    product: prodData,
                     shop: c.shop
                 });
             } else if (c.shop_id && c.shop) {
