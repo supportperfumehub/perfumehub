@@ -13,7 +13,7 @@ const typeCodes = {
 };
 
 const ProductManager = ({ isRTL, shopId, hideHeader }) => {
-    const { products, addProduct, updateProduct, deleteProduct, addInventory } = useContext(ShopContext);
+    const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isBindingCatalog, setIsBindingCatalog] = useState(false);
@@ -27,7 +27,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             const fetchGlobalCatalog = async () => {
                 try {
                     setLoadingCatalog(true);
-                    const response = await api.get('/products');
+                    const response = await api.get(`/products?all=true&_t=${Date.now()}`);
                     setGlobalCatalog(Array.isArray(response.data) ? response.data : []);
                 } catch (error) {
                     console.error("Failed to fetch global catalog:", error);
@@ -769,18 +769,26 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
         await updateProduct(product.id, updatedData);
     };
-    const handleDelete = (id, productName) => {
+    const handleDelete = (id, productName, product) => {
+        const isLinkedItem = shopId && product && product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
+        const targetInventory = isLinkedItem ? product.inventories.find(inv => String(inv.shop_id) === String(shopId)) : null;
+
         setConfirmModal({
             isOpen: true,
             productId: id,
-            productName: productName
+            productName: productName,
+            inventoryId: targetInventory?.id || null,
+            isLinkedItem: !!targetInventory
         });
     };
 
-    const confirmDelete = () => {
-        if (confirmModal.productId) {
-            deleteProduct(confirmModal.productId);
-            setConfirmModal({ isOpen: false, productId: null, productName: '' });
+    const confirmDelete = async () => {
+        if (confirmModal.inventoryId && shopId) {
+            await deleteInventory(confirmModal.inventoryId);
+            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false });
+        } else if (confirmModal.productId) {
+            await deleteProduct(confirmModal.productId);
+            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false });
         }
     };
 
@@ -825,7 +833,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     const shopFilteredProducts = safeProducts.filter(product => {
         if (activeShopId) {
             const isOwned = String(product.shop_id) === String(activeShopId);
-            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(activeShopId) && inv.is_active);
+            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(activeShopId) && (inv.is_active !== false));
             if (!isOwned && !isLinked) return false;
         } else if (!shopId && filterShop === 'own') {
             if (product.shop_id && product.shop_id !== 'core') return false;
@@ -951,8 +959,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             ) : (
                                 <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
                                     {globalCatalog.filter(p => !p._dummy && (p.name.toLowerCase().includes(catalogSearchTerm.toLowerCase()) || p.brand.toLowerCase().includes(catalogSearchTerm.toLowerCase()))).slice(0, 50).map(p => {
-                                        // Check if shop already owns this product
-                                        const alreadyHas = shopFilteredProducts.some(ownedProd => ownedProd.id === p.id);
+                                        // Check if shop already owns or has linked this product
+                                        const alreadyHas = shopFilteredProducts.some(ownedProd => String(ownedProd.id) === String(p.id));
                                         return (
                                             <div 
                                                 key={p.id} 
@@ -1779,7 +1787,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 <button 
                                                     type="button" 
                                                     className="admin-action-btn delete-btn" 
-                                                    onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name); }} 
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(product.id, product.name, product); }} 
                                                     title={isRTL ? 'حذف' : 'Delete'}
                                                 >
                                                     <Trash2 size={18} />
@@ -1800,14 +1808,21 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false })}
                 onConfirm={confirmDelete}
-                title={isRTL ? 'تأكيد الأرشفة' : 'ARCHIVE PRODUCT ITEM'}
-                message={isRTL 
-                    ? `هل أنت متأكد أنك تريد أرشفة "${confirmModal.productName}"؟ يمكنك استعادته لاحقاً من قسم الاسترداد.` 
-                    : `This will move "${confirmModal.productName}" to the recovery archive. You may restore it at any time from the Recovery section.`
-                }
-                confirmText={isRTL ? 'أرشفة الآن' : 'ARCHIVE NOW'}
+                title={confirmModal.isLinkedItem 
+                    ? (isRTL ? 'إلغاء ربط المخزون' : 'REMOVE FROM SHOP INVENTORY') 
+                    : (isRTL ? 'تأكيد الأرشفة' : 'ARCHIVE PRODUCT ITEM')}
+                message={confirmModal.isLinkedItem
+                    ? (isRTL 
+                        ? `هل أنت متأكد من إزالة "${confirmModal.productName}" من مخزون هذا المتجر؟ سيبقى المنتج متاحاً في الكتالوج العام.` 
+                        : `Are you sure you want to remove "${confirmModal.productName}" from this shop's inventory? The product will remain intact in the global catalog.`)
+                    : (isRTL 
+                        ? `هل أنت متأكد أنك تريد أرشفة "${confirmModal.productName}"؟ يمكنك استعادته لاحقاً من قسم الاسترداد.` 
+                        : `This will move "${confirmModal.productName}" to the recovery archive. You may restore it at any time from the Recovery section.`)}
+                confirmText={confirmModal.isLinkedItem 
+                    ? (isRTL ? 'إزالة من المتجر' : 'REMOVE FROM SHOP') 
+                    : (isRTL ? 'أرشفة الآن' : 'ARCHIVE NOW')}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"

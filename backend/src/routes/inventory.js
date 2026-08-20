@@ -14,8 +14,8 @@ router.get('/', async (req, res) => {
         const admin = req.user;
         let shopIds = null;
 
-        // Filter by region if requested
-        if (req.query.region_id) {
+        // Filter by region if requested and not global/all fetch
+        if (req.query.region_id && req.query.all !== 'true') {
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')
@@ -229,6 +229,54 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
     } catch (error) {
         console.error('Error updating inventory:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Delete / Unbind specific inventory record
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+    const { id } = req.params;
+    const admin = req.user;
+
+    try {
+        const { data: existingInv } = await supabase.from('vendor_inventory').select('shop_id, product_id').eq('id', id).single();
+        if (!existingInv) return res.status(404).json({ error: 'Inventory record not found' });
+
+        if (admin.role === 'vendor') {
+            if (existingInv.shop_id !== admin.shop_id) return res.status(403).json({ error: 'Forbidden: Cannot delete another shop inventory.' });
+        } else if (admin.role === 'regional_admin') {
+            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingInv.shop_id).single();
+            if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
+                return res.status(403).json({ error: 'Forbidden: Cannot delete this region inventory.' });
+            }
+        }
+
+        const { error } = await supabase
+            .from('vendor_inventory')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // Recalculate total master stock
+        if (existingInv.product_id) {
+            try {
+                const { data: allActiveInvs } = await supabase
+                    .from('vendor_inventory')
+                    .select('stock')
+                    .eq('product_id', existingInv.product_id)
+                    .eq('is_active', true);
+
+                const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
+                await supabase.from('products').update({ stock: totalMasterStock }).eq('id', existingInv.product_id);
+            } catch (calcErr) {
+                console.error('Master stock recalculation error:', calcErr.message);
+            }
+        }
+
+        res.json({ success: true, message: 'Inventory item removed successfully' });
+    } catch (error) {
+        console.error('Error deleting inventory:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

@@ -56,7 +56,7 @@ router.get('/', async (req, res) => {
     res.setHeader('Expires', '0');
     try {
         let productIds = null;
-        if (req.query.region_id) {
+        if (req.query.region_id && req.query.all !== 'true') {
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')

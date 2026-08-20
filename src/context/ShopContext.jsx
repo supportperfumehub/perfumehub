@@ -55,15 +55,21 @@ export const ShopProvider = ({ children }) => {
             const cacheBuster = Date.now();
             let url = `/products?_t=${cacheBuster}`;
             let params = {};
+
+            const isInsideAdmin = typeof window !== 'undefined' && (
+                window.location.pathname.startsWith('/admin') ||
+                window.location.pathname.startsWith('/vendor')
+            );
+
             if (isVendor && user?.shop_id) {
                 params.shop_id = user.shop_id;
-            } else if (activeRegion) {
+            } else if (!isAdmin && !isInsideAdmin && activeRegion) {
                 params.region_id = activeRegion.id;
             }
 
-            const invUrl = activeRegion 
+            const invUrl = (!isAdmin && !isInsideAdmin && activeRegion)
                 ? `/inventory?region_id=${activeRegion.id}&_t=${cacheBuster}` 
-                : `/inventory?_t=${cacheBuster}`;
+                : `/inventory?all=true&_t=${cacheBuster}`;
 
             // Parallel fetch to gather products and inventory with explicit cache-busting
             const [productsRes, invRes] = await Promise.all([
@@ -74,12 +80,13 @@ export const ShopProvider = ({ children }) => {
             const data = productsRes.data;
             const invData = invRes.data;
 
-            // Group inventory by product_id
+            // Group inventory by product_id (string key for safety)
             const inventoryByProduct = {};
             if (Array.isArray(invData)) {
                 invData.forEach(inv => {
-                    if (!inventoryByProduct[inv.product_id]) inventoryByProduct[inv.product_id] = [];
-                    inventoryByProduct[inv.product_id].push(inv);
+                    const pidKey = String(inv.product_id);
+                    if (!inventoryByProduct[pidKey]) inventoryByProduct[pidKey] = [];
+                    inventoryByProduct[pidKey].push(inv);
                 });
             }
 
@@ -94,8 +101,8 @@ export const ShopProvider = ({ children }) => {
                     }
                     
                     // Master price and stock from product catalog row
-                    const productInventories = inventoryByProduct[p.id] || [];
-                    const activeInventories = productInventories.filter(i => i.is_active);
+                    const productInventories = inventoryByProduct[String(p.id)] || [];
+                    const activeInventories = productInventories.filter(i => i.is_active !== false);
                     const calculatedMasterStock = activeInventories.length > 0
                         ? activeInventories.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
                         : (p.stock !== undefined ? Number(p.stock) : 0);
@@ -343,7 +350,19 @@ export const ShopProvider = ({ children }) => {
             await fetchProducts(); // refresh products to pull new bindings
             return true;
         } catch (error) {
-            showToast(`Failed: ${error.response?.data?.error || error.message}`, 'error');
+            showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
+            return false;
+        }
+    };
+
+    const deleteInventory = async (inventoryId) => {
+        try {
+            await api.delete(`/inventory/${inventoryId}`);
+            showToast('Inventory item removed successfully', 'success');
+            await fetchProducts();
+            return true;
+        } catch (error) {
+            showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
             return false;
         }
     };
@@ -584,6 +603,7 @@ export const ShopProvider = ({ children }) => {
         updateProduct,
         deleteProduct,
         addInventory,
+        deleteInventory,
         orders,
         updateOrderStatus,
         placeOrder,
