@@ -301,7 +301,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
         if (error) throw error;
 
-        // Synchronize linked vendor inventory prices without duplicating stock
+        // Synchronize linked vendor inventory prices and stock directly
         if (price !== undefined) {
             await supabase
                 .from('vendor_inventory')
@@ -310,26 +310,10 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
         }
 
         if (stock !== undefined) {
-            const numStock = Number(stock);
-            const { data: invRows } = await supabase
+            await supabase
                 .from('vendor_inventory')
-                .select('id, shop_id')
-                .eq('product_id', id)
-                .eq('is_active', true);
-
-            if (invRows && invRows.length > 0) {
-                const count = invRows.length;
-                const basePerShop = Math.floor(numStock / count);
-                const remainder = numStock % count;
-
-                for (let i = 0; i < count; i++) {
-                    const shopStock = basePerShop + (i === 0 ? remainder : 0);
-                    await supabase
-                        .from('vendor_inventory')
-                        .update({ stock: shopStock, updated_at: new Date().toISOString() })
-                        .eq('id', invRows[i].id);
-                }
-            }
+                .update({ stock: Number(stock), updated_at: new Date().toISOString() })
+                .eq('product_id', id);
         }
 
         res.json({ message: 'Global product and associated inventory updated successfully' });

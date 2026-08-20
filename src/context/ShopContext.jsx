@@ -93,18 +93,15 @@ export const ShopProvider = ({ children }) => {
                         images = [p.image.trim()];
                     }
                     
-                    // Master price from product catalog row
+                    // Master price and stock from product catalog row
                     const productInventories = inventoryByProduct[p.id] || [];
                     const activeInventories = productInventories.filter(i => i.is_active);
-                    const totalStock = activeInventories.length > 0
-                        ? activeInventories.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
-                        : (p.stock || 0);
 
                     return {
                         ...p,
                         image: images,
                         price: p.price !== undefined ? Number(p.price) : 0,
-                        stock: totalStock,
+                        stock: p.stock !== undefined ? Number(p.stock) : (activeInventories.length > 0 ? (Number(activeInventories[0].stock) || 0) : 0),
                         inventories: activeInventories,
                         oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
                         type: p.type,
