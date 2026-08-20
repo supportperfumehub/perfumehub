@@ -9,8 +9,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 if (!ACCESS_SECRET || !REFRESH_SECRET) {
     throw new Error('FATAL: JWT Secrets are not defined in environment variables!');
 }
-const ACCESS_EXPIRE = process.env.ACCESS_TOKEN_EXPIRE || '15m';
-const REFRESH_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE || '7d';
+const ACCESS_EXPIRE = process.env.ACCESS_TOKEN_EXPIRE || '24h';
+const REFRESH_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE || '30d';
 
 /**
  * Generate Access Token (Short-lived)

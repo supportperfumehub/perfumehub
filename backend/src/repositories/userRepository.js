@@ -120,6 +120,20 @@ export class UserRepository {
         return data;
     }
 
+    async findActiveUserRefreshToken(userId) {
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_revoked', false)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+    }
+
     async revokeRefreshToken(token) {
         const { error } = await supabase
             .from('refresh_tokens')

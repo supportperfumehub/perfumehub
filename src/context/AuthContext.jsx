@@ -29,29 +29,46 @@ export const AuthProvider = ({ children }) => {
      */
     const initAuth = useCallback(async () => {
         try {
-            const response = await api.post('/auth/refresh');
+            const backupToken = localStorage.getItem('perfumehub_refresh_token');
+            const response = await api.post('/auth/refresh', { refreshToken: backupToken });
             if (response.data.success) {
-                const { accessToken, user } = response.data;
+                const { accessToken, refreshToken, user } = response.data;
                 setAccessToken(accessToken);
+                if (refreshToken) {
+                    localStorage.setItem('perfumehub_refresh_token', refreshToken);
+                }
                 setUser(user);
                 localStorage.setItem('perfumehub_user', JSON.stringify(user));
                 console.log('User Role from Server:', user.role);
                 const adminFlag = user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin';
                 const vendorFlag = user.role === 'vendor';
-                console.log('Setting isAdmin:', adminFlag, 'isVendor:', vendorFlag);
                 setIsAdmin(adminFlag);
                 setIsVendor(vendorFlag);
             } else {
                 setUser(null);
                 localStorage.removeItem('perfumehub_user');
+                localStorage.removeItem('perfumehub_refresh_token');
                 setIsAdmin(false);
                 setIsVendor(false);
             }
         } catch (error) {
-            console.log('No active session found.');
-            if (error.response?.status === 401 || error.response?.status === 403) {
+            console.log('Session refresh note:', error.message || 'No active session cookie');
+            // If backend is unavailable or offline, retain saved user from localStorage
+            const savedUser = localStorage.getItem('perfumehub_user');
+            if (savedUser && (!error.response || error.response.status >= 500)) {
+                try {
+                    const parsed = JSON.parse(savedUser);
+                    setUser(parsed);
+                    setIsAdmin(parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'regional_admin');
+                    setIsVendor(parsed.role === 'vendor');
+                } catch (e) {
+                    console.error('Failed to parse saved user:', e);
+                }
+            } else if (error.response?.status === 401) {
+                // Only clear user on explicit 401 unauthorized response when refresh cookie is expired
                 setUser(null);
                 localStorage.removeItem('perfumehub_user');
+                localStorage.removeItem('perfumehub_refresh_token');
                 setIsAdmin(false);
                 setIsVendor(false);
             }
@@ -84,8 +101,11 @@ export const AuthProvider = ({ children }) => {
                     try {
                         const response = await api.post('/auth/google', { token: session.access_token });
                         if (response.data.success) {
-                            const { accessToken, user } = response.data;
+                            const { accessToken, refreshToken, user } = response.data;
                             setAccessToken(accessToken);
+                            if (refreshToken) {
+                                localStorage.setItem('perfumehub_refresh_token', refreshToken);
+                            }
                             setUser(user);
                             localStorage.setItem('perfumehub_user', JSON.stringify(user));
                             setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
@@ -125,6 +145,9 @@ export const AuthProvider = ({ children }) => {
 
             if (data.success) {
                 setAccessToken(data.accessToken);
+                if (data.refreshToken) {
+                    localStorage.setItem('perfumehub_refresh_token', data.refreshToken);
+                }
                 setUser(data.user);
                 localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
@@ -144,6 +167,9 @@ export const AuthProvider = ({ children }) => {
 
             if (data.success) {
                 setAccessToken(data.accessToken);
+                if (data.refreshToken) {
+                    localStorage.setItem('perfumehub_refresh_token', data.refreshToken);
+                }
                 setUser(data.user);
                 localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
                 setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
@@ -172,11 +198,13 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await api.post('/auth/logout');
+            const backupToken = localStorage.getItem('perfumehub_refresh_token');
+            await api.post('/auth/logout', { refreshToken: backupToken });
         } finally {
             setAccessToken(null);
             setUser(null);
             localStorage.removeItem('perfumehub_user');
+            localStorage.removeItem('perfumehub_refresh_token');
             setIsAdmin(false);
             setIsVendor(false);
             setRequires2FA(false);

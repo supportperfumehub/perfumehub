@@ -52,6 +52,8 @@ async function uploadImageToStorage(base64OrUrl, productName) {
 // Get all global products
 router.get('/', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         let query = supabase
             .from('products')
@@ -97,6 +99,8 @@ router.get('/', async (req, res) => {
 // Get single product
 router.get('/:id', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         const { data, error } = await supabase
             .from('products')
@@ -127,11 +131,11 @@ router.post('/',
     ],
     async (req, res) => {
     const { 
-        name, brand, type, size, price, oldPrice, old_price, discount, stock, shop_id,
-        isNew, is_new, isFeatured, is_featured,
+        name, brand, type, size, isNew, isFeatured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes, attributes
+        topNotes, middleNotes, baseNotes, attributes,
+        price, oldPrice, discount, stock
     } = req.body;
 
     try {
@@ -143,47 +147,84 @@ router.post('/',
             imageUrls = await uploadImageToStorage(image, name);
         }
 
-        const insertPayload = {
-            name, brand, type, size,
-            price: price !== undefined ? Number(price) : 0,
-            old_price: oldPrice !== undefined ? Number(oldPrice) : (old_price !== undefined ? Number(old_price) : null),
-            discount: discount !== undefined ? Number(discount) : 0,
-            stock: stock !== undefined ? Number(stock) : 10,
-            shop_id: (shop_id === 'core' || !shop_id) ? null : shop_id,
-            is_new: isNew !== undefined ? isNew : is_new,
-            is_featured: isFeatured !== undefined ? isFeatured : is_featured,
-            image: imageUrls, category, gender,
-            description, sku: sku || null,
-            notes: notes || [], vibes: vibes || [], occasions: occasions || [],
-            reason: reason || null, seasons: seasons || [],
-            top_notes: topNotes || null, middle_notes: middleNotes || null,
-            base_notes: baseNotes || null,
-            attributes: attributes || {}
-        };
+        const finalPrice = price !== undefined ? Number(price) : 0;
+        const finalOldPrice = oldPrice !== undefined && oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;
+        let finalDiscount = discount !== undefined ? Number(discount) : 0;
+        if (finalOldPrice && finalOldPrice > finalPrice) {
+            finalDiscount = Math.round((1 - finalPrice / finalOldPrice) * 100);
+        }
+
+        let formattedSizes = Array.isArray(size) ? size : (typeof size === 'string' && size ? [size] : []);
+        if (formattedSizes.length > 0) {
+            formattedSizes = formattedSizes.map((sz, idx) => {
+                if (idx === 0 || formattedSizes.length === 1) {
+                    return typeof sz === 'object'
+                        ? { ...sz, price: finalPrice, oldPrice: finalOldPrice, discount: finalDiscount }
+                        : { name: sz, price: finalPrice, oldPrice: finalOldPrice, discount: finalDiscount };
+                }
+                return sz;
+            });
+        }
 
         const { data, error } = await supabase
             .from('products')
-            .insert([insertPayload])
+            .insert([{
+                name, brand, type, 
+                size: formattedSizes, 
+                price: finalPrice,
+                old_price: finalOldPrice,
+                discount: finalDiscount,
+                stock: stock !== undefined ? Number(stock) : 10,
+                is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
+                description, sku: sku || null,
+                notes: notes || [], vibes: vibes || [], occasions: occasions || [],
+                reason: reason || null, seasons: seasons || [],
+                top_notes: topNotes || null, middle_notes: middleNotes || null,
+                base_notes: baseNotes || null,
+                attributes: attributes || {}
+            }])
             .select();
 
         if (error) throw error;
-        res.status(201).json({ id: data[0].id, message: 'Global product created successfully' });
+        const newProduct = data[0];
+
+        // Automatically bind newly created product to active shops so it instantly lists on the site
+        try {
+            const { data: activeShops } = await supabase.from('shops').select('id').eq('status', 'ACTIVE');
+            if (activeShops && activeShops.length > 0) {
+                const inventoryRows = activeShops.map(s => ({
+                    product_id: newProduct.id,
+                    shop_id: s.id,
+                    price: price !== undefined ? Number(price) : 0,
+                    stock: stock !== undefined ? Number(stock) : 10,
+                    is_active: true,
+                    pickup_available: true,
+                    updated_at: new Date().toISOString()
+                }));
+                await supabase
+                    .from('vendor_inventory')
+                    .upsert(inventoryRows, { onConflict: 'product_id, shop_id' });
+            }
+        } catch (invErr) {
+            console.error('Auto inventory binding warning:', invErr.message);
+        }
+
+        res.status(201).json({ id: newProduct.id, message: 'Global product created and automatically bound to shop inventory successfully' });
     } catch (error) {
         console.error('Error creating product:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Update product (Global Catalog - Admins Only)
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
+// Update product (Global Catalog / Vendor inventory)
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
-    const numericId = isNaN(id) ? id : parseInt(id, 10);
     const { 
-        name, brand, type, size, price, oldPrice, old_price, discount, stock, shop_id,
-        isNew, is_new, isFeatured, is_featured,
+        name, brand, type, size, isNew, isFeatured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
-        topNotes, middleNotes, baseNotes, attributes
+        topNotes, middleNotes, baseNotes, attributes,
+        price, oldPrice, discount, stock
     } = req.body;
 
     try {
@@ -195,80 +236,74 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             imageUrls = await uploadImageToStorage(image, name);
         }
 
-        const updatePayload = {};
-        if (name !== undefined) updatePayload.name = name;
-        if (brand !== undefined) updatePayload.brand = brand;
-        if (type !== undefined) updatePayload.type = type;
-        if (size !== undefined) updatePayload.size = size;
-        if (isNew !== undefined || is_new !== undefined) updatePayload.is_new = isNew !== undefined ? isNew : is_new;
-        if (isFeatured !== undefined || is_featured !== undefined) updatePayload.is_featured = isFeatured !== undefined ? isFeatured : is_featured;
-        if (imageUrls !== undefined) updatePayload.image = imageUrls;
-        if (category !== undefined) updatePayload.category = category;
-        if (gender !== undefined) updatePayload.gender = gender;
-        if (description !== undefined) updatePayload.description = description;
-        if (sku !== undefined) updatePayload.sku = sku || null;
-        if (notes !== undefined) updatePayload.notes = notes;
-        if (vibes !== undefined) updatePayload.vibes = vibes;
-        if (occasions !== undefined) updatePayload.occasions = occasions;
-        if (reason !== undefined) updatePayload.reason = reason;
-        if (seasons !== undefined) updatePayload.seasons = seasons;
-        if (topNotes !== undefined) updatePayload.top_notes = topNotes;
-        if (middleNotes !== undefined) updatePayload.middle_notes = middleNotes;
-        if (baseNotes !== undefined) updatePayload.base_notes = baseNotes;
-        if (attributes !== undefined) updatePayload.attributes = attributes;
+        const updatePayload = {
+            name, brand, type, size,
+            is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
+            description, sku: sku || null,
+            notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
+            reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
+            top_notes: topNotes !== undefined ? topNotes : undefined,
+            middle_notes: middleNotes !== undefined ? middleNotes : undefined,
+            base_notes: baseNotes !== undefined ? baseNotes : undefined,
+            attributes: attributes !== undefined ? attributes : undefined
+        };
 
         if (price !== undefined) updatePayload.price = Number(price);
-        if (oldPrice !== undefined) updatePayload.old_price = Number(oldPrice);
-        else if (old_price !== undefined) updatePayload.old_price = Number(old_price);
-        if (discount !== undefined) updatePayload.discount = Number(discount);
-        if (stock !== undefined) updatePayload.stock = Number(stock);
-        if (shop_id !== undefined) {
-            updatePayload.shop_id = (shop_id === 'core' || shop_id === '' || shop_id === null) ? null : shop_id;
-        }
+        if (oldPrice !== undefined) updatePayload.old_price = oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;
 
-        let { data, error } = await supabase
+        // Auto-calculate discount percentage whenever price or oldPrice changes
+        if (updatePayload.price !== undefined || updatePayload.old_price !== undefined) {
+            const finalP = updatePayload.price !== undefined ? updatePayload.price : Number(req.body.price || 0);
+            const finalOldP = updatePayload.old_price !== undefined ? updatePayload.old_price : (req.body.oldPrice ? Number(req.body.oldPrice) : null);
+            
+            if (finalOldP && Number(finalOldP) > Number(finalP)) {
+                updatePayload.discount = Math.round((1 - Number(finalP) / Number(finalOldP)) * 100);
+            } else {
+                updatePayload.old_price = null;
+                updatePayload.discount = 0;
+            }
+
+            // Synchronize size variant price if size exists
+            if (Array.isArray(updatePayload.size) && updatePayload.size.length > 0) {
+                updatePayload.size = updatePayload.size.map((sz, idx) => {
+                    if (idx === 0 || updatePayload.size.length === 1) {
+                        return typeof sz === 'object'
+                            ? { ...sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount }
+                            : { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
+                    }
+                    return sz;
+                });
+            }
+        } else if (discount !== undefined) {
+            updatePayload.discount = Number(discount);
+        }
+        if (stock !== undefined) updatePayload.stock = Number(stock);
+
+        const { error } = await supabase
             .from('products')
             .update(updatePayload)
-            .eq('id', numericId)
+            .eq('id', id)
             .select();
 
         if (error) throw error;
 
-        // If numeric ID didn't update any row, try string ID
-        if (!data || data.length === 0) {
-            const result = await supabase
-                .from('products')
-                .update(updatePayload)
-                .eq('id', String(id))
-                .select();
-            if (result.error) throw result.error;
-            data = result.data;
+        // Synchronize linked vendor inventory prices/stock if applicable
+        const invPayload = {};
+        if (price !== undefined) invPayload.price = Number(price);
+        if (stock !== undefined) invPayload.stock = Number(stock);
+
+        if (Object.keys(invPayload).length > 0) {
+            invPayload.updated_at = new Date().toISOString();
+            await supabase
+                .from('vendor_inventory')
+                .update(invPayload)
+                .eq('product_id', id);
         }
 
-        if (!data || data.length === 0) {
-            return res.status(404).json({ error: `Product with id ${id} not found in database` });
-        }
-
-        // Also sync product_inventories if price or stock was updated
-        if (price !== undefined || stock !== undefined) {
-            const invUpdate = {};
-            if (price !== undefined) invUpdate.price = Number(price);
-            if (stock !== undefined) invUpdate.stock = Number(stock);
-
-            try {
-                await supabase
-                    .from('product_inventories')
-                    .update(invUpdate)
-                    .eq('product_id', numericId);
-            } catch (invErr) {
-                console.warn('Inventory sync notice:', invErr.message);
-            }
-        }
-
-        res.json({ message: 'Global product updated successfully', product: data[0] });
+        res.json({ message: 'Global product and associated inventory updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

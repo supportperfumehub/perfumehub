@@ -10,7 +10,7 @@ export class AuthController {
      * Helper to set secure refresh token cookie
      */
     setRefreshCookie(res, token) {
-        const expiresInDays = 7;
+        const expiresInDays = 30;
         res.cookie('refreshToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -61,6 +61,7 @@ export class AuthController {
                 success: true,
                 message: 'Login successful',
                 accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
                 user: result.user
             });
         } catch (error) {
@@ -73,8 +74,8 @@ export class AuthController {
      */
     refresh = async (req, res, next) => {
         try {
-            const oldToken = req.cookies.refreshToken;
-            if (!oldToken) return res.status(401).json({ success: false, error: 'No refresh token' });
+            const oldToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
+            if (!oldToken) return res.status(401).json({ success: false, error: 'No refresh token provided' });
 
             const result = await this.authService.refresh(oldToken);
             
@@ -83,6 +84,7 @@ export class AuthController {
             res.status(200).json({
                 success: true,
                 accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
                 user: result.user
             });
         } catch (error) {
@@ -95,7 +97,7 @@ export class AuthController {
      */
     logout = async (req, res, next) => {
         try {
-            const token = req.cookies.refreshToken;
+            const token = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
             await this.authService.logout(token);
             
             res.clearCookie('refreshToken');
@@ -119,6 +121,7 @@ export class AuthController {
                 success: true,
                 message: '2FA verified',
                 accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
                 user: result.user
             });
         } catch (error) {
@@ -195,6 +198,7 @@ export class AuthController {
                 success: true,
                 message: 'Google login successful',
                 accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
                 user: result.user
             });
         } catch (error) {

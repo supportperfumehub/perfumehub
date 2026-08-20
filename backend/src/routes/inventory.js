@@ -8,6 +8,8 @@ const router = express.Router();
 // Get inventory for a shop (or all accessible shops for admins)
 router.get('/', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         let query = supabase
             .from('vendor_inventory')
@@ -144,7 +146,42 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             }
             throw error;
         }
-        res.json({ message: 'Inventory updated successfully', inventory: data[0] });
+
+        // Automatically synchronize master product price and discount tag when inventory price changes
+        if (price !== undefined && data[0]?.product_id) {
+            try {
+                const newPrice = Number(price);
+                const { data: prod } = await supabase.from('products').select('old_price, size').eq('id', data[0].product_id).single();
+                const oldP = prod?.old_price ? Number(prod.old_price) : null;
+                const autoDiscount = (oldP && oldP > newPrice) ? Math.round((1 - newPrice / oldP) * 100) : 0;
+                
+                let updatedSizes = prod?.size;
+                if (Array.isArray(updatedSizes) && updatedSizes.length > 0) {
+                    updatedSizes = updatedSizes.map((sz, idx) => {
+                        if (idx === 0 || updatedSizes.length === 1) {
+                            return typeof sz === 'object'
+                                ? { ...sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount }
+                                : { name: sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount };
+                        }
+                        return sz;
+                    });
+                }
+
+                await supabase
+                    .from('products')
+                    .update({ 
+                        price: newPrice,
+                        old_price: (oldP && oldP > newPrice) ? oldP : null,
+                        discount: autoDiscount,
+                        size: updatedSizes
+                    })
+                    .eq('id', data[0].product_id);
+            } catch (syncErr) {
+                console.error('Inventory auto-sync error:', syncErr.message);
+            }
+        }
+
+        res.json({ message: 'Inventory updated successfully and synced to master product catalog', inventory: data[0] });
 
     } catch (error) {
         console.error('Error updating inventory:', error);

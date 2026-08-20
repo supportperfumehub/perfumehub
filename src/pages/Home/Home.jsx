@@ -15,20 +15,29 @@ import './Home.css';
 const Home = () => {
     const { t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, discoverLoading, shops } = useContext(ShopContext);
+    const { products, featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
     const [showAllFashion, setShowAllFashion] = useState(false);
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [shuffledFeatured, setShuffledFeatured] = useState([]);
 
     // Determine what powers the Hero Banners 
-    const heroItems = (discoverCampaigns && Array.isArray(discoverCampaigns) && discoverCampaigns.length > 0) 
+    const heroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
         ? discoverCampaigns 
-        : [];
+        : shuffledFeatured;
         
     const isShopCampaign = discoverCampaigns && discoverCampaigns.length > 0;
+
+    useEffect(() => {
+        if (featuredProducts && featuredProducts.length > 0) {
+            setShuffledFeatured([...featuredProducts].sort(() => 0.5 - Math.random()));
+        } else {
+            setShuffledFeatured([]);
+        }
+    }, [featuredProducts]);
 
     useEffect(() => {
         if (heroItems.length <= 1) return;
@@ -73,9 +82,10 @@ const Home = () => {
     return (
         <div className="home-page">
             <Helmet>
-                <title>{seoTitle}</title>
-                <meta name="description" content={seoDescription} />
-                <meta name="keywords" content={seoKeywords} />
+                <title>{t('home.hero_title')} | Perfume Hub Trading</title>
+                <meta name="description" content="Discover premium luxury perfumes, authentic Middle Eastern fragrances, and niche designer brands at Perfume Hub. Fast delivery across Qatar." />
+                <meta property="og:title" content="Perfume Hub - Luxury Fragrance Marketplace" />
+                <meta property="og:description" content="Explore Qatar's premier curated marketplace for luxury perfumes, authentic attars, and premium designer fragrances." />
                 <link rel="canonical" href={seoCanonical} />
                 <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
                 <script type="application/ld+json">{JSON.stringify(storeSchema)}</script>
@@ -110,41 +120,29 @@ const Home = () => {
             </section>
 
             {/* Featured Hero (Discover Banners) */}
-            {discoverLoading || loading ? (
-                <section className="hero-slider-section container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-                    <div className="featured-slider-container" style={{ height: '420px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: '16px', display: 'flex', flexDirection: 'row', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
-                        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '16px' }}>
-                            <div className="skeleton skeleton-line short" style={{ height: '20px', width: '30%', borderRadius: '4px', background: 'rgba(255,255,255,0.08)' }}></div>
-                            <div className="skeleton skeleton-line long" style={{ height: '36px', width: '70%', borderRadius: '6px', background: 'rgba(255,255,255,0.12)' }}></div>
-                            <div className="skeleton skeleton-line medium" style={{ height: '18px', width: '50%', borderRadius: '4px', background: 'rgba(255,255,255,0.06)' }}></div>
-                            <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-                                <div className="skeleton" style={{ width: '140px', height: '44px', borderRadius: '8px', background: 'rgba(200, 169, 81, 0.2)' }}></div>
-                            </div>
-                        </div>
-                        <div className="hide-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-                            <div className="skeleton" style={{ width: '70%', height: '80%', borderRadius: '16px', background: 'rgba(255,255,255,0.05)' }}></div>
-                        </div>
-                    </div>
-                </section>
-            ) : heroItems.length > 0 ? (
+            {heroItems.length > 0 ? (
                 <section className="hero-slider-section container" style={{ animation: 'fadeIn 1s ease-out' }}>
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
                             {heroItems.map((item) => {
-                                const slideImg = isShopCampaign 
-                                    ? (item.product_id && item.product 
-                                        ? (Array.isArray(item.product.image) ? item.product.image[0] : item.product.image)
-                                        : (item.shop?.images?.[0] || item.shop?.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Shop'))
-                                    : (Array.isArray(item.image) ? item.image[0] : item.image);
+                                const targetProdId = item.product_id || item.product?.id || (isShopCampaign ? null : item.id);
+                                const liveProd = targetProdId ? products?.find(p => String(p.id) === String(targetProdId)) : null;
+                                const activeProd = liveProd ? { ...item.product, ...liveProd } : (item.product || item);
 
-                                const slideBgImg = isShopCampaign
-                                    ? (item.product_id && item.product
-                                        ? (Array.isArray(item.product.image) ? item.product.image[0] : item.product.image)
-                                        : (item.shop?.images?.[0] || item.shop?.logo_url || ''))
-                                    : (Array.isArray(item.image) ? item.image[0] : item.image);
+                                const rawImg = isShopCampaign 
+                                    ? (item.product_id ? activeProd.image : (item.shop?.images?.[0] || item.shop?.logo_url))
+                                    : activeProd.image;
+                                const slideImg = Array.isArray(rawImg) ? rawImg[0] : (rawImg || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Item');
+                                const slideBgImg = slideImg;
 
-                                const isProductAd = isShopCampaign && item.product_id && item.product;
+                                const isProductAd = isShopCampaign && item.product_id;
                                 const slideOpacity = isProductAd ? 1 : (isShopCampaign ? 0.3 : 1);
+
+                                const displayPrice = activeProd.price !== undefined ? activeProd.price : item.price;
+                                const displayOldPrice = activeProd.oldPrice !== undefined ? activeProd.oldPrice : (activeProd.old_price !== undefined ? activeProd.old_price : (item.oldPrice || item.old_price));
+                                const displayDiscount = displayOldPrice && Number(displayOldPrice) > Number(displayPrice)
+                                    ? Math.round((1 - Number(displayPrice) / Number(displayOldPrice)) * 100)
+                                    : (activeProd.discount !== undefined ? activeProd.discount : item.discount);
 
                                 return (
                                     <div key={item.id} className="featured-slide">
@@ -155,7 +153,7 @@ const Home = () => {
                                         <div className="featured-slide-img-container">
                                             <img 
                                                 src={slideImg} 
-                                                alt={isProductAd ? item.product.name : (isShopCampaign ? item.shop?.name : item.name)} 
+                                                alt={isProductAd ? activeProd.name : (isShopCampaign ? item.shop?.name : activeProd.name)} 
                                                 className="featured-slide-img" 
                                                 loading="eager"
                                                 decoding="async"
@@ -166,22 +164,22 @@ const Home = () => {
                                             {isShopCampaign ? (
                                                 isProductAd ? (
                                                     <>
-                                                        <span className="featured-slide-brand">{item.product.brand}</span>
-                                                        <h3 className="featured-slide-title">{item.product.name}</h3>
-                                                        {item.product.type && <span className="featured-slide-type">{item.product.type}</span>}
-                                                        {item.product.description && <p className="featured-slide-desc" dir="auto">{item.product.description}</p>}
-                                                        <div className={`featured-slide-price-row ${item.product.discount > 0 ? 'has-discount' : ''}`}>
-                                                            <span className={`featured-slide-price ${item.product.discount > 0 ? 'price-sale' : ''}`}>
-                                                                {item.product.price} {isRTL ? 'ر.ق' : 'QAR'}
+                                                        <span className="featured-slide-brand">{activeProd.brand}</span>
+                                                        <h3 className="featured-slide-title">{activeProd.name}</h3>
+                                                        {activeProd.type && <span className="featured-slide-type">{activeProd.type}</span>}
+                                                        {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
+                                                        <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
+                                                            <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
+                                                                {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
                                                             </span>
-                                                            {item.product.old_price && Number(item.product.old_price) !== Number(item.product.price) ? (
+                                                            {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
                                                                 <span className="featured-slide-old-price">
-                                                                    {Math.round(item.product.old_price)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                    {Math.round(displayOldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
                                                                 </span>
                                                             ) : null}
                                                         </div>
                                                         <div className="featured-slide-actions">
-                                                            <Link to={`/product/${item.product.id}`} className="btn btn-gold">
+                                                            <Link to={`/product/${activeProd.id}`} className="btn btn-gold">
                                                                 {isRTL ? 'اكتشف المزيد' : 'Discover More'}
                                                             </Link>
                                                         </div>
@@ -200,22 +198,22 @@ const Home = () => {
                                                 )
                                             ) : (
                                                 <>
-                                                    <span className="featured-slide-brand">{item.brand}</span>
-                                                    <h3 className="featured-slide-title">{item.name}</h3>
-                                                    {item.type && <span className="featured-slide-type">{item.type}</span>}
-                                                    {item.description && <p className="featured-slide-desc" dir="auto">{item.description}</p>}
-                                                    <div className={`featured-slide-price-row ${item.discount > 0 ? 'has-discount' : ''}`}>
-                                                        <span className={`featured-slide-price ${item.discount > 0 ? 'price-sale' : ''}`}>
-                                                            {item.price} {isRTL ? 'ر.ق' : 'QAR'}
+                                                    <span className="featured-slide-brand">{activeProd.brand}</span>
+                                                    <h3 className="featured-slide-title">{activeProd.name}</h3>
+                                                    {activeProd.type && <span className="featured-slide-type">{activeProd.type}</span>}
+                                                    {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
+                                                    <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
+                                                        <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
+                                                            {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
                                                         </span>
-                                                        {item.oldPrice && Number(item.oldPrice) !== Number(item.price) ? (
+                                                        {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
                                                             <span className="featured-slide-old-price">
-                                                                {Math.round(item.oldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                {Math.round(displayOldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
                                                             </span>
                                                         ) : null}
                                                     </div>
                                                     <div className="featured-slide-actions">
-                                                        <Link to={`/product/${item.id}`} className="btn btn-gold">
+                                                        <Link to={`/product/${activeProd.id}`} className="btn btn-gold">
                                                             {isRTL ? 'اكتشف المزيد' : 'Discover More'}
                                                         </Link>
                                                     </div>
@@ -246,6 +244,24 @@ const Home = () => {
                                 </div>
                             </>
                         )}
+                    </div>
+                </section>
+            ) : loading ? (
+                <section className="hero-slider-section container">
+                    <div className="featured-slider-container" style={{ height: '450px', background: '#111', borderRadius: '12px', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div className="skeleton skeleton-line short" style={{ height: '20px', marginBottom: '20px' }}></div>
+                            <div className="skeleton skeleton-line long" style={{ height: '40px', marginBottom: '20px' }}></div>
+                            <div className="skeleton skeleton-line medium" style={{ height: '16px', marginBottom: '10px' }}></div>
+                            <div className="skeleton skeleton-line long" style={{ height: '16px', marginBottom: '30px' }}></div>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
+                                <div className="skeleton" style={{ width: '130px', height: '45px', borderRadius: '6px' }}></div>
+                            </div>
+                        </div>
+                        <div className="hide-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                            <div className="skeleton" style={{ width: '80%', height: '80%', borderRadius: '20px' }}></div>
+                        </div>
                     </div>
                 </section>
             ) : null}

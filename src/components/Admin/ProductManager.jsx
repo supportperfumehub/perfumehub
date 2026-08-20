@@ -191,6 +191,22 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             }
         }
 
+        if (name === 'price' || name === 'oldPrice' || name === 'discount') {
+            if (Array.isArray(updated.size) && updated.size.length > 0) {
+                const currentP = Number(updated.price) || 0;
+                const currentOldP = updated.oldPrice ? Number(updated.oldPrice) : null;
+                const currentDisc = updated.discount ? Number(updated.discount) : 0;
+                updated.size = updated.size.map((sz, idx) => {
+                    if (idx === 0 || updated.size.length === 1) {
+                        return typeof sz === 'object'
+                            ? { ...sz, price: currentP, oldPrice: currentOldP, discount: currentDisc }
+                            : { name: sz, price: currentP, oldPrice: currentOldP, discount: currentDisc };
+                    }
+                    return sz;
+                });
+            }
+        }
+
         if (name === 'sku') {
             setIsSkuAuto(false);
         }
@@ -641,27 +657,29 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         );
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
-        let basePrice = Number(formData.price) || 0;
-        let baseOldPrice = formData.oldPrice ? Number(formData.oldPrice) : null;
+        const basePrice = Number(formData.price) || 0;
+        const baseOldPrice = formData.oldPrice ? Number(formData.oldPrice) : null;
         let baseDiscount = formData.discount ? Number(formData.discount) : 0;
-
         if (baseOldPrice && baseOldPrice > basePrice) {
             baseDiscount = Math.round((1 - basePrice / baseOldPrice) * 100);
+        } else {
+            baseDiscount = 0;
         }
 
-        // If sizes exist, ensure size[0] is updated with the edited base price
-        const updatedSizes = Array.isArray(formData.size) ? formData.size.map((s, idx) => {
-            if (idx === 0) {
-                if (typeof s === 'string') {
-                    return { name: s, price: basePrice, oldPrice: baseOldPrice };
+        let updatedSizes = Array.isArray(formData.size) ? [...formData.size] : [];
+        if (updatedSizes.length > 0) {
+            updatedSizes = updatedSizes.map((sz, idx) => {
+                if (idx === 0 || updatedSizes.length === 1) {
+                    return typeof sz === 'object'
+                        ? { ...sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount }
+                        : { name: sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount };
                 }
-                return { ...s, price: basePrice, oldPrice: baseOldPrice };
-            }
-            return s;
-        }) : [];
+                return sz;
+            });
+        }
 
         const filteredImages = formData.images.filter(url => url.trim() !== '');
         const productData = {
@@ -669,10 +687,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             size: updatedSizes,
             image: filteredImages.length === 1 ? filteredImages[0] : filteredImages,
             isFeatured: formData.isFeatured,
-            price: Number(basePrice),
-            oldPrice: baseOldPrice ? Number(baseOldPrice) : null,
-            old_price: baseOldPrice ? Number(baseOldPrice) : null,
-            discount: Number(baseDiscount),
+            price: basePrice,
+            oldPrice: baseOldPrice,
+            discount: baseDiscount,
             stock: formData.stock !== undefined ? Number(formData.stock) : 0,
             sku: formData.sku?.trim() || '',
             description: formData.description?.trim() || '',
@@ -1185,25 +1202,25 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 <div className="form-row grid-2" style={{ gap: '10px' }}>
                                     <div className="form-group">
                                         <label>
-                                            {isRTL ? 'السعر (ر.ق)' : 'Base Price'}
+                                            {isRTL ? 'السعر (ر.ق)' : 'Selling Price (QAR)'}
                                         </label>
-                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required />
+                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required min="1" step="0.5" />
                                     </div>
                                     <div className="form-group">
                                         <label>
-                                            {isRTL ? 'السعر القديم' : 'Old Price'}
+                                            {isRTL ? 'السعر القديم (ر.ق)' : 'Old Price (QAR)'}
                                         </label>
-                                        <input type="number" name="oldPrice" className="form-control" value={formData.oldPrice} onChange={handleInputChange} />
+                                        <input type="number" name="oldPrice" className="form-control" value={formData.oldPrice || ''} onChange={handleInputChange} min="0" step="0.5" />
                                     </div>
                                     <div className="form-group">
                                         <label>
                                             {isRTL ? 'الخصم %' : 'Discount %'}
                                         </label>
-                                        <input type="number" name="discount" className="form-control" value={formData.discount} onChange={handleInputChange} />
+                                        <input type="number" name="discount" className="form-control" value={formData.discount || ''} onChange={handleInputChange} min="0" max="100" />
                                     </div>
                                     <div className="form-group">
                                         <label>{isRTL ? 'المخزون' : 'Stock'}</label>
-                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required />
+                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
                                     </div>
                                 </div>
                             </div>

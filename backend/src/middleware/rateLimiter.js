@@ -31,11 +31,11 @@ export const loginRateLimiter = rateLimit({
 });
 
 /**
- * General rate limiter for all API routes (100 req/min)
+ * General rate limiter for all API routes (600 req/min)
  */
 export const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 100, // Limit each IP to 100 requests per `window`
+    max: 600, // Limit each IP to 600 requests per `window`
     message: { error: 'Too many requests from this IP, please try again later.' },
     standardHeaders: true, 
     legacyHeaders: false, 
