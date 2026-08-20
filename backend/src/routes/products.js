@@ -55,13 +55,8 @@ router.get('/', async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     try {
-        let query = supabase
-            .from('products')
-            .select('*')
-            .order('created_at', { ascending: false });
-
+        let productIds = null;
         if (req.query.region_id) {
-            // Get all product IDs that have active inventory in this region using fast sequential key lookups
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')
@@ -75,19 +70,38 @@ router.get('/', async (req, res) => {
                     .eq('is_active', true)
                     .in('shop_id', shopIds);
                 
-                const productIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
-                query = query.in('id', productIds);
+                productIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
+                if (productIds.length === 0) return res.json([]);
             } else {
                 return res.json([]);
             }
         }
 
+        let allProducts = [];
+        let page = 0;
+        const pageSize = 1000;
 
+        while (true) {
+            let pQuery = supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        const { data, error } = await withTimeout(query);
+            if (productIds !== null) {
+                pQuery = pQuery.in('id', productIds);
+            }
 
-        if (error) throw error;
-        res.json(data);
+            pQuery = pQuery.range(page * pageSize, (page + 1) * pageSize - 1);
+
+            const { data, error } = await withTimeout(pQuery);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            allProducts = allProducts.concat(data);
+            if (data.length < pageSize) break;
+            page++;
+        }
+
+        res.json(allProducts);
     } catch (error) {
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
@@ -287,17 +301,35 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
         if (error) throw error;
 
-        // Synchronize linked vendor inventory prices/stock if applicable
-        const invPayload = {};
-        if (price !== undefined) invPayload.price = Number(price);
-        if (stock !== undefined) invPayload.stock = Number(stock);
-
-        if (Object.keys(invPayload).length > 0) {
-            invPayload.updated_at = new Date().toISOString();
+        // Synchronize linked vendor inventory prices without duplicating stock
+        if (price !== undefined) {
             await supabase
                 .from('vendor_inventory')
-                .update(invPayload)
+                .update({ price: Number(price), updated_at: new Date().toISOString() })
                 .eq('product_id', id);
+        }
+
+        if (stock !== undefined) {
+            const numStock = Number(stock);
+            const { data: invRows } = await supabase
+                .from('vendor_inventory')
+                .select('id, shop_id')
+                .eq('product_id', id)
+                .eq('is_active', true);
+
+            if (invRows && invRows.length > 0) {
+                const count = invRows.length;
+                const basePerShop = Math.floor(numStock / count);
+                const remainder = numStock % count;
+
+                for (let i = 0; i < count; i++) {
+                    const shopStock = basePerShop + (i === 0 ? remainder : 0);
+                    await supabase
+                        .from('vendor_inventory')
+                        .update({ stock: shopStock, updated_at: new Date().toISOString() })
+                        .eq('id', invRows[i].id);
+                }
+            }
         }
 
         res.json({ message: 'Global product and associated inventory updated successfully' });

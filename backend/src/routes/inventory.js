@@ -11,11 +11,8 @@ router.get('/', async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     try {
-        let query = supabase
-            .from('vendor_inventory')
-            .select('*');
-
         const admin = req.user;
+        let shopIds = null;
 
         // Filter by region if requested
         if (req.query.region_id) {
@@ -23,37 +20,54 @@ router.get('/', async (req, res) => {
                 .from('shops')
                 .select('id')
                 .eq('region_id', req.query.region_id);
-            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
-            query = query.in('shop_id', shopIds);
-        }
-
-        // If specific shop requested
-        if (req.query.shop_id) {
-            query = query.eq('shop_id', req.query.shop_id);
+            shopIds = regionShops ? regionShops.map(s => s.id) : [];
         }
 
         // Apply RBAC filters
         if (admin && admin.role === 'vendor') {
             if (!admin.shop_id) return res.status(403).json({ error: 'Forbidden: No shop assigned to this vendor.' });
-            query = query.eq('shop_id', admin.shop_id);
+            shopIds = [admin.shop_id];
         } else if (admin && admin.role === 'regional_admin') {
             const { data: shops } = await supabase
                 .from('shops')
                 .select('id')
                 .in('region_id', admin.assignedRegionIds);
 
-            const shopIds = shops ? shops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                query = query.in('shop_id', shopIds);
+            const rShopIds = shops ? shops.map(s => s.id) : [];
+            if (rShopIds.length > 0) {
+                shopIds = rShopIds;
             } else if (!req.query.shop_id) {
                 return res.json([]);
             }
         }
 
-        const { data, error } = await withTimeout(query);
-        if (error) throw error;
+        let allData = [];
+        let page = 0;
+        const pageSize = 1000;
+
+        while (true) {
+            let query = supabase
+                .from('vendor_inventory')
+                .select('*');
+
+            if (shopIds !== null) {
+                query = query.in('shop_id', shopIds);
+            }
+            if (req.query.shop_id) {
+                query = query.eq('shop_id', req.query.shop_id);
+            }
+
+            query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+            const { data, error } = await withTimeout(query);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            allData = allData.concat(data);
+            if (data.length < pageSize) break;
+            page++;
+        }
         
-        res.json(data);
+        res.json(allData);
     } catch (error) {
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
