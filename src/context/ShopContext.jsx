@@ -96,12 +96,15 @@ export const ShopProvider = ({ children }) => {
                     // Master price and stock from product catalog row
                     const productInventories = inventoryByProduct[p.id] || [];
                     const activeInventories = productInventories.filter(i => i.is_active);
+                    const calculatedMasterStock = activeInventories.length > 0
+                        ? activeInventories.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
+                        : (p.stock !== undefined ? Number(p.stock) : 0);
 
                     return {
                         ...p,
                         image: images,
                         price: p.price !== undefined ? Number(p.price) : 0,
-                        stock: p.stock !== undefined ? Number(p.stock) : (activeInventories.length > 0 ? (Number(activeInventories[0].stock) || 0) : 0),
+                        stock: calculatedMasterStock,
                         inventories: activeInventories,
                         oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
                         type: p.type,
@@ -137,18 +140,8 @@ export const ShopProvider = ({ children }) => {
             }
 
             const response = await api.get(url);
-            const data = response.data;
-            if (Array.isArray(data)) {
-                // Map snake_case to camelCase
-                const mappedOrders = data.map(o => ({
-                    ...o,
-                    customerName: o.customer_name,
-                    shippingAddress: o.shipping_address,
-                    paymentMethod: o.payment_method,
-                    date: o.created_at ? o.created_at.split('T')[0] : 'N/A',
-                    items: typeof o.items === 'string' ? JSON.parse(o.items || '[]') : o.items
-                }));
-                setOrders(mappedOrders);
+            if (Array.isArray(response.data)) {
+                setOrders(response.data);
             }
         } catch (error) {
             console.error('Error fetching orders:', error);
@@ -158,21 +151,17 @@ export const ShopProvider = ({ children }) => {
     const fetchCoupons = async () => {
         try {
             const response = await api.get(`/coupons?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
-            const data = response.data;
-            if (Array.isArray(data)) {
-                // Map Supabase snake_case to frontend camelCase
-                const mappedCoupons = data.map(c => ({
+            if (Array.isArray(response.data)) {
+                const mappedCoupons = response.data.map(c => ({
                     id: c.id,
                     code: c.code,
-                    discountType: c.discount_type || 'percentage',
-                    discountValue: c.discount_value || c.discount_percentage,
-                    expiryDate: c.expiry_date || '2026-12-31',
+                    discountType: c.discount_type,
+                    discountValue: Number(c.discount_value),
+                    expiryDate: c.expiry_date ? c.expiry_date.split('T')[0] : '',
                     isActive: c.is_active,
                     usageCount: c.usage_count || 0,
-                    usageLimit: c.usage_limit || 1000,
-                    usedBy: c.used_by || [],
-                    usedByPhones: c.used_by_phones || [],
-                    usedByIPs: c.used_by_ips || []
+                    usageLimit: c.usage_limit || 100,
+                    usedBy: c.used_by || []
                 }));
                 setCoupons(mappedCoupons);
             }
@@ -310,18 +299,32 @@ export const ShopProvider = ({ children }) => {
 
         try {
             const product = products.find(p => p.id === id);
-            const myInventory = (isVendor && user?.shop_id) 
-                ? product?.inventories?.find(inv => String(inv.shop_id) === String(user.shop_id)) 
+            const targetShopId = (isVendor && user?.shop_id) 
+                ? user.shop_id 
+                : (updatedProduct.shop_id && updatedProduct.shop_id !== 'core' && updatedProduct.shop_id !== 'all' && updatedProduct.shop_id !== 'own' ? updatedProduct.shop_id : null);
+            
+            const targetInventory = targetShopId 
+                ? product?.inventories?.find(inv => String(inv.shop_id) === String(targetShopId)) 
                 : null;
 
-            if (myInventory) {
-                await api.put(`/inventory/${myInventory.id}`, {
+            if (targetInventory) {
+                await api.put(`/inventory/${targetInventory.id}`, {
                     price: Number(updatedProduct.price),
                     stock: Number(updatedProduct.stock),
                     is_active: updatedProduct.is_active !== undefined ? updatedProduct.is_active : true,
                     pickup_available: updatedProduct.pickup_available !== undefined ? updatedProduct.pickup_available : true
                 });
-                showToast('Inventory updated successfully', 'success');
+                showToast('Shop inventory updated successfully', 'success');
+            } else if (targetShopId) {
+                await api.post('/inventory', {
+                    product_id: id,
+                    shop_id: targetShopId,
+                    price: Number(updatedProduct.price),
+                    stock: Number(updatedProduct.stock),
+                    is_active: true,
+                    pickup_available: true
+                });
+                showToast('Shop inventory created and updated successfully', 'success');
             } else {
                 await api.put(`/products/${id}`, updatedProduct);
                 showToast('Product updated successfully', 'success');

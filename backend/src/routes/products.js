@@ -301,7 +301,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
         if (error) throw error;
 
-        // Synchronize linked vendor inventory prices and stock directly
+        // Synchronize linked vendor inventory prices
         if (price !== undefined) {
             await supabase
                 .from('vendor_inventory')
@@ -309,14 +309,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
                 .eq('product_id', id);
         }
 
-        if (stock !== undefined) {
-            await supabase
-                .from('vendor_inventory')
-                .update({ stock: Number(stock), updated_at: new Date().toISOString() })
-                .eq('product_id', id);
-        }
-
-        res.json({ message: 'Global product and associated inventory updated successfully' });
+        res.json({ message: 'Global product updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ error: 'Internal server error' });

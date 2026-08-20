@@ -681,6 +681,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             });
         }
 
+        const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
         const filteredImages = formData.images.filter(url => url.trim() !== '');
         const productData = {
             ...formData,
@@ -696,7 +697,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
             baseNotes: formData.baseNotes?.trim() || '',
-            shop_id: shopId !== undefined ? shopId : (formData.shop_id && formData.shop_id !== 'core' ? Number(formData.shop_id) : null),
+            shop_id: activeShopId !== null ? activeShopId : (formData.shop_id && formData.shop_id !== 'core' ? formData.shop_id : null),
             attributes: formData.attributes || {}
         };
         delete productData.images;
@@ -720,7 +721,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             ? product.size.map(s => typeof s === 'string' ? { name: s, price: product.price, oldPrice: product.oldPrice } : s)
             : [];
             
-        const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+        const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
+        const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
         const initialPrice = shopInventory ? shopInventory.price : product.price;
         const initialStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
         const initialPickup = shopInventory 
@@ -739,7 +741,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             topNotes: product.topNotes || '',
             middleNotes: product.middleNotes || '',
             baseNotes: product.baseNotes || '',
-            shop_id: product.shop_id || 'core',
+            shop_id: activeShopId || product.shop_id || 'core',
             pickup_available: initialPickup,
             attributes: product.attributes || {}
         });
@@ -749,7 +751,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         window.scrollTo(0, 0);
     };
     const toggleReservation = async (product) => {
-        const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+        const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
+        const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
         const currentPickup = shopInventory 
             ? shopInventory.pickup_available !== false 
             : product.pickup_available !== false;
@@ -758,6 +761,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
         const updatedData = {
             ...product,
+            shop_id: activeShopId || product.shop_id || 'core',
             price: shopInventory ? shopInventory.price : product.price,
             stock: shopInventory ? shopInventory.stock : product.stock,
             pickup_available: nextPickup
@@ -817,15 +821,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         }
     };
     const safeProducts = Array.isArray(products) ? products : [];
+    const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
     const shopFilteredProducts = safeProducts.filter(product => {
-        if (shopId) {
-            const isOwned = String(product.shop_id) === String(shopId);
-            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
+        if (activeShopId) {
+            const isOwned = String(product.shop_id) === String(activeShopId);
+            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(activeShopId) && inv.is_active);
             if (!isOwned && !isLinked) return false;
-        }
-        if (!shopId) {
-            if (filterShop === 'own' && product.shop_id) return false;
-            if (filterShop !== 'all' && filterShop !== 'own' && String(product.shop_id) !== String(filterShop)) return false;
+        } else if (!shopId && filterShop === 'own') {
+            if (product.shop_id && product.shop_id !== 'core') return false;
         }
         return true;
     });
@@ -1633,7 +1636,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 return a.originalIndex - b.originalIndex; // default
                             })
                             .map(product => {
-                                const shopInventory = shopId ? product.inventories?.find(inv => String(inv.shop_id) === String(shopId)) : null;
+                                const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
                                 const displayPrice = shopInventory ? shopInventory.price : product.price;
                                 const displayOldPrice = shopInventory ? null : product.oldPrice;
                                 const displayDiscount = shopInventory ? 0 : product.discount;

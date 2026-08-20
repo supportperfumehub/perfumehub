@@ -116,6 +116,23 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
             .select();
 
         if (error) throw error;
+
+        // Recalculate total master stock across all active shops for this product
+        if (data[0]?.product_id) {
+            try {
+                const { data: allActiveInvs } = await supabase
+                    .from('vendor_inventory')
+                    .select('stock')
+                    .eq('product_id', data[0].product_id)
+                    .eq('is_active', true);
+
+                const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
+                await supabase.from('products').update({ stock: totalMasterStock }).eq('id', data[0].product_id);
+            } catch (calcErr) {
+                console.error('Error calculating master stock on inventory create:', calcErr.message);
+            }
+        }
+
         res.status(201).json({ id: data[0].id, message: 'Inventory added successfully', inventory: data[0] });
     } catch (error) {
         console.error('Error adding inventory:', error);
@@ -130,7 +147,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
     const admin = req.user;
 
     try {
-        const { data: existingInv } = await supabase.from('vendor_inventory').select('shop_id').eq('id', id).single();
+        const { data: existingInv } = await supabase.from('vendor_inventory').select('shop_id, product_id').eq('id', id).single();
         if (!existingInv) return res.status(404).json({ error: 'Inventory record not found' });
 
         if (admin.role === 'vendor') {
@@ -142,15 +159,15 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             }
         }
 
+        const updateInvPayload = { updated_at: new Date().toISOString() };
+        if (price !== undefined) updateInvPayload.price = Number(price);
+        if (stock !== undefined) updateInvPayload.stock = Number(stock);
+        if (is_active !== undefined) updateInvPayload.is_active = is_active;
+        if (pickup_available !== undefined) updateInvPayload.pickup_available = pickup_available;
+
         const { data, error } = await supabase
             .from('vendor_inventory')
-            .update({
-                price: price !== undefined ? price : undefined,
-                stock: stock !== undefined ? stock : undefined,
-                is_active: is_active !== undefined ? is_active : undefined,
-                pickup_available: pickup_available !== undefined ? pickup_available : undefined,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateInvPayload)
             .eq('id', id)
             .select();
 
@@ -161,41 +178,54 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             throw error;
         }
 
-        // Automatically synchronize master product price and discount tag when inventory price changes
-        if (price !== undefined && data[0]?.product_id) {
+        // Recalculate total master stock (sum of all active shop inventories) and sync price/discount
+        if (data[0]?.product_id) {
             try {
-                const newPrice = Number(price);
-                const { data: prod } = await supabase.from('products').select('old_price, size').eq('id', data[0].product_id).single();
-                const oldP = prod?.old_price ? Number(prod.old_price) : null;
-                const autoDiscount = (oldP && oldP > newPrice) ? Math.round((1 - newPrice / oldP) * 100) : 0;
-                
-                let updatedSizes = prod?.size;
-                if (Array.isArray(updatedSizes) && updatedSizes.length > 0) {
-                    updatedSizes = updatedSizes.map((sz, idx) => {
-                        if (idx === 0 || updatedSizes.length === 1) {
-                            return typeof sz === 'object'
-                                ? { ...sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount }
-                                : { name: sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount };
-                        }
-                        return sz;
-                    });
+                const productId = data[0].product_id;
+                const { data: allActiveInvs } = await supabase
+                    .from('vendor_inventory')
+                    .select('stock')
+                    .eq('product_id', productId)
+                    .eq('is_active', true);
+
+                const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
+
+                const prodUpdatePayload = { stock: totalMasterStock };
+
+                if (price !== undefined) {
+                    const newPrice = Number(price);
+                    const { data: prod } = await supabase.from('products').select('old_price, size').eq('id', productId).single();
+                    const oldP = prod?.old_price ? Number(prod.old_price) : null;
+                    const autoDiscount = (oldP && oldP > newPrice) ? Math.round((1 - newPrice / oldP) * 100) : 0;
+                    
+                    let updatedSizes = prod?.size;
+                    if (Array.isArray(updatedSizes) && updatedSizes.length > 0) {
+                        updatedSizes = updatedSizes.map((sz, idx) => {
+                            if (idx === 0 || updatedSizes.length === 1) {
+                                return typeof sz === 'object'
+                                    ? { ...sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount }
+                                    : { name: sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount };
+                            }
+                            return sz;
+                        });
+                    }
+
+                    prodUpdatePayload.price = newPrice;
+                    prodUpdatePayload.old_price = (oldP && oldP > newPrice) ? oldP : null;
+                    prodUpdatePayload.discount = autoDiscount;
+                    prodUpdatePayload.size = updatedSizes;
                 }
 
                 await supabase
                     .from('products')
-                    .update({ 
-                        price: newPrice,
-                        old_price: (oldP && oldP > newPrice) ? oldP : null,
-                        discount: autoDiscount,
-                        size: updatedSizes
-                    })
-                    .eq('id', data[0].product_id);
+                    .update(prodUpdatePayload)
+                    .eq('id', productId);
             } catch (syncErr) {
                 console.error('Inventory auto-sync error:', syncErr.message);
             }
         }
 
-        res.json({ message: 'Inventory updated successfully and synced to master product catalog', inventory: data[0] });
+        res.json({ message: 'Shop inventory updated successfully and master stock recalculated', inventory: data[0] });
 
     } catch (error) {
         console.error('Error updating inventory:', error);
