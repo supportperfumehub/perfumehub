@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Navigate } from 'react-router-dom';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
@@ -12,17 +12,73 @@ import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package, Bell
+    Sparkles, Sliders, Package, Bell, BellOff, Trash2
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
 import { Link } from 'react-router-dom';
 import './Admin.css';
 
+const DEFAULT_NOTIFICATIONS = [
+    {
+        id: 'db_restore_1',
+        title: 'Database Restoration',
+        titleAr: 'استعادة قاعدة البيانات',
+        message: 'DATABASE RESTORATION v1.0.2 - 167 PRODUCTS SYNCED'
+    }
+];
+
 const Admin = () => {
     const { isRTL, user } = useOutletContext();
     const [activeTab, setActiveTab] = useState('shops');
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const notificationRef = useRef(null);
+
+    const [notifications, setNotifications] = useState(() => {
+        try {
+            const saved = localStorage.getItem('perfumehub_admin_notifications');
+            if (saved !== null) {
+                return JSON.parse(saved);
+            }
+        } catch (err) {
+            console.error('Failed to load notifications from localStorage:', err);
+        }
+        return DEFAULT_NOTIFICATIONS;
+    });
+
+    // Sync notifications to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem('perfumehub_admin_notifications', JSON.stringify(notifications));
+        } catch (err) {
+            console.error('Failed to persist notifications:', err);
+        }
+    }, [notifications]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setIsNotificationOpen(false);
+            }
+        };
+        if (isNotificationOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isNotificationOpen]);
+
+    const handleDeleteNotification = (id, e) => {
+        if (e) e.stopPropagation();
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    };
+
+    const handleClearAllNotifications = (e) => {
+        if (e) e.stopPropagation();
+        setNotifications([]);
+    };
 
     // Assume user object contains the role from context. 
     // Fallback to 'super_admin' or 'admin' for demo purposes if strictly not set.
@@ -94,15 +150,15 @@ const Admin = () => {
                     </h1>
                     
                     {/* Admin Panel Notification Dropdown */}
-                    <div className="admin-notifications-container" style={{ position: 'relative' }}>
+                    <div className="admin-notifications-container" ref={notificationRef}>
                         <button 
                             className="icon-btn notification-btn"
                             style={{ 
-                                background: 'rgba(255,255,255,0.05)', 
-                                border: '1px solid rgba(255,255,255,0.1)', 
+                                background: isNotificationOpen ? 'rgba(200, 169, 81, 0.15)' : 'rgba(255,255,255,0.05)', 
+                                border: isNotificationOpen ? '1px solid #c8a951' : '1px solid rgba(255,255,255,0.1)', 
                                 padding: '10px', 
                                 borderRadius: '12px', 
-                                color: '#f8fafc',
+                                color: isNotificationOpen ? '#c8a951' : '#f8fafc',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -115,60 +171,81 @@ const Admin = () => {
                             title={isRTL ? 'التنبيهات' : 'Notifications'}
                         >
                             <Bell size={20} />
-                            <span style={{ 
-                                position: 'absolute', 
-                                top: '-2px', 
-                                right: '-2px', 
-                                background: '#c8a951', 
-                                color: '#000', 
-                                fontSize: '10px', 
-                                fontWeight: 'bold', 
-                                width: '16px', 
-                                height: '16px', 
-                                borderRadius: '50%', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                boxShadow: '0 0 8px #c8a951'
-                            }}>
-                                1
-                            </span>
+                            {notifications.length > 0 && (
+                                <span style={{ 
+                                    position: 'absolute', 
+                                    top: '-2px', 
+                                    right: '-2px', 
+                                    background: '#c8a951', 
+                                    color: '#000', 
+                                    fontSize: '10px', 
+                                    fontWeight: 'bold', 
+                                    width: '16px', 
+                                    height: '16px', 
+                                    borderRadius: '50%', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    boxShadow: '0 0 8px #c8a951'
+                                }}>
+                                    {notifications.length}
+                                </span>
+                            )}
                         </button>
                         
                         {isNotificationOpen && (
-                            <div className="admin-notification-dropdown" style={{
-                                position: 'absolute',
-                                right: isRTL ? 'auto' : '0',
-                                left: isRTL ? '0' : 'auto',
-                                top: '50px',
-                                width: '320px',
-                                background: '#1e293b',
-                                border: '1px solid #334155',
-                                borderRadius: '16px',
-                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
-                                zIndex: 1000,
-                                padding: '16px'
-                            }}>
-                                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#c8a951', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', fontFamily: 'Inter, sans-serif' }}>
-                                    {isRTL ? 'تنبيهات النظام' : 'System Notifications'}
-                                </h4>
-                                <div className="notification-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div className="notification-item" style={{
-                                        background: 'rgba(200, 169, 81, 0.05)',
-                                        borderLeft: isRTL ? 'none' : '3px solid #c8a951',
-                                        borderRight: isRTL ? '3px solid #c8a951' : 'none',
-                                        padding: '10px 12px',
-                                        borderRadius: '8px',
-                                        fontSize: '13px',
-                                        textAlign: isRTL ? 'right' : 'left'
-                                    }}>
-                                        <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#f8fafc' }}>
-                                            {isRTL ? 'استعادة قاعدة البيانات' : 'Database Restoration'}
+                            <div className="admin-notification-dropdown">
+                                <div className="admin-notification-header">
+                                    <h4>
+                                        <Bell size={15} />
+                                        {isRTL ? 'تنبيهات النظام' : 'System Notifications'}
+                                    </h4>
+                                    {notifications.length > 0 && (
+                                        <button
+                                            type="button"
+                                            className="admin-notification-clear-all"
+                                            onClick={handleClearAllNotifications}
+                                            title={isRTL ? 'مسح كل التنبيهات' : 'Clear all notifications'}
+                                        >
+                                            <Trash2 size={12} />
+                                            <span>{isRTL ? 'مسح الكل' : 'Clear all'}</span>
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="admin-notification-list">
+                                    {notifications.length > 0 ? (
+                                        notifications.map(item => (
+                                            <div key={item.id} className="admin-notification-item">
+                                                <div className="admin-notification-item-top">
+                                                    <div className="admin-notification-item-title">
+                                                        {isRTL ? (item.titleAr || item.title) : item.title}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="admin-notification-delete-btn"
+                                                        onClick={(e) => handleDeleteNotification(item.id, e)}
+                                                        title={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
+                                                        aria-label={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                                <div className="admin-notification-item-msg">
+                                                    {item.message}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="admin-notification-empty">
+                                            <BellOff size={26} />
+                                            <span className="empty-title">
+                                                {isRTL ? 'لا توجد تنبيهات جديدة' : 'No notifications'}
+                                            </span>
+                                            <span className="empty-subtitle">
+                                                {isRTL ? 'تم الاطلاع على جميع التنبيهات' : 'All caught up!'}
+                                            </span>
                                         </div>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', lineHeight: '1.4' }}>
-                                            DATABASE RESTORATION v1.0.2 - 167 PRODUCTS SYNCED
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         )}
