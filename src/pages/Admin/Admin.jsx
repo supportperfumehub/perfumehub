@@ -99,9 +99,10 @@ const Admin = () => {
         // Regional admins might not control global coupons or recovery
         ...(isSuperAdmin ? [{ id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> }] : []),
         { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
-        { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
-        ...(isSuperAdmin ? [
+        ...(isSuperAdmin || isRegionalAdmin ? [
             { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
+        ] : []),
+        ...(isSuperAdmin ? [
             { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
             { id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> },
             { id: 'subscriptions', label: isRTL ? 'الاشتراكات' : 'Subscriptions', icon: <Ticket size={20} /> },

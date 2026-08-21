@@ -200,7 +200,8 @@ export const ShopProvider = ({ children }) => {
 
     const fetchDiscoverCampaigns = async () => {
         try {
-            const response = await api.get(`/discover?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+            const regionParam = activeRegion?.id ? `&region_id=${activeRegion.id}` : '';
+            const response = await api.get(`/discover?_t=${Date.now()}${regionParam}`, { headers: { 'Cache-Control': 'no-cache' } });
             if (Array.isArray(response.data)) {
                 setDiscoverCampaigns(response.data);
             }

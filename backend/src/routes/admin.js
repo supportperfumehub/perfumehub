@@ -102,27 +102,36 @@ router.patch('/shops/:id/boost', superAdminOnly, async (req, res, next) => {
     }
 });
 
+const adminOrRegionalAdmin = [authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin'])];
+
 /**
  * DISCOVER CAMPAIGNS
  */
 
 // GET /api/admin/discover-campaigns
-router.get('/discover-campaigns', superAdminOnly, async (req, res, next) => {
+router.get('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) => {
     try {
-        // Joining with shops and products to get names
+        const regionId = req.query.region_id ? parseInt(req.query.region_id) : (req.user?.role === 'regional_admin' ? req.user.region_id : null);
+
+        // Joining with shops and products to get names and shop region
         const { data, error } = await supabase
             .from('discover_campaigns')
-            .select('*, shops(name), products(name)')
+            .select('*, shops(id, name, region_id), products(name)')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
         
         // Flatten the shop and product names for easier frontend consumption
-        const flattened = data.map(c => ({
+        let flattened = (data || []).map(c => ({
             ...c,
             shop_name: c.shops?.name || 'Unknown Shop',
+            shop_region_id: c.shops?.region_id || null,
             product_name: c.products?.name || null
         }));
+
+        if (regionId) {
+            flattened = flattened.filter(c => Number(c.shop_region_id) === Number(regionId) || Number(c.region_id) === Number(regionId));
+        }
         
         res.json(flattened);
     } catch (err) {
@@ -143,7 +152,7 @@ const normalizeEndDate = (d) => {
 };
 
 // POST /api/admin/discover-campaigns
-router.post('/discover-campaigns', superAdminOnly, async (req, res, next) => {
+router.post('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) => {
     const { shop_id, placement_slot, start_date, end_date, product_id } = req.body;
 
     if (!shop_id || !placement_slot || !end_date) {
@@ -161,7 +170,7 @@ router.post('/discover-campaigns', superAdminOnly, async (req, res, next) => {
                 end_date: normalizeEndDate(end_date),
                 active: true
             }])
-            .select('*, shops(name), products(name)');
+            .select('*, shops(id, name, region_id), products(name)');
 
         if (error) throw error;
         
@@ -171,6 +180,7 @@ router.post('/discover-campaigns', superAdminOnly, async (req, res, next) => {
         const campaign = {
             ...data[0],
             shop_name: data[0].shops?.name || 'Unknown Shop',
+            shop_region_id: data[0].shops?.region_id || null,
             product_name: data[0].products?.name || null
         };
 
@@ -181,7 +191,7 @@ router.post('/discover-campaigns', superAdminOnly, async (req, res, next) => {
 });
 
 // PUT /api/admin/discover-campaigns/:id
-router.put('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => {
+router.put('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, next) => {
     const { id } = req.params;
     const { shop_id, placement_slot, start_date, end_date, product_id, active } = req.body;
 
@@ -198,7 +208,7 @@ router.put('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => 
             .from('discover_campaigns')
             .update(updateData)
             .eq('id', id)
-            .select('*, shops(name), products(name)');
+            .select('*, shops(id, name, region_id), products(name)');
 
         if (error) throw error;
 
@@ -209,6 +219,7 @@ router.put('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => 
         const campaign = {
             ...data[0],
             shop_name: data[0].shops?.name || 'Unknown Shop',
+            shop_region_id: data[0].shops?.region_id || null,
             product_name: data[0].products?.name || null
         };
 
@@ -219,7 +230,7 @@ router.put('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => 
 });
 
 // DELETE /api/admin/discover-campaigns/clear-all
-router.delete('/discover-campaigns/clear-all', superAdminOnly, async (req, res, next) => {
+router.delete('/discover-campaigns/clear-all', adminOrRegionalAdmin, async (req, res, next) => {
     try {
         const { error } = await supabase
             .from('discover_campaigns')
@@ -234,7 +245,7 @@ router.delete('/discover-campaigns/clear-all', superAdminOnly, async (req, res, 
 });
 
 // DELETE /api/admin/discover-campaigns/:id
-router.delete('/discover-campaigns/:id', superAdminOnly, async (req, res, next) => {
+router.delete('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, next) => {
     const { id } = req.params;
 
     try {

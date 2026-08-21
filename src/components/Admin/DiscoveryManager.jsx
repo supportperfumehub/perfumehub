@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check, ChevronDown } from 'lucide-react';
+import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check, ChevronDown, Globe } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder }) => {
@@ -46,7 +46,7 @@ const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     minHeight: '44px'
                 }}
             >
@@ -138,7 +138,7 @@ const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder
                                             borderRadius: '6px',
                                             cursor: 'pointer',
                                             display: 'flex',
-                                            justify: 'space-between',
+                                            justifyContent: 'space-between',
                                             alignItems: 'center',
                                             background: isSelected ? 'rgba(200, 169, 81, 0.2)' : 'transparent',
                                             transition: 'background 0.15s'
@@ -184,6 +184,8 @@ const DiscoveryManager = ({ isRTL }) => {
     const [shops, setShops] = useState([]);
     const [campaigns, setCampaigns] = useState([]);
     const [products, setProducts] = useState([]);
+    const [regions, setRegions] = useState([]);
+    const [selectedRegion, setSelectedRegion] = useState('all');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -221,14 +223,26 @@ const DiscoveryManager = ({ isRTL }) => {
         isError: false
     });
 
+    const getRegionBadge = (regionId) => {
+        const reg = regions.find(r => Number(r.id) === Number(regionId));
+        if (!reg) return { name: isRTL ? 'عام (كل المناطق)' : 'Global', flag: '🌐', code: 'ALL' };
+        const flagMap = { 'QA': '🇶🇦', 'AE': '🇦🇪', 'GB': '🇬🇧', 'SA': '🇸🇦', 'KW': '🇰🇼', 'OM': '🇴🇲', 'BH': '🇧🇭' };
+        return {
+            name: reg.name,
+            code: reg.code,
+            flag: flagMap[reg.code?.toUpperCase()] || '📍'
+        };
+    };
+
     const fetchData = async () => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const [shopsRes, campaignsRes, productsRes] = await Promise.all([
+            const [shopsRes, campaignsRes, productsRes, regionsRes] = await Promise.all([
                 api.get('/admin/shops'),
                 api.get('/admin/discover-campaigns'),
-                api.get('/products')
+                api.get('/products'),
+                api.get('/regions').catch(() => ({ data: [] }))
             ]);
             
             const shopsData = Array.isArray(shopsRes.data) ? shopsRes.data : [];
@@ -243,6 +257,13 @@ const DiscoveryManager = ({ isRTL }) => {
 
             setCampaigns(Array.isArray(campaignsRes.data) ? campaignsRes.data : []);
             setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+
+            const regionsData = Array.isArray(regionsRes.data) ? regionsRes.data : [];
+            setRegions(regionsData);
+
+            if (user?.role === 'regional_admin' && user?.region_id) {
+                setSelectedRegion(String(user.region_id));
+            }
         } catch (err) {
             setError(err.response?.data?.error || err.message);
         } finally {
@@ -422,7 +443,13 @@ const DiscoveryManager = ({ isRTL }) => {
         });
     };
 
+    const filteredCampaigns = campaigns.filter(c => {
+        if (selectedRegion === 'all') return true;
+        return Number(c.shop_region_id) === Number(selectedRegion) || Number(c.region_id) === Number(selectedRegion);
+    });
+
     const filteredShops = shops.filter(s => {
+        if (selectedRegion !== 'all' && Number(s.region_id) !== Number(selectedRegion)) return false;
         if (filter === 'featured' && !s.is_featured) return false;
         if (filter === 'regular' && s.is_featured) return false;
         if (searchQuery) {
@@ -479,30 +506,99 @@ const DiscoveryManager = ({ isRTL }) => {
                 </div>
             </div>
 
+            {/* Region Filter Selector */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '24px',
+                padding: '12px 16px',
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: '1px solid rgba(51, 65, 85, 0.6)',
+                borderRadius: '12px',
+                flexWrap: 'wrap'
+            }}>
+                <span style={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Globe size={16} color="#c8a951" />
+                    {isRTL ? 'تصفية حسب المنطقة:' : 'Target Region:'}
+                </span>
+                <button
+                    type="button"
+                    onClick={() => setSelectedRegion('all')}
+                    style={{
+                        background: selectedRegion === 'all' ? '#c8a951' : 'rgba(15, 23, 42, 0.7)',
+                        color: selectedRegion === 'all' ? '#000' : '#cbd5e1',
+                        border: selectedRegion === 'all' ? '1px solid #c8a951' : '1px solid #334155',
+                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        fontSize: '0.82rem',
+                        fontWeight: selectedRegion === 'all' ? '700' : '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                    }}
+                >
+                    🌐 {isRTL ? 'جميع المناطق' : 'All Regions'}
+                </button>
+                {regions.map(r => {
+                    const badge = getRegionBadge(r.id);
+                    const isSelected = String(selectedRegion) === String(r.id);
+                    return (
+                        <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => setSelectedRegion(String(r.id))}
+                            style={{
+                                background: isSelected ? '#c8a951' : 'rgba(15, 23, 42, 0.7)',
+                                color: isSelected ? '#000' : '#cbd5e1',
+                                border: isSelected ? '1px solid #c8a951' : '1px solid #334155',
+                                borderRadius: '8px',
+                                padding: '6px 14px',
+                                fontSize: '0.82rem',
+                                fontWeight: isSelected ? '700' : '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                            }}
+                        >
+                            {badge.flag} {r.name} ({r.code})
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Stats Summary */}
             <div className="admin-stats-grid">
                 <div className="admin-card" style={{ padding: '20px', textAlign: 'center' }}>
                     <div style={{ color: '#c8a951', marginBottom: '8px' }}><Sparkles size={24} /></div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{shops.filter(s => s.is_featured).length}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'المتاجر المميزة' : 'Featured Shops'}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{filteredShops.filter(s => s.is_featured).length}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        {isRTL ? 'المتاجر المميزة' : 'Featured Shops'} {selectedRegion !== 'all' ? `(${getRegionBadge(selectedRegion).code})` : ''}
+                    </div>
                 </div>
                 <div className="admin-card" style={{ padding: '20px', textAlign: 'center' }}>
                     <div style={{ color: '#34d399', marginBottom: '8px' }}><Megaphone size={24} /></div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{campaigns.filter(c => c.active).length}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'الحملات النشطة' : 'Active Campaigns'}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{filteredCampaigns.filter(c => c.active).length}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        {isRTL ? 'الحملات النشطة' : 'Active Campaigns'} {selectedRegion !== 'all' ? `(${getRegionBadge(selectedRegion).code})` : ''}
+                    </div>
                 </div>
             </div>
 
             {/* Campaign Table */}
-            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#f8fafc' }}>
-                <Megaphone size={18} style={{ marginRight: '8px' }} />
+            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Megaphone size={18} />
                 {isRTL ? 'الحملات الإعلانية' : 'Active Campaigns'}
+                {selectedRegion !== 'all' && (
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(200, 169, 81, 0.2)', color: '#c8a951', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                        {getRegionBadge(selectedRegion).flag} {getRegionBadge(selectedRegion).name}
+                    </span>
+                )}
             </h3>
             <div className="admin-table-container" style={{ marginBottom: '40px' }}>
                 <table className="admin-table">
                     <thead>
                         <tr>
                             <th>{isRTL ? 'المتجر' : 'Shop'}</th>
+                            <th>{isRTL ? 'المنطقة' : 'Region'}</th>
                             <th>{isRTL ? 'المركز' : 'Placement'}</th>
                             <th>{isRTL ? 'الفترة' : 'Duration'}</th>
                             <th>{isRTL ? 'الحالة' : 'Status'}</th>
@@ -510,51 +606,59 @@ const DiscoveryManager = ({ isRTL }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {campaigns.length === 0 ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{isRTL ? 'لا توجد حملات نشطة حالياً' : 'No active campaigns found'}</td></tr>
-                        ) : campaigns.map(camp => (
-                            <tr key={camp.id}>
-                                <td>
-                                    <div style={{ fontWeight: '600', color: '#f8fafc' }}>{camp.shop_name}</div>
-                                    {camp.product_name && (
-                                        <div style={{ fontSize: '0.75rem', color: '#c8a951', marginTop: '2px' }}>
-                                            📢 {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
+                        {filteredCampaigns.length === 0 ? (
+                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{isRTL ? 'لا توجد حملات نشطة لهذه المنطقة' : 'No active campaigns found for this region'}</td></tr>
+                        ) : filteredCampaigns.map(camp => {
+                            const badge = getRegionBadge(camp.shop_region_id || camp.region_id);
+                            return (
+                                <tr key={camp.id}>
+                                    <td>
+                                        <div style={{ fontWeight: '600', color: '#f8fafc' }}>{camp.shop_name}</div>
+                                        {camp.product_name && (
+                                            <div style={{ fontSize: '0.75rem', color: '#c8a951', marginTop: '2px' }}>
+                                                📢 {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <span className="status-badge" style={{ background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', border: '1px solid rgba(200, 169, 81, 0.3)', whiteSpace: 'nowrap' }}>
+                                            {badge.flag} {badge.name}
+                                        </span>
+                                    </td>
+                                    <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
+                                    <td style={{ whiteSpace: 'nowrap' }}>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => toggleCampaignActive(camp)}
+                                            style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                whiteSpace: 'nowrap',
+                                                color: camp.active ? '#34d399' : '#94a3b8'
+                                            }}
+                                        >
+                                            {camp.active ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                            {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button className="admin-action-btn edit-btn" onClick={() => openEditModal(camp)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)} title={isRTL ? 'حذف' : 'Delete'}>
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
-                                    )}
-                                </td>
-                                <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
-                                <td style={{ whiteSpace: 'nowrap' }}>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
-                                <td>
-                                    <button
-                                        onClick={() => toggleCampaignActive(camp)}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            fontSize: '0.85rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            whiteSpace: 'nowrap',
-                                            color: camp.active ? '#34d399' : '#94a3b8'
-                                        }}
-                                    >
-                                        {camp.active ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                                        {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
-                                    </button>
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button className="admin-action-btn edit-btn" onClick={() => openEditModal(camp)} title={isRTL ? 'تعديل' : 'Edit'}>
-                                            <Pencil size={16} />
-                                        </button>
-                                        <button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)} title={isRTL ? 'حذف' : 'Delete'}>
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -630,6 +734,7 @@ const DiscoveryManager = ({ isRTL }) => {
                     <thead>
                         <tr>
                             <th>{isRTL ? 'المتجر' : 'Shop'}</th>
+                            <th>{isRTL ? 'المنطقة' : 'Region'}</th>
                             <th>{isRTL ? 'الحالة المميزة' : 'Featured Status'}</th>
                             <th>{isRTL ? 'مضاعف التعزيز' : 'Manual Boost'}</th>
                             <th>{isRTL ? 'التقييم' : 'Current Rating'}</th>
@@ -637,50 +742,58 @@ const DiscoveryManager = ({ isRTL }) => {
                     </thead>
                     <tbody>
                         {filteredShops.length === 0 ? (
-                            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}</td></tr>
-                        ) : filteredShops.map(shop => (
-                            <tr key={shop.id}>
-                                <td>
-                                    <div style={{ fontWeight: '600' }}>{shop.name}</div>
-                                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{shop.id}</div>
-                                </td>
-                                <td>
-                                    <button 
-                                        className={`admin-action-btn ${shop.is_featured ? 'edit-btn' : ''}`}
-                                        onClick={() => toggleFeatured(shop.id, shop.is_featured)}
-                                        style={{ width: 'auto', padding: '6px 12px', gap: '8px', borderColor: shop.is_featured ? '#c8a951' : '#334155', color: shop.is_featured ? '#c8a951' : '#94a3b8' }}
-                                    >
-                                        {shop.is_featured ? <CheckCircle size={16} /> : <XCircle size={16} />}
-                                        {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
-                                    </button>
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <input 
-                                            type="number" 
-                                            step="0.1" min="0.1" max="10.0"
-                                            className="form-control" 
-                                            style={{ width: '80px', height: '36px', fontSize: '0.9rem' }}
-                                            value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
-                                            onChange={(e) => handleBoostChange(shop.id, e.target.value)}
-                                            onBlur={() => saveBoost(shop.id)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.target.blur();
-                                                }
-                                            }}
-                                        />
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>x</span>
-                                        {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24', fontWeight: '700' }}>
-                                        {shop.rating_avg} <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '400' }}>({shop.review_count})</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}</td></tr>
+                        ) : filteredShops.map(shop => {
+                            const badge = getRegionBadge(shop.region_id);
+                            return (
+                                <tr key={shop.id}>
+                                    <td>
+                                        <div style={{ fontWeight: '600' }}>{shop.name}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{shop.id}</div>
+                                    </td>
+                                    <td>
+                                        <span className="status-badge" style={{ background: '#334155', whiteSpace: 'nowrap' }}>
+                                            {badge.flag} {badge.name}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button 
+                                            className={`admin-action-btn ${shop.is_featured ? 'edit-btn' : ''}`}
+                                            onClick={() => toggleFeatured(shop.id, shop.is_featured)}
+                                            style={{ width: 'auto', padding: '6px 12px', gap: '8px', borderColor: shop.is_featured ? '#c8a951' : '#334155', color: shop.is_featured ? '#c8a951' : '#94a3b8' }}
+                                        >
+                                            {shop.is_featured ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                                            {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input 
+                                                type="number" 
+                                                step="0.1" min="0.1" max="10.0"
+                                                className="form-control" 
+                                                style={{ width: '80px', height: '36px', fontSize: '0.9rem' }}
+                                                value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
+                                                onChange={(e) => handleBoostChange(shop.id, e.target.value)}
+                                                onBlur={() => saveBoost(shop.id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.target.blur();
+                                                    }
+                                                }}
+                                            />
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>x</span>
+                                            {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24', fontWeight: '700' }}>
+                                            {shop.rating_avg} <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '400' }}>({shop.review_count})</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -737,9 +850,14 @@ const DiscoveryManager = ({ isRTL }) => {
                                     required
                                 >
                                     <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
-                                    {shops.map(shop => (
-                                        <option key={shop.id} value={shop.id}>{shop.name}</option>
-                                    ))}
+                                    {shops.map(shop => {
+                                        const badge = getRegionBadge(shop.region_id);
+                                        return (
+                                            <option key={shop.id} value={shop.id}>
+                                                {shop.name} {shop.region_id ? `(${badge.flag} ${badge.name})` : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 
@@ -897,9 +1015,14 @@ const DiscoveryManager = ({ isRTL }) => {
                                     required
                                 >
                                     <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
-                                    {shops.map(shop => (
-                                        <option key={shop.id} value={shop.id}>{shop.name}</option>
-                                    ))}
+                                    {shops.map(shop => {
+                                        const badge = getRegionBadge(shop.region_id);
+                                        return (
+                                            <option key={shop.id} value={shop.id}>
+                                                {shop.name} {shop.region_id ? `(${badge.flag} ${badge.name})` : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 

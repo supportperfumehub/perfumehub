@@ -170,11 +170,11 @@ const Home = () => {
                                                         {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
                                                         <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
                                                             <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
-                                                                {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                {displayPrice} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
                                                             </span>
                                                             {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
                                                                 <span className="featured-slide-old-price">
-                                                                    {Math.round(displayOldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                    {Math.round(displayOldPrice)} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
                                                                 </span>
                                                             ) : null}
                                                         </div>
@@ -204,11 +204,11 @@ const Home = () => {
                                                     {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
                                                     <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
                                                         <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
-                                                            {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                                            {displayPrice} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
                                                         </span>
                                                         {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
                                                             <span className="featured-slide-old-price">
-                                                                {Math.round(displayOldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                {Math.round(displayOldPrice)} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
                                                             </span>
                                                         ) : null}
                                                     </div>

@@ -11,12 +11,14 @@ router.get('/', async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     try {
+        const regionId = req.query.region_id ? parseInt(req.query.region_id) : null;
+
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')
             .select(`
                 *,
                 shop:shops (
-                    id, name, logo_url, trust_score, tier, geo_location
+                    id, name, logo_url, trust_score, tier, geo_location, region_id
                 ),
                 product:products (
                     *
@@ -30,7 +32,22 @@ router.get('/', async (req, res) => {
         if (error) throw error;
 
         const slides = [];
-        for (const c of campaigns) {
+        for (const c of (campaigns || [])) {
+            // Region filtering: If region_id is provided, only include campaigns for that region
+            if (regionId) {
+                const shopRegion = c.shop?.region_id ? Number(c.shop.region_id) : null;
+                const campaignRegion = c.region_id ? Number(c.region_id) : null;
+                
+                // If shop has region and it doesn't match, skip
+                if (shopRegion && shopRegion !== Number(regionId)) {
+                    continue;
+                }
+                // If campaign has explicit region and it doesn't match, skip
+                if (campaignRegion && campaignRegion !== Number(regionId)) {
+                    continue;
+                }
+            }
+
             if (c.product_id && c.product) {
                 let prodData = { ...c.product };
                 if (c.shop_id) {
@@ -52,6 +69,7 @@ router.get('/', async (req, res) => {
                     product_id: c.product.id,
                     type: 'product',
                     placement_slot: c.placement_slot,
+                    region_id: c.shop?.region_id || c.region_id || null,
                     product: prodData,
                     shop: c.shop
                 });
@@ -78,6 +96,7 @@ router.get('/', async (req, res) => {
                                 product_id: item.products.id,
                                 type: 'product',
                                 placement_slot: c.placement_slot,
+                                region_id: c.shop?.region_id || c.region_id || null,
                                 product: {
                                     ...item.products,
                                     price: item.price // override with vendor price
