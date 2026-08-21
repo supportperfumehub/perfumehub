@@ -79,7 +79,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         },
         { name: t('navbar.women'), path: '/category/jewellery' },
         { name: t('navbar.arabic'), path: '/category/gift-box' },
-        { name: t('navbar.ai_advisor'), path: '/ai-advisor' }
+        { name: t('navbar.ai_advisor'), path: '/scent-genie' }
     ];
 
     return (

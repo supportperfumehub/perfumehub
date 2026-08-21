@@ -7,7 +7,7 @@
     "abaya": "Exclusive Abayas",
     "women": "Jewellery",
     "arabic": "Gift Boxes",
-    "ai_advisor": "AI Advisor",
+    "ai_advisor": "Scent Genie",
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
@@ -24,9 +24,9 @@
     "intro_text": "THE ESSENCE OF TIMELESS LUXURY"
   },
   "ai_advisor_banner": {
-    "tagline": "Powered by Artificial Intelligence",
-    "title": "Find Your Perfect Match",
-    "description": "Let our advanced AI analyze your preferences and suggest the ideal fragrance tailored just for you.",
+    "tagline": "Scent Genie • Smart Fragrance Discovery",
+    "title": "Find Your Perfect Signature Scent",
+    "description": "Let Scent Genie analyze your preferences, style, and vibe to reveal your ideal luxury fragrance.",
     "button": "Consult Scent Genie"
   },
   "hero": {

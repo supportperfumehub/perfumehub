@@ -129,6 +129,7 @@ function App() {
         <Route path="/" element={<Layout isRTL={isRTL} toggleLanguage={toggleLanguage} />}>
           <Route index element={<Home />} />
           <Route path="shop" element={<Shop />} />
+          <Route path="scent-genie" element={<PerfumeHubAI />} />
           <Route path="ai-advisor" element={<PerfumeHubAI />} />
           <Route path="category/:type" element={<Shop />} />
           <Route path="product/:id" element={<ProductDetails />} />

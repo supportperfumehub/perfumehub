@@ -474,7 +474,7 @@ const Home = () => {
                             <span className="ai-advisor-tagline">{t('ai_advisor_banner.tagline')}</span>
                             <h2 className="ai-advisor-title">{t('ai_advisor_banner.title')}</h2>
                             <p className="ai-advisor-text">{t('ai_advisor_banner.description')}</p>
-                            <Link to="/ai-advisor" className="btn btn-gold ai-advisor-btn">
+                            <Link to="/scent-genie" className="btn btn-gold ai-advisor-btn">
                                 {t('ai_advisor_banner.button')}
                             </Link>
                         </div>

@@ -1,4 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ShopContext } from '../../context/ShopContext';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import './PerfumeHubAI.css';
@@ -194,6 +196,9 @@ const EXTERNAL_DATABASE = [
 
 const PerfumeHubAI = () => {
     const { products } = useContext(ShopContext);
+    const outletCtx = useOutletContext();
+    const { t, i18n } = useTranslation();
+    const isRTL = outletCtx?.isRTL || i18n.language === 'ar' || document.documentElement.dir === 'rtl';
     const [step, setStep] = useState(0); // 0: Start, 1..N: Questions, Loading, Results
     const [isExpertMode, setIsExpertMode] = useState(false);
     const [answers, setAnswers] = useState({
@@ -324,21 +329,21 @@ const PerfumeHubAI = () => {
             
             <div className="ai-header" style={{ position: 'relative', zIndex: 2 }}>
                 <Sparkles className="shine-icon" size={48} color="#d4af37" />
-                <h1>Scent Genie</h1>
-                <p>Let our intelligence curate your signature scent. Perfect for gifts or personal discovery.</p>
+                <h1>{isRTL ? 'جني العطور' : 'Scent Genie'}</h1>
+                <p>{isRTL ? 'دع جني العطور يحلل تفضيلاتك ويرشح لك عطرك المميز والفريد.' : 'Let Scent Genie curate your signature scent. Perfect for gifts or personal discovery.'}</p>
             </div>
 
             {step === 0 && (
                 <div className="quiz-card start-card">
-                    <div className="expert-badge">NEW: EXPERT MODE</div>
-                    <h2>Find Your Perfect Match</h2>
-                    <p>Discover fragrances tailored specifically to your personality and style.</p>
+                    <div className="expert-badge">{isRTL ? 'جديد: وضع الخبير' : 'NEW: EXPERT MODE'}</div>
+                    <h2>{isRTL ? 'جد عطرك المثالي' : 'Find Your Perfect Match'}</h2>
+                    <p>{isRTL ? 'اكتشف العطور المصممة خصيصاً لتناسب شخصيتك وأسلوبك الفريد.' : 'Discover fragrances tailored specifically to your personality and style.'}</p>
                     <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px', flexWrap: 'wrap' }}>
                         <button className="btn-secondary" onClick={() => setStep(1)}>
-                            Discovery Mode
+                            {isRTL ? 'وضع الاستكشاف' : 'Discovery Mode'}
                         </button>
                         <button className="btn-primary" onClick={startExpertMode}>
-                            Expert Mode <Sparkles size={16} />
+                            {isRTL ? 'وضع الخبير' : 'Expert Mode'} <Sparkles size={16} />
                         </button>
                     </div>
                 </div>
@@ -348,7 +353,7 @@ const PerfumeHubAI = () => {
                 <div className="quiz-card">
                     <div className="quiz-progress" style={{ width: `${(step / currentQuestions.length) * 100}%` }}></div>
                     <div className="question-section">
-                        <div className="step-count">Question {step} of {currentQuestions.length}</div>
+                        <div className="step-count">{isRTL ? `السؤال ${step} من ${currentQuestions.length}` : `Question ${step} of ${currentQuestions.length}`}</div>
                         <h2>{currentQuestions[step - 1].title}</h2>
                         <div className="options-grid">
                             {currentQuestions[step - 1].options.map(option => (
@@ -367,11 +372,11 @@ const PerfumeHubAI = () => {
                     </div>
                     <div className="quiz-nav">
                         <button className="btn-secondary" onClick={() => (step === 1 ? setStep(0) : setStep(step - 1))}>
-                            <ArrowLeft size={18} style={{ marginRight: '8px' }} /> Back
+                            <ArrowLeft size={18} style={{ marginRight: isRTL ? 0 : '8px', marginLeft: isRTL ? '8px' : 0 }} /> {isRTL ? 'رجوع' : 'Back'}
                         </button>
                         {answers[currentQuestions[step - 1].id] && (
                             <button className="btn-primary" onClick={handleNext}>
-                                {step === currentQuestions.length ? 'Find My Scent' : 'Next'} <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+                                {step === currentQuestions.length ? (isRTL ? 'اكتشف عطري' : 'Find My Scent') : (isRTL ? 'التالي' : 'Next')} <ArrowRight size={18} style={{ marginLeft: isRTL ? 0 : '8px', marginRight: isRTL ? '8px' : 0 }} />
                             </button>
                         )}
                     </div>
@@ -381,8 +386,8 @@ const PerfumeHubAI = () => {
             {step === 10 && (
                 <div className="quiz-card loading-container">
                     <div className="loader"></div>
-                    <h3>{isExpertMode ? 'Scent Genie Expert Analysis...' : 'Consulting the Scent Genie...'}</h3>
-                    <p>Analyzing high-level scent data and matching your personality profile.</p>
+                    <h3>{isRTL ? 'جاري استشارة جني العطور...' : (isExpertMode ? 'Scent Genie Expert Analysis...' : 'Consulting the Scent Genie...')}</h3>
+                    <p>{isRTL ? 'تحليل بيانات العطور ومطابقة ملف شخصيتك العطرية...' : 'Analyzing high-level scent data and matching your personality profile.'}</p>
                 </div>
             )}
 
