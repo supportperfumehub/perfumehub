@@ -3,12 +3,16 @@
     display: flex;
     align-items: center;
     margin: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 /* The toggle icon button (search/X) */
 .search-toggle-btn {
-    background: none;
-    border: none;
+    background: transparent !important;
+    border: none !important;
     cursor: pointer;
     color: inherit;
     display: flex;
@@ -18,12 +22,13 @@
     border-radius: 50%;
     transition: color var(--transition-fast), background var(--transition-fast);
     flex-shrink: 0;
+    box-shadow: none !important;
 }
 
 .search-toggle-btn:hover,
 .search-toggle-btn.active {
     color: var(--color-gold);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* The expanding container for input on desktop */
@@ -32,6 +37,12 @@
     width: 0;
     overflow: hidden;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0;
+    padding: 0;
+    outline: none !important;
 }
 
 .search-bar-expand.expanded {
@@ -50,27 +61,58 @@
     }
 }
 
+/* Frosted Glass Translucent Search Pill */
 .search-bar-form {
     position: relative;
     display: flex;
     align-items: center;
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 50px;
-    transition: border-color 0.2s, background 0.2s;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 999px;
+    transition: all 0.25s ease;
+    box-shadow: none !important;
 }
 
 .search-bar-form:focus-within {
-    background-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.18);
     border-color: var(--color-gold);
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+/* Light nav theme adaptive styling */
+.light-nav .search-bar-form {
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.light-nav .search-bar-form:focus-within {
+    background: rgba(0, 0, 0, 0.09);
+    border-color: var(--color-gold);
+}
+
+.light-nav .search-bar-input {
+    color: #111111 !important;
+}
+
+.light-nav .search-bar-input::placeholder {
+    color: rgba(0, 0, 0, 0.55);
+}
+
+.light-nav .search-bar-icon {
+    color: #555555;
+}
+
+.light-nav .search-clear-btn {
+    color: #666666;
 }
 
 .search-bar-icon {
     position: absolute;
     left: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
     pointer-events: none;
     flex-shrink: 0;
 }
@@ -83,14 +125,17 @@
 .search-bar-input {
     width: 100%;
     height: 38px;
-    border-radius: 50px;
-    border: none;
-    background: transparent;
+    border-radius: 999px;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
     color: var(--color-white);
     padding: 0 34px 0 36px;
     font-size: 0.9rem;
-    outline: none;
+    font-weight: 500;
+    letter-spacing: 0.3px;
     white-space: nowrap;
+    box-shadow: none !important;
 }
 
 [dir="rtl"] .search-bar-input {
@@ -98,15 +143,15 @@
 }
 
 .search-bar-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .search-clear-btn {
     position: absolute;
     right: 10px;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -114,6 +159,7 @@
     padding: 4px;
     border-radius: 50%;
     transition: color 0.2s, background 0.2s;
+    box-shadow: none !important;
 }
 
 [dir="rtl"] .search-clear-btn {
@@ -122,8 +168,8 @@
 }
 
 .search-clear-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.15);
+    color: var(--color-gold);
+    background: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Dropdown — solid dark background for readability */
@@ -133,7 +179,9 @@
     right: 0;
     left: 0;
     width: 320px;
-    background-color: #1a1a1a;
+    background-color: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(212, 175, 55, 0.3);
     border-radius: 12px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
@@ -251,6 +299,9 @@
         position: static; /* Takes no flex space when expanding */
         margin: 0;
         width: auto;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
     .search-bar-expand {
@@ -264,6 +315,9 @@
         pointer-events: none;
         z-index: 1005;
         margin: 0;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
     }
 
@@ -278,31 +332,48 @@
         transform: translateY(-50%) scale(1);
         width: auto;
         margin: 0;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
-    /* Floating Glassmorphic Search Container with blur effect */
+    /* Transparent Frosted Glass Pill on Mobile (No square outer frame!) */
     .search-bar-expand .search-bar-form {
-        background: rgba(12, 12, 12, 0.94);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1.5px solid rgba(212, 175, 55, 0.6);
-        border-radius: 50px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(212, 175, 55, 0.25);
-        padding: 2px 4px;
+        background: rgba(25, 25, 25, 0.65) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+        border: 1.5px solid rgba(212, 175, 55, 0.5) !important;
+        border-radius: 999px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+        padding: 0 4px;
         height: 42px;
+        overflow: hidden;
+    }
+
+    .light-nav .search-bar-expand .search-bar-form {
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+        border: 1.5px solid rgba(212, 175, 55, 0.6) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
     }
 
     .search-bar-expand .search-bar-input {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
+        outline: none !important;
         color: #ffffff !important;
         font-size: 0.95rem;
-        font-weight: 600;
+        font-weight: 500;
         letter-spacing: 0.3px;
         height: 100%;
         padding-left: 38px;
         padding-right: 38px;
+    }
+
+    .light-nav .search-bar-expand .search-bar-input {
+        color: #111111 !important;
     }
 
     [dir="rtl"] .search-bar-expand .search-bar-input {
@@ -314,7 +385,16 @@
         color: rgba(255, 255, 255, 0.65);
     }
 
+    .light-nav .search-bar-expand .search-bar-input::placeholder {
+        color: rgba(0, 0, 0, 0.55);
+    }
+
     .search-bar-expand .search-bar-icon {
+        left: 14px;
+        color: var(--color-gold);
+    }
+
+    .light-nav .search-bar-expand .search-bar-icon {
         left: 14px;
         color: var(--color-gold);
     }
@@ -329,6 +409,11 @@
         color: rgba(255, 255, 255, 0.85);
     }
 
+    .light-nav .search-bar-expand .search-clear-btn {
+        right: 12px;
+        color: #333333;
+    }
+
     [dir="rtl"] .search-bar-expand .search-clear-btn {
         right: auto;
         left: 12px;
@@ -340,12 +425,12 @@
         left: 12px;
         right: 12px;
         width: auto;
-        background-color: rgba(16, 16, 16, 0.98);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
+        background-color: rgba(16, 16, 16, 0.94);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
         border-radius: 16px;
-        border: 1px solid rgba(212, 175, 55, 0.4);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.92);
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
         z-index: 10000;
         animation: fadeInDown 0.25s ease forwards;
         margin: 0;
