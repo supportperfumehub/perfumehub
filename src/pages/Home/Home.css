@@ -251,6 +251,46 @@
     justify-content: center;
 }
 
+.boutique-visit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff !important;
+    border: 1.5px solid #0f172a;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.boutique-visit-btn:hover,
+.boutique-visit-btn:focus,
+.boutique-visit-btn:active {
+    background: linear-gradient(135deg, #d4af37 0%, #c8a951 100%) !important;
+    color: #0a0a0a !important;
+    border-color: #d4af37 !important;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45);
+    transform: translateY(-2px);
+    text-decoration: none !important;
+}
+
+.boutique-visit-btn:visited {
+    color: #ffffff !important;
+}
+
+.boutique-visit-btn:visited:hover {
+    color: #0a0a0a !important;
+}
+
 /* Featured Banners Slider as Hero Section */
 .hero-slider-section {
     padding-top: 0;

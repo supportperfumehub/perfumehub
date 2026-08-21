@@ -308,8 +308,8 @@ const Home = () => {
                                     ></div>
                                     <div className="boutique-info">
                                         <h4 style={{ margin: 0 }}>{shop.name}</h4>
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '8px' }}>
-                                            <Link to={`/shop?shop_id=${shop.id}`} className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px' }}>
+                                            <Link to={`/shop?shop_id=${shop.id}`} className="boutique-visit-btn">
                                                 {isRTL ? 'زيارة' : 'Visit'}
                                             </Link>
                                         </div>
