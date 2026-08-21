@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import { ShopContext } from '../../context/ShopContext';
 import './SearchBar.css';
@@ -24,20 +24,30 @@ const SearchBar = ({ isRTL }) => {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, []);
 
     const handleToggle = () => {
         setIsOpen(prev => {
-            if (!prev) {
-                // Focus input after it appears
-                setTimeout(() => inputRef.current?.focus(), 50);
+            const nextState = !prev;
+            if (nextState) {
+                setTimeout(() => inputRef.current?.focus(), 80);
             } else {
                 setQuery('');
                 setResults([]);
             }
-            return !prev;
+            return nextState;
         });
+    };
+
+    const handleClose = () => {
+        setIsOpen(false);
+        setQuery('');
+        setResults([]);
     };
 
     const handleSearch = (e) => {
@@ -61,12 +71,10 @@ const SearchBar = ({ isRTL }) => {
             const middleNotes = (product.middleNotes || '').toLowerCase();
             const baseNotes = (product.baseNotes || '').toLowerCase();
             
-            // Handle categories (can be array or string)
             const category = Array.isArray(product.category) 
                 ? product.category.join(' ').toLowerCase() 
                 : (product.category || '').toLowerCase();
             
-            // Handle tags/notes array if present
             const notes = Array.isArray(product.notes)
                 ? product.notes.join(' ').toLowerCase()
                 : (product.notes || '').toLowerCase();
@@ -85,9 +93,7 @@ const SearchBar = ({ isRTL }) => {
     };
 
     const handleResultClick = (id) => {
-        setIsOpen(false);
-        setQuery('');
-        setResults([]);
+        handleClose();
         navigate(`/product/${id}`);
     };
 
@@ -101,28 +107,47 @@ const SearchBar = ({ isRTL }) => {
     return (
         <div className={`search-bar-wrapper ${isOpen ? 'search-open' : ''}`} ref={wrapperRef}>
             <button
-                className="search-toggle-btn"
+                type="button"
+                className={`search-toggle-btn ${isOpen ? 'active' : ''}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     handleToggle();
                 }}
-                aria-label="Toggle search"
+                aria-label={isOpen ? "Close search" : "Open search"}
+                title={isOpen ? (isRTL ? "إغلاق البحث" : "Close Search") : (isRTL ? "بحث" : "Search")}
             >
                 {isOpen ? <X size={20} /> : <Search size={20} />}
             </button>
 
             <div className={`search-bar-expand ${isOpen ? 'expanded' : ''}`}>
                 <form className="search-bar-form" onSubmit={handleSubmit}>
-                    <Search size={16} className="search-bar-icon" />
+                    <Search size={18} className="search-bar-icon" />
                     <input
                         ref={inputRef}
                         type="text"
                         className="search-bar-input"
-                        placeholder={t('search.placeholder')}
+                        placeholder={t('search.placeholder') || (isRTL ? 'ابحث عن العطور، الماركات...' : 'Search fragrances, brands...')}
                         value={query}
                         onChange={handleSearch}
                         dir={isRTL ? 'rtl' : 'ltr'}
                     />
+                    <button
+                        type="button"
+                        className="search-clear-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (query) {
+                                setQuery('');
+                                setResults([]);
+                                inputRef.current?.focus();
+                            } else {
+                                handleClose();
+                            }
+                        }}
+                        aria-label="Clear or close search"
+                    >
+                        <X size={16} />
+                    </button>
                 </form>
             </div>
 

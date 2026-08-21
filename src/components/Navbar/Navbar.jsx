@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan, ChevronDown } from 'lucide-react';
@@ -26,6 +26,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const { wishlistItems } = useContext(WishlistContext);
     const { regions, activeRegion, changeRegion, isSupported, detectedCountry } = useContext(RegionContext);
     const [isRegionMenuOpen, setIsRegionMenuOpen] = useState(false);
+    const regionRef = useRef(null);
 
     // Check if the current route is the home page
     const isHomePage = location.pathname === '/';
@@ -56,12 +57,16 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     }, []);
 
     useEffect(() => {
-        const handleDocumentClick = () => {
-            setIsRegionMenuOpen(false);
+        const handleDocumentClick = (e) => {
+            if (regionRef.current && !regionRef.current.contains(e.target)) {
+                setIsRegionMenuOpen(false);
+            }
         };
-        document.addEventListener('click', handleDocumentClick);
+        document.addEventListener('mousedown', handleDocumentClick);
+        document.addEventListener('touchstart', handleDocumentClick);
         return () => {
-            document.removeEventListener('click', handleDocumentClick);
+            document.removeEventListener('mousedown', handleDocumentClick);
+            document.removeEventListener('touchstart', handleDocumentClick);
         };
     }, []);
 
@@ -218,7 +223,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     <SearchBar isRTL={isRTL} />
 
                     {activeRegion && (
-                        <div className="region-selector-dropdown-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <div className="region-selector-dropdown-container" ref={regionRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <button 
                                 className="icon-btn" 
                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px', fontSize: '0.9rem', cursor: 'pointer', height: '40px', background: 'transparent', border: 'none' }}
