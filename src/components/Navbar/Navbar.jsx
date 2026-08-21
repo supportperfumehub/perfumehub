@@ -30,6 +30,23 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     // Check if the current route is the home page
     const isHomePage = location.pathname === '/';
 
+    const getUserRoleBadge = () => {
+        if (!isAuthenticated || !user) return null;
+        const role = (user.role || '').toLowerCase();
+        const name = (user.name || '').toLowerCase();
+
+        if (role === 'super_admin' || name.includes('super admin')) {
+            return 'SA';
+        }
+        if (role === 'regional_admin' || name.includes('regional admin')) {
+            return 'RA';
+        }
+        if (role === 'vendor' || isVendor || role === 'admin' || name.includes('vendor')) {
+            return 'Admin';
+        }
+        return null; // Normal users / customers: profile symbol only!
+    };
+
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
@@ -271,10 +288,15 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         {/* User Profile / Login (Desktop Only) */}
                         <div className="user-access">
                             {isAuthenticated ? (
-                                <Link to="/profile" className="icon-btn profile-nav-item" title={isRTL ? 'حسابي' : 'Profile'}>
-                                    <User size={20} className="text-gold" />
-                                    <span className="user-nav-name">{user?.name || (isRTL ? 'حسابي' : 'Profile')}</span>
-                                </Link>
+                                (() => {
+                                    const roleBadge = getUserRoleBadge();
+                                    return (
+                                        <Link to="/profile" className="icon-btn profile-nav-item" title={user?.name || (isRTL ? 'حسابي' : 'Profile')}>
+                                            <User size={20} className={roleBadge ? "text-gold" : ""} />
+                                            {roleBadge && <span className="user-nav-name role-badge">{roleBadge}</span>}
+                                        </Link>
+                                    );
+                                })()
                             ) : (
                                 <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
                                     <User size={20} />

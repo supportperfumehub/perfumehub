@@ -143,26 +143,17 @@
 .profile-nav-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .user-nav-name {
-    display: none; /* Hide by default to prevent overflow */
-}
-
-@media (min-width: 1400px) {
-    .user-nav-name {
-        display: inline-block;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--color-gold);
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        text-transform: capitalize;
-        letter-spacing: 0.5px;
-    }
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-gold);
+    letter-spacing: 0.8px;
+    white-space: nowrap;
 }
 
 .lang-toggle .lang-text {
@@ -235,9 +226,6 @@
     }
     .icons-row {
         gap: 12px;
-    }
-    .user-nav-name {
-        display: none !important;
     }
     .lang-toggle .lang-text {
         display: none !important;
