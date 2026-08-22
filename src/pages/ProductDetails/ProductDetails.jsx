@@ -5,8 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
-import { RegionContext } from '../../context/RegionContext';
-import { ShoppingBag, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
+import { ShoppingBag, Zap, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
 import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
 import { getLocationWithFallback } from '../../utils/geolocation';
 import './ProductDetails.css';
@@ -136,6 +135,53 @@ const ProductDetails = () => {
     const displayDiscount = displayOldPrice && displayOldPrice > displayPrice 
         ? Math.round((1 - displayPrice / displayOldPrice) * 100)
         : product.discount;
+
+    const handleAddToCart = () => {
+        addToCart({
+            ...product, 
+            price: displayPrice,
+            inventory_id: selectedInventoryId, 
+            shop_id: selectedInventory?.shop_id 
+        }, quantity, isGiftWrapped, selectedSize, displayPrice);
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 2000);
+    };
+
+    const handleBuyNow = () => {
+        navigate('/checkout', { 
+            state: { 
+                product: { 
+                    ...product, 
+                    price: displayPrice,
+                    inventory_id: selectedInventoryId, 
+                    shop_id: selectedInventory?.shop_id 
+                }, 
+                quantity, 
+                isGiftWrapped, 
+                selectedSize, 
+                selectedPrice: displayPrice, 
+                isReservation: false 
+            } 
+        });
+    };
+
+    const handleReserve = () => {
+        navigate('/checkout', { 
+            state: { 
+                product: { 
+                    ...product, 
+                    price: displayPrice,
+                    inventory_id: selectedInventoryId, 
+                    shop_id: selectedInventory?.shop_id 
+                }, 
+                quantity, 
+                isGiftWrapped, 
+                selectedSize, 
+                selectedPrice: displayPrice, 
+                isReservation: true 
+            } 
+        });
+    };
 
     const regionName = activeRegion?.name || 'Qatar';
     const dynamicTitle = `${product.name} | ${product.brand} - Buy Online in ${regionName}`;
@@ -383,14 +429,68 @@ const ProductDetails = () => {
                                 <button
                                     className="btn-reserve-store"
                                     disabled={orderStock === 0}
-                                    onClick={() => {
-                                        navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
-                                    }}
+                                    onClick={handleReserve}
                                 >
                                     <span className="reserve-btn-text">{isRTL ? 'الحجز في المتجر' : 'Reserve in Store'}</span>
                                     <Store size={16} className="reserve-btn-icon" />
                                 </button>
                             )}
+                        </div>
+
+                        <div className="product-action-buttons-grid" style={{ display: 'flex', gap: '12px', margin: '14px 0 16px 0' }}>
+                            <button
+                                className="btn btn-add-cart-main"
+                                disabled={orderStock === 0}
+                                onClick={handleAddToCart}
+                                style={{
+                                    flex: 1,
+                                    height: '52px',
+                                    borderRadius: '12px',
+                                    background: '#1e293b',
+                                    color: '#f8fafc',
+                                    border: '1px solid rgba(200, 169, 81, 0.45)',
+                                    fontWeight: '700',
+                                    fontSize: '0.88rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                {addedToCart ? (
+                                    <><Check size={18} color="#34d399" />{isRTL ? 'تمت الإضافة' : 'ADDED'}</>
+                                ) : (
+                                    <><ShoppingBag size={18} color="#c8a951" />{isRTL ? 'أضف للسلة' : 'ADD TO CART'}</>
+                                )}
+                            </button>
+                            <button
+                                className="btn btn-buy-now-main"
+                                disabled={orderStock === 0}
+                                onClick={handleBuyNow}
+                                style={{
+                                    flex: 1.2,
+                                    height: '52px',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                    color: '#000000',
+                                    border: 'none',
+                                    fontWeight: '800',
+                                    fontSize: '0.92rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 16px rgba(200, 169, 81, 0.4)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Zap size={18} fill="#000000" color="#000000" />
+                                <span>{isRTL ? 'اشتر الآن' : 'BUY NOW'}</span>
+                            </button>
                         </div>
 
                         <div className="options-card">
@@ -556,34 +656,89 @@ const ProductDetails = () => {
 
             {/* Sticky Action Bar */}
             <div className="sticky-action-bar">
-                <div className="container" style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ flex: isReservationAvailable ? 1.2 : 1 }}>
-                        <PrimaryCTA 
+                <div className="container" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                        <button 
+                            className="btn btn-add-cart-sticky"
                             disabled={orderStock === 0}
-                            onClick={() => {
-                                addToCart({...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, displayPrice);
-                                setAddedToCart(true);
-                                setTimeout(() => setAddedToCart(false), 2000);
+                            onClick={handleAddToCart}
+                            style={{
+                                width: '100%',
+                                height: '50px',
+                                borderRadius: '999px',
+                                background: '#1e293b',
+                                color: '#f8fafc',
+                                border: '1px solid rgba(200, 169, 81, 0.4)',
+                                fontWeight: '700',
+                                fontSize: '0.85rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
                             }}
                         >
                             {addedToCart ? (
-                                <><Check size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.added')}</>
+                                <><Check size={18} color="#34d399" /><span>{isRTL ? 'تمت الإضافة' : 'ADDED'}</span></>
                             ) : (
-                                <><ShoppingBag size={18} style={{ margin: isRTL ? '0 0 0 8px' : '0 8px 0 0' }} />{t('product.add_to_cart')}</>
+                                <><ShoppingBag size={18} color="#c8a951" /><span>{isRTL ? 'أضف للسلة' : 'ADD TO CART'}</span></>
                             )}
-                        </PrimaryCTA>
+                        </button>
+                    </div>
+                    <div style={{ flex: 1.2 }}>
+                        <button
+                            className="btn btn-buy-now-sticky"
+                            disabled={orderStock === 0}
+                            onClick={handleBuyNow}
+                            style={{
+                                width: '100%',
+                                height: '50px',
+                                borderRadius: '999px',
+                                background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                color: '#000000',
+                                border: 'none',
+                                fontWeight: '800',
+                                fontSize: '0.9rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 16px rgba(200, 169, 81, 0.4)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <Zap size={18} fill="#000000" color="#000000" />
+                            <span>{isRTL ? 'اشتر الآن' : 'BUY NOW'}</span>
+                        </button>
                     </div>
                     {isReservationAvailable && (
-                        <div style={{ flex: 1 }}>
-                            <ReserveCTA
+                        <div style={{ flex: 0.9 }}>
+                            <button
+                                className="btn btn-reserve-sticky"
                                 disabled={orderStock === 0}
-                                onClick={() => {
-                                    // TODO: Trigger Reserve flow bottom sheet
-                                    navigate('/checkout', { state: { product: {...product, inventory_id: selectedInventoryId, shop_id: selectedInventory?.shop_id }, quantity, isGiftWrapped, selectedSize, selectedPrice: displayPrice, isReservation: true } });
+                                onClick={handleReserve}
+                                style={{
+                                    width: '100%',
+                                    height: '50px',
+                                    borderRadius: '999px',
+                                    background: '#f8fafc',
+                                    color: '#0f172a',
+                                    border: '1.5px solid #cbd5e1',
+                                    fontWeight: '700',
+                                    fontSize: '0.82rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
-                                {t('product.reserve_in_shop', 'Reserve in Shop')}
-                            </ReserveCTA>
+                                <Store size={17} color="#64748b" />
+                                <span>{isRTL ? 'حجز بالمتجر' : 'RESERVE'}</span>
+                            </button>
                         </div>
                     )}
                 </div>
