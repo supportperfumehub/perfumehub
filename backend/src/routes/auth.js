@@ -31,4 +31,9 @@ router.post('/reset-password', authRateLimiter, authController.resetPassword);
 router.post('/2fa/setup', authenticateUser, authController.setup2FA);
 router.post('/2fa/enable', authenticateUser, authController.enable2FA);
 
+// Device Management for SA, RA, and Vendor Admin
+router.get('/devices', authenticateUser, authController.getUserDevices);
+router.post('/devices/revoke', authenticateUser, authController.revokeDevice);
+router.post('/devices/revoke-all-others', authenticateUser, authController.revokeAllOtherDevices);
+
 export default router;

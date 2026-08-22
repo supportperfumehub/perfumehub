@@ -4,7 +4,7 @@ import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
-import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle, ShieldCheck } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle, ShieldCheck, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
 
@@ -287,6 +287,29 @@ const Profile = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Connected Devices Management for SA, RA, Vendor */}
+                        {['super_admin', 'admin', 'regional_admin', 'vendor'].includes(user?.role) && (
+                            <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'left', direction: isRTL ? 'rtl' : 'ltr' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#1e293b' }}>
+                                    <Smartphone size={18} style={{ color: 'var(--color-gold)' }} />
+                                    {isRTL ? 'الأجهزة المسجلة لحسابك' : 'Connected Devices'}
+                                </h4>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 12px 0' }}>
+                                    {isRTL 
+                                        ? 'تحكم في المتصفحات والأجهزة النشطة التي سجلت الدخول بحسابك.' 
+                                        : 'Manage and monitor all active login sessions across your devices.'}
+                                </p>
+                                <Link 
+                                    to={user?.role === 'vendor' ? '/vendor-panel' : '/admin'} 
+                                    className="btn btn-outline" 
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', color: '#1e293b', borderColor: '#cbd5e1', fontWeight: '600' }}
+                                >
+                                    <Smartphone size={14} color="#c8a951" />
+                                    {isRTL ? 'فتح إدارة الأجهزة في لوحة التحكم' : 'Manage Devices in Dashboard'}
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
 

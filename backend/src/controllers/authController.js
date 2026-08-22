@@ -44,7 +44,7 @@ export class AuthController {
     login = async (req, res, next) => {
         try {
             const { email, password } = req.body;
-            const result = await this.authService.login(email, password);
+            const result = await this.authService.login(email, password, req);
 
             if (result.requires2FA) {
                 return res.status(200).json({
@@ -77,7 +77,7 @@ export class AuthController {
             const oldToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
             if (!oldToken) return res.status(401).json({ success: false, error: 'No refresh token provided' });
 
-            const result = await this.authService.refresh(oldToken);
+            const result = await this.authService.refresh(oldToken, req);
             
             this.setRefreshCookie(res, result.refreshToken);
 
@@ -113,7 +113,7 @@ export class AuthController {
     verify2FA = async (req, res, next) => {
         try {
             const { userId, token } = req.body;
-            const result = await this.authService.verify2FA(userId, token);
+            const result = await this.authService.verify2FA(userId, token, req);
 
             this.setRefreshCookie(res, result.refreshToken);
 
@@ -190,7 +190,7 @@ export class AuthController {
             const { token } = req.body;
             if (!token) throw new AppError('No token provided', 400);
 
-            const result = await this.authService.googleLogin(token);
+            const result = await this.authService.googleLogin(token, req);
 
             this.setRefreshCookie(res, result.refreshToken);
 
@@ -200,6 +200,90 @@ export class AuthController {
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
                 user: result.user
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * GET /api/auth/devices
+     * Allowed only for SA (super_admin), RA (regional_admin), and Vendor admin (vendor/admin)
+     */
+    getUserDevices = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const allowedRoles = ['super_admin', 'admin', 'regional_admin', 'vendor'];
+            if (!allowedRoles.includes(user.role)) {
+                return res.status(403).json({ 
+                    success: false, 
+                    error: 'Device management is restricted to Super Admins, Regional Admins, and Vendor Admins.' 
+                });
+            }
+
+            const currentRefreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'] || req.body?.refreshToken;
+            const currentSessionId = req.sessionId || null;
+
+            const devices = await this.authService.getUserDevices(user.id, currentRefreshToken, currentSessionId);
+
+            res.status(200).json({
+                success: true,
+                totalDevices: devices.length,
+                devices,
+                userRole: user.role
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/auth/devices/revoke
+     */
+    revokeDevice = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const allowedRoles = ['super_admin', 'admin', 'regional_admin', 'vendor'];
+            if (!allowedRoles.includes(user.role)) {
+                return res.status(403).json({ success: false, error: 'Unauthorized' });
+            }
+
+            const { tokenId, sessionId } = req.body;
+            if (!tokenId && !sessionId) {
+                return res.status(400).json({ success: false, error: 'Token ID or Session ID required' });
+            }
+
+            await this.authService.revokeDevice(user.id, tokenId || sessionId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Device session revoked successfully'
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/auth/devices/revoke-all-others
+     */
+    revokeAllOtherDevices = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const allowedRoles = ['super_admin', 'admin', 'regional_admin', 'vendor'];
+            if (!allowedRoles.includes(user.role)) {
+                return res.status(403).json({ success: false, error: 'Unauthorized' });
+            }
+
+            const currentRefreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'] || req.body?.refreshToken;
+            const currentSessionId = req.sessionId || null;
+
+            const result = await this.authService.revokeAllOtherDevices(user.id, currentRefreshToken, currentSessionId);
+
+            res.status(200).json({
+                success: true,
+                message: 'All other device sessions have been logged out successfully',
+                ...result
             });
         } catch (error) {
             next(error);

@@ -5,9 +5,10 @@ import { ShopContext } from '../../context/ShopContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import ReservationManager from '../../components/Admin/ReservationManager';
+import DeviceManager from '../../components/Admin/DeviceManager';
 import ConfirmModal from '../../components/Common/ConfirmModal';
 import '../Admin/Admin.css'; // Use the premium admin styles
-import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck } from 'lucide-react';
+import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
@@ -189,11 +190,13 @@ const VendorPanel = () => {
         { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <PackageIcon size={20} /> },
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
+        { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
         { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> },
         { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
     ];
 
     const filteredTabs = shopId ? tabs : [
+        { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
         { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
     ];
 
@@ -247,6 +250,7 @@ const VendorPanel = () => {
                     {activeTab === 'products' && shopId && <ProductManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'orders' && shopId && <OrderManager isRTL={isRTL} shopId={shopId} />}
                     {activeTab === 'reservations' && shopId && <ReservationManager isRTL={isRTL} shopId={shopId} />}
+                    {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {activeTab === 'settings' && shopId && (
                         <div className="admin-section">
                             <div className="manager-header">

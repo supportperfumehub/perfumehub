@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient.js';
+import jwt from 'jsonwebtoken';
 
 export class UserRepository {
     /**
@@ -150,6 +151,87 @@ export class UserRepository {
             .eq('user_id', userId);
         
         if (error) throw error;
+    }
+
+    async findActiveUserRefreshTokens(userId) {
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_revoked', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+    }
+
+    async revokeUserDevice(userId, tokenIdOrSessionId) {
+        const { data: tokens, error: fetchErr } = await supabase
+            .from('refresh_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_revoked', false);
+
+        if (fetchErr) throw fetchErr;
+
+        let targetTokenId = null;
+        for (const t of (tokens || [])) {
+            if (String(t.id) === String(tokenIdOrSessionId)) {
+                targetTokenId = t.id;
+                break;
+            }
+            try {
+                const decoded = jwt.decode(t.token);
+                if (decoded && (decoded.sessionId === tokenIdOrSessionId || decoded.jti === tokenIdOrSessionId)) {
+                    targetTokenId = t.id;
+                    break;
+                }
+            } catch (e) {}
+        }
+
+        if (targetTokenId) {
+            const { error } = await supabase
+                .from('refresh_tokens')
+                .update({ is_revoked: true })
+                .eq('id', targetTokenId)
+                .eq('user_id', userId);
+            if (error) throw error;
+        }
+        return { success: true };
+    }
+
+    async revokeAllOtherUserDevices(userId, currentRefreshToken, currentSessionId) {
+        const { data: tokens, error: fetchErr } = await supabase
+            .from('refresh_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_revoked', false);
+
+        if (fetchErr) throw fetchErr;
+
+        const tokensToRevoke = [];
+        for (const t of (tokens || [])) {
+            if (currentRefreshToken && t.token === currentRefreshToken) {
+                continue;
+            }
+            try {
+                const decoded = jwt.decode(t.token);
+                if (currentSessionId && decoded && (decoded.sessionId === currentSessionId || decoded.jti === currentSessionId)) {
+                    continue;
+                }
+            } catch (e) {}
+            tokensToRevoke.push(t.id);
+        }
+
+        if (tokensToRevoke.length > 0) {
+            const { error } = await supabase
+                .from('refresh_tokens')
+                .update({ is_revoked: true })
+                .in('id', tokensToRevoke);
+            if (error) throw error;
+        }
+        return { success: true, revokedCount: tokensToRevoke.length };
     }
 
     /**

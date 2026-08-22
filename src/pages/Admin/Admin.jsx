@@ -12,9 +12,10 @@ import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package, Bell, BellOff, Trash2
+    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
+import DeviceManager from '../../components/Admin/DeviceManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
 import { Link } from 'react-router-dom';
 import './Admin.css';
@@ -101,6 +102,7 @@ const Admin = () => {
         { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
         ...(isSuperAdmin || isRegionalAdmin ? [
             { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
+            { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
         ] : []),
         ...(isSuperAdmin ? [
             { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
@@ -138,82 +140,55 @@ const Admin = () => {
                 <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
                         <Home size={20} />
-                        <span>{isRTL ? 'العودة للرئيسية' : 'Back to Home'}</span>
+                        <span className="nav-label">{isRTL ? 'المتجر الرئيسي' : 'Storefront'}</span>
                     </Link>
                 </div>
             </aside>
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="main-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-                    <h1>
-                        {tabs.find(t => t.id === activeTab)?.label}
-                    </h1>
+                <header className="admin-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                    <div className="welcome-text">
+                        <h1>
+                            {isRTL ? 'مرحباً، ' : 'Welcome back, '}
+                            <span className="gold-gradient-text">{user?.name || (isSuperAdmin ? 'Super Admin' : 'Regional Admin')}</span>
+                        </h1>
+                        <p>{isRTL ? 'إليك نظرة عامة على عمليات المتجر اليوم.' : "Here's what's happening with your store today."}</p>
+                    </div>
                     
                     {/* Admin Panel Notification Dropdown */}
-                    <div className="admin-notifications-container" ref={notificationRef}>
+                    <div className="admin-notification-wrapper" ref={notificationRef}>
                         <button 
-                            className="icon-btn notification-btn"
-                            style={{ 
-                                background: isNotificationOpen ? 'rgba(200, 169, 81, 0.15)' : 'rgba(255,255,255,0.05)', 
-                                border: isNotificationOpen ? '1px solid #c8a951' : '1px solid rgba(255,255,255,0.1)', 
-                                padding: '10px', 
-                                borderRadius: '12px', 
-                                color: isNotificationOpen ? '#c8a951' : '#f8fafc',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                position: 'relative',
-                                transition: 'all 0.2s',
-                                outline: 'none'
-                            }}
+                            className={`admin-notification-btn ${notifications.length > 0 ? 'has-notifications' : ''}`}
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                            title={isRTL ? 'التنبيهات' : 'Notifications'}
+                            aria-label={isRTL ? 'التنبيهات' : 'Notifications'}
                         >
                             <Bell size={20} />
                             {notifications.length > 0 && (
-                                <span style={{ 
-                                    position: 'absolute', 
-                                    top: '-2px', 
-                                    right: '-2px', 
-                                    background: '#c8a951', 
-                                    color: '#000', 
-                                    fontSize: '10px', 
-                                    fontWeight: 'bold', 
-                                    width: '16px', 
-                                    height: '16px', 
-                                    borderRadius: '50%', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center',
-                                    boxShadow: '0 0 8px #c8a951'
-                                }}>
-                                    {notifications.length}
-                                </span>
+                                <span className="notification-badge-count">{notifications.length}</span>
                             )}
                         </button>
                         
                         {isNotificationOpen && (
-                            <div className="admin-notification-dropdown">
+                            <div className="admin-notification-panel animate-scale-up">
                                 <div className="admin-notification-header">
-                                    <h4>
-                                        <Bell size={15} />
-                                        {isRTL ? 'تنبيهات النظام' : 'System Notifications'}
-                                    </h4>
+                                    <div className="admin-notification-title">
+                                        <Bell size={16} />
+                                        <span>{isRTL ? 'التنبيهات' : 'Notifications'}</span>
+                                        <span className="notification-count-tag">{notifications.length}</span>
+                                    </div>
                                     {notifications.length > 0 && (
                                         <button
                                             type="button"
-                                            className="admin-notification-clear-all"
+                                            className="admin-clear-all-btn"
                                             onClick={handleClearAllNotifications}
-                                            title={isRTL ? 'مسح كل التنبيهات' : 'Clear all notifications'}
+                                            title={isRTL ? 'مسح الكل' : 'Clear all'}
                                         >
-                                            <Trash2 size={12} />
-                                            <span>{isRTL ? 'مسح الكل' : 'Clear all'}</span>
+                                            {isRTL ? 'مسح الكل' : 'Clear all'}
                                         </button>
                                     )}
                                 </div>
-                                <div className="admin-notification-list">
+                                <div className="admin-notification-body">
                                     {notifications.length > 0 ? (
                                         notifications.map(item => (
                                             <div key={item.id} className="admin-notification-item">
@@ -261,6 +236,7 @@ const Admin = () => {
                     {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
                     {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
+                    {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
                     {activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
                     {activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}

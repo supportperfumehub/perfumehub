@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/tokenUtils.js';
+import { parseUserAgent } from '../utils/deviceParser.js';
 import { AppError } from '../middleware/errorHandler.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -46,7 +48,7 @@ export class AuthService {
     /**
      * Login User
      */
-    async login(email, password) {
+    async login(email, password, req = null) {
         const user = await this.userRepository.findByEmail(email);
 
         if (!user) {
@@ -85,33 +87,62 @@ export class AuthService {
             return { requires2FA: true, userId: user.id };
         }
 
-        return this.issueTokens(user);
+        return this.issueTokens(user, req);
     }
 
     /**
-     * Issue Token Pair
+     * Issue Token Pair with Device Metadata
      */
-    async issueTokens(user) {
-        const payload = { id: user.id, email: user.email, role: user.role };
+    async issueTokens(user, req = null) {
+        const userAgent = req?.headers ? (req.headers['user-agent'] || 'Web Browser') : 'Web Browser';
+        const rawIp = req ? (req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || '127.0.0.1') : '127.0.0.1';
+        const clientIp = (rawIp || '127.0.0.1').replace('::ffff:', '');
+        const deviceInfo = parseUserAgent(userAgent);
+        const sessionId = crypto.randomUUID();
+
+        const payload = { 
+            id: user.id, 
+            email: user.email, 
+            role: user.role, 
+            shop_id: user.shop_id,
+            sessionId 
+        };
         const accessToken = generateAccessToken(payload);
         const refreshToken = generateRefreshToken({ 
             id: user.id, 
             version: user.refresh_token_version || 0,
-            jti: crypto.randomUUID()
+            jti: sessionId,
+            sessionId,
+            deviceName: deviceInfo.deviceName,
+            browser: deviceInfo.browser,
+            os: deviceInfo.os,
+            deviceType: deviceInfo.deviceType,
+            ip: clientIp,
+            createdAt: new Date().toISOString()
         });
 
         // Save refresh token
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+        expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
         await this.userRepository.saveRefreshToken(user.id, refreshToken, expiresAt.toISOString());
 
-        return { accessToken, refreshToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id } };
+        return { 
+            accessToken, 
+            refreshToken, 
+            user: { 
+                id: user.id, 
+                name: user.name, 
+                email: user.email, 
+                role: user.role, 
+                shop_id: user.shop_id 
+            } 
+        };
     }
 
     /**
      * Refresh Token Logic (Rotate)
      */
-    async refresh(oldRefreshToken) {
+    async refresh(oldRefreshToken, req = null) {
         const decoded = verifyRefreshToken(oldRefreshToken);
         if (!decoded) {
             throw new AppError('Invalid refresh token', 401);
@@ -126,7 +157,13 @@ export class AuthService {
         if (storedToken && storedToken.is_revoked) {
             const activeToken = await this.userRepository.findActiveUserRefreshToken(user.id);
             if (activeToken && new Date(activeToken.expires_at) > new Date()) {
-                const accessToken = generateAccessToken(user);
+                const accessToken = generateAccessToken({ 
+                    id: user.id, 
+                    email: user.email, 
+                    role: user.role, 
+                    shop_id: user.shop_id,
+                    sessionId: decoded.sessionId || decoded.jti 
+                });
                 return {
                     accessToken,
                     refreshToken: activeToken.token,
@@ -145,7 +182,7 @@ export class AuthService {
             await this.userRepository.revokeRefreshToken(oldRefreshToken);
         }
         
-        const tokens = await this.issueTokens(user);
+        const tokens = await this.issueTokens(user, req);
         return {
             ...tokens,
             user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id }
@@ -164,7 +201,7 @@ export class AuthService {
     /**
      * Verify 2FA
      */
-    async verify2FA(userId, token) {
+    async verify2FA(userId, token, req = null) {
         const user = await this.userRepository.findById(userId);
         if (!user || !user.two_factor_secret) {
             throw new AppError('2FA not enabled', 400);
@@ -177,7 +214,7 @@ export class AuthService {
             throw new AppError('Invalid 2FA code', 401);
         }
 
-        return this.issueTokens(user);
+        return this.issueTokens(user, req);
     }
 
     /**
@@ -274,7 +311,7 @@ export class AuthService {
     /**
      * Google Login via Supabase OAuth verification
      */
-    async googleLogin(supabaseToken) {
+    async googleLogin(supabaseToken, req = null) {
         try {
             // 1. Verify token with Supabase
             const response = await axios.get(`${process.env.SUPABASE_URL}/auth/v1/user`, {
@@ -305,10 +342,73 @@ export class AuthService {
             }
 
             // 3. Issue backend tokens
-            return this.issueTokens(user);
+            return this.issueTokens(user, req);
         } catch (error) {
             console.error('AuthService.googleLogin Error:', error.response?.data || error.message);
             throw new AppError('Google verification failed', 401);
         }
+    }
+
+    /**
+     * Get all active device sessions for a user
+     */
+    async getUserDevices(userId, currentRefreshToken = null, currentSessionId = null) {
+        const tokens = await this.userRepository.findActiveUserRefreshTokens(userId);
+        
+        const devices = [];
+        const seenSessionIds = new Set();
+
+        for (const record of tokens) {
+            try {
+                // Decode token to extract device payload
+                const decoded = verifyRefreshToken(record.token) || jwt.decode(record.token);
+                if (!decoded) continue;
+
+                const sessionId = decoded.sessionId || decoded.jti || record.id;
+                
+                // Deduplicate if identical session
+                if (seenSessionIds.has(sessionId)) continue;
+                seenSessionIds.add(sessionId);
+
+                const isCurrent = (currentRefreshToken && record.token === currentRefreshToken) ||
+                                  (currentSessionId && decoded.sessionId === currentSessionId);
+
+                devices.push({
+                    id: record.id,
+                    sessionId,
+                    deviceName: decoded.deviceName || 'Web Browser',
+                    browser: decoded.browser || 'Browser',
+                    os: decoded.os || 'Unknown OS',
+                    deviceType: decoded.deviceType || 'desktop',
+                    ip: decoded.ip || '127.0.0.1',
+                    createdAt: decoded.createdAt || record.created_at,
+                    expiresAt: record.expires_at,
+                    isCurrent: Boolean(isCurrent)
+                });
+            } catch (err) {
+                console.error('Error decoding device session token:', err.message);
+            }
+        }
+
+        // If no device was matched as current, mark the newest one as current
+        if (devices.length > 0 && !devices.some(d => d.isCurrent)) {
+            devices[0].isCurrent = true;
+        }
+
+        return devices;
+    }
+
+    /**
+     * Revoke a specific device session
+     */
+    async revokeDevice(userId, tokenIdOrSessionId) {
+        return this.userRepository.revokeUserDevice(userId, tokenIdOrSessionId);
+    }
+
+    /**
+     * Revoke all other device sessions except current one
+     */
+    async revokeAllOtherDevices(userId, currentRefreshToken = null, currentSessionId = null) {
+        return this.userRepository.revokeAllOtherUserDevices(userId, currentRefreshToken, currentSessionId);
     }
 }
