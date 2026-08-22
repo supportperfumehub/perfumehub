@@ -156,13 +156,29 @@ const ShopsManager = ({ isRTL }) => {
 
     const getStatusBadge = (status) => {
         const styles = {
-            pending: { bg: '#f1c40f', label: isRTL ? 'قيد المراجعة' : 'Pending' },
-            active: { bg: '#2ecc71', label: isRTL ? 'نشط' : 'Active' },
-            rejected: { bg: '#e74c3c', label: isRTL ? 'مرفوض' : 'Rejected' },
-            suspended: { bg: '#95a5a6', label: isRTL ? 'موقوف' : 'Suspended' }
+            pending: { bg: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.4)', color: '#facc15', label: isRTL ? 'قيد المراجعة' : 'PENDING' },
+            active: { bg: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.4)', color: '#4ade80', label: isRTL ? 'نشط' : 'ACTIVE' },
+            rejected: { bg: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', label: isRTL ? 'مرفوض' : 'REJECTED' },
+            suspended: { bg: 'rgba(148, 163, 184, 0.15)', border: '1px solid rgba(148, 163, 184, 0.4)', color: '#94a3b8', label: isRTL ? 'موقوف' : 'SUSPENDED' }
         };
-        const s = styles[status] || { bg: '#999', label: status };
-        return <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '600', backgroundColor: s.bg, color: '#fff' }}>{s.label}</span>;
+        const s = styles[status] || { bg: 'rgba(148, 163, 184, 0.15)', border: '1px solid rgba(148, 163, 184, 0.4)', color: '#94a3b8', label: status?.toUpperCase() || 'UNKNOWN' };
+        return (
+            <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '3px 10px',
+                borderRadius: '6px',
+                fontSize: '0.72rem',
+                fontWeight: '700',
+                letterSpacing: '0.5px',
+                backgroundColor: s.bg,
+                border: s.border,
+                color: s.color,
+                whiteSpace: 'nowrap'
+            }}>
+                {s.label}
+            </span>
+        );
     };
 
     // Get shop-specific analytics
@@ -442,17 +458,46 @@ const ShopsManager = ({ isRTL }) => {
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
-                                    {shop.region_id && (
-                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                            {isRTL ? 'إدارة إقليمية' : 'Regional'}
-                                        </span>
-                                    )}
+                                    {(() => {
+                                        if (!shop.region_id) return null;
+                                        const reg = regions.find(r => Number(r.id) === Number(shop.region_id));
+                                        const flagMap = { 'QA': '🇶🇦', 'AE': '🇦🇪', 'GB': '🇬🇧', 'SA': '🇸🇦', 'KW': '🇰🇼', 'OM': '🇴🇲', 'BH': '🇧🇭' };
+                                        return (
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                padding: '2px 8px',
+                                                backgroundColor: 'rgba(200, 169, 81, 0.15)',
+                                                border: '1px solid rgba(200, 169, 81, 0.35)',
+                                                color: '#c8a951',
+                                                borderRadius: '6px',
+                                                fontWeight: '600',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {reg ? `${flagMap[reg.code?.toUpperCase()] || '📍'} ${reg.name}` : (isRTL ? 'إقليمي' : 'Regional')}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
-                                <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{shop.customers?.name || 'Unknown'} · {shop.customers?.email || ''}</div>
+                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                                    {shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}
+                                </div>
                             </div>
-                            {!isMobile && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.85rem' }}>
-                                    <MapPin size={14} /> {shop.address?.substring(0, 30)}{shop.address?.length > 30 ? '...' : ''}
+                            {!isMobile && shop.address && (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px', 
+                                    color: '#cbd5e1', 
+                                    fontSize: '0.82rem',
+                                    background: 'rgba(15, 23, 42, 0.6)',
+                                    padding: '5px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(51, 65, 85, 0.5)'
+                                }}>
+                                    <MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}
                                 </div>
                             )}
                             <div style={{ marginLeft: isRTL ? '0' : 'auto', marginRight: isRTL ? 'auto' : '0' }}>{getStatusBadge(shop.status)}</div>
@@ -464,46 +509,92 @@ const ShopsManager = ({ isRTL }) => {
                                             toggleShopRecommendation(shop.id, shop.is_recommended); 
                                         }} 
                                         style={{ 
-                                            background: 'transparent', 
-                                            border: 'none', 
-                                            padding: '4px', 
+                                            background: 'rgba(255, 255, 255, 0.04)', 
+                                            border: '1px solid rgba(255, 255, 255, 0.08)', 
+                                            padding: '6px', 
                                             cursor: 'pointer', 
                                             display: 'flex', 
                                             alignItems: 'center', 
                                             justifyContent: 'center',
-                                            borderRadius: '50%',
+                                            borderRadius: '8px',
                                             transition: 'all 0.2s',
                                             marginRight: '4px'
                                         }}
                                         title={shop.is_recommended ? (isRTL ? 'إزالة من الموثوقة' : 'Remove from Trusted') : (isRTL ? 'إضافة إلى الموثوقة' : 'Add to Trusted')}
                                     >
                                         <Star 
-                                            size={20} 
+                                            size={18} 
                                             fill={shop.is_recommended ? '#c8a951' : 'transparent'} 
                                             color={shop.is_recommended ? '#c8a951' : '#94a3b8'} 
                                             style={{ 
-                                                filter: shop.is_recommended ? 'drop-shadow(0 0 4px rgba(200,169,81,0.4))' : 'none',
-                                                transform: shop.is_recommended ? 'scale(1.1)' : 'scale(1)'
+                                                filter: shop.is_recommended ? 'drop-shadow(0 0 4px rgba(200,169,81,0.4))' : 'none'
                                             }}
                                         />
                                     </button>
                                 )}
                                 {shop.status !== 'active' && (
-                                    <button onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'active'); }} style={{ background: '#2ecc71', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'active'); }} 
+                                        style={{ 
+                                            background: 'rgba(34, 197, 94, 0.15)', 
+                                            color: '#4ade80', 
+                                            border: '1px solid rgba(34, 197, 94, 0.4)', 
+                                            padding: '5px 12px', 
+                                            borderRadius: '6px', 
+                                            cursor: 'pointer', 
+                                            fontSize: '0.8rem',
+                                            fontWeight: '600'
+                                        }}
+                                    >
                                         {isRTL ? 'تفعيل' : 'Approve'}
                                     </button>
                                 )}
                                 {shop.status === 'active' && (
-                                    <button onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'suspended'); }} style={{ background: '#e74c3c', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'suspended'); }} 
+                                        style={{ 
+                                            background: 'rgba(239, 68, 68, 0.15)', 
+                                            color: '#f87171', 
+                                            border: '1px solid rgba(239, 68, 68, 0.4)', 
+                                            padding: '5px 12px', 
+                                            borderRadius: '6px', 
+                                            cursor: 'pointer', 
+                                            fontSize: '0.8rem',
+                                            fontWeight: '600'
+                                        }}
+                                    >
                                         {isRTL ? 'إيقاف' : 'Suspend'}
                                     </button>
                                 )}
                                 {shop.status === 'pending' && (
-                                    <button onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'rejected'); }} style={{ background: '#95a5a6', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'rejected'); }} 
+                                        style={{ 
+                                            background: 'rgba(148, 163, 184, 0.15)', 
+                                            color: '#cbd5e1', 
+                                            border: '1px solid rgba(148, 163, 184, 0.4)', 
+                                            padding: '5px 12px', 
+                                            borderRadius: '6px', 
+                                            cursor: 'pointer', 
+                                            fontSize: '0.8rem',
+                                            fontWeight: '600'
+                                        }}
+                                    >
                                         {isRTL ? 'رفض' : 'Reject'}
                                     </button>
                                 )}
-                                {isExpanded ? <ChevronUp size={18} color="#888" /> : <ChevronDown size={18} color="#888" />}
+                                <div style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '6px', 
+                                    background: 'rgba(255, 255, 255, 0.04)', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                                }}>
+                                    {isExpanded ? <ChevronUp size={16} color="#c8a951" /> : <ChevronDown size={16} color="#94a3b8" />}
+                                </div>
                             </div>
                         </div>
 

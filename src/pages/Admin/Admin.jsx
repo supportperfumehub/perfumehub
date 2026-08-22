@@ -119,7 +119,7 @@ const Admin = () => {
                 <div className="sidebar-header">
                     <h2>{isRTL ? 'لوحة القيادة' : 'Dashboard'}</h2>
                     <span className="role-badge">
-                        {user?.name || (isSuperAdmin ? 'Super Admin' : 'Regional Admin')}
+                        {isSuperAdmin ? 'SA' : isRegionalAdmin ? 'RA' : (user?.name || 'Admin')}
                     </span>
                 </div>
                 
@@ -147,11 +147,13 @@ const Admin = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="admin-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                <header className="admin-topbar">
                     <div className="welcome-text">
                         <h1>
                             {isRTL ? 'مرحباً، ' : 'Welcome back, '}
-                            <span className="gold-gradient-text">{user?.name || (isSuperAdmin ? 'Super Admin' : 'Regional Admin')}</span>
+                            <span className="gold-gradient-text">
+                                {user?.name || (isSuperAdmin ? (isRTL ? 'المدير العام (SA)' : 'Super Admin (SA)') : (isRTL ? 'المدير الإقليمي (RA)' : 'Regional Admin (RA)'))}
+                            </span>
                         </h1>
                         <p>{isRTL ? 'إليك نظرة عامة على عمليات المتجر اليوم.' : "Here's what's happening with your store today."}</p>
                     </div>

@@ -3,82 +3,104 @@
 .admin-dashboard {
     display: flex;
     min-height: 100vh;
-    background-color: #0f172a; /* Deep modern dark blue */
+    background-color: #0b1120; /* Deep luxury dark navy */
     color: #f8fafc;
     font-family: 'Inter', sans-serif;
-    padding-top: 100px; /* Crucial: Push content below fixed Navbar */
+    padding-top: 80px; /* Crucial: Push content below fixed Navbar */
 }
 
 /* Sidebar */
 .admin-sidebar {
-    width: 280px;
-    background-color: #1e293b;
-    border-right: 1px solid #334155;
+    width: 270px;
+    background: #111827;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
-    padding: 24px 0;
+    padding: 20px 0;
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
     transition: all 0.3s ease;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #111827;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #c8a951;
 }
 
 .admin-dashboard.rtl .admin-sidebar {
     border-right: none;
-    border-left: 1px solid #334155;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-header {
-    padding: 0 24px 32px;
-    border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* Subtler border */
-    margin-bottom: 24px;
-    overflow: visible; /* CRITICAL: Prevents badge clipping */
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 16px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
 }
 
 .sidebar-header h2 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
-    color: #e2e8f0;
-    margin-bottom: 8px;
+    color: #f8fafc;
+    margin: 0;
+    letter-spacing: -0.3px;
 }
 
 .role-badge {
-    display: inline-flex; /* Use flex for centering if needed */
+    display: inline-flex;
     align-items: center;
-    padding: 5px 14px;
+    justify-content: center;
+    padding: 3px 10px;
     background: linear-gradient(135deg, #c8a951 0%, #ebb637 100%);
     color: #000;
     font-size: 11px;
     font-weight: 800;
-    border-radius: 20px;
+    border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    width: fit-content;
-    box-shadow: 0 4px 12px rgba(200, 169, 81, 0.3); /* Subtle glow */
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 10px rgba(200, 169, 81, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 0 16px;
+    gap: 4px;
+    padding: 0 12px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 14px 20px;
+    gap: 14px;
+    padding: 11px 16px;
     background: transparent;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     color: #94a3b8;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
+    width: 100%;
 }
 
 .admin-dashboard.rtl .nav-item {
@@ -86,20 +108,34 @@
 }
 
 .nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #f8fafc;
+    transform: translateX(2px);
+}
+
+.admin-dashboard.rtl .nav-item:hover {
+    transform: translateX(-2px);
 }
 
 .nav-item.active {
-    background-color: rgba(200, 169, 81, 0.15);
-    color: #c8a951;
+    background: linear-gradient(90deg, rgba(200, 169, 81, 0.18) 0%, rgba(200, 169, 81, 0.04) 100%);
+    border-left: 3px solid #c8a951;
+    color: #f8fafc;
     font-weight: 600;
+}
+
+.admin-dashboard.rtl .nav-item.active {
+    border-left: none;
+    border-right: 3px solid #c8a951;
+    background: linear-gradient(270deg, rgba(200, 169, 81, 0.18) 0%, rgba(200, 169, 81, 0.04) 100%);
 }
 
 .nav-icon {
     display: flex;
     align-items: center;
     justify-content: center;
+    color: inherit;
+    flex-shrink: 0;
 }
 
 /* Main Content Wrapper */
@@ -108,35 +144,60 @@
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
+    min-width: 0;
 }
 
-.main-header {
-    padding: 32px 48px;
-    background-color: #1e293b;
-    border-bottom: 1px solid #334155;
+/* Admin Top Bar */
+.admin-topbar {
+    padding: 22px 36px;
+    background: #111827;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.35);
 }
 
-.main-header h1 {
-    font-size: 28px;
-    font-weight: 600;
+.admin-topbar .welcome-text h1 {
+    font-size: 22px;
+    font-weight: 700;
     color: #f8fafc;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    letter-spacing: -0.3px;
+}
+
+.admin-topbar .welcome-text p {
+    margin: 4px 0 0 0;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.gold-gradient-text {
+    background: linear-gradient(135deg, #c8a951 0%, #ebb637 50%, #fde047 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
 }
 
 .main-content-wrapper {
-    padding: 48px;
+    padding: 32px 36px;
     flex: 1;
     overflow-y: auto;
-    background-color: #0f172a;
+    background-color: #0b1120;
 }
 
 /* Base override for existing admin components inside the new layout */
 .main-content-wrapper .admin-section {
     background: #1e293b;
     border-radius: 16px;
-    padding: 32px;
+    padding: 28px;
     box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-    border: 1px solid #334155;
+    border: 1px solid rgba(51, 65, 85, 0.7);
     margin-bottom: 24px;
 }
 
@@ -1122,11 +1183,56 @@
 }
 
 /* Notification Popover & Items */
-.admin-notifications-container {
+.admin-notifications-container,
+.admin-notification-wrapper {
     position: relative;
 }
 
-.admin-notification-dropdown {
+.admin-notification-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    color: #cbd5e1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.admin-notification-btn:hover {
+    background: rgba(200, 169, 81, 0.15);
+    border-color: rgba(200, 169, 81, 0.4);
+    color: #c8a951;
+}
+
+.admin-notification-btn.has-notifications {
+    color: #c8a951;
+    border-color: rgba(200, 169, 81, 0.3);
+}
+
+.notification-badge-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #c8a951;
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(200, 169, 81, 0.5);
+}
+
+.admin-notification-dropdown,
+.admin-notification-panel {
     position: absolute;
     right: 0;
     top: calc(100% + 12px);
@@ -1140,7 +1246,8 @@
     animation: adminNotifFadeIn 0.2s ease-out;
 }
 
-.admin-dashboard.rtl .admin-notification-dropdown {
+.admin-dashboard.rtl .admin-notification-dropdown,
+.admin-dashboard.rtl .admin-notification-panel {
     right: auto;
     left: 0;
 }
@@ -1165,6 +1272,7 @@
     padding-bottom: 10px;
 }
 
+.admin-notification-title,
 .admin-notification-header h4 {
     margin: 0;
     font-size: 14px;
@@ -1175,6 +1283,17 @@
     gap: 8px;
 }
 
+.notification-count-tag {
+    background: rgba(200, 169, 81, 0.15);
+    border: 1px solid rgba(200, 169, 81, 0.3);
+    color: #c8a951;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.admin-clear-all-btn,
 .admin-notification-clear-all {
     background: transparent;
     border: none;
@@ -1190,11 +1309,13 @@
     font-family: inherit;
 }
 
+.admin-clear-all-btn:hover,
 .admin-notification-clear-all:hover {
     color: #ef4444;
     background: rgba(239, 68, 68, 0.12);
 }
 
+.admin-notification-body,
 .admin-notification-list {
     display: flex;
     flex-direction: column;
