@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Sparkles, Megaphone, Plus, Trash2, Search, Filter, CheckCircle, XCircle, Store, Calendar, TrendingUp, Pencil, RefreshCw, Check, ChevronDown, Globe } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+import ConfirmModal from '../Common/ConfirmModal';
 
 const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -280,7 +281,16 @@ const DiscoveryManager = ({ isRTL }) => {
     const deleteCampaign = async (id) => {
         setConfirmModal({
             isOpen: true,
-            message: isRTL ? 'هل أنت متأكد من حذف هذه الحملة؟' : 'Are you sure you want to delete this campaign?',
+            title: isRTL ? 'حذف حملة الاكتشاف' : 'DELETE DISCOVERY CAMPAIGN',
+            message: (
+                <span>
+                    {isRTL 
+                        ? 'هل أنت متأكد من حذف هذه الحملة من قسم الاكتشاف؟' 
+                        : 'Are you sure you want to delete this discovery campaign?'}
+                </span>
+            ),
+            confirmText: isRTL ? 'حذف' : 'DELETE',
+            cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/discover-campaigns/${id}`);
@@ -426,7 +436,16 @@ const DiscoveryManager = ({ isRTL }) => {
     const clearAllCampaigns = async () => {
         setConfirmModal({
             isOpen: true,
-            message: isRTL ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف؟' : 'Are you sure you want to clear ALL discover campaigns?',
+            title: isRTL ? 'مسح كافة حملات الاكتشاف' : 'CLEAR ALL DISCOVERY CAMPAIGNS',
+            message: (
+                <span>
+                    {isRTL 
+                        ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف؟' 
+                        : 'Are you sure you want to clear ALL discovery campaigns?'}
+                </span>
+            ),
+            confirmText: isRTL ? 'مسح الكل' : 'CLEAR ALL',
+            cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
                     await api.delete('/admin/discover-campaigns/clear-all');
@@ -1356,66 +1375,19 @@ const DiscoveryManager = ({ isRTL }) => {
                 </div>
             )}
 
-            {/* Premium Custom Confirmation Modal */}
-            {confirmModal.isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'rgba(0,0,0,0.75)',
-                    backdropFilter: 'blur(4px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2000,
-                    animation: 'fadeIn 0.2s ease-out'
-                }}>
-                    <div className="admin-card" style={{
-                        width: '90%',
-                        maxWidth: '400px',
-                        padding: '24px',
-                        textAlign: 'center',
-                        border: '1px solid var(--color-gold)',
-                        borderRadius: '16px',
-                        background: '#0f172a',
-                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
-                    }}>
-                        <div style={{ color: '#e2e8f0', fontSize: '1.1rem', marginBottom: '24px', fontWeight: '500', lineHeight: '1.5' }}>
-                            {confirmModal.message}
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                            <button 
-                                className="btn btn-outline"
-                                style={{
-                                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                                    color: '#fff',
-                                    padding: '8px 20px',
-                                    borderRadius: '8px'
-                                }}
-                                onClick={() => setConfirmModal({ isOpen: false, message: '', onConfirm: null })}
-                            >
-                                {isRTL ? 'إلغاء' : 'Cancel'}
-                            </button>
-                            <button 
-                                className="btn btn-gold"
-                                style={{
-                                    padding: '8px 24px',
-                                    borderRadius: '8px',
-                                    color: '#000'
-                                }}
-                                onClick={() => {
-                                    if (confirmModal.onConfirm) confirmModal.onConfirm();
-                                    setConfirmModal({ isOpen: false, message: '', onConfirm: null });
-                                }}
-                            >
-                                {isRTL ? 'موافق' : 'OK'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Luxury Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText={confirmModal.cancelText}
+                isRTL={isRTL}
+                variant="danger"
+                iconType="trash"
+            />
 
             {/* Premium Custom Alert Modal */}
             {alertModal.isOpen && (

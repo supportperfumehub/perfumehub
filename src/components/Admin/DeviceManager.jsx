@@ -18,6 +18,7 @@ import {
     Check
 } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+import ConfirmModal from '../Common/ConfirmModal';
 
 const DeviceManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
@@ -62,10 +63,18 @@ const DeviceManager = ({ isRTL }) => {
     const handleRevokeDevice = (device) => {
         setConfirmModal({
             isOpen: true,
-            title: isRTL ? 'تسجيل خروج الجهاز' : 'Log Out Device',
-            message: isRTL 
-                ? `هل أنت متأكد من تسجيل خروج هذا الجهاز (${device.deviceName}) من حسابك؟`
-                : `Are you sure you want to log out this device (${device.deviceName}) from your account?`,
+            title: isRTL ? 'تسجيل خروج الجهاز' : 'LOG OUT DEVICE',
+            message: (
+                <span>
+                    {isRTL ? 'هل أنت متأكد من تسجيل خروج ' : 'Are you sure you want to log out '}
+                    <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                        {device.deviceName || 'Web Browser'}
+                    </strong>
+                    {isRTL ? 'من حسابك؟' : 'from your account?'}
+                </span>
+            ),
+            confirmText: isRTL ? 'تسجيل خروج' : 'LOG OUT',
+            cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
                     setActionLoading(device.id);
@@ -86,10 +95,16 @@ const DeviceManager = ({ isRTL }) => {
     const handleRevokeAllOthers = () => {
         setConfirmModal({
             isOpen: true,
-            title: isRTL ? 'تسجيل الخروج من جميع الأجهزة الأخرى' : 'Log Out All Other Devices',
-            message: isRTL 
-                ? 'هل أنت متأكد من رغبتك في تسجيل الخروج من كافة الأجهزة والمتصفحات الأخرى؟ ستبقى مسجلاً للدخول على هذا الجهاز فقط.'
-                : 'Are you sure you want to log out of all other devices and active browsers? You will remain logged in on this current device only.',
+            title: isRTL ? 'تسجيل الخروج من كافة الأجهزة' : 'LOG OUT ALL OTHER DEVICES',
+            message: (
+                <span>
+                    {isRTL 
+                        ? 'هل أنت متأكد من تسجيل الخروج من كافة الأجهزة والمتصفحات النشطة الأخرى؟ ستبقى مسجلاً للدخول على هذا الجهاز فقط.'
+                        : 'Are you sure you want to log out of all other active devices and browser sessions? You will remain logged in on this current device only.'}
+                </span>
+            ),
+            confirmText: isRTL ? 'تسجيل الخروج للكل' : 'LOG OUT ALL',
+            cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
                     setActionLoading('all-others');
@@ -522,66 +537,19 @@ const DeviceManager = ({ isRTL }) => {
                 </>
             )}
 
-            {/* Confirmation Modal */}
-            {confirmModal.isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.75)',
-                    backdropFilter: 'blur(4px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 9999,
-                    padding: '20px'
-                }}>
-                    <div style={{
-                        background: '#1e293b',
-                        border: '1px solid #334155',
-                        borderRadius: '16px',
-                        width: '100%',
-                        maxWidth: '460px',
-                        padding: '24px',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '10px', borderRadius: '10px', color: '#ef4444' }}>
-                                <AlertTriangle size={24} />
-                            </div>
-                            <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.2rem' }}>{confirmModal.title}</h3>
-                        </div>
-                        <p style={{ color: '#cbd5e1', fontSize: '0.92rem', lineHeight: '1.6', marginBottom: '24px' }}>
-                            {confirmModal.message}
-                        </p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button
-                                type="button"
-                                className="btn btn-outline"
-                                onClick={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
-                                style={{ padding: '8px 18px', borderColor: '#334155', color: '#94a3b8', background: 'transparent' }}
-                            >
-                                {isRTL ? 'إلغاء' : 'Cancel'}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={confirmModal.onConfirm}
-                                style={{
-                                    padding: '8px 20px',
-                                    background: '#ef4444',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {isRTL ? 'تأكيد تسجيل الخروج' : 'Confirm Log Out'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Luxury Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText={confirmModal.cancelText}
+                isRTL={isRTL}
+                variant="danger"
+                iconType="trash"
+            />
         </div>
     );
 };
