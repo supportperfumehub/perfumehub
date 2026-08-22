@@ -692,46 +692,144 @@ const DiscoveryManager = ({ isRTL }) => {
                             return (
                                 <tr key={camp.id}>
                                     <td>
-                                        <div style={{ fontWeight: '600', color: '#f8fafc' }}>{camp.shop_name}</div>
+                                        <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{camp.shop_name}</div>
                                         {camp.product_name && (
-                                            <div style={{ fontSize: '0.75rem', color: '#c8a951', marginTop: '2px' }}>
-                                                📢 {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
+                                            <div style={{ 
+                                                fontSize: '0.78rem', 
+                                                color: '#fef08a', 
+                                                background: 'rgba(234, 179, 8, 0.15)', 
+                                                border: '1px solid rgba(234, 179, 8, 0.35)', 
+                                                padding: '2px 8px', 
+                                                borderRadius: '6px', 
+                                                marginTop: '4px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                fontWeight: '600'
+                                            }}>
+                                                🏷️ {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
                                             </div>
                                         )}
                                     </td>
                                     <td>
-                                        <span className="status-badge" style={{ background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', border: '1px solid rgba(200, 169, 81, 0.3)', whiteSpace: 'nowrap' }}>
+                                        <span style={{ 
+                                            background: 'rgba(200, 169, 81, 0.15)', 
+                                            color: '#c8a951', 
+                                            border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                            padding: '4px 10px',
+                                            borderRadius: '6px',
+                                            fontWeight: '700',
+                                            fontSize: '0.78rem',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            whiteSpace: 'nowrap' 
+                                        }}>
                                             {badge.flag} {badge.name}
                                         </span>
                                     </td>
-                                    <td><span className="status-badge" style={{ background: '#334155', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{camp.placement_slot.replace('_', ' ')}</span></td>
-                                    <td style={{ whiteSpace: 'nowrap' }}>{camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>
+                                        <span style={{ 
+                                            background: 'rgba(30, 41, 59, 0.9)', 
+                                            border: '1px solid rgba(100, 116, 139, 0.6)', 
+                                            color: '#f8fafc', 
+                                            padding: '4px 10px', 
+                                            borderRadius: '6px', 
+                                            fontWeight: '600', 
+                                            fontSize: '0.78rem',
+                                            textTransform: 'capitalize', 
+                                            whiteSpace: 'nowrap' 
+                                        }}>
+                                            {camp.placement_slot.replace('_', ' ')}
+                                        </span>
+                                    </td>
+                                    <td style={{ whiteSpace: 'nowrap', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '500' }}>
+                                        {camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}
+                                    </td>
                                     <td>
                                         <button
                                             onClick={() => toggleCampaignActive(camp)}
                                             style={{
-                                                background: 'transparent',
-                                                border: 'none',
+                                                background: camp.active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                                border: camp.active ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
+                                                color: camp.active ? '#4ade80' : '#cbd5e1',
+                                                padding: '4px 12px',
+                                                borderRadius: '6px',
                                                 cursor: 'pointer',
-                                                fontSize: '0.85rem',
-                                                display: 'flex',
+                                                fontSize: '0.78rem',
+                                                fontWeight: '700',
+                                                display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '4px',
+                                                gap: '6px',
                                                 whiteSpace: 'nowrap',
-                                                color: camp.active ? '#34d399' : '#94a3b8'
+                                                transition: 'all 0.15s ease'
                                             }}
                                         >
-                                            {camp.active ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                            {camp.active ? <CheckCircle size={13} color="#4ade80" /> : <XCircle size={13} color="#94a3b8" />}
                                             {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
                                         </button>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button className="admin-action-btn edit-btn" onClick={() => openEditModal(camp)} title={isRTL ? 'تعديل' : 'Edit'}>
-                                                <Pencil size={16} />
+                                            <button 
+                                                onClick={() => openEditModal(camp)} 
+                                                title={isRTL ? 'تعديل' : 'Edit'}
+                                                style={{
+                                                    width: '36px',
+                                                    height: '36px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(59, 130, 246, 0.45)',
+                                                    background: 'rgba(59, 130, 246, 0.15)',
+                                                    color: '#93c5fd',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.35)';
+                                                    e.currentTarget.style.borderColor = '#3b82f6';
+                                                    e.currentTarget.style.color = '#ffffff';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                                                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+                                                    e.currentTarget.style.color = '#93c5fd';
+                                                }}
+                                            >
+                                                <Pencil size={15} />
                                             </button>
-                                            <button className="admin-action-btn delete-btn" onClick={() => deleteCampaign(camp.id)} title={isRTL ? 'حذف' : 'Delete'}>
-                                                <Trash2 size={16} />
+                                            <button 
+                                                onClick={() => deleteCampaign(camp.id)} 
+                                                title={isRTL ? 'حذف' : 'Delete'}
+                                                style={{
+                                                    width: '36px',
+                                                    height: '36px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(239, 68, 68, 0.45)',
+                                                    background: 'rgba(239, 68, 68, 0.15)',
+                                                    color: '#fca5a5',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.2)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
+                                                    e.currentTarget.style.borderColor = '#ef4444';
+                                                    e.currentTarget.style.color = '#ffffff';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                                                    e.currentTarget.style.color = '#fca5a5';
+                                                }}
+                                            >
+                                                <Trash2 size={15} />
                                             </button>
                                         </div>
                                     </td>
@@ -744,23 +842,32 @@ const DiscoveryManager = ({ isRTL }) => {
 
             {/* Featured Shop Toggle List */}
             <div className="discovery-section-header">
-                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc' }}>
-                    <Store size={18} style={{ marginRight: '8px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Store size={18} color="#c8a951" />
                     {isRTL ? 'تحرير المتاجر المميزة' : 'Feature Shops & Boosts'}
                 </h3>
                 
                 {/* Filter Tabs */}
-                <div className="filter-tabs-container">
+                <div style={{
+                    display: 'flex',
+                    gap: '6px',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    padding: '4px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(51, 65, 85, 0.7)'
+                }}>
                     <button
                         onClick={() => setFilter('all')}
                         style={{
-                            background: filter === 'all' ? '#334155' : 'transparent',
-                            color: filter === 'all' ? '#f8fafc' : '#94a3b8',
+                            background: filter === 'all' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'transparent',
+                            color: filter === 'all' ? '#000000' : '#f8fafc',
                             border: 'none',
-                            borderRadius: '6px',
-                            padding: '4px 12px',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer'
+                            borderRadius: '8px',
+                            padding: '6px 14px',
+                            fontSize: '0.82rem',
+                            fontWeight: filter === 'all' ? '800' : '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                         }}
                     >
                         {isRTL ? 'الكل' : 'All'}
@@ -768,14 +875,15 @@ const DiscoveryManager = ({ isRTL }) => {
                     <button
                         onClick={() => setFilter('featured')}
                         style={{
-                            background: filter === 'featured' ? '#c8a951' : 'transparent',
-                            color: filter === 'featured' ? '#000' : '#94a3b8',
+                            background: filter === 'featured' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'transparent',
+                            color: filter === 'featured' ? '#000000' : '#f8fafc',
                             border: 'none',
-                            borderRadius: '6px',
-                            padding: '4px 12px',
-                            fontSize: '0.8rem',
-                            fontWeight: filter === 'featured' ? '600' : '400',
-                            cursor: 'pointer'
+                            borderRadius: '8px',
+                            padding: '6px 14px',
+                            fontSize: '0.82rem',
+                            fontWeight: filter === 'featured' ? '800' : '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                         }}
                     >
                         {isRTL ? 'المميزة فقط' : 'Featured Only'}
@@ -783,13 +891,15 @@ const DiscoveryManager = ({ isRTL }) => {
                     <button
                         onClick={() => setFilter('regular')}
                         style={{
-                            background: filter === 'regular' ? '#334155' : 'transparent',
-                            color: filter === 'regular' ? '#f8fafc' : '#94a3b8',
+                            background: filter === 'regular' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'transparent',
+                            color: filter === 'regular' ? '#000000' : '#f8fafc',
                             border: 'none',
-                            borderRadius: '6px',
-                            padding: '4px 12px',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer'
+                            borderRadius: '8px',
+                            padding: '6px 14px',
+                            fontSize: '0.82rem',
+                            fontWeight: filter === 'regular' ? '800' : '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                         }}
                     >
                         {isRTL ? 'العادية فقط' : 'Regular Only'}
@@ -798,7 +908,7 @@ const DiscoveryManager = ({ isRTL }) => {
             </div>
             
             <div className="admin-search-container" style={{ marginBottom: '20px' }}>
-                <span className="admin-search-icon"><Search size={16} /></span>
+                <span className="admin-search-icon"><Search size={16} color="#94a3b8" /></span>
                 <input 
                     type="text" 
                     className="form-control admin-search-input" 
@@ -827,21 +937,47 @@ const DiscoveryManager = ({ isRTL }) => {
                             return (
                                 <tr key={shop.id}>
                                     <td>
-                                        <div style={{ fontWeight: '600' }}>{shop.name}</div>
-                                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{shop.id}</div>
+                                        <div style={{ fontWeight: '700', color: '#f8fafc' }}>{shop.name}</div>
+                                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>ID: {shop.id}</div>
                                     </td>
                                     <td>
-                                        <span className="status-badge" style={{ background: '#334155', whiteSpace: 'nowrap' }}>
+                                        <span style={{ 
+                                            background: 'rgba(200, 169, 81, 0.15)', 
+                                            color: '#c8a951', 
+                                            border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                            padding: '4px 10px',
+                                            borderRadius: '6px',
+                                            fontWeight: '700',
+                                            fontSize: '0.78rem',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            whiteSpace: 'nowrap' 
+                                        }}>
                                             {badge.flag} {badge.name}
                                         </span>
                                     </td>
                                     <td>
                                         <button 
-                                            className={`admin-action-btn ${shop.is_featured ? 'edit-btn' : ''}`}
                                             onClick={() => toggleFeatured(shop.id, shop.is_featured)}
-                                            style={{ width: 'auto', padding: '6px 12px', gap: '8px', borderColor: shop.is_featured ? '#c8a951' : '#334155', color: shop.is_featured ? '#c8a951' : '#94a3b8' }}
+                                            style={{ 
+                                                width: 'auto', 
+                                                padding: '6px 14px', 
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px', 
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '700',
+                                                transition: 'all 0.15s ease',
+                                                background: shop.is_featured ? 'rgba(200, 169, 81, 0.18)' : 'rgba(255, 255, 255, 0.06)',
+                                                border: shop.is_featured ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                color: shop.is_featured ? '#fef08a' : '#cbd5e1',
+                                                boxShadow: shop.is_featured ? '0 2px 8px rgba(200, 169, 81, 0.25)' : 'none'
+                                            }}
                                         >
-                                            {shop.is_featured ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                                            {shop.is_featured ? <CheckCircle size={15} color="#c8a951" /> : <XCircle size={15} color="#94a3b8" />}
                                             {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
                                         </button>
                                     </td>
@@ -851,7 +987,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                                 type="number" 
                                                 step="0.1" min="0.1" max="10.0"
                                                 className="form-control" 
-                                                style={{ width: '80px', height: '36px', fontSize: '0.9rem' }}
+                                                style={{ width: '80px', height: '36px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '700', color: '#f8fafc', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px' }}
                                                 value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
                                                 onChange={(e) => handleBoostChange(shop.id, e.target.value)}
                                                 onBlur={() => saveBoost(shop.id)}
@@ -861,7 +997,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                                     }
                                                 }}
                                             />
-                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>x</span>
+                                            <span style={{ fontSize: '0.85rem', color: '#c8a951', fontWeight: '700' }}>x</span>
                                             {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
                                         </div>
                                     </td>
