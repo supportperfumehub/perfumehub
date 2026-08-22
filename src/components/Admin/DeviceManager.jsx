@@ -161,44 +161,69 @@ const DeviceManager = ({ isRTL }) => {
                             : 'Monitor and manage all active devices and browsers currently logged into your admin account.'}
                     </p>
                 </div>
-                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px' }}>
+                <div className="manager-header-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button 
-                        className="btn btn-outline" 
                         onClick={fetchDevices}
                         disabled={loading}
                         style={{ 
-                            borderColor: 'rgba(255, 255, 255, 0.2)', 
-                            color: '#ffffff',
-                            background: '#1e293b',
-                            padding: '8px 16px',
-                            cursor: 'pointer',
+                            border: '1px solid rgba(255, 255, 255, 0.25)', 
+                            color: '#f8fafc',
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            padding: '9px 18px',
+                            borderRadius: '10px',
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#c8a951';
+                            e.currentTarget.style.color = '#c8a951';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                            e.currentTarget.style.color = '#f8fafc';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
                         }}
                     >
-                        <RefreshCw size={15} className={loading ? 'spin' : ''} />
+                        <RefreshCw size={15} color="#c8a951" className={loading ? 'spin' : ''} />
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
 
                     {otherDevices.length > 0 && (
                         <button 
-                            className="btn btn-outline"
                             onClick={handleRevokeAllOthers}
                             disabled={actionLoading === 'all-others'}
                             style={{
-                                borderColor: '#ef4444',
-                                color: '#ef4444',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                padding: '8px 16px',
-                                cursor: 'pointer',
+                                border: '1px solid rgba(239, 68, 68, 0.6)',
+                                color: '#ffffff',
+                                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.85) 0%, rgba(220, 38, 38, 0.95) 100%)',
+                                padding: '9px 20px',
+                                borderRadius: '10px',
+                                cursor: actionLoading === 'all-others' ? 'not-allowed' : 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px',
-                                fontWeight: '600'
+                                gap: '8px',
+                                fontWeight: '700',
+                                fontSize: '0.85rem',
+                                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.35)';
                             }}
                         >
-                            <LogOut size={15} />
+                            <LogOut size={16} />
                             {actionLoading === 'all-others' 
                                 ? (isRTL ? 'جاري تسجيل الخروج...' : 'Logging out...') 
                                 : (isRTL ? 'تسجيل الخروج من باقي الأجهزة' : 'Log Out All Other Devices')}
@@ -444,26 +469,43 @@ const DeviceManager = ({ isRTL }) => {
 
                                         <div>
                                             <button
-                                                className="btn btn-outline"
                                                 onClick={() => handleRevokeDevice(device)}
                                                 disabled={actionLoading === device.id}
                                                 style={{
-                                                    borderColor: '#ef4444',
-                                                    color: '#ef4444',
-                                                    background: 'transparent',
-                                                    padding: '8px 14px',
+                                                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                                                    color: '#fca5a5',
+                                                    background: 'rgba(239, 68, 68, 0.15)',
+                                                    padding: '9px 18px',
                                                     fontSize: '0.82rem',
-                                                    fontWeight: '600',
+                                                    fontWeight: '700',
+                                                    letterSpacing: '0.5px',
+                                                    borderRadius: '8px',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '6px',
-                                                    cursor: actionLoading === device.id ? 'not-allowed' : 'pointer'
+                                                    gap: '7px',
+                                                    cursor: actionLoading === device.id ? 'not-allowed' : 'pointer',
+                                                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.18)',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                                                    e.currentTarget.style.borderColor = '#ef4444';
+                                                    e.currentTarget.style.color = '#ffffff';
+                                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.35)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                                                    e.currentTarget.style.color = '#fca5a5';
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.18)';
                                                 }}
                                             >
-                                                <LogOut size={14} />
+                                                <LogOut size={14} color="#f87171" />
                                                 {actionLoading === device.id 
                                                     ? (isRTL ? 'جاري الخروج...' : 'Logging out...') 
-                                                    : (isRTL ? 'تسجيل الخروج' : 'Log Out')}
+                                                    : (isRTL ? 'تسجيل الخروج' : 'LOG OUT')}
                                             </button>
                                         </div>
                                     </div>

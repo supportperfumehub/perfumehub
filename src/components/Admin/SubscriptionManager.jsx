@@ -247,12 +247,76 @@ const SubscriptionManager = ({ isRTL }) => {
                         )}
 
                         <div style={{ marginTop: '20px', borderTop: '1px solid #334155', paddingTop: '16px' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-outline" style={{ flex: 1, height: '36px' }} onClick={() => handleEdit(plan)}>
-                                    <Edit size={14} /> {isRTL ? 'تعديل' : 'Edit'}
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button 
+                                    onClick={() => handleEdit(plan)}
+                                    style={{
+                                        flex: 1,
+                                        height: '38px',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(200, 169, 81, 0.45)',
+                                        background: 'rgba(200, 169, 81, 0.12)',
+                                        color: '#f8fafc',
+                                        fontWeight: '700',
+                                        fontSize: '0.82rem',
+                                        letterSpacing: '0.5px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(200, 169, 81, 0.25)';
+                                        e.currentTarget.style.borderColor = '#c8a951';
+                                        e.currentTarget.style.color = '#ffffff';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                                        e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.45)';
+                                        e.currentTarget.style.color = '#f8fafc';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                    }}
+                                >
+                                    <Edit size={14} color="#c8a951" /> {isRTL ? 'تعديل' : 'EDIT'}
                                 </button>
-                                <button className="btn btn-outline" style={{ flex: 1, height: '36px', borderColor: '#ef444433', color: '#ef4444' }} onClick={() => handleDeleteClick(plan)}>
-                                    <Trash2 size={14} /> {isRTL ? 'حذف' : 'Delete'}
+                                <button 
+                                    onClick={() => handleDeleteClick(plan)}
+                                    style={{
+                                        flex: 1,
+                                        height: '38px',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(239, 68, 68, 0.45)',
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        color: '#fca5a5',
+                                        fontWeight: '700',
+                                        fontSize: '0.82rem',
+                                        letterSpacing: '0.5px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 2px 6px rgba(239, 68, 68, 0.15)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                                        e.currentTarget.style.borderColor = '#ef4444';
+                                        e.currentTarget.style.color = '#ffffff';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                                        e.currentTarget.style.color = '#fca5a5';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                    }}
+                                >
+                                    <Trash2 size={14} color="#f87171" /> {isRTL ? 'حذف' : 'DELETE'}
                                 </button>
                             </div>
                         </div>

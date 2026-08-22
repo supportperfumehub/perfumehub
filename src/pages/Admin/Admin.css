@@ -562,47 +562,72 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: 999px;
-    font-weight: 600;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 10px 20px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    text-decoration: none;
+    letter-spacing: 0.3px;
 }
 
-.btn-gold {
-    background: linear-gradient(135deg, #c8a951 0%, #d4b86a 100%);
-    color: #000;
-    border: none;
+.btn-gold,
+.btn-primary {
+    background: linear-gradient(135deg, #c8a951 0%, #ebb637 100%) !important;
+    color: #000000 !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 4px 14px rgba(200, 169, 81, 0.35);
+    font-weight: 800;
 }
 
-.btn-gold:hover {
+.btn-gold:hover,
+.btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(200, 169, 81, 0.3);
+    box-shadow: 0 6px 20px rgba(200, 169, 81, 0.5);
+    filter: brightness(1.05);
 }
 
 .btn-outline {
-    background: transparent;
-    border: 1px solid #334155;
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f8fafc;
 }
 
 .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #f8fafc;
-    border-color: #475569;
+    background: rgba(200, 169, 81, 0.15);
+    color: #c8a951;
+    border-color: rgba(200, 169, 81, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    font-weight: 700;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
 
 .btn-slate {
-    background: #334155;
+    background: rgba(51, 65, 85, 0.6);
     color: #f8fafc;
-    border: 1px solid #475569;
+    border: 1px solid rgba(100, 116, 139, 0.5);
 }
 
 .btn-slate:hover {
-    background: #475569;
-    border-color: #64748b;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(71, 85, 105, 0.8);
+    border-color: #94a3b8;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Action Buttons (Table Row Icons) */

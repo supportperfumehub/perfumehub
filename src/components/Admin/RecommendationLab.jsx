@@ -105,37 +105,74 @@ const RecommendationLab = ({ isRTL }) => {
                     <Sliders size={24} color="#c8a951" />
                     {isRTL ? 'مختبر الخوارزميات' : 'Recommendation Lab'}
                 </h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button 
-                        className="btn btn-outline" 
                         onClick={fetchConfig} 
                         disabled={saving}
                         style={{ 
-                            borderColor: 'rgba(255, 255, 255, 0.3)', 
-                            color: '#ffffff',
-                            background: 'transparent',
-                            transition: 'all 0.2s ease',
-                            padding: '8px 16px',
-                            cursor: 'pointer',
+                            border: '1px solid rgba(255, 255, 255, 0.25)', 
+                            color: '#f8fafc',
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            borderRadius: '10px',
+                            padding: '9px 18px',
+                            cursor: saving ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px'
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#c8a951';
                             e.currentTarget.style.color = '#c8a951';
-                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.08)';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                            e.currentTarget.style.color = '#ffffff';
-                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                            e.currentTarget.style.color = '#f8fafc';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
                         }}
                     >
-                        <RefreshCw size={16} /> {isRTL ? 'إعادة ضبط' : 'Reset'}
+                        <RefreshCw size={15} color="#c8a951" className={saving ? 'spin' : ''} /> 
+                        {isRTL ? 'إعادة ضبط' : 'RESET'}
                     </button>
-                    <button className="btn btn-primary" onClick={handleSave} disabled={saving || !isBalanced}>
-                        <Save size={16} /> {saving ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
+
+                    <button 
+                        onClick={handleSave} 
+                        disabled={saving || !isBalanced}
+                        style={{
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            background: (!isBalanced || saving) ? '#334155' : 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                            color: (!isBalanced || saving) ? '#94a3b8' : '#000000',
+                            fontWeight: '800',
+                            borderRadius: '10px',
+                            padding: '9px 22px',
+                            cursor: (!isBalanced || saving) ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            letterSpacing: '0.5px',
+                            boxShadow: (!isBalanced || saving) ? 'none' : '0 4px 14px rgba(200, 169, 81, 0.4)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (isBalanced && !saving) {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(200, 169, 81, 0.55)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (isBalanced && !saving) {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(200, 169, 81, 0.4)';
+                            }
+                        }}
+                    >
+                        <Save size={16} color={(!isBalanced || saving) ? '#94a3b8' : '#000000'} /> 
+                        {saving ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ التغييرات' : 'SAVE CHANGES')}
                     </button>
                 </div>
             </div>
