@@ -209,15 +209,19 @@ const CouponsManager = ({ isRTL }) => {
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                 onConfirm={confirmDelete}
                 title={isRTL ? 'حذف الرمز الترويجي' : 'DELETE COUPON'}
-                message={isRTL 
-                    ? `هل أنت متأكد من حذف الكوبون "${confirmModal.couponCode}"؟` 
-                    : `Are you sure you want to delete coupon "${confirmModal.couponCode}"?`
+                message={
+                    <span>
+                        {isRTL ? 'هل أنت متأكد من حذف الكوبون ' : 'Are you sure you want to delete coupon '}
+                        <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px', letterSpacing: '0.5px' }}>
+                            {confirmModal.couponCode}
+                        </strong>
+                        {isRTL ? '؟' : '?'}
+                    </span>
                 }
                 confirmText={isRTL ? 'حذف' : 'DELETE'}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"
-                isPremium={true}
                 iconType="trash"
             />
         </div>

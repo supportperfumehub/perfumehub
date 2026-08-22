@@ -1813,20 +1813,31 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 title={confirmModal.isLinkedItem 
                     ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
                     : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT')}
-                message={confirmModal.isLinkedItem
-                    ? (isRTL 
-                        ? `هل أنت متأكد من إزالة "${confirmModal.productName}" من مخزون المتجر؟` 
-                        : `Are you sure you want to remove "${confirmModal.productName}" from this shop's inventory?`)
-                    : (isRTL 
-                        ? `هل أنت متأكد من حذف المنتج "${confirmModal.productName}"؟` 
-                        : `Are you sure you want to delete "${confirmModal.productName}"?`)}
+                message={
+                    confirmModal.isLinkedItem ? (
+                        <span>
+                            {isRTL ? 'هل أنت متأكد من إزالة ' : 'Are you sure you want to remove '}
+                            <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                                {confirmModal.productName}
+                            </strong>
+                            {isRTL ? 'من مخزون هذا المتجر؟' : 'from this shop inventory?'}
+                        </span>
+                    ) : (
+                        <span>
+                            {isRTL ? 'هل أنت متأكد من حذف المنتج ' : 'Are you sure you want to delete '}
+                            <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                                {confirmModal.productName}
+                            </strong>
+                            {isRTL ? '؟' : '?'}
+                        </span>
+                    )
+                }
                 confirmText={confirmModal.isLinkedItem 
                     ? (isRTL ? 'إزالة' : 'REMOVE') 
                     : (isRTL ? 'حذف' : 'DELETE')}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"
-                isPremium={true}
                 iconType="trash"
             />
         </div>
