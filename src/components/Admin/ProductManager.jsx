@@ -1811,23 +1811,23 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false })}
                 onConfirm={confirmDelete}
                 title={confirmModal.isLinkedItem 
-                    ? (isRTL ? 'إلغاء ربط المخزون' : 'REMOVE FROM SHOP INVENTORY') 
-                    : (isRTL ? 'تأكيد الأرشفة' : 'ARCHIVE PRODUCT ITEM')}
+                    ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
+                    : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT')}
                 message={confirmModal.isLinkedItem
                     ? (isRTL 
-                        ? `هل أنت متأكد من إزالة "${confirmModal.productName}" من مخزون هذا المتجر؟ سيبقى المنتج متاحاً في الكتالوج العام.` 
-                        : `Are you sure you want to remove "${confirmModal.productName}" from this shop's inventory? The product will remain intact in the global catalog.`)
+                        ? `هل أنت متأكد من إزالة "${confirmModal.productName}" من مخزون المتجر؟` 
+                        : `Are you sure you want to remove "${confirmModal.productName}" from this shop's inventory?`)
                     : (isRTL 
-                        ? `هل أنت متأكد أنك تريد أرشفة "${confirmModal.productName}"؟ يمكنك استعادته لاحقاً من قسم الاسترداد.` 
-                        : `This will move "${confirmModal.productName}" to the recovery archive. You may restore it at any time from the Recovery section.`)}
+                        ? `هل أنت متأكد من حذف المنتج "${confirmModal.productName}"؟` 
+                        : `Are you sure you want to delete "${confirmModal.productName}"?`)}
                 confirmText={confirmModal.isLinkedItem 
-                    ? (isRTL ? 'إزالة من المتجر' : 'REMOVE FROM SHOP') 
-                    : (isRTL ? 'أرشفة الآن' : 'ARCHIVE NOW')}
+                    ? (isRTL ? 'إزالة' : 'REMOVE') 
+                    : (isRTL ? 'حذف' : 'DELETE')}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"
                 isPremium={true}
-                iconType="archive"
+                iconType="trash"
             />
         </div>
     );

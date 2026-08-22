@@ -208,17 +208,17 @@ const CouponsManager = ({ isRTL }) => {
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                 onConfirm={confirmDelete}
-                title={isRTL ? 'أرشفة الرمز الترويجي' : 'ARCHIVE PROMO CODE'}
+                title={isRTL ? 'حذف الرمز الترويجي' : 'DELETE COUPON'}
                 message={isRTL 
-                    ? `هل أنت متأكد أنك تريد أرشفة الكوبون "${confirmModal.couponCode}"؟ سيتم تعطيله فوراً.` 
-                    : `This will safely remove "${confirmModal.couponCode}" from active use. You can restore this promo code later from the Recovery section.`
+                    ? `هل أنت متأكد من حذف الكوبون "${confirmModal.couponCode}"؟` 
+                    : `Are you sure you want to delete coupon "${confirmModal.couponCode}"?`
                 }
-                confirmText={isRTL ? 'تعطيل الرمز' : 'DEACTIVATE CODE'}
+                confirmText={isRTL ? 'حذف' : 'DELETE'}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"
                 isPremium={true}
-                iconType="archive"
+                iconType="trash"
             />
         </div>
     );

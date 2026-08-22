@@ -189,6 +189,12 @@
     border: 1px solid rgba(212, 175, 55, 0.15);
 }
 
+.premium-icon.danger {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
 .premium-confirm {
     background: #D4AF37 !important;
     color: #000000 !important;
@@ -202,20 +208,38 @@
     box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
 }
 
+.premium-confirm.danger,
+.btn-confirm.danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    border: 1px solid rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
+.premium-confirm.danger:hover,
+.btn-confirm.danger:hover {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.55) !important;
+    transform: translateY(-2px);
+}
+
 .premium-matte-content .btn-cancel {
-    background: #334155 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
     color: #f8fafc !important;
-    border: 1px solid #475569 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    font-weight: 700 !important;
 }
 
 .premium-matte-content .btn-cancel:hover {
-    background: #475569 !important;
+    background: rgba(255, 255, 255, 0.16) !important;
     color: #FFFFFF !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
     transform: translateY(-2px);
 }
 
 .premium-matte-content .confirm-modal-close {
-    color: rgba(255, 255, 255, 0.3) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .premium-matte-content .confirm-modal-close:hover {
