@@ -469,38 +469,100 @@ const DiscoveryManager = ({ isRTL }) => {
                     <Sparkles size={24} color="#c8a951" />
                     {isRTL ? 'إدارة الاكتشاف' : 'Discovery Manager'}
                 </h2>
-                <div className="manager-header-actions">
+                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button 
-                        className="btn btn-outline" 
                         onClick={fetchData}
                         style={{ 
-                            borderColor: 'rgba(255, 255, 255, 0.3)', 
+                            border: '1px solid rgba(200, 169, 81, 0.4)', 
                             color: '#ffffff',
-                            background: 'transparent',
-                            padding: '8px 16px',
-                            cursor: 'pointer'
+                            background: 'rgba(200, 169, 81, 0.12)',
+                            padding: '9px 18px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: '700',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.25)';
+                            e.currentTarget.style.borderColor = '#c8a951';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                            e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.4)';
+                            e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
-                        <RefreshCw size={14} style={{ marginRight: '6px' }} />
+                        <RefreshCw size={15} color="#c8a951" />
                         {isRTL ? 'تحديث' : 'Refresh'}
                     </button>
                     {campaigns.length > 0 && (
                         <button 
-                            className="btn btn-outline"
                             onClick={clearAllCampaigns}
                             style={{
-                                borderColor: '#ef4444',
-                                color: '#ef4444',
-                                background: 'transparent',
-                                padding: '8px 16px',
-                                cursor: 'pointer'
+                                border: '1px solid rgba(239, 68, 68, 0.5)',
+                                color: '#fca5a5',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                padding: '9px 18px',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.85rem',
+                                fontWeight: '700',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.18)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                                e.currentTarget.style.borderColor = '#ef4444';
+                                e.currentTarget.style.color = '#ffffff';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                                e.currentTarget.style.color = '#fca5a5';
+                                e.currentTarget.style.transform = 'translateY(0)';
                             }}
                         >
-                            <Trash2 size={14} style={{ marginRight: '6px' }} />
+                            <Trash2 size={15} color="#f87171" />
                             {isRTL ? 'مسح الكل' : 'Clear All'}
                         </button>
                     )}
-                    <button className="btn btn-gold" onClick={() => setIsModalOpen(true)}>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        style={{
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                            color: '#000000',
+                            fontWeight: '800',
+                            borderRadius: '10px',
+                            padding: '9px 20px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            letterSpacing: '0.3px',
+                            boxShadow: '0 4px 14px rgba(200, 169, 81, 0.35)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(200, 169, 81, 0.5)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(200, 169, 81, 0.35)';
+                        }}
+                    >
                         <Plus size={16} /> {isRTL ? 'حملة جديدة' : 'New Campaign'}
                     </button>
                 </div>
@@ -510,31 +572,33 @@ const DiscoveryManager = ({ isRTL }) => {
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
                 marginBottom: '24px',
-                padding: '12px 16px',
-                background: 'rgba(30, 41, 59, 0.6)',
-                border: '1px solid rgba(51, 65, 85, 0.6)',
-                borderRadius: '12px',
-                flexWrap: 'wrap'
+                padding: '14px 18px',
+                background: 'rgba(30, 41, 59, 0.75)',
+                border: '1px solid rgba(51, 65, 85, 0.8)',
+                borderRadius: '14px',
+                flexWrap: 'wrap',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
             }}>
-                <span style={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Globe size={16} color="#c8a951" />
+                <span style={{ color: '#f8fafc', fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={18} color="#c8a951" />
                     {isRTL ? 'تصفية حسب المنطقة:' : 'Target Region:'}
                 </span>
                 <button
                     type="button"
                     onClick={() => setSelectedRegion('all')}
                     style={{
-                        background: selectedRegion === 'all' ? '#c8a951' : 'rgba(15, 23, 42, 0.7)',
-                        color: selectedRegion === 'all' ? '#000' : '#cbd5e1',
-                        border: selectedRegion === 'all' ? '1px solid #c8a951' : '1px solid #334155',
+                        background: selectedRegion === 'all' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
+                        color: selectedRegion === 'all' ? '#000000' : '#f8fafc',
+                        border: selectedRegion === 'all' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
                         borderRadius: '8px',
-                        padding: '6px 14px',
-                        fontSize: '0.82rem',
-                        fontWeight: selectedRegion === 'all' ? '700' : '500',
+                        padding: '7px 16px',
+                        fontSize: '0.84rem',
+                        fontWeight: '700',
                         cursor: 'pointer',
-                        transition: 'all 0.15s'
+                        transition: 'all 0.15s ease',
+                        boxShadow: selectedRegion === 'all' ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none'
                     }}
                 >
                     🌐 {isRTL ? 'جميع المناطق' : 'All Regions'}
@@ -548,15 +612,16 @@ const DiscoveryManager = ({ isRTL }) => {
                             type="button"
                             onClick={() => setSelectedRegion(String(r.id))}
                             style={{
-                                background: isSelected ? '#c8a951' : 'rgba(15, 23, 42, 0.7)',
-                                color: isSelected ? '#000' : '#cbd5e1',
-                                border: isSelected ? '1px solid #c8a951' : '1px solid #334155',
+                                background: isSelected ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
+                                color: isSelected ? '#000000' : '#f8fafc',
+                                border: isSelected ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
                                 borderRadius: '8px',
-                                padding: '6px 14px',
-                                fontSize: '0.82rem',
-                                fontWeight: isSelected ? '700' : '500',
+                                padding: '7px 16px',
+                                fontSize: '0.84rem',
+                                fontWeight: '700',
                                 cursor: 'pointer',
-                                transition: 'all 0.15s'
+                                transition: 'all 0.15s ease',
+                                boxShadow: isSelected ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none'
                             }}
                         >
                             {badge.flag} {r.name} ({r.code})
@@ -567,17 +632,31 @@ const DiscoveryManager = ({ isRTL }) => {
 
             {/* Stats Summary */}
             <div className="admin-stats-grid">
-                <div className="admin-card" style={{ padding: '20px', textAlign: 'center' }}>
-                    <div style={{ color: '#c8a951', marginBottom: '8px' }}><Sparkles size={24} /></div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{filteredShops.filter(s => s.is_featured).length}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                <div className="admin-card" style={{ 
+                    padding: '24px', 
+                    textAlign: 'center', 
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    border: '1px solid rgba(51, 65, 85, 0.8)',
+                    borderRadius: '14px',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)'
+                }}>
+                    <div style={{ color: '#c8a951', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}><Sparkles size={26} /></div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.5px' }}>{filteredShops.filter(s => s.is_featured).length}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600', marginTop: '4px' }}>
                         {isRTL ? 'المتاجر المميزة' : 'Featured Shops'} {selectedRegion !== 'all' ? `(${getRegionBadge(selectedRegion).code})` : ''}
                     </div>
                 </div>
-                <div className="admin-card" style={{ padding: '20px', textAlign: 'center' }}>
-                    <div style={{ color: '#34d399', marginBottom: '8px' }}><Megaphone size={24} /></div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>{filteredCampaigns.filter(c => c.active).length}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                <div className="admin-card" style={{ 
+                    padding: '24px', 
+                    textAlign: 'center',
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    border: '1px solid rgba(51, 65, 85, 0.8)',
+                    borderRadius: '14px',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)'
+                }}>
+                    <div style={{ color: '#34d399', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}><Megaphone size={26} /></div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.5px' }}>{filteredCampaigns.filter(c => c.active).length}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600', marginTop: '4px' }}>
                         {isRTL ? 'الحملات النشطة' : 'Active Campaigns'} {selectedRegion !== 'all' ? `(${getRegionBadge(selectedRegion).code})` : ''}
                     </div>
                 </div>

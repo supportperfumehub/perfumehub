@@ -166,33 +166,36 @@ const DeviceManager = ({ isRTL }) => {
                         onClick={fetchDevices}
                         disabled={loading}
                         style={{ 
-                            border: '1px solid rgba(255, 255, 255, 0.25)', 
-                            color: '#f8fafc',
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            padding: '9px 18px',
+                            border: '1px solid rgba(200, 169, 81, 0.45)', 
+                            color: '#ffffff',
+                            background: 'rgba(200, 169, 81, 0.12)',
+                            padding: '9px 20px',
                             borderRadius: '10px',
                             cursor: loading ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
                             fontSize: '0.85rem',
-                            fontWeight: '600',
+                            fontWeight: '700',
+                            letterSpacing: '0.5px',
                             transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#c8a951';
                             e.currentTarget.style.color = '#c8a951';
-                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.25)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-                            e.currentTarget.style.color = '#f8fafc';
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                            e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.45)';
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                            e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
                         <RefreshCw size={15} color="#c8a951" className={loading ? 'spin' : ''} />
-                        {isRTL ? 'تحديث' : 'Refresh'}
+                        {isRTL ? 'تحديث' : 'REFRESH'}
                     </button>
 
                     {otherDevices.length > 0 && (
@@ -200,33 +203,36 @@ const DeviceManager = ({ isRTL }) => {
                             onClick={handleRevokeAllOthers}
                             disabled={actionLoading === 'all-others'}
                             style={{
-                                border: '1px solid rgba(239, 68, 68, 0.6)',
+                                border: '1px solid rgba(239, 68, 68, 0.8)',
                                 color: '#ffffff',
-                                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.85) 0%, rgba(220, 38, 38, 0.95) 100%)',
-                                padding: '9px 20px',
+                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                padding: '9px 22px',
                                 borderRadius: '10px',
                                 cursor: actionLoading === 'all-others' ? 'not-allowed' : 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                fontWeight: '700',
+                                fontWeight: '800',
                                 fontSize: '0.85rem',
-                                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
+                                letterSpacing: '0.5px',
+                                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.45)',
                                 transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.5)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.65)';
+                                e.currentTarget.style.filter = 'brightness(1.1)';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.35)';
+                                e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.45)';
+                                e.currentTarget.style.filter = 'none';
                             }}
                         >
-                            <LogOut size={16} />
+                            <LogOut size={16} color="#ffffff" />
                             {actionLoading === 'all-others' 
-                                ? (isRTL ? 'جاري تسجيل الخروج...' : 'Logging out...') 
-                                : (isRTL ? 'تسجيل الخروج من باقي الأجهزة' : 'Log Out All Other Devices')}
+                                ? (isRTL ? 'جاري تسجيل الخروج...' : 'LOGGING OUT...') 
+                                : (isRTL ? 'تسجيل الخروج من باقي الأجهزة' : 'LOG OUT ALL OTHER DEVICES')}
                         </button>
                     )}
                 </div>
