@@ -9,10 +9,11 @@ import ArchiveManager from '../../components/Admin/ArchiveManager';
 import ShopsManager from '../../components/Admin/ShopsManager';
 import RegionsManager from '../../components/Admin/RegionsManager';
 import SubscriptionManager from '../../components/Admin/SubscriptionManager';
+import SettingsManager from '../../components/Admin/SettingsManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone
+    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
@@ -108,7 +109,8 @@ const Admin = () => {
             { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
             { id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> },
             { id: 'subscriptions', label: isRTL ? 'الاشتراكات' : 'Subscriptions', icon: <Ticket size={20} /> },
-            { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }
+            { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> },
+            { id: 'settings', label: isRTL ? 'الإعدادات' : 'Settings', icon: <SettingsIcon size={20} /> }
         ] : []),
     ];
 
@@ -243,6 +245,7 @@ const Admin = () => {
                     {activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
                     {activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
                     {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
+                    {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
                 </div>
             </main>
         </div>

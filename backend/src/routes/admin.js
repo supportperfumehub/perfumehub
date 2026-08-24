@@ -261,4 +261,120 @@ router.delete('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, 
     }
 });
 
+/**
+ * PLATFORM & SYSTEM SETTINGS
+ */
+
+const DEFAULT_SETTINGS = {
+    general: {
+        storeName: 'PerfumeHub',
+        storeNameAr: 'بيرفيوم هب',
+        tagline: 'Best Luxury Perfumes & Fragrances in Qatar & Middle East',
+        taglineAr: 'أفخم العطور الفاخرة في قطر والشرق الأوسط',
+        contactEmail: 'support@perfumehubqa.com',
+        supportPhone: '+974 5555 1234',
+        whatsappNumber: '+974 5555 1234',
+        defaultCurrency: 'QAR',
+        storeAddress: 'Lusail Marina Promenade, Doha, Qatar',
+        instagram: 'https://instagram.com/perfumehubqa',
+        tiktok: 'https://tiktok.com/@perfumehubqa',
+        twitter: 'https://twitter.com/perfumehubqa',
+        snapchat: 'https://snapchat.com/add/perfumehubqa',
+        facebook: 'https://facebook.com/perfumehubqa'
+    },
+    orders: {
+        freeShippingThreshold: 300,
+        standardShippingFee: 25,
+        expressShippingFee: 50,
+        enableExpressShipping: true,
+        enableStorePickup: true,
+        giftWrapFee: 10,
+        enableGiftWrap: true,
+        enableCOD: true,
+        enableCardPayment: true
+    },
+    notifications: {
+        adminAlertEmail: 'admin@perfumehubqa.com',
+        notifyCustomerOnOrder: true,
+        notifyCustomerOnShipment: true,
+        notifyWhatsAppUpdates: true,
+        lowStockThreshold: 5,
+        dailySummaryEmail: true
+    },
+    aiDiscovery: {
+        enableAIFinder: true,
+        aiPersonality: 'luxury', // 'luxury', 'friendly', 'direct'
+        matchingSensitivity: 'balanced', // 'strict', 'balanced', 'exploratory'
+        dailyFreeQueries: 10,
+        maxRecommendationsPerQuery: 6
+    },
+    security: {
+        maintenanceMode: false,
+        maintenanceMessage: 'PerfumeHub is undergoing scheduled maintenance to bring you an elevated luxury experience. We will be back shortly.',
+        maintenanceMessageAr: 'موقع بيرفيوم هب قيد الصيانة المجدولة لتحسين تجربتكم الفاخرة. سنعود قريباً.',
+        allowGuestCheckout: true,
+        sessionTimeoutHours: 24,
+        maxConcurrentDevices: 3,
+        requireStrongPassword: true
+    }
+};
+
+let inMemorySettings = { ...DEFAULT_SETTINGS };
+
+// GET /api/admin/settings
+router.get('/settings', superAdminOnly, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('system_settings')
+            .select('*')
+            .eq('key', 'platform_settings')
+            .maybeSingle();
+
+        if (data && data.value) {
+            const merged = {
+                general: { ...DEFAULT_SETTINGS.general, ...(data.value.general || {}) },
+                orders: { ...DEFAULT_SETTINGS.orders, ...(data.value.orders || {}) },
+                notifications: { ...DEFAULT_SETTINGS.notifications, ...(data.value.notifications || {}) },
+                aiDiscovery: { ...DEFAULT_SETTINGS.aiDiscovery, ...(data.value.aiDiscovery || {}) },
+                security: { ...DEFAULT_SETTINGS.security, ...(data.value.security || {}) }
+            };
+            return res.json(merged);
+        }
+
+        res.json(inMemorySettings);
+    } catch (err) {
+        res.json(inMemorySettings);
+    }
+});
+
+// PUT /api/admin/settings
+router.put('/settings', superAdminOnly, async (req, res, next) => {
+    try {
+        const updated = req.body || {};
+        inMemorySettings = {
+            general: { ...DEFAULT_SETTINGS.general, ...(updated.general || {}) },
+            orders: { ...DEFAULT_SETTINGS.orders, ...(updated.orders || {}) },
+            notifications: { ...DEFAULT_SETTINGS.notifications, ...(updated.notifications || {}) },
+            aiDiscovery: { ...DEFAULT_SETTINGS.aiDiscovery, ...(updated.aiDiscovery || {}) },
+            security: { ...DEFAULT_SETTINGS.security, ...(updated.security || {}) }
+        };
+
+        try {
+            await supabase
+                .from('system_settings')
+                .upsert({
+                    key: 'platform_settings',
+                    value: inMemorySettings,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'key' });
+        } catch (dbErr) {
+            // Graceful fallback to in-memory store
+        }
+
+        res.json({ message: 'Settings saved successfully', settings: inMemorySettings });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
