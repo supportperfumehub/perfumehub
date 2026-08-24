@@ -6,7 +6,7 @@
     background-color: #0b1120; /* Deep luxury dark navy */
     color: #f8fafc;
     font-family: 'Inter', sans-serif;
-    padding-top: 80px; /* Crucial: Push content below fixed Navbar */
+    padding-top: 0;
 }
 
 /* Sidebar */
@@ -18,8 +18,8 @@
     flex-direction: column;
     padding: 20px 0;
     position: sticky;
-    top: 80px;
-    height: calc(100vh - 80px);
+    top: 0;
+    height: 100vh;
     overflow-y: auto;
     transition: all 0.3s ease;
     flex-shrink: 0;
@@ -1003,7 +1003,7 @@
 @media (max-width: 1024px) {
     .admin-dashboard {
         flex-direction: column;
-        padding-top: 70px;
+        padding-top: 0 !important;
         min-height: 100vh;
     }
     
