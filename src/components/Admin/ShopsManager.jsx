@@ -713,16 +713,39 @@ const ShopsManager = ({ isRTL }) => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-                    <Search size={16} color="#94a3b8" style={{ position: 'absolute', [isRTL ? 'right' : 'left']: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                <div className="admin-search-container" style={{ flex: 1, minWidth: '240px' }}>
+                    <div className="admin-search-icon">
+                        <Search size={18} />
+                    </div>
                     <input 
                         type="text"
-                        className="form-control"
-                        style={{ paddingLeft: isRTL ? '12px' : '40px', paddingRight: isRTL ? '40px' : '12px', height: '42px', background: '#0f172a', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
+                        className="form-control admin-search-input"
                         placeholder={isRTL ? 'بحث باسم المتجر، المالك، البريد، أو الهاتف...' : 'Search by shop name, owner, email, or phone...'}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    {searchQuery && (
+                        <button 
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            style={{
+                                position: 'absolute',
+                                [isRTL ? 'left' : 'right']: '14px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -887,38 +910,60 @@ const ShopsManager = ({ isRTL }) => {
                 </h3>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    {/* Sorter with 2 options: Approved to Suspended and Suspended to Approved */}
+                    {/* High-End Segmented Sorter Switch */}
                     <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px', 
+                        display: 'inline-flex', 
+                        alignItems: 'center',
                         background: '#0f172a', 
-                        padding: '5px 10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #334155' 
+                        padding: '3px', 
+                        borderRadius: '10px', 
+                        border: '1px solid #334155',
+                        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.4)'
                     }}>
-                        <ArrowUpDown size={14} color="#c8a951" />
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{isRTL ? 'الترتيب:' : 'Sort:'}</span>
-                        <select
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
+                        <button
+                            type="button"
+                            onClick={() => setSortOrder('approved_first')}
                             style={{
-                                background: 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 12px',
+                                borderRadius: '7px',
                                 border: 'none',
-                                color: '#f8fafc',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
+                                background: sortOrder === 'approved_first' ? '#c8a951' : 'transparent',
+                                color: sortOrder === 'approved_first' ? '#0f172a' : '#94a3b8',
+                                fontWeight: sortOrder === 'approved_first' ? '700' : '600',
+                                fontSize: '0.78rem',
                                 cursor: 'pointer',
-                                outline: 'none'
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: sortOrder === 'approved_first' ? '0 2px 8px rgba(200, 169, 81, 0.35)' : 'none'
                             }}
                         >
-                            <option value="approved_first" style={{ background: '#1e293b', color: '#fff' }}>
-                                {isRTL ? 'المعتمدة ← الموقوفة' : 'Approved to Suspended'}
-                            </option>
-                            <option value="suspended_first" style={{ background: '#1e293b', color: '#fff' }}>
-                                {isRTL ? 'الموقوفة ← المعتمدة' : 'Suspended to Approved'}
-                            </option>
-                        </select>
+                            <CheckCircle size={13} color={sortOrder === 'approved_first' ? '#0f172a' : '#4ade80'} />
+                            <span>{isRTL ? 'المعتمدة أولاً' : 'Approved to Suspended'}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSortOrder('suspended_first')}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 12px',
+                                borderRadius: '7px',
+                                border: 'none',
+                                background: sortOrder === 'suspended_first' ? '#c8a951' : 'transparent',
+                                color: sortOrder === 'suspended_first' ? '#0f172a' : '#94a3b8',
+                                fontWeight: sortOrder === 'suspended_first' ? '700' : '600',
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: sortOrder === 'suspended_first' ? '0 2px 8px rgba(200, 169, 81, 0.35)' : 'none'
+                            }}
+                        >
+                            <Ban size={13} color={sortOrder === 'suspended_first' ? '#0f172a' : '#f87171'} />
+                            <span>{isRTL ? 'الموقوفة أولاً' : 'Suspended to Approved'}</span>
+                        </button>
                     </div>
 
                     <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
