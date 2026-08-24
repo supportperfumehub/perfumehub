@@ -699,36 +699,39 @@ const DiscoveryManager = ({ isRTL }) => {
                     </span>
                 )}
             </h3>
-            <div className="admin-table-container" style={{ marginBottom: '40px' }}>
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th>{isRTL ? 'المتجر' : 'Shop'}</th>
-                            <th>{isRTL ? 'المنطقة' : 'Region'}</th>
-                            <th>{isRTL ? 'المركز' : 'Placement'}</th>
-                            <th>{isRTL ? 'الفترة' : 'Duration'}</th>
-                            <th>{isRTL ? 'الحالة' : 'Status'}</th>
-                            <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredCampaigns.length === 0 ? (
-                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{isRTL ? 'لا توجد حملات نشطة لهذه المنطقة' : 'No active campaigns found for this region'}</td></tr>
-                        ) : filteredCampaigns.map(camp => {
-                            const badge = getRegionBadge(camp.shop_region_id || camp.region_id);
-                            return (
-                                <tr key={camp.id}>
-                                    <td>
-                                        <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{camp.shop_name}</div>
+            {/* Campaign Table */}
+            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Megaphone size={18} />
+                {isRTL ? 'الحملات الإعلانية' : 'Active Campaigns'}
+                {selectedRegion !== 'all' && (
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(200, 169, 81, 0.2)', color: '#c8a951', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                        {getRegionBadge(selectedRegion).flag} {getRegionBadge(selectedRegion).name}
+                    </span>
+                )}
+            </h3>
+
+            {isMobile ? (
+                <div style={{ display: 'grid', gap: '12px', marginBottom: '36px' }}>
+                    {filteredCampaigns.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', background: '#1e293b', borderRadius: '12px', border: '1px solid #334155' }}>
+                            {isRTL ? 'لا توجد حملات نشطة لهذه المنطقة' : 'No active campaigns found for this region'}
+                        </div>
+                    ) : filteredCampaigns.map(camp => {
+                        const badge = getRegionBadge(camp.shop_region_id || camp.region_id);
+                        return (
+                            <div key={camp.id} style={{ background: '#1e293b', borderRadius: '12px', border: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.05rem' }}>{camp.shop_name}</div>
                                         {camp.product_name && (
                                             <div style={{ 
                                                 fontSize: '0.78rem', 
                                                 color: '#fef08a', 
                                                 background: 'rgba(234, 179, 8, 0.15)', 
                                                 border: '1px solid rgba(234, 179, 8, 0.35)', 
-                                                padding: '2px 8px', 
+                                                padding: '3px 8px', 
                                                 borderRadius: '6px', 
-                                                marginTop: '4px',
+                                                marginTop: '6px',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 gap: '5px',
@@ -737,138 +740,255 @@ const DiscoveryManager = ({ isRTL }) => {
                                                 🏷️ {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
                                             </div>
                                         )}
-                                    </td>
-                                    <td>
-                                        <span style={{ 
-                                            background: 'rgba(200, 169, 81, 0.15)', 
-                                            color: '#c8a951', 
-                                            border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                    </div>
+                                    <button
+                                        onClick={() => toggleCampaignActive(camp)}
+                                        style={{
+                                            background: camp.active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                            border: camp.active ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
+                                            color: camp.active ? '#4ade80' : '#cbd5e1',
                                             padding: '4px 10px',
                                             borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.75rem',
                                             fontWeight: '700',
-                                            fontSize: '0.78rem',
                                             display: 'inline-flex',
                                             alignItems: 'center',
                                             gap: '5px',
-                                            whiteSpace: 'nowrap' 
-                                        }}>
-                                            {badge.flag} {badge.name}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span style={{ 
-                                            background: 'rgba(30, 41, 59, 0.9)', 
-                                            border: '1px solid rgba(100, 116, 139, 0.6)', 
-                                            color: '#f8fafc', 
-                                            padding: '4px 10px', 
-                                            borderRadius: '6px', 
-                                            fontWeight: '600', 
-                                            fontSize: '0.78rem',
-                                            textTransform: 'capitalize', 
-                                            whiteSpace: 'nowrap' 
-                                        }}>
-                                            {camp.placement_slot.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td style={{ whiteSpace: 'nowrap', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '500' }}>
+                                            whiteSpace: 'nowrap',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        {camp.active ? <CheckCircle size={12} color="#4ade80" /> : <XCircle size={12} color="#94a3b8" />}
+                                        {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <span style={{ 
+                                        background: 'rgba(200, 169, 81, 0.15)', 
+                                        color: '#c8a951', 
+                                        border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        fontWeight: '700',
+                                        fontSize: '0.75rem',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        {badge.flag} {badge.name}
+                                    </span>
+                                    <span style={{ 
+                                        background: 'rgba(30, 41, 59, 0.9)', 
+                                        border: '1px solid rgba(100, 116, 139, 0.6)', 
+                                        color: '#f8fafc', 
+                                        padding: '3px 8px', 
+                                        borderRadius: '6px', 
+                                        fontWeight: '600', 
+                                        fontSize: '0.75rem',
+                                        textTransform: 'capitalize'
+                                    }}>
+                                        {camp.placement_slot.replace('_', ' ')}
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.6)' }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                                        <Calendar size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
                                         {camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => toggleCampaignActive(camp)}
-                                            style={{
-                                                background: camp.active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-                                                border: camp.active ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
-                                                color: camp.active ? '#4ade80' : '#cbd5e1',
-                                                padding: '4px 12px',
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button 
+                                            onClick={() => openEditModal(camp)} 
+                                            style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.45)', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={() => deleteCampaign(camp.id)} 
+                                            style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="admin-table-container" style={{ marginBottom: '40px', overflowX: 'auto' }}>
+                    <table className="admin-table" style={{ width: '100%', minWidth: '680px' }}>
+                        <thead>
+                            <tr>
+                                <th>{isRTL ? 'المتجر' : 'Shop'}</th>
+                                <th>{isRTL ? 'المنطقة' : 'Region'}</th>
+                                <th>{isRTL ? 'المركز' : 'Placement'}</th>
+                                <th>{isRTL ? 'الفترة' : 'Duration'}</th>
+                                <th>{isRTL ? 'الحالة' : 'Status'}</th>
+                                <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredCampaigns.length === 0 ? (
+                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{isRTL ? 'لا توجد حملات نشطة لهذه المنطقة' : 'No active campaigns found for this region'}</td></tr>
+                            ) : filteredCampaigns.map(camp => {
+                                const badge = getRegionBadge(camp.shop_region_id || camp.region_id);
+                                return (
+                                    <tr key={camp.id}>
+                                        <td>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{camp.shop_name}</div>
+                                            {camp.product_name && (
+                                                <div style={{ 
+                                                    fontSize: '0.78rem', 
+                                                    color: '#fef08a', 
+                                                    background: 'rgba(234, 179, 8, 0.15)', 
+                                                    border: '1px solid rgba(234, 179, 8, 0.35)', 
+                                                    padding: '2px 8px', 
+                                                    borderRadius: '6px', 
+                                                    marginTop: '4px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '5px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    🏷️ {isRTL ? `منتج: ${camp.product_name}` : `Product: ${camp.product_name}`}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <span style={{ 
+                                                background: 'rgba(200, 169, 81, 0.15)', 
+                                                color: '#c8a951', 
+                                                border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                                padding: '4px 10px',
                                                 borderRadius: '6px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.78rem',
                                                 fontWeight: '700',
+                                                fontSize: '0.78rem',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '6px',
-                                                whiteSpace: 'nowrap',
-                                                transition: 'all 0.15s ease'
-                                            }}
-                                        >
-                                            {camp.active ? <CheckCircle size={13} color="#4ade80" /> : <XCircle size={13} color="#94a3b8" />}
-                                            {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button 
-                                                onClick={() => openEditModal(camp)} 
-                                                title={isRTL ? 'تعديل' : 'Edit'}
+                                                gap: '5px',
+                                                whiteSpace: 'nowrap' 
+                                            }}>
+                                                {badge.flag} {badge.name}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span style={{ 
+                                                background: 'rgba(30, 41, 59, 0.9)', 
+                                                border: '1px solid rgba(100, 116, 139, 0.6)', 
+                                                color: '#f8fafc', 
+                                                padding: '4px 10px', 
+                                                borderRadius: '6px', 
+                                                fontWeight: '600', 
+                                                fontSize: '0.78rem',
+                                                textTransform: 'capitalize', 
+                                                whiteSpace: 'nowrap' 
+                                            }}>
+                                                {camp.placement_slot.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td style={{ whiteSpace: 'nowrap', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '500' }}>
+                                            {camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td>
+                                            <button
+                                                onClick={() => toggleCampaignActive(camp)}
                                                 style={{
-                                                    width: '36px',
-                                                    height: '36px',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(59, 130, 246, 0.45)',
-                                                    background: 'rgba(59, 130, 246, 0.15)',
-                                                    color: '#93c5fd',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
+                                                    background: camp.active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                                    border: camp.active ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
+                                                    color: camp.active ? '#4ade80' : '#cbd5e1',
+                                                    padding: '4px 12px',
+                                                    borderRadius: '6px',
                                                     cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.35)';
-                                                    e.currentTarget.style.borderColor = '#3b82f6';
-                                                    e.currentTarget.style.color = '#ffffff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                                                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
-                                                    e.currentTarget.style.color = '#93c5fd';
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '700',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    whiteSpace: 'nowrap',
+                                                    transition: 'all 0.15s ease'
                                                 }}
                                             >
-                                                <Pencil size={15} />
+                                                {camp.active ? <CheckCircle size={13} color="#4ade80" /> : <XCircle size={13} color="#94a3b8" />}
+                                                {camp.active ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'منتهي' : 'Inactive')}
                                             </button>
-                                            <button 
-                                                onClick={() => deleteCampaign(camp.id)} 
-                                                title={isRTL ? 'حذف' : 'Delete'}
-                                                style={{
-                                                    width: '36px',
-                                                    height: '36px',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(239, 68, 68, 0.45)',
-                                                    background: 'rgba(239, 68, 68, 0.15)',
-                                                    color: '#fca5a5',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.2)'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
-                                                    e.currentTarget.style.borderColor = '#ef4444';
-                                                    e.currentTarget.style.color = '#ffffff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
-                                                    e.currentTarget.style.color = '#fca5a5';
-                                                }}
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => openEditModal(camp)} 
+                                                    title={isRTL ? 'تعديل' : 'Edit'}
+                                                    style={{
+                                                        width: '36px',
+                                                        height: '36px',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(59, 130, 246, 0.45)',
+                                                        background: 'rgba(59, 130, 246, 0.15)',
+                                                        color: '#93c5fd',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.35)';
+                                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                                        e.currentTarget.style.color = '#ffffff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                                                        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+                                                        e.currentTarget.style.color = '#93c5fd';
+                                                    }}
+                                                >
+                                                    <Pencil size={15} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => deleteCampaign(camp.id)} 
+                                                    title={isRTL ? 'حذف' : 'Delete'}
+                                                    style={{
+                                                        width: '36px',
+                                                        height: '36px',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(239, 68, 68, 0.45)',
+                                                        background: 'rgba(239, 68, 68, 0.15)',
+                                                        color: '#fca5a5',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        boxShadow: '0 2px 6px rgba(239, 68, 68, 0.2)'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
+                                                        e.currentTarget.style.borderColor = '#ef4444';
+                                                        e.currentTarget.style.color = '#ffffff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                                                        e.currentTarget.style.color = '#fca5a5';
+                                                    }}
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             {/* Featured Shop Toggle List */}
-            <div className="discovery-section-header">
+            <div className="discovery-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Store size={18} color="#c8a951" />
                     {isRTL ? 'تحرير المتاجر المميزة' : 'Feature Shops & Boosts'}
@@ -945,100 +1065,170 @@ const DiscoveryManager = ({ isRTL }) => {
                 />
             </div>
 
-            <div className="admin-table-container">
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th>{isRTL ? 'المتجر' : 'Shop'}</th>
-                            <th>{isRTL ? 'المنطقة' : 'Region'}</th>
-                            <th>{isRTL ? 'الحالة المميزة' : 'Featured Status'}</th>
-                            <th>{isRTL ? 'مضاعف التعزيز' : 'Manual Boost'}</th>
-                            <th>{isRTL ? 'التقييم' : 'Current Rating'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredShops.length === 0 ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}</td></tr>
-                        ) : filteredShops.map(shop => {
-                            const badge = getRegionBadge(shop.region_id);
-                            return (
-                                <tr key={shop.id}>
-                                    <td>
-                                        <div style={{ fontWeight: '700', color: '#f8fafc' }}>{shop.name}</div>
-                                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>ID: {shop.id}</div>
-                                    </td>
-                                    <td>
-                                        <span style={{ 
-                                            background: 'rgba(200, 169, 81, 0.15)', 
-                                            color: '#c8a951', 
-                                            border: '1px solid rgba(200, 169, 81, 0.35)', 
-                                            padding: '4px 10px',
-                                            borderRadius: '6px',
-                                            fontWeight: '700',
-                                            fontSize: '0.78rem',
+            {isMobile ? (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                    {filteredShops.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', background: '#1e293b', borderRadius: '12px', border: '1px solid #334155' }}>
+                            {isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}
+                        </div>
+                    ) : filteredShops.map(shop => {
+                        const badge = getRegionBadge(shop.region_id);
+                        return (
+                            <div key={shop.id} style={{ background: '#1e293b', borderRadius: '12px', border: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.05rem' }}>{shop.name}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>ID: {shop.id}</div>
+                                    </div>
+                                    <span style={{ 
+                                        background: 'rgba(200, 169, 81, 0.15)', 
+                                        color: '#c8a951', 
+                                        border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        fontWeight: '700',
+                                        fontSize: '0.75rem'
+                                    }}>
+                                        {badge.flag} {badge.name}
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.6)' }}>
+                                    <button 
+                                        onClick={() => toggleFeatured(shop.id, shop.is_featured)}
+                                        style={{ 
+                                            padding: '6px 14px', 
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: '5px',
-                                            whiteSpace: 'nowrap' 
-                                        }}>
-                                            {badge.flag} {badge.name}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button 
-                                            onClick={() => toggleFeatured(shop.id, shop.is_featured)}
-                                            style={{ 
-                                                width: 'auto', 
-                                                padding: '6px 14px', 
+                                            gap: '6px', 
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '700',
+                                            background: shop.is_featured ? 'rgba(200, 169, 81, 0.18)' : 'rgba(255, 255, 255, 0.06)',
+                                            border: shop.is_featured ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
+                                            color: shop.is_featured ? '#fef08a' : '#cbd5e1'
+                                        }}
+                                    >
+                                        {shop.is_featured ? <CheckCircle size={14} color="#c8a951" /> : <XCircle size={14} color="#94a3b8" />}
+                                        {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
+                                    </button>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{isRTL ? 'التعزيز:' : 'Boost:'}</span>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" min="0.1" max="10.0"
+                                            className="form-control" 
+                                            style={{ width: '60px', height: '34px', fontSize: '0.85rem', textAlign: 'center', fontWeight: '700', color: '#f8fafc', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '0 4px' }}
+                                            value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
+                                            onChange={(e) => handleBoostChange(shop.id, e.target.value)}
+                                            onBlur={() => saveBoost(shop.id)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                        />
+                                        <span style={{ fontSize: '0.85rem', color: '#c8a951', fontWeight: '700' }}>x</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="admin-table-container" style={{ overflowX: 'auto' }}>
+                    <table className="admin-table" style={{ width: '100%', minWidth: '680px' }}>
+                        <thead>
+                            <tr>
+                                <th>{isRTL ? 'المتجر' : 'Shop'}</th>
+                                <th>{isRTL ? 'المنطقة' : 'Region'}</th>
+                                <th>{isRTL ? 'الحالة المميزة' : 'Featured Status'}</th>
+                                <th>{isRTL ? 'مضاعف التعزيز' : 'Manual Boost'}</th>
+                                <th>{isRTL ? 'التقييم' : 'Current Rating'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredShops.length === 0 ? (
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد متاجر تطابق البحث' : 'No matching shops found'}</td></tr>
+                            ) : filteredShops.map(shop => {
+                                const badge = getRegionBadge(shop.region_id);
+                                return (
+                                    <tr key={shop.id}>
+                                        <td>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{shop.name}</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>ID: {shop.id}</div>
+                                        </td>
+                                        <td>
+                                            <span style={{ 
+                                                background: 'rgba(200, 169, 81, 0.15)', 
+                                                color: '#c8a951', 
+                                                border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                fontWeight: '700',
+                                                fontSize: '0.78rem',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '6px', 
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.82rem',
-                                                fontWeight: '700',
-                                                transition: 'all 0.15s ease',
-                                                background: shop.is_featured ? 'rgba(200, 169, 81, 0.18)' : 'rgba(255, 255, 255, 0.06)',
-                                                border: shop.is_featured ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
-                                                color: shop.is_featured ? '#fef08a' : '#cbd5e1',
-                                                boxShadow: shop.is_featured ? '0 2px 8px rgba(200, 169, 81, 0.25)' : 'none'
-                                            }}
-                                        >
-                                            {shop.is_featured ? <CheckCircle size={15} color="#c8a951" /> : <XCircle size={15} color="#94a3b8" />}
-                                            {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input 
-                                                type="number" 
-                                                step="0.1" min="0.1" max="10.0"
-                                                className="form-control" 
-                                                style={{ width: '80px', height: '36px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '700', color: '#f8fafc', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px' }}
-                                                value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
-                                                onChange={(e) => handleBoostChange(shop.id, e.target.value)}
-                                                onBlur={() => saveBoost(shop.id)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.target.blur();
-                                                    }
+                                                gap: '5px',
+                                                whiteSpace: 'nowrap' 
+                                            }}>
+                                                {badge.flag} {badge.name}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button 
+                                                onClick={() => toggleFeatured(shop.id, shop.is_featured)}
+                                                style={{ 
+                                                    width: 'auto', 
+                                                    padding: '6px 14px', 
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px', 
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: '700',
+                                                    transition: 'all 0.15s ease',
+                                                    background: shop.is_featured ? 'rgba(200, 169, 81, 0.18)' : 'rgba(255, 255, 255, 0.06)',
+                                                    border: shop.is_featured ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                    color: shop.is_featured ? '#fef08a' : '#cbd5e1',
+                                                    boxShadow: shop.is_featured ? '0 2px 8px rgba(200, 169, 81, 0.25)' : 'none'
                                                 }}
-                                            />
-                                            <span style={{ fontSize: '0.85rem', color: '#c8a951', fontWeight: '700' }}>x</span>
-                                            {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24', fontWeight: '700' }}>
-                                            {shop.rating_avg} <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '400' }}>({shop.review_count})</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                            >
+                                                {shop.is_featured ? <CheckCircle size={15} color="#c8a951" /> : <XCircle size={15} color="#94a3b8" />}
+                                                {shop.is_featured ? (isRTL ? 'مميز' : 'Featured') : (isRTL ? 'عادي' : 'Regular')}
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.1" min="0.1" max="10.0"
+                                                    className="form-control" 
+                                                    style={{ width: '80px', height: '36px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '700', color: '#f8fafc', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px' }}
+                                                    value={boostInputs[shop.id] !== undefined ? boostInputs[shop.id] : shop.manual_boost_multiplier}
+                                                    onChange={(e) => handleBoostChange(shop.id, e.target.value)}
+                                                    onBlur={() => saveBoost(shop.id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.target.blur();
+                                                        }
+                                                    }}
+                                                />
+                                                <span style={{ fontSize: '0.85rem', color: '#c8a951', fontWeight: '700' }}>x</span>
+                                                {savingBoostId === shop.id && <RefreshCw size={14} className="spin" style={{ color: '#c8a951' }} />}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24', fontWeight: '700' }}>
+                                                {shop.rating_avg} <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '400' }}>({shop.review_count})</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             {/* Create Campaign Modal */}
             {isModalOpen && (
