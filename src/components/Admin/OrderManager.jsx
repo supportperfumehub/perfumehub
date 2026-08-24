@@ -156,283 +156,495 @@ const OrderManager = ({ isRTL, shopId }) => {
 
     return (
         <div className="manager-content">
-            <div className="manager-header stack-mobile" style={{ marginBottom: '24px' }}>
-                <div className="header-title-container">
-                    <h2 style={{ margin: 0, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <PackageIcon size={26} color="#c8a951" />
-                        {isRTL ? 'إدارة الطلبات المتقدمة' : 'Advanced Order Management'}
+            <div className="manager-header" style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', justifyContent: 'space-between' }}>
+                    <h2 style={{ 
+                        margin: 0, 
+                        color: '#f8fafc', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        fontSize: isMobile ? '1.2rem' : '1.5rem',
+                        whiteSpace: 'nowrap'
+                    }}>
+                        <PackageIcon size={isMobile ? 22 : 26} color="#c8a951" />
+                        {isRTL ? 'إدارة الطلبات' : 'Order Management'}
                     </h2>
-                </div>
-
-                {/* ── Search & Filter Bar ── */}
-                <div className="admin-order-controls" style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div className="admin-search-container" style={{ minWidth: '260px' }}>
-                        <input 
-                            type="text" 
-                            className="form-control admin-search-input" 
-                            placeholder={isRTL ? 'بحث بالاسم، الإيميل أو رقم الطلب...' : 'Search by name, email or order ID...'}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <div className="admin-search-icon">
-                            <Search size={18} color="#94a3b8" />
-                        </div>
-                    </div>
-
-                    <div className="filter-group" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => {
-                            const isActive = statusFilter.toLowerCase() === status.toLowerCase();
-                            return (
-                                <button 
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
-                                    style={{
-                                        padding: '7px 16px',
-                                        fontSize: '0.82rem',
-                                        borderRadius: '999px',
-                                        border: isActive ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.18)',
-                                        background: isActive ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(255, 255, 255, 0.06)',
-                                        color: isActive ? '#000000' : '#f8fafc',
-                                        fontWeight: isActive ? '800' : '600',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease',
-                                        boxShadow: isActive ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none'
-                                    }}
-                                >
-                                    {translateStatus(status)}
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <span style={{ 
+                        background: 'rgba(200, 169, 81, 0.15)', 
+                        border: '1px solid rgba(200, 169, 81, 0.3)', 
+                        color: '#c8a951', 
+                        padding: '3px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.78rem', 
+                        fontWeight: '700',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                    }}>
+                        {groupedOrders.reduce((acc, g) => acc + g.orders.length, 0)} {isRTL ? 'طلب' : 'Orders'}
+                    </span>
                 </div>
             </div>
 
-            <div className="table-responsive" style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(51, 65, 85, 0.8)', overflow: 'hidden' }}>
-                <table className="admin-table" style={{ margin: 0 }}>
-                    <thead>
-                        <tr>
-                            <th style={{ width: isRTL ? 'auto' : '32%' }}>{isRTL ? 'العميل' : 'Customer'}</th>
-                            <th>{isRTL ? 'الطلبات' : 'Orders'}</th>
-                            <th>{isRTL ? 'الإجمالي' : 'Total'}</th>
-                            <th className="hide-mobile">{isRTL ? 'آخر حالة' : 'Latest Status'}</th>
-                            <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {groupedOrders.map((group, groupIdx) => {
-                            const isExpanded = expandedCustomers[group.key];
-                            const totalSpent = group.orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
-                            const latestOrder = group.orders[0];
+            {/* ── Search & Single-Line Filter Bar ── */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="admin-search-container" style={{ flex: 1, minWidth: '240px', width: '100%' }}>
+                    <div className="admin-search-icon">
+                        <Search size={18} color="#94a3b8" />
+                    </div>
+                    <input 
+                        type="text" 
+                        className="form-control admin-search-input" 
+                        placeholder={isRTL ? 'بحث بالاسم، الإيميل أو رقم الطلب...' : 'Search by name, email or order ID...'}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
 
-                            return (
-                                <React.Fragment key={group.key || groupIdx}>
-                                    <tr style={{ background: isExpanded ? 'rgba(200, 169, 81, 0.05)' : 'transparent', fontWeight: '500', transition: 'background 0.2s ease' }}>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ 
-                                                    background: 'rgba(200, 169, 81, 0.15)', 
-                                                    border: '1px solid rgba(200, 169, 81, 0.35)', 
-                                                    padding: '10px', 
-                                                    borderRadius: '50%', 
-                                                    color: '#c8a951',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}>
-                                                    <User size={18} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{group.customerName}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{group.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span style={{ 
-                                                background: 'rgba(255, 255, 255, 0.08)', 
-                                                border: '1px solid rgba(255, 255, 255, 0.15)', 
-                                                padding: '4px 10px', 
-                                                borderRadius: '6px', 
-                                                fontWeight: '700', 
-                                                color: '#f8fafc',
-                                                fontSize: '0.82rem'
+                <div className="filter-group" style={{ 
+                    display: 'flex', 
+                    gap: '8px', 
+                    overflowX: 'auto', 
+                    flexWrap: 'nowrap',
+                    width: isMobile ? '100%' : 'auto',
+                    paddingBottom: isMobile ? '4px' : '0',
+                    scrollbarWidth: 'none',
+                    WebkitOverflowScrolling: 'touch'
+                }}>
+                    {['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => {
+                        const isActive = statusFilter.toLowerCase() === status.toLowerCase();
+                        return (
+                            <button 
+                                key={status}
+                                onClick={() => setStatusFilter(status)}
+                                style={{
+                                    padding: '7px 16px',
+                                    fontSize: '0.82rem',
+                                    borderRadius: '999px',
+                                    border: isActive ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.18)',
+                                    background: isActive ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(255, 255, 255, 0.06)',
+                                    color: isActive ? '#000000' : '#f8fafc',
+                                    fontWeight: isActive ? '800' : '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isActive ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {translateStatus(status)}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* ── Mobile Card View ── */}
+            {isMobile ? (
+                <div style={{ display: 'grid', gap: '14px' }}>
+                    {groupedOrders.map((group, groupIdx) => {
+                        const isExpanded = expandedCustomers[group.key];
+                        const totalSpent = group.orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+                        const latestOrder = group.orders[0];
+
+                        return (
+                            <div 
+                                key={group.key || groupIdx} 
+                                style={{ 
+                                    background: '#1e293b', 
+                                    borderRadius: '12px', 
+                                    border: isExpanded ? '1px solid rgba(200, 169, 81, 0.5)' : '1px solid #334155', 
+                                    overflow: 'hidden',
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                <div style={{ padding: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ 
+                                                width: '38px', 
+                                                height: '38px', 
+                                                borderRadius: '50%', 
+                                                background: 'rgba(200, 169, 81, 0.15)', 
+                                                border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                color: '#c8a951',
+                                                flexShrink: 0
                                             }}>
-                                                {group.orders.length} {isRTL ? 'طلبات' : 'Orders'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <strong style={{ color: '#c8a951', fontSize: '1.05rem', fontWeight: '800' }}>
+                                                <User size={18} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1rem' }}>{group.customerName}</div>
+                                                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>{group.email}</div>
+                                            </div>
+                                        </div>
+                                        <span style={{ 
+                                            background: 'rgba(255, 255, 255, 0.08)', 
+                                            border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                            padding: '3px 8px', 
+                                            borderRadius: '6px', 
+                                            fontWeight: '700', 
+                                            color: '#f8fafc', 
+                                            fontSize: '0.75rem',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {group.orders.length} {isRTL ? 'طلبات' : 'Orders'}
+                                        </span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.6)', marginTop: '10px' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>{isRTL ? 'الإجمالي / الرصيد' : 'Total Balance'}</div>
+                                            <strong style={{ color: '#c8a951', fontSize: '1.15rem', fontWeight: '800' }}>
                                                 {totalSpent.toFixed(2)} {isRTL ? 'ر.ق' : 'QAR'}
                                             </strong>
-                                        </td>
-                                        <td className="hide-mobile">
-                                            <span className={`status-badge ${getStatusClass(latestOrder.status)}`} style={{ textTransform: 'uppercase', fontWeight: '700' }}>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className={`status-badge ${getStatusClass(latestOrder.status)}`} style={{ textTransform: 'uppercase', fontWeight: '700', fontSize: '0.72rem', padding: '4px 8px' }}>
                                                 {translateStatus(latestOrder.status)}
                                             </span>
-                                        </td>
-                                        <td style={{ textAlign: 'center', padding: '10px 5px' }}>
-                                            <button 
-                                                onClick={() => toggleCustomerExpand(group.key)}
-                                                style={{ 
-                                                    background: isExpanded ? 'rgba(200, 169, 81, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                                                    border: isExpanded ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
-                                                    color: isExpanded ? '#c8a951' : '#f8fafc',
-                                                    borderRadius: '8px',
-                                                    padding: '7px 16px',
-                                                    fontSize: '0.82rem',
-                                                    fontWeight: '700',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                                                <span>{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    
-                                    {isExpanded && (
-                                        <tr>
-                                            <td colSpan="5" style={{ padding: '0 0 20px 0', background: 'rgba(15, 23, 42, 0.6)' }}>
-                                                <div style={{ 
-                                                    margin: isMobile ? '10px 10px' : '12px 24px', 
-                                                    padding: '20px', 
-                                                    background: '#0f172a', 
-                                                    borderRadius: '12px',
-                                                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.3)',
-                                                    border: '1px solid rgba(51, 65, 85, 0.8)'
-                                                }}>
-                                                    {group.orders.map((order, idx) => {
-                                                        const orderDateFormatted = formatOrderDate(order.created_at || order.date || order.createdAt);
-                                                        const currentStatus = (order.status || 'pending').toLowerCase();
-                                                        const shippingAddress = order.shipping_address || order.shippingAddress;
-                                                        const paymentMethod = order.payment_method || order.paymentMethod;
-
-                                                        return (
-                                                            <div key={order.id} style={{ 
-                                                                padding: '18px 0', 
-                                                                borderBottom: idx === group.orders.length - 1 ? 'none' : '1px solid rgba(51, 65, 85, 0.6)',
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '14px'
-                                                            }}>
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                                                                    <div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                                                                            <PackageIcon size={18} color="#c8a951" />
-                                                                            <strong style={{ fontSize: '1.15rem', color: '#f8fafc', letterSpacing: '0.3px' }}>Order #{order.id}</strong>
-                                                                            <span style={{ 
-                                                                                color: '#94a3b8', 
-                                                                                fontSize: '0.85rem',
-                                                                                display: 'inline-flex',
-                                                                                alignItems: 'center',
-                                                                                gap: '5px',
-                                                                                background: 'rgba(255, 255, 255, 0.05)',
-                                                                                padding: '2px 8px',
-                                                                                borderRadius: '6px',
-                                                                                border: '1px solid rgba(255, 255, 255, 0.1)'
-                                                                            }}>
-                                                                                <Calendar size={13} color="#94a3b8" />
-                                                                                {orderDateFormatted}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div style={{ fontSize: '0.85rem', color: '#cbd5e1', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                                                                            {order.phone && (
-                                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                    <Phone size={13} color="#c8a951" /> {order.phone}
-                                                                                </span>
-                                                                            )}
-                                                                            {shippingAddress && (
-                                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                    <MapPin size={13} color="#60a5fa" /> {shippingAddress}
-                                                                                </span>
-                                                                            )}
-                                                                            {paymentMethod && (
-                                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                    <CheckCircle size={13} color="#34d399" /> {paymentMethod}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div style={{ textAlign: isRTL ? 'left' : 'right', display: 'flex', flexDirection: 'column', alignItems: isRTL ? 'flex-start' : 'flex-end', gap: '8px' }}>
-                                                                        <div>
-                                                                            <select 
-                                                                                value={currentStatus}
-                                                                                onChange={(e) => handleStatusUpdate(order.id, e)}
-                                                                                style={{ 
-                                                                                    background: '#1e293b', 
-                                                                                    color: '#f8fafc',
-                                                                                    border: '1px solid rgba(200, 169, 81, 0.45)',
-                                                                                    borderRadius: '8px',
-                                                                                    padding: '7px 14px', 
-                                                                                    fontSize: '0.85rem',
-                                                                                    fontWeight: '700',
-                                                                                    cursor: 'pointer',
-                                                                                    outline: 'none',
-                                                                                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
-                                                                                }}
-                                                                            >
-                                                                                <option value="pending" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'قيد الانتظار' : 'Pending'}</option>
-                                                                                <option value="processing" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'قيد المعالجة' : 'Processing'}</option>
-                                                                                <option value="shipped" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'تم الشحن' : 'Shipped'}</option>
-                                                                                <option value="delivered" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'تم التوصيل' : 'Delivered'}</option>
-                                                                                <option value="cancelled" style={{ background: '#1e293b', color: '#f87171' }}>{isRTL ? 'إلغاء الطلب' : 'Cancel Order'}</option>
-                                                                            </select>
-                                                                        </div>
-                                                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c8a951' }}>
-                                                                            {order.total} {isRTL ? 'ر.ق' : 'QAR'}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div style={{ background: 'rgba(30, 41, 59, 0.7)', padding: '12px 18px', borderRadius: '10px', border: '1px solid rgba(51, 65, 85, 0.8)' }}>
-                                                                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                        {order.items?.map((item, iIdx) => (
-                                                                            <li key={iIdx} style={{ fontSize: '0.88rem', display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', alignItems: 'center' }}>
-                                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                                    <span style={{ background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', padding: '2px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '0.8rem' }}>
-                                                                                        {item.quantity}x
-                                                                                    </span>
-                                                                                    <span style={{ color: '#f8fafc', fontWeight: '600' }}>{item.name}</span>
-                                                                                    {item.isGiftWrapped && <span title="Gift Wrapped">🎁</span>}
-                                                                                </span>
-                                                                                <span style={{ fontWeight: '700', color: '#c8a951' }}>{item.price} {isRTL ? 'ر.ق' : 'QAR'}</span>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
-                        {groupedOrders.length === 0 && (
-                            <tr>
-                                <td colSpan="5" className="text-center" style={{ padding: '50px 20px' }}>
-                                    <div style={{ opacity: 0.6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                                        <PackageIcon size={48} color="#64748b" />
-                                        <div style={{ color: '#94a3b8', fontSize: '0.95rem', fontWeight: '600' }}>
-                                            {shopId 
-                                                ? (isRTL ? 'لم تصل طلبات لمنتجات متجرك بعد' : 'No orders yet for your shop products')
-                                                : (isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found')}
                                         </div>
                                     </div>
-                                </td>
+
+                                    <button 
+                                        type="button"
+                                        onClick={() => toggleCustomerExpand(group.key)}
+                                        style={{ 
+                                            width: '100%',
+                                            marginTop: '12px',
+                                            background: isExpanded ? 'rgba(200, 169, 81, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                                            border: isExpanded ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.15)',
+                                            color: isExpanded ? '#c8a951' : '#f8fafc',
+                                            borderRadius: '8px',
+                                            padding: '8px 14px',
+                                            fontSize: '0.82rem',
+                                            fontWeight: '700',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                                        <span>{isExpanded ? (isRTL ? 'إخفاء التفاصيل' : 'Hide Details') : (isRTL ? 'عرض تفاصيل الطلبات' : 'View Order Details')}</span>
+                                    </button>
+                                </div>
+
+                                {isExpanded && (
+                                    <div style={{ background: '#0f172a', padding: '16px', borderTop: '1px solid #334155' }}>
+                                        {group.orders.map((order, idx) => {
+                                            const orderDateFormatted = formatOrderDate(order.created_at || order.date || order.createdAt);
+                                            const currentStatus = (order.status || 'pending').toLowerCase();
+                                            const shippingAddress = order.shipping_address || order.shippingAddress;
+                                            const paymentMethod = order.payment_method || order.paymentMethod;
+
+                                            return (
+                                                <div key={order.id} style={{ 
+                                                    paddingBottom: '16px', 
+                                                    marginBottom: idx === group.orders.length - 1 ? '0' : '16px',
+                                                    borderBottom: idx === group.orders.length - 1 ? 'none' : '1px solid rgba(51, 65, 85, 0.6)'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                        <strong style={{ color: '#f8fafc', fontSize: '0.95rem' }}>Order #{order.id}</strong>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{orderDateFormatted}</span>
+                                                    </div>
+
+                                                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        {order.phone && <span><Phone size={12} color="#c8a951" /> {order.phone}</span>}
+                                                        {shippingAddress && <span><MapPin size={12} color="#60a5fa" /> {shippingAddress}</span>}
+                                                        {paymentMethod && <span><CheckCircle size={12} color="#34d399" /> {paymentMethod}</span>}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                        <select 
+                                                            value={currentStatus}
+                                                            onChange={(e) => handleStatusUpdate(order.id, e)}
+                                                            style={{ 
+                                                                background: '#1e293b', 
+                                                                color: '#f8fafc', 
+                                                                border: '1px solid rgba(200, 169, 81, 0.45)', 
+                                                                borderRadius: '6px', 
+                                                                padding: '5px 10px', 
+                                                                fontSize: '0.78rem', 
+                                                                fontWeight: '700',
+                                                                outline: 'none'
+                                                            }}
+                                                        >
+                                                            <option value="pending">{isRTL ? 'قيد الانتظار' : 'Pending'}</option>
+                                                            <option value="processing">{isRTL ? 'قيد المعالجة' : 'Processing'}</option>
+                                                            <option value="shipped">{isRTL ? 'تم الشحن' : 'Shipped'}</option>
+                                                            <option value="delivered">{isRTL ? 'تم التوصيل' : 'Delivered'}</option>
+                                                            <option value="cancelled">{isRTL ? 'إلغاء الطلب' : 'Cancel Order'}</option>
+                                                        </select>
+                                                        <span style={{ fontSize: '1.05rem', fontWeight: '800', color: '#c8a951' }}>
+                                                            {order.total} {isRTL ? 'ر.ق' : 'QAR'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: '10px 12px', borderRadius: '8px' }}>
+                                                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            {order.items?.map((item, iIdx) => (
+                                                                <li key={iIdx} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', color: '#cbd5e1' }}>
+                                                                    <span>{item.quantity}x {item.name}</span>
+                                                                    <strong style={{ color: '#c8a951' }}>{item.price} QAR</strong>
+                                                                </li>
+                              ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {groupedOrders.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '40px 20px', background: '#1e293b', borderRadius: '12px' }}>
+                            <PackageIcon size={40} color="#64748b" style={{ marginBottom: '10px' }} />
+                            <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: '600' }}>
+                                {shopId 
+                                    ? (isRTL ? 'لم تصل طلبات لمنتجات متجرك بعد' : 'No orders yet for your shop products')
+                                    : (isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found')}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* ── Desktop Table View ── */
+                <div className="table-responsive" style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(51, 65, 85, 0.8)', overflowX: 'auto' }}>
+                    <table className="admin-table" style={{ margin: 0, width: '100%' }}>
+                        <thead>
+                            <tr>
+                                <th style={{ width: isRTL ? 'auto' : '32%' }}>{isRTL ? 'العميل' : 'Customer'}</th>
+                                <th>{isRTL ? 'الطلبات' : 'Orders'}</th>
+                                <th>{isRTL ? 'الإجمالي' : 'Total'}</th>
+                                <th>{isRTL ? 'آخر حالة' : 'Latest Status'}</th>
+                                <th style={{ textAlign: 'center' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {groupedOrders.map((group, groupIdx) => {
+                                const isExpanded = expandedCustomers[group.key];
+                                const totalSpent = group.orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+                                const latestOrder = group.orders[0];
+
+                                return (
+                                    <React.Fragment key={group.key || groupIdx}>
+                                        <tr style={{ background: isExpanded ? 'rgba(200, 169, 81, 0.05)' : 'transparent', fontWeight: '500', transition: 'background 0.2s ease' }}>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ 
+                                                        background: 'rgba(200, 169, 81, 0.15)', 
+                                                        border: '1px solid rgba(200, 169, 81, 0.35)', 
+                                                        padding: '10px', 
+                                                        borderRadius: '50%', 
+                                                        color: '#c8a951',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        <User size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{group.customerName}</div>
+                                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{group.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span style={{ 
+                                                    background: 'rgba(255, 255, 255, 0.08)', 
+                                                    border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                                    padding: '4px 10px', 
+                                                    borderRadius: '6px', 
+                                                    fontWeight: '700', 
+                                                    color: '#f8fafc', 
+                                                    fontSize: '0.82rem'
+                                                }}>
+                                                    {group.orders.length} {isRTL ? 'طلبات' : 'Orders'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <strong style={{ color: '#c8a951', fontSize: '1.05rem', fontWeight: '800' }}>
+                                                    {totalSpent.toFixed(2)} {isRTL ? 'ر.ق' : 'QAR'}
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge ${getStatusClass(latestOrder.status)}`} style={{ textTransform: 'uppercase', fontWeight: '700' }}>
+                                                    {translateStatus(latestOrder.status)}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'center', padding: '10px 5px' }}>
+                                                <button 
+                                                    onClick={() => toggleCustomerExpand(group.key)}
+                                                    style={{ 
+                                                        background: isExpanded ? 'rgba(200, 169, 81, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                                                        border: isExpanded ? '1px solid #c8a951' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                        color: isExpanded ? '#c8a951' : '#f8fafc',
+                                                        borderRadius: '8px',
+                                                        padding: '7px 16px',
+                                                        fontSize: '0.82rem',
+                                                        fontWeight: '700',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                                                    <span>{isExpanded ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'عرض' : 'View')}</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        
+                                        {isExpanded && (
+                                            <tr>
+                                                <td colSpan="5" style={{ padding: '0 0 20px 0', background: 'rgba(15, 23, 42, 0.6)' }}>
+                                                    <div style={{ 
+                                                        margin: '12px 24px', 
+                                                        padding: '20px', 
+                                                        background: '#0f172a', 
+                                                        borderRadius: '12px',
+                                                        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.3)',
+                                                        border: '1px solid rgba(51, 65, 85, 0.8)'
+                                                    }}>
+                                                        {group.orders.map((order, idx) => {
+                                                            const orderDateFormatted = formatOrderDate(order.created_at || order.date || order.createdAt);
+                                                            const currentStatus = (order.status || 'pending').toLowerCase();
+                                                            const shippingAddress = order.shipping_address || order.shippingAddress;
+                                                            const paymentMethod = order.payment_method || order.paymentMethod;
+
+                                                            return (
+                                                                <div key={order.id} style={{ 
+                                                                    padding: '18px 0', 
+                                                                    borderBottom: idx === group.orders.length - 1 ? 'none' : '1px solid rgba(51, 65, 85, 0.6)',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '14px'
+                                                                }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                                                                        <div>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                                                                <PackageIcon size={18} color="#c8a951" />
+                                                                                <strong style={{ fontSize: '1.15rem', color: '#f8fafc', letterSpacing: '0.3px' }}>Order #{order.id}</strong>
+                                                                                <span style={{ 
+                                                                                    color: '#94a3b8', 
+                                                                                    fontSize: '0.85rem',
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '5px',
+                                                                                    background: 'rgba(255, 255, 255, 0.05)',
+                                                                                    padding: '2px 8px',
+                                                                                    borderRadius: '6px',
+                                                                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                                                                }}>
+                                                                                    <Calendar size={13} color="#94a3b8" />
+                                                                                    {orderDateFormatted}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div style={{ fontSize: '0.85rem', color: '#cbd5e1', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                                                                {order.phone && (
+                                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                        <Phone size={13} color="#c8a951" /> {order.phone}
+                                                                                    </span>
+                                                                                )}
+                                                                                {shippingAddress && (
+                                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                        <MapPin size={13} color="#60a5fa" /> {shippingAddress}
+                                                                                    </span>
+                                                                                )}
+                                                                                {paymentMethod && (
+                                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                        <CheckCircle size={13} color="#34d399" /> {paymentMethod}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div style={{ textAlign: isRTL ? 'left' : 'right', display: 'flex', flexDirection: 'column', alignItems: isRTL ? 'flex-start' : 'flex-end', gap: '8px' }}>
+                                                                            <div>
+                                                                                <select 
+                                                                                    value={currentStatus}
+                                                                                    onChange={(e) => handleStatusUpdate(order.id, e)}
+                                                                                    style={{ 
+                                                                                        background: '#1e293b', 
+                                                                                        color: '#f8fafc', 
+                                                                                        border: '1px solid rgba(200, 169, 81, 0.45)', 
+                                                                                        borderRadius: '8px', 
+                                                                                        padding: '7px 14px', 
+                                                                                        fontSize: '0.85rem', 
+                                                                                        fontWeight: '700', 
+                                                                                        cursor: 'pointer', 
+                                                                                        outline: 'none', 
+                                                                                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)' 
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="pending" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'قيد الانتظار' : 'Pending'}</option>
+                                                                                    <option value="processing" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'قيد المعالجة' : 'Processing'}</option>
+                                                                                    <option value="shipped" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'تم الشحن' : 'Shipped'}</option>
+                                                                                    <option value="delivered" style={{ background: '#1e293b', color: '#f8fafc' }}>{isRTL ? 'تم التوصيل' : 'Delivered'}</option>
+                                                                                    <option value="cancelled" style={{ background: '#1e293b', color: '#f87171' }}>{isRTL ? 'إلغاء الطلب' : 'Cancel Order'}</option>
+                                                                                </select>
+                                                                            </div>
+                                                                            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c8a951' }}>
+                                                                                {order.total} {isRTL ? 'ر.ق' : 'QAR'}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ background: 'rgba(30, 41, 59, 0.7)', padding: '12px 18px', borderRadius: '10px', border: '1px solid rgba(51, 65, 85, 0.8)' }}>
+                                                                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                            {order.items?.map((item, iIdx) => (
+                                                                                <li key={iIdx} style={{ fontSize: '0.88rem', display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', alignItems: 'center' }}>
+                                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                        <span style={{ background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', padding: '2px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '0.8rem' }}>
+                                                                                            {item.quantity}x
+                                                                                        </span>
+                                                                                        <span style={{ color: '#f8fafc', fontWeight: '600' }}>{item.name}</span>
+                                                                                        {item.isGiftWrapped && <span title="Gift Wrapped">🎁</span>}
+                                                                                    </span>
+                                                                                    <span style={{ fontWeight: '700', color: '#c8a951' }}>{item.price} {isRTL ? 'ر.ق' : 'QAR'}</span>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                            {groupedOrders.length === 0 && (
+                                <tr>
+                                    <td colSpan="5" className="text-center" style={{ padding: '50px 20px' }}>
+                                        <div style={{ opacity: 0.6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                            <PackageIcon size={48} color="#64748b" />
+                                            <div style={{ color: '#94a3b8', fontSize: '0.95rem', fontWeight: '600' }}>
+                                                {shopId 
+                                                    ? (isRTL ? 'لم تصل طلبات لمنتجات متجرك بعد' : 'No orders yet for your shop products')
+                                                    : (isRTL ? 'لم يتم العثور على طلبات مطابقة' : 'No matching orders found')}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };
+
 export default OrderManager;
