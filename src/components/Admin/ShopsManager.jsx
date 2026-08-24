@@ -658,22 +658,45 @@ const ShopsManager = ({ isRTL }) => {
                         {shops.length} {isRTL ? 'متجر' : 'Total'}
                     </span>
                 </div>
-                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px' }}>
+                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button 
                         className="btn btn-outline" 
                         onClick={fetchShopsAndRegions} 
-                        style={{ height: '44px', padding: '0 14px', fontSize: '0.85rem' }}
-                        title={isRTL ? 'تحديث' : 'Refresh'}
+                        disabled={loading}
+                        style={{ 
+                            height: '44px', 
+                            padding: '0 16px', 
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'rgba(30, 41, 59, 0.8)',
+                            border: '1px solid #334155',
+                            color: '#f8fafc',
+                            borderRadius: '10px',
+                            cursor: loading ? 'not-allowed' : 'pointer'
+                        }}
+                        title={isRTL ? 'تحديث البيانات' : 'Refresh Data'}
                     >
-                        <RefreshCw size={16} />
+                        <RefreshCw size={16} color="#c8a951" className={loading ? 'spin' : ''} />
+                        <span style={{ fontWeight: '600' }}>{isRTL ? 'تحديث' : 'Refresh'}</span>
                     </button>
                     <button 
                         className={`btn ${showForm ? 'btn-outline' : 'btn-gold'}`} 
                         onClick={() => { setShowForm(!showForm); setPhotoInputs(['']); }} 
-                        style={{ height: '44px', padding: '0 20px' }}
+                        style={{ 
+                            height: '44px', 
+                            padding: '0 20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            borderRadius: '10px'
+                        }}
                     >
                         {showForm ? <X size={18} /> : <Plus size={18} />}
-                        {showForm ? (isRTL ? 'إلغاء' : 'Cancel') : (isRTL ? 'إضافة متجر جديد' : 'Add New Vendor')}
+                        <span style={{ fontWeight: '700' }}>
+                            {showForm ? (isRTL ? 'إلغاء' : 'Cancel') : (isRTL ? 'إضافة متجر جديد' : 'Add New Vendor')}
+                        </span>
                     </button>
                 </div>
             </div>
