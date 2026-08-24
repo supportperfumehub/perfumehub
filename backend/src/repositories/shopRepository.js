@@ -5,7 +5,20 @@ export class ShopRepository {
     async findAll(filters = {}) {
         let query = supabase.from('shops').select('*, customers:owner_id(name, email)');
         
-        if (filters.status) query = query.eq('status', filters.status);
+        if (filters.status) {
+            const normalizedStatus = filters.status.toUpperCase();
+            if (normalizedStatus === 'ACTIVE' || normalizedStatus === 'APPROVED') {
+                query = query.in('status', ['ACTIVE', 'APPROVED', 'active', 'approved']);
+            } else if (normalizedStatus === 'PENDING') {
+                query = query.in('status', ['PENDING', 'pending']);
+            } else if (normalizedStatus === 'SUSPENDED') {
+                query = query.in('status', ['SUSPENDED', 'suspended']);
+            } else if (normalizedStatus === 'REJECTED') {
+                query = query.in('status', ['REJECTED', 'rejected']);
+            } else {
+                query = query.eq('status', filters.status);
+            }
+        }
         if (filters.owner_id) query = query.eq('owner_id', filters.owner_id);
         if (filters.region_ids) query = query.in('region_id', filters.region_ids);
         if (filters.region_id) query = query.eq('region_id', filters.region_id);

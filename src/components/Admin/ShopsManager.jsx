@@ -1,10 +1,23 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, Image, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingCart, DollarSign, Edit, Eye, BarChart3, X, Star } from 'lucide-react';
+import { 
+    CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, 
+    Image, ChevronDown, ChevronUp, Package as PackageIcon, 
+    ShoppingCart, DollarSign, Edit, BarChart3, X, Star, 
+    Search, UserPlus, Check, Ban, RefreshCw
+} from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
 import api from '../../utils/api_v1_0_2';
+
+export const isApprovedOrActive = (status) => {
+    const s = (status || '').toUpperCase();
+    return s === 'ACTIVE' || s === 'APPROVED';
+};
+export const isPending = (status) => (status || '').toUpperCase() === 'PENDING';
+export const isSuspended = (status) => (status || '').toUpperCase() === 'SUSPENDED';
+export const isRejected = (status) => (status || '').toUpperCase() === 'REJECTED';
 
 const ShopsManager = ({ isRTL }) => {
     const { products, orders, showToast } = useContext(ShopContext);
@@ -17,6 +30,8 @@ const ShopsManager = ({ isRTL }) => {
     const [expandedTab, setExpandedTab] = useState('overview');
     const [editingShop, setEditingShop] = useState(null);
     const [editData, setEditData] = useState({});
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [formData, setFormData] = useState({
         ownerName: '',
         ownerEmail: '',
@@ -46,7 +61,7 @@ const ShopsManager = ({ isRTL }) => {
                 api.get('/regions')
             ]);
             
-            setShops(shopsRes.data);
+            setShops(shopsRes.data || []);
             setRegions(regionsRes.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -63,30 +78,25 @@ const ShopsManager = ({ isRTL }) => {
 
     const updateShopStatus = async (id, status) => {
         try {
-            let endpoint = `/api/shops/${id}/status`;
-            let body = JSON.stringify({ status });
+            let endpoint = `/shops/${id}/status`;
+            let body = { status: status.toUpperCase() };
 
-            if (status === 'active' && !regions.find(r => r.id === shops.find(s => s.id === id)?.region_id)) {
-                // Special case for approval of pending shops
-                const targetShop = shops.find(s => s.id === id);
-                if (targetShop?.status === 'pending') {
-                    endpoint = `/api/shops/${id}/approve`;
-                    body = null;
-                }
-            } else if (status === 'rejected') {
-                endpoint = `/api/shops/${id}/reject`;
-                body = JSON.stringify({ rejection_reason: 'Administrative action' });
+            if (status.toUpperCase() === 'REJECTED') {
+                endpoint = `/shops/${id}/reject`;
+                body = { rejection_reason: 'Administrative action' };
             }
 
-            const response = await api({
-                url: endpoint,
-                method: 'PUT',
-                data: body
-            });
+            const response = await api.put(endpoint, body);
 
-            if (response.data.success) {
-                fetchShopsAndRegions();
-                showToast(isRTL ? 'تم تحديث حالة المتجر بنجاح' : 'Shop status updated successfully', 'success');
+            if (response.data.success || response.data.id || response.data.shop) {
+                await fetchShopsAndRegions();
+                const normalized = status.toUpperCase();
+                const successMsg = (normalized === 'ACTIVE' || normalized === 'APPROVED')
+                    ? (isRTL ? 'تم تفعيل واعتماد المتجر بنجاح' : 'Shop approved and activated successfully')
+                    : normalized === 'SUSPENDED'
+                    ? (isRTL ? 'تم إيقاف المتجر بنجاح' : 'Shop suspended successfully')
+                    : (isRTL ? 'تم رفض طلب المتجر' : 'Shop request rejected');
+                showToast(successMsg, 'success');
             } else {
                 showToast(response.data.error || (isRTL ? 'فشل تحديث حالة المتجر' : 'Failed to update shop status'), 'error');
             }
@@ -155,13 +165,91 @@ const ShopsManager = ({ isRTL }) => {
     };
 
     const getStatusBadge = (status) => {
-        const styles = {
-            pending: { bg: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.4)', color: '#facc15', label: isRTL ? 'قيد المراجعة' : 'PENDING' },
-            active: { bg: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.4)', color: '#4ade80', label: isRTL ? 'نشط' : 'ACTIVE' },
-            rejected: { bg: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', label: isRTL ? 'مرفوض' : 'REJECTED' },
-            suspended: { bg: 'rgba(148, 163, 184, 0.15)', border: '1px solid rgba(148, 163, 184, 0.4)', color: '#94a3b8', label: isRTL ? 'موقوف' : 'SUSPENDED' }
-        };
-        const s = styles[status] || { bg: 'rgba(148, 163, 184, 0.15)', border: '1px solid rgba(148, 163, 184, 0.4)', color: '#94a3b8', label: status?.toUpperCase() || 'UNKNOWN' };
+        const s = (status || '').toUpperCase();
+        if (s === 'ACTIVE' || s === 'APPROVED') {
+            return (
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                    color: '#4ade80',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <CheckCircle size={12} />
+                    {isRTL ? 'نشط' : 'ACTIVE'}
+                </span>
+            );
+        }
+        if (s === 'PENDING') {
+            return (
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    border: '1px solid rgba(234, 179, 8, 0.4)',
+                    color: '#facc15',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <Clock size={12} />
+                    {isRTL ? 'طلب جديد' : 'NEW REQUEST'}
+                </span>
+            );
+        }
+        if (s === 'SUSPENDED') {
+            return (
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#f87171',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <Ban size={12} />
+                    {isRTL ? 'موقوف' : 'SUSPENDED'}
+                </span>
+            );
+        }
+        if (s === 'REJECTED') {
+            return (
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+                    border: '1px solid rgba(148, 163, 184, 0.4)',
+                    color: '#94a3b8',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <XCircle size={12} />
+                    {isRTL ? 'مرفوض' : 'REJECTED'}
+                </span>
+            );
+        }
         return (
             <span style={{
                 display: 'inline-flex',
@@ -171,17 +259,16 @@ const ShopsManager = ({ isRTL }) => {
                 fontSize: '0.72rem',
                 fontWeight: '700',
                 letterSpacing: '0.5px',
-                backgroundColor: s.bg,
-                border: s.border,
-                color: s.color,
+                backgroundColor: 'rgba(148, 163, 184, 0.15)',
+                border: '1px solid rgba(148, 163, 184, 0.4)',
+                color: '#94a3b8',
                 whiteSpace: 'nowrap'
             }}>
-                {s.label}
+                {s || 'UNKNOWN'}
             </span>
         );
     };
 
-    // Get shop-specific analytics
     const getShopAnalytics = (shop) => {
         const shopId = shop.id;
         const shopProducts = products.filter(p => 
@@ -198,8 +285,8 @@ const ShopsManager = ({ isRTL }) => {
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
         const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(now.getMonth() - 2); // Rolling 3 months including current
-        threeMonthsAgo.setDate(1); // From start of 3 months ago
+        threeMonthsAgo.setMonth(now.getMonth() - 2);
+        threeMonthsAgo.setDate(1);
 
         const monthlySales = shopOrders
             .filter(o => {
@@ -216,10 +303,9 @@ const ShopsManager = ({ isRTL }) => {
         const pendingOrders = shopOrders.filter(o => o.status?.toLowerCase() === 'pending').length;
         const deliveredOrders = shopOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
 
-        // Activity Calculation
         const recentOrdersCount = shopOrders.filter(o => new Date(o.created_at || o.date) >= threeMonthsAgo).length;
         const lastUpdate = shop.updated_at ? new Date(shop.updated_at) : null;
-        const isRecentlyInvolved = lastUpdate && (now - lastUpdate < 14 * 24 * 60 * 60 * 1000); // 14 days engagement
+        const isRecentlyInvolved = lastUpdate && (now - lastUpdate < 14 * 24 * 60 * 60 * 1000);
 
         let activityStatus = 'not active';
         if (recentOrdersCount >= 10 && isRecentlyInvolved) activityStatus = 'very active';
@@ -234,6 +320,7 @@ const ShopsManager = ({ isRTL }) => {
 
     const addPhotoInput = () => setPhotoInputs([...photoInputs, '']);
     const removePhotoInput = (index) => setPhotoInputs(photoInputs.filter((_, i) => i !== index));
+    
     const handleImageUpload = (index, e, isEdit = false) => {
         try {
             const fileInput = e.target;
@@ -288,7 +375,7 @@ const ShopsManager = ({ isRTL }) => {
                             setPhotoInputs(updated);
                         }
                         
-                        fileInput.value = ''; // Reset input to allow uploading same image
+                        fileInput.value = '';
                         URL.revokeObjectURL(objectUrl);
                         window._activeImageRefs.delete(img);
                     } catch (loadErr) {
@@ -300,7 +387,7 @@ const ShopsManager = ({ isRTL }) => {
                 };
                 img.onerror = () => {
                     alert("Failed to load image object.");
-                    fileInput.value = ''; // Reset on error too
+                    fileInput.value = '';
                     URL.revokeObjectURL(objectUrl);
                     window._activeImageRefs.delete(img);
                 };
@@ -310,7 +397,6 @@ const ShopsManager = ({ isRTL }) => {
             alert("Error in handleImageUpload: " + err.message);
         }
     };
-
 
     const handleAddShop = async (e) => {
         e.preventDefault();
@@ -333,34 +419,341 @@ const ShopsManager = ({ isRTL }) => {
         }
     };
 
-    if (loading) return <div className="text-center p-4">Loading shops...</div>;
+    const sortedShops = useMemo(() => {
+        return [...shops].sort((a, b) => {
+            const getPriority = (s) => {
+                if (isPending(s?.status)) return 1;
+                if (isSuspended(s?.status)) return 2;
+                if (isRejected(s?.status)) return 3;
+                if (isApprovedOrActive(s?.status)) return 4;
+                return 5;
+            };
+            const pA = getPriority(a);
+            const pB = getPriority(b);
+            if (pA !== pB) return pA - pB;
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+    }, [shops]);
+
+    const pendingShops = useMemo(() => sortedShops.filter(s => isPending(s.status)), [sortedShops]);
+    const activeShops = useMemo(() => sortedShops.filter(s => isApprovedOrActive(s.status)), [sortedShops]);
+    const suspendedShops = useMemo(() => sortedShops.filter(s => isSuspended(s.status)), [sortedShops]);
+
+    const filteredShops = useMemo(() => {
+        return sortedShops.filter(s => {
+            if (statusFilter === 'pending' && !isPending(s.status)) return false;
+            if (statusFilter === 'active' && !isApprovedOrActive(s.status)) return false;
+            if (statusFilter === 'suspended' && !isSuspended(s.status)) return false;
+
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                const matchesName = s.name?.toLowerCase().includes(q);
+                const matchesOwner = s.customers?.name?.toLowerCase().includes(q);
+                const matchesEmail = s.customers?.email?.toLowerCase().includes(q);
+                const matchesAddress = s.address?.toLowerCase().includes(q);
+                const matchesPhone = s.whatsapp_number?.toLowerCase().includes(q);
+                return matchesName || matchesOwner || matchesEmail || matchesAddress || matchesPhone;
+            }
+            return true;
+        });
+    }, [sortedShops, statusFilter, searchQuery]);
+
+    if (loading) return <div className="text-center p-4" style={{ color: '#94a3b8' }}>Loading shops...</div>;
 
     const cardStyle = { background: '#1e293b', borderRadius: '12px', padding: isMobile ? '16px' : '24px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' };
-    const statCardStyle = (color) => ({ 
-        background: '#0f172a', 
-        borderRadius: '12px', 
-        padding: isMobile ? '12px' : '16px', 
-        border: `1px solid ${color}44`, 
-        textAlign: 'center', 
-        flex: '1', 
-        minWidth: isMobile ? '100px' : '120px',
-        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
-        color: '#f8fafc' // Unified light text
-    });
+
+    const renderActionButtons = (shop) => {
+        const status = (shop.status || '').toUpperCase();
+        const isActive = isApprovedOrActive(status);
+        const isShopPending = isPending(status);
+        const isShopSuspended = isSuspended(status);
+        const isShopRejected = isRejected(status);
+
+        return (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {user?.role === 'super_admin' && (
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            toggleShopRecommendation(shop.id, shop.is_recommended); 
+                        }} 
+                        style={{ 
+                            background: 'rgba(255, 255, 255, 0.04)', 
+                            border: '1px solid rgba(255, 255, 255, 0.08)', 
+                            padding: '6px 8px', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s',
+                            marginRight: isRTL ? '0' : '4px',
+                            marginLeft: isRTL ? '4px' : '0'
+                        }}
+                        title={shop.is_recommended ? (isRTL ? 'إزالة من الموثوقة' : 'Remove from Trusted') : (isRTL ? 'إضافة إلى الموثوقة' : 'Add to Trusted')}
+                    >
+                        <Star 
+                            size={16} 
+                            fill={shop.is_recommended ? '#c8a951' : 'transparent'} 
+                            color={shop.is_recommended ? '#c8a951' : '#94a3b8'} 
+                            style={{ 
+                                filter: shop.is_recommended ? 'drop-shadow(0 0 4px rgba(200,169,81,0.4))' : 'none'
+                            }}
+                        />
+                    </button>
+                )}
+
+                {isActive && (
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            updateShopStatus(shop.id, 'SUSPENDED'); 
+                        }} 
+                        style={{ 
+                            background: 'rgba(239, 68, 68, 0.15)', 
+                            color: '#f87171', 
+                            border: '1px solid rgba(239, 68, 68, 0.4)', 
+                            padding: '5px 12px', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer', 
+                            fontSize: '0.8rem', 
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                        title={isRTL ? 'إيقاف المتجر' : 'Suspend Shop'}
+                    >
+                        <Ban size={14} />
+                        {isRTL ? 'إيقاف' : 'Suspend'}
+                    </button>
+                )}
+
+                {isShopSuspended && (
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            updateShopStatus(shop.id, 'ACTIVE'); 
+                        }} 
+                        style={{ 
+                            background: 'rgba(34, 197, 94, 0.15)', 
+                            color: '#4ade80', 
+                            border: '1px solid rgba(34, 197, 94, 0.4)', 
+                            padding: '5px 12px', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer', 
+                            fontSize: '0.8rem', 
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                        title={isRTL ? 'إعادة تفعيل المتجر' : 'Approve and Activate Shop'}
+                    >
+                        <Check size={14} />
+                        {isRTL ? 'تفعيل' : 'Approve'}
+                    </button>
+                )}
+
+                {isShopPending && (
+                    <>
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                updateShopStatus(shop.id, 'ACTIVE'); 
+                            }} 
+                            style={{ 
+                                background: 'rgba(34, 197, 94, 0.15)', 
+                                color: '#4ade80', 
+                                border: '1px solid rgba(34, 197, 94, 0.4)', 
+                                padding: '5px 12px', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '0.8rem', 
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            <Check size={14} />
+                            {isRTL ? 'موافقة' : 'Approve'}
+                        </button>
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                updateShopStatus(shop.id, 'REJECTED'); 
+                            }} 
+                            style={{ 
+                                background: 'rgba(239, 68, 68, 0.12)', 
+                                color: '#f87171', 
+                                border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                padding: '5px 10px', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '0.8rem', 
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            <X size={14} />
+                            {isRTL ? 'رفض' : 'Reject'}
+                        </button>
+                    </>
+                )}
+
+                {isShopRejected && (
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            updateShopStatus(shop.id, 'ACTIVE'); 
+                        }} 
+                        style={{ 
+                            background: 'rgba(34, 197, 94, 0.15)', 
+                            color: '#4ade80', 
+                            border: '1px solid rgba(34, 197, 94, 0.4)', 
+                            padding: '5px 12px', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer', 
+                            fontSize: '0.8rem', 
+                            fontWeight: '600'
+                        }}
+                    >
+                        {isRTL ? 'تفعيل' : 'Approve'}
+                    </button>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="manager-content">
-            <div className="manager-header">
-                <h2>{isRTL ? 'إدارة المتاجر' : 'Shops Management'}</h2>
-                <div className="manager-header-actions">
-                    <button className={`btn ${showForm ? 'btn-outline' : 'btn-gold'}`} onClick={() => { setShowForm(!showForm); setPhotoInputs(['']); }} style={{ height: '44px', padding: '0 20px' }}>
+            <div className="manager-header" style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h2>{isRTL ? 'إدارة المتاجر والبائعين' : 'Shops & Vendors Management'}</h2>
+                    <span style={{ 
+                        background: 'rgba(200, 169, 81, 0.15)', 
+                        border: '1px solid rgba(200, 169, 81, 0.3)', 
+                        color: '#c8a951', 
+                        padding: '3px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.8rem', 
+                        fontWeight: '700' 
+                    }}>
+                        {shops.length} {isRTL ? 'متجر' : 'Total'}
+                    </span>
+                </div>
+                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        className="btn btn-outline" 
+                        onClick={fetchShopsAndRegions} 
+                        style={{ height: '44px', padding: '0 14px', fontSize: '0.85rem' }}
+                        title={isRTL ? 'تحديث' : 'Refresh'}
+                    >
+                        <RefreshCw size={16} />
+                    </button>
+                    <button 
+                        className={`btn ${showForm ? 'btn-outline' : 'btn-gold'}`} 
+                        onClick={() => { setShowForm(!showForm); setPhotoInputs(['']); }} 
+                        style={{ height: '44px', padding: '0 20px' }}
+                    >
                         {showForm ? <X size={18} /> : <Plus size={18} />}
                         {showForm ? (isRTL ? 'إلغاء' : 'Cancel') : (isRTL ? 'إضافة متجر جديد' : 'Add New Vendor')}
                     </button>
                 </div>
             </div>
 
-            {/* Add New Vendor Form */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                <div onClick={() => setStatusFilter('all')} style={{ background: statusFilter === 'all' ? 'rgba(200, 169, 81, 0.12)' : '#1e293b', border: statusFilter === 'all' ? '1px solid #c8a951' : '1px solid #334155', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ color: '#c8a951' }}><Store size={22} /></div>
+                    <div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f8fafc' }}>{shops.length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'جميع المتاجر' : 'All Vendors'}</div>
+                    </div>
+                </div>
+
+                <div onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')} style={{ background: statusFilter === 'pending' ? 'rgba(234, 179, 8, 0.15)' : (pendingShops.length > 0 ? 'rgba(234, 179, 8, 0.08)' : '#1e293b'), border: statusFilter === 'pending' ? '1px solid #facc15' : (pendingShops.length > 0 ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid #334155'), borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: pendingShops.length > 0 ? '0 0 12px rgba(234, 179, 8, 0.15)' : 'none' }}>
+                    <div style={{ color: '#facc15' }}><Clock size={22} /></div>
+                    <div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#facc15' }}>{pendingShops.length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'طلبات الانضمام' : 'Join Requests'}</div>
+                    </div>
+                </div>
+
+                <div onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')} style={{ background: statusFilter === 'active' ? 'rgba(34, 197, 94, 0.15)' : '#1e293b', border: statusFilter === 'active' ? '1px solid #4ade80' : '1px solid #334155', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ color: '#4ade80' }}><CheckCircle size={22} /></div>
+                    <div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#4ade80' }}>{activeShops.length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'المتاجر المعتمدة' : 'Active & Approved'}</div>
+                    </div>
+                </div>
+
+                <div onClick={() => setStatusFilter(statusFilter === 'suspended' ? 'all' : 'suspended')} style={{ background: statusFilter === 'suspended' ? 'rgba(239, 68, 68, 0.15)' : '#1e293b', border: statusFilter === 'suspended' ? '1px solid #f87171' : '1px solid #334155', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ color: '#f87171' }}><Ban size={22} /></div>
+                    <div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f87171' }}>{suspendedShops.length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'المتاجر الموقوفة' : 'Suspended'}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                    <Search size={16} color="#94a3b8" style={{ position: 'absolute', [isRTL ? 'right' : 'left']: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                        type="text"
+                        className="form-control"
+                        style={{ paddingLeft: isRTL ? '12px' : '40px', paddingRight: isRTL ? '40px' : '12px', height: '42px', background: '#0f172a', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
+                        placeholder={isRTL ? 'بحث باسم المتجر، المالك، البريد، أو الهاتف...' : 'Search by shop name, owner, email, or phone...'}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {[
+                        { key: 'all', label: isRTL ? 'الكل' : 'All', count: shops.length },
+                        { key: 'pending', label: isRTL ? 'طلبات الانضمام' : 'Join Requests', count: pendingShops.length, highlight: pendingShops.length > 0 },
+                        { key: 'active', label: isRTL ? 'المعتمدة والنشطة' : 'Active', count: activeShops.length },
+                        { key: 'suspended', label: isRTL ? 'الموقوفة' : 'Suspended', count: suspendedShops.length }
+                    ].map(f => (
+                        <button
+                            key={f.key}
+                            onClick={() => setStatusFilter(f.key)}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: '8px',
+                                border: statusFilter === f.key ? '1px solid #c8a951' : '1px solid #334155',
+                                background: statusFilter === f.key ? 'rgba(200, 169, 81, 0.15)' : '#1e293b',
+                                color: statusFilter === f.key ? '#c8a951' : (f.highlight ? '#facc15' : '#cbd5e1'),
+                                fontWeight: statusFilter === f.key ? '700' : '500',
+                                fontSize: '0.82rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}
+                        >
+                            {f.label}
+                            <span style={{
+                                padding: '1px 6px',
+                                borderRadius: '10px',
+                                fontSize: '0.7rem',
+                                background: f.highlight ? '#facc15' : '#334155',
+                                color: f.highlight ? '#000' : '#cbd5e1',
+                                fontWeight: '700'
+                            }}>
+                                {f.count}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {showForm && (
                 <div style={{ ...cardStyle, marginBottom: '24px' }}>
                     <h3 style={{ marginBottom: '20px' }}>{isRTL ? 'إضافة متجر وبائع جديد' : 'Add New Vendor & Shop'}</h3>
@@ -386,10 +779,7 @@ const ShopsManager = ({ isRTL }) => {
                                 <label className="form-label">{isRTL ? 'المنطقة' : 'Region (Optional)'}</label>
                                 <select className="form-control" value={formData.region_id} onChange={(e) => setFormData({...formData, region_id: e.target.value})}>
                                     <option value="">{isRTL ? '-- لا يوجد منطقة محددة --' : '-- No Region Assigned --'}</option>
-                                    {regions
-                                        .filter(r => user?.role === 'super_admin' || user?.role === 'admin' || user?.assignedRegionIds?.includes(r.id))
-                                        .map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)
-                                    }
+                                    {regions.filter(r => user?.role === 'super_admin' || user?.role === 'admin' || user?.assignedRegionIds?.includes(r.id)).map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
                                 </select>
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
@@ -402,15 +792,10 @@ const ShopsManager = ({ isRTL }) => {
                             </div>
                         </div>
 
-                        {/* Photos */}
                         <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Image size={16} /> {isRTL ? 'صور المتجر' : 'Shop Photos'}
-                                </label>
-                                <button type="button" onClick={addPhotoInput} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '1px dashed #94a3b8', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: '#94a3b8', fontSize: '0.85rem' }}>
-                                    <Plus size={14} /> {isRTL ? 'إضافة صورة' : 'Add Photo'}
-                                </button>
+                                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><Image size={16} /> {isRTL ? 'صور المتجر' : 'Shop Photos'}</label>
+                                <button type="button" onClick={addPhotoInput} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '1px dashed #94a3b8', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: '#94a3b8', fontSize: '0.85rem' }}><Plus size={14} /> {isRTL ? 'إضافة صورة' : 'Add Photo'}</button>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
                                 {photoInputs.map((url, index) => (
@@ -418,9 +803,7 @@ const ShopsManager = ({ isRTL }) => {
                                         {url ? (
                                             <>
                                                 <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                <button type="button" onClick={() => removePhotoInput(index)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(231, 76, 60, 0.8)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <X size={14} />
-                                                </button>
+                                                <button type="button" onClick={() => removePhotoInput(index)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(231, 76, 60, 0.8)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                                             </>
                                         ) : (
                                             <label style={{ textAlign: 'center', cursor: 'pointer', display: 'block' }} htmlFor={`new-shop-photo-${index}`}>
@@ -433,182 +816,85 @@ const ShopsManager = ({ isRTL }) => {
                                 ))}
                             </div>
                         </div>
-                        <button type="submit" className="btn btn-dark">{isRTL ? 'حفظ' : 'Save Vendor'}</button>
+                        <button type="submit" className="btn btn-gold">{isRTL ? 'حفظ المتجر' : 'Save Vendor'}</button>
                     </form>
                 </div>
             )}
 
-            {/* Shops List */}
-            {shops.map(shop => {
+            {(statusFilter === 'all' || statusFilter === 'pending') && pendingShops.length > 0 && !searchQuery && (
+                <div style={{ marginBottom: '28px', background: 'linear-gradient(180deg, rgba(234, 179, 8, 0.08) 0%, rgba(30, 41, 59, 0.95) 100%)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '14px', padding: isMobile ? '16px' : '20px', boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.3)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(234, 179, 8, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserPlus size={20} color="#facc15" /></div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc', fontWeight: '700' }}>{isRTL ? 'طلبات انضمام البائعين الجديدة' : 'Vendor Join Requests'}</h3>
+                                <div style={{ fontSize: '0.78rem', color: '#facc15', marginTop: '2px' }}>{isRTL ? 'بانتظار المراجعة والاعتماد' : 'Pending administrative approval'}</div>
+                            </div>
+                        </div>
+                        <span style={{ background: '#facc15', color: '#000', fontWeight: '800', fontSize: '0.78rem', padding: '4px 12px', borderRadius: '20px', letterSpacing: '0.5px' }}>{pendingShops.length} {isRTL ? 'طلب جديد' : 'New Applications'}</span>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                        {pendingShops.map(reqShop => (
+                            <div key={`req-${reqShop.id}`} style={{ background: '#0f172a', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: '10px', padding: isMobile ? '14px' : '16px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <div style={{ width: '45px', height: '45px', borderRadius: '8px', background: '#1e293b', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #334155' }}>
+                                        {(reqShop.images && reqShop.images.length > 0) ? <img src={reqShop.images[0]} alt={reqShop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Store size={22} color="#facc15" />}
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>{reqShop.name}</span>
+                                            {getStatusBadge(reqShop.status)}
+                                        </div>
+                                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                            <span><strong>{isRTL ? 'المالك:' : 'Owner:'}</strong> {reqShop.customers?.name || 'Applicant'}</span>
+                                            {reqShop.customers?.email && (<span><strong>{isRTL ? 'البريد:' : 'Email:'}</strong> {reqShop.customers.email}</span>)}
+                                            {reqShop.whatsapp_number && (<span><strong>{isRTL ? 'واتساب:' : 'WhatsApp:'}</strong> {reqShop.whatsapp_number}</span>)}
+                                        </div>
+                                        {reqShop.address && (<div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} color="#c8a951" /> {reqShop.address}</div>)}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
+                                    <button onClick={() => updateShopStatus(reqShop.id, 'ACTIVE')} style={{ background: '#22c55e', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)' }}><Check size={16} />{isRTL ? 'موافقة واعتماد' : 'Approve & Activate'}</button>
+                                    <button onClick={() => updateShopStatus(reqShop.id, 'REJECTED')} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}><X size={16} />{isRTL ? 'رفض' : 'Reject'}</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#cbd5e1', fontWeight: '600' }}>{statusFilter === 'all' ? (isRTL ? 'قائمة المتاجر المسجلة (المعتمدة تظهر في الأسفل)' : 'Registered Vendors (Approved sorted to bottom)') : statusFilter === 'pending' ? (isRTL ? 'طلبات الانضمام' : 'Vendor Join Requests') : statusFilter === 'active' ? (isRTL ? 'المتاجر المعتمدة والنشطة' : 'Active & Approved Vendors') : (isRTL ? 'المتاجر الموقوفة' : 'Suspended Vendors')}</h3>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{filteredShops.length} {isRTL ? 'متجر معروض' : 'shops shown'}</span>
+            </div>
+
+            {filteredShops.map(shop => {
                 const isExpanded = expandedShop === shop.id;
                 const analytics = isExpanded ? getShopAnalytics(shop) : null;
 
                 return (
-                    <div key={shop.id} style={{ marginBottom: '16px', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', background: '#1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                        {/* Shop Row Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 15px' : '16px 20px', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap', cursor: 'pointer', background: isExpanded ? 'rgba(255, 255, 255, 0.03)' : 'transparent', position: 'relative' }}
-                            onClick={() => { setExpandedShop(isExpanded ? null : shop.id); setExpandedTab('overview'); setEditingShop(null); }}
-                        >
+                    <div key={shop.id} style={{ marginBottom: '14px', border: isApprovedOrActive(shop.status) ? '1px solid #334155' : (isPending(shop.status) ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid rgba(239, 68, 68, 0.3)'), borderRadius: '12px', overflow: 'hidden', background: '#1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 15px' : '16px 20px', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap', cursor: 'pointer', background: isExpanded ? 'rgba(255, 255, 255, 0.03)' : 'transparent', position: 'relative' }} onClick={() => { setExpandedShop(isExpanded ? null : shop.id); setExpandedTab('overview'); setEditingShop(null); }}>
                             <div style={{ width: isMobile ? '35px' : '45px', height: isMobile ? '35px' : '45px', borderRadius: '8px', background: '#0f172a', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #334155' }}>
-                                {(shop.images && shop.images.length > 0)
-                                    ? <img src={shop.images[0]} alt={shop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <Store size={22} color="#94a3b8" />
-                                }
+                                {(shop.images && shop.images.length > 0) ? <img src={shop.images[0]} alt={shop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Store size={22} color="#94a3b8" />}
                             </div>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
-                                    {(() => {
-                                        if (!shop.region_id) return null;
-                                        const reg = regions.find(r => Number(r.id) === Number(shop.region_id));
-                                        const flagMap = { 'QA': '🇶🇦', 'AE': '🇦🇪', 'GB': '🇬🇧', 'SA': '🇸🇦', 'KW': '🇰🇼', 'OM': '🇴🇲', 'BH': '🇧🇭' };
-                                        return (
-                                            <span style={{
-                                                fontSize: '0.72rem',
-                                                padding: '2px 8px',
-                                                backgroundColor: 'rgba(200, 169, 81, 0.15)',
-                                                border: '1px solid rgba(200, 169, 81, 0.35)',
-                                                color: '#c8a951',
-                                                borderRadius: '6px',
-                                                fontWeight: '600',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px',
-                                                whiteSpace: 'nowrap'
-                                            }}>
-                                                {reg ? `${flagMap[reg.code?.toUpperCase()] || '📍'} ${reg.name}` : (isRTL ? 'إقليمي' : 'Regional')}
-                                            </span>
-                                        );
-                                    })()}
                                 </div>
-                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
-                                    {shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}
-                                </div>
+                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>{shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}</div>
                             </div>
-                            {!isMobile && shop.address && (
-                                <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '6px', 
-                                    color: '#cbd5e1', 
-                                    fontSize: '0.82rem',
-                                    background: 'rgba(15, 23, 42, 0.6)',
-                                    padding: '5px 12px',
-                                    borderRadius: '8px',
-                                    border: '1px solid rgba(51, 65, 85, 0.5)'
-                                }}>
-                                    <MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}
-                                </div>
-                            )}
+                            {!isMobile && shop.address && (<div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', background: 'rgba(15, 23, 42, 0.6)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(51, 65, 85, 0.5)' }}><MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}</div>)}
                             <div style={{ marginLeft: isRTL ? '0' : 'auto', marginRight: isRTL ? 'auto' : '0' }}>{getStatusBadge(shop.status)}</div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                {user?.role === 'super_admin' && (
-                                    <button 
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            toggleShopRecommendation(shop.id, shop.is_recommended); 
-                                        }} 
-                                        style={{ 
-                                            background: 'rgba(255, 255, 255, 0.04)', 
-                                            border: '1px solid rgba(255, 255, 255, 0.08)', 
-                                            padding: '6px', 
-                                            cursor: 'pointer', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            borderRadius: '8px',
-                                            transition: 'all 0.2s',
-                                            marginRight: '4px'
-                                        }}
-                                        title={shop.is_recommended ? (isRTL ? 'إزالة من الموثوقة' : 'Remove from Trusted') : (isRTL ? 'إضافة إلى الموثوقة' : 'Add to Trusted')}
-                                    >
-                                        <Star 
-                                            size={18} 
-                                            fill={shop.is_recommended ? '#c8a951' : 'transparent'} 
-                                            color={shop.is_recommended ? '#c8a951' : '#94a3b8'} 
-                                            style={{ 
-                                                filter: shop.is_recommended ? 'drop-shadow(0 0 4px rgba(200,169,81,0.4))' : 'none'
-                                            }}
-                                        />
-                                    </button>
-                                )}
-                                {shop.status !== 'active' && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'active'); }} 
-                                        style={{ 
-                                            background: 'rgba(34, 197, 94, 0.15)', 
-                                            color: '#4ade80', 
-                                            border: '1px solid rgba(34, 197, 94, 0.4)', 
-                                            padding: '5px 12px', 
-                                            borderRadius: '6px', 
-                                            cursor: 'pointer', 
-                                            fontSize: '0.8rem',
-                                            fontWeight: '600'
-                                        }}
-                                    >
-                                        {isRTL ? 'تفعيل' : 'Approve'}
-                                    </button>
-                                )}
-                                {shop.status === 'active' && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'suspended'); }} 
-                                        style={{ 
-                                            background: 'rgba(239, 68, 68, 0.15)', 
-                                            color: '#f87171', 
-                                            border: '1px solid rgba(239, 68, 68, 0.4)', 
-                                            padding: '5px 12px', 
-                                            borderRadius: '6px', 
-                                            cursor: 'pointer', 
-                                            fontSize: '0.8rem',
-                                            fontWeight: '600'
-                                        }}
-                                    >
-                                        {isRTL ? 'إيقاف' : 'Suspend'}
-                                    </button>
-                                )}
-                                {shop.status === 'pending' && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); updateShopStatus(shop.id, 'rejected'); }} 
-                                        style={{ 
-                                            background: 'rgba(148, 163, 184, 0.15)', 
-                                            color: '#cbd5e1', 
-                                            border: '1px solid rgba(148, 163, 184, 0.4)', 
-                                            padding: '5px 12px', 
-                                            borderRadius: '6px', 
-                                            cursor: 'pointer', 
-                                            fontSize: '0.8rem',
-                                            fontWeight: '600'
-                                        }}
-                                    >
-                                        {isRTL ? 'رفض' : 'Reject'}
-                                    </button>
-                                )}
-                                <div style={{ 
-                                    width: '28px', 
-                                    height: '28px', 
-                                    borderRadius: '6px', 
-                                    background: 'rgba(255, 255, 255, 0.04)', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)'
-                                }}>
-                                    {isExpanded ? <ChevronUp size={16} color="#c8a951" /> : <ChevronDown size={16} color="#94a3b8" />}
-                                </div>
-                            </div>
+                            {renderActionButtons(shop)}
+                            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.08)' }}>{isExpanded ? <ChevronUp size={16} color="#c8a951" /> : <ChevronDown size={16} color="#94a3b8" />}</div>
                         </div>
 
-                        {/* Mobile Address Info (shown only when expanded and on mobile) */}
-                        {isExpanded && isMobile && (
-                            <div style={{ padding: '0 20px 10px', fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <MapPin size={12} /> {shop.address}
-                            </div>
-                        )}
+                        {isExpanded && isMobile && (<div style={{ padding: '0 20px 10px', fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}><MapPin size={12} /> {shop.address}</div>)}
 
-                        {/* Expanded Detail Panel */}
                         {isExpanded && analytics && (
                             <div style={{ borderTop: '1px solid #334155', padding: isMobile ? '15px' : '20px' }}>
-                                {/* Tab Navigation */}
                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
                                     {[
                                         { key: 'overview', icon: <BarChart3 size={14} />, label: isRTL ? 'نظرة عامة' : 'Overview' },
@@ -617,190 +903,24 @@ const ShopsManager = ({ isRTL }) => {
                                         { key: 'orders', icon: <ShoppingCart size={14} />, label: isRTL ? 'الطلبات' : 'Orders' },
                                         { key: 'edit', icon: <Edit size={14} />, label: isRTL ? 'تعديل' : 'Edit Shop' }
                                     ].map(tab => (
-                                        <button key={tab.key}
-                                            onClick={() => { 
-                                                setExpandedTab(tab.key); 
-                                                if (tab.key === 'edit') { 
-                                                    setEditingShop(shop.id); 
-                                                    setEditData({ 
-                                                        name: shop.name, 
-                                                        address: shop.address, 
-                                                        whatsapp_number: shop.whatsapp_number || '', 
-                                                        is_recommended: shop.is_recommended || false,
-                                                        region_id: shop.region_id || '',
-                                                        ownerName: shop.customers?.name || '',
-                                                        ownerEmail: shop.customers?.email || '',
-                                                        images: shop.images || []
-                                                    }); 
-                                                } 
-                                            }}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}
-                                        >
-                                            {tab.icon} {tab.label}
-                                        </button>
+                                        <button key={tab.key} onClick={() => { setExpandedTab(tab.key); if (tab.key === 'edit') { setEditingShop(shop.id); setEditData({ name: shop.name, address: shop.address, whatsapp_number: shop.whatsapp_number || '', is_recommended: shop.is_recommended || false, region_id: shop.region_id || '', ownerName: shop.customers?.name || '', ownerEmail: shop.customers?.email || '', images: shop.images || [], status: shop.status }); } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}>{tab.icon} {tab.label}</button>
                                     ))}
-                                    <button
-                                        onClick={() => deleteShop(shop.id, shop.name)}
-                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: isMobile ? '10px 12px' : '8px 14px', border: '1px solid #e74c3c33', borderRadius: '8px', background: '#fff5f5', color: '#e74c3c', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 100%' : 'none', marginTop: isMobile ? '4px' : '0', marginLeft: isMobile ? '0' : 'auto' }}
-                                    >
-                                        <Trash2 size={14} /> {isRTL ? 'حذف' : 'Delete'}
-                                    </button>
+                                    <button onClick={() => deleteShop(shop.id, shop.name)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: isMobile ? '10px 12px' : '8px 14px', border: '1px solid #e74c3c33', borderRadius: '8px', background: '#fff5f5', color: '#e74c3c', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 100%' : 'none', marginTop: isMobile ? '4px' : '0', marginLeft: isMobile ? '0' : 'auto' }}><Trash2 size={14} /> {isRTL ? 'حذف' : 'Delete'}</button>
                                 </div>
-
-                                {/* Overview Tab */}
-                                {expandedTab === 'overview' && (
-                                    <div>
-                                        {/* Stats Cards */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '8px' : '12px', marginBottom: '20px' }}>
-                                            <div style={statCardStyle('#3498db')}>
-                                                <PackageIcon size={isMobile ? 18 : 22} color="#3498db" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.shopProducts.length}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المنتجات' : 'Products'}</div>
-                                            </div>
-                                            <div style={statCardStyle('#2ecc71')}>
-                                                <ShoppingCart size={isMobile ? 18 : 22} color="#2ecc71" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.shopOrders.length}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'الطلبات' : 'Orders'}</div>
-                                            </div>
-                                            <div style={statCardStyle('#d4af37')}>
-                                                <DollarSign size={isMobile ? 18 : 22} color="#d4af37" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.totalSales.toFixed(0)}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المبيعات' : 'Sales'}</div>
-                                            </div>
-                                            <div style={statCardStyle('#f1c40f')}>
-                                                <Clock size={isMobile ? 18 : 22} color="#f1c40f" style={{ marginBottom: '6px' }} />
-                                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.pendingOrders}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'معلقة' : 'Pending'}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Shop Info */}
-                                        <div style={cardStyle}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '15px', fontSize: '0.88rem' }}>
-                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div>
-                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div>
-                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div>
-                                                <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div>
-                                            </div>
-                                            {shop.images && shop.images.length > 0 && (
-                                                <div style={{ marginTop: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    {shop.images.map((img, i) => (
-                                                        <img key={i} src={img} alt={`${shop.name} ${i+1}`} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} onError={(e) => e.target.style.display='none'} />
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                {expandedTab === 'overview' && (<div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? '8px' : '12px', marginBottom: '20px' }}>
+                                        <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #3498db44', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><PackageIcon size={isMobile ? 18 : 22} color="#3498db" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.shopProducts.length}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المنتجات' : 'Products'}</div></div>
+                                        <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #2ecc7144', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><ShoppingCart size={isMobile ? 18 : 22} color="#2ecc71" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.shopOrders.length}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'الطلبات' : 'Orders'}</div></div>
+                                        <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #d4af3744', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><DollarSign size={isMobile ? 18 : 22} color="#d4af37" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.totalSales.toFixed(0)}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المبيعات' : 'Sales'}</div></div>
+                                        <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #f1c40f44', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><Clock size={isMobile ? 18 : 22} color="#f1c40f" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.pendingOrders}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'معلقة' : 'Pending'}</div></div>
                                     </div>
-                                )}
-
-                                {/* Reports Tab */}
-                                {expandedTab === 'reports' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '15px' : '20px' }}>
-                                        {/* Sales Performance Card */}
-                                        <div style={cardStyle}>
-                                            <h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
-                                                <DollarSign size={18} color="var(--color-gold)" /> 
-                                                {isRTL ? 'الأداء المالي' : 'Sales Performance'}
-                                            </h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                                <div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div>
-                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.monthlySales.toFixed(2)} QAR</div>
-                                                </div>
-                                                <div style={{ height: '1px', background: '#334155' }}></div>
-                                                <div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div>
-                                                    <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.quarterlySales.toFixed(2)} QAR</div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div style={cardStyle}>
-                                            <h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
-                                                <CheckCircle size={18} color="#2ecc71" /> 
-                                                {isRTL ? 'الحالة والمشاركة' : 'Activity & Engagement'}
-                                            </h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                                    <span style={{ fontSize: '0.92rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'حالة المتجر:' : 'Shop Status:'}</span>
-                                                    <span style={{ 
-                                                        padding: '4px 12px', 
-                                                        borderRadius: '20px', 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: '700', 
-                                                        textTransform: 'uppercase',
-                                                        backgroundColor: analytics.activityStatus === 'very active' ? '#2ecc71' : (analytics.activityStatus === 'active' ? '#3498db' : '#95a5a6'),
-                                                        color: '#fff'
-                                                    }}>
-                                                        {isRTL ? (
-                                                            analytics.activityStatus === 'very active' ? 'نشط جداً' : (analytics.activityStatus === 'active' ? 'نشط' : 'غير نشط')
-                                                        ) : analytics.activityStatus}
-                                                    </span>
-                                                </div>
-                                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <div>
-                                                        {isRTL ? 'آخر تفاعل (تعديل):' : 'Last Involvement (Update):'} 
-                                                        <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: '5px' }}>
-                                                            {analytics.lastUpdate ? analytics.lastUpdate.toLocaleDateString() : 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid #334155' }}>
-                                                        <strong style={{ color: '#f8fafc', display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>{isRTL ? 'تحليل النشاط:' : 'Activity Insight:'}</strong>
-                                                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.8rem', lineHeight: '1.4' }}>
-                                                            {analytics.activityStatus === 'very active' 
-                                                                ? (isRTL ? 'أداء استثنائي وتفاعل مستمر.' : 'Exceptional performance and high engagement.')
-                                                                : (analytics.activityStatus === 'active' 
-                                                                    ? (isRTL ? 'نشط جيد ومنتظم.' : 'Healthy and regular activity.')
-                                                                    : (isRTL ? 'يحتاج إلى مزيد من التفاعل والمنتجات.' : 'Requires more engagement and fresh products.'))}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Products Tab */}
-                                {expandedTab === 'products' && (
-                                    <div className="nested-product-manager">
-                                        <ProductManager isRTL={isRTL} shopId={shop.id} hideHeader={true} />
-                                    </div>
-                                )}
-
-                                {/* Orders Tab */}
-                                {expandedTab === 'orders' && (
-                                    <div>
-                                        {analytics.shopOrders.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
-                                                <ShoppingCart size={40} style={{ marginBottom: '10px' }} />
-                                                <div>{isRTL ? 'لا توجد طلبات بعد' : 'No orders yet'}</div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'grid', gap: '10px' }}>
-                                                {analytics.shopOrders.map(order => (
-                                                    <div key={order.id} style={{ padding: '16px 20px', background: '#334155', borderRadius: '10px', border: '1px solid #475569', marginBottom: '10px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                            <span style={{ fontWeight: '700', color: '#f8fafc' }}>{order.id}</span>
-                                                            <div>
-                                                                <strong>#{order.id}</strong>
-                                                                <span style={{ marginLeft: '10px', fontSize: '0.82rem', color: '#888' }}>{order.date || new Date(order.created_at).toLocaleDateString()}</span>
-                                                            </div>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                {getStatusBadge(order.status?.toLowerCase())}
-                                                                <strong>{order.total} QAR</strong>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                            {isRTL ? 'العميل:' : 'Customer:'} {order.customerName || 'Guest'} · {order.items?.length || 0} {isRTL ? 'منتجات' : 'items'}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Edit Tab */}
+                                    <div style={cardStyle}><div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '15px', fontSize: '0.88rem' }}><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div></div></div>
+                                </div>)}
+                                {expandedTab === 'reports' && (<div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '15px' : '20px' }}>
+                                    <div style={cardStyle}><h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}><DollarSign size={18} color="var(--color-gold)" /> {isRTL ? 'الأداء المالي' : 'Sales Performance'}</h4><div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.monthlySales.toFixed(2)} QAR</div></div><div style={{ height: '1px', background: '#334155' }}></div><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.quarterlySales.toFixed(2)} QAR</div></div></div></div>
+                                </div>)}
+                                {expandedTab === 'products' && (<div className="nested-product-manager"><ProductManager isRTL={isRTL} shopId={shop.id} hideHeader={true} /></div>)}
+                                {expandedTab === 'orders' && (<div>{analytics.shopOrders.length === 0 ? (<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}><ShoppingCart size={40} style={{ marginBottom: '10px' }} /><div>{isRTL ? 'لا توجد طلبات بعد' : 'No orders yet'}</div></div>) : (<div style={{ display: 'grid', gap: '10px' }}>{analytics.shopOrders.map(order => (<div key={order.id} style={{ padding: '16px 20px', background: '#334155', borderRadius: '10px', border: '1px solid #475569', marginBottom: '10px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}><span style={{ fontWeight: '700', color: '#f8fafc' }}>#{order.id}</span><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>{getStatusBadge(order.status?.toLowerCase())}<strong>{order.total} QAR</strong></div></div><div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{isRTL ? 'العميل:' : 'Customer:'} {order.customerName || 'Guest'} · {order.items?.length || 0} {isRTL ? 'منتجات' : 'items'}</div></div>))}</div>)}</div>)}
                                 {expandedTab === 'edit' && (
                                     <div style={cardStyle}>
                                         <h4 style={{ marginBottom: '20px', fontSize: '1.1rem', fontWeight: '700' }}>{isRTL ? 'تعديل بيانات المتجر' : 'Edit Shop Details'}</h4>
@@ -812,10 +932,10 @@ const ShopsManager = ({ isRTL }) => {
                                             <div>
                                                 <label className="form-label">{isRTL ? 'الحالة' : 'Status'}</label>
                                                 <select className="form-control" value={editData.status || shop.status} onChange={(e) => setEditData({...editData, status: e.target.value})}>
-                                                    <option value="active">{isRTL ? 'نشط' : 'Active'}</option>
-                                                    <option value="pending">{isRTL ? 'قيد المراجعة' : 'Pending'}</option>
-                                                    <option value="suspended">{isRTL ? 'موقوف' : 'Suspended'}</option>
-                                                    <option value="rejected">{isRTL ? 'مرفوض' : 'Rejected'}</option>
+                                                    <option value="ACTIVE">{isRTL ? 'نشط / معتمد' : 'ACTIVE / Approved'}</option>
+                                                    <option value="PENDING">{isRTL ? 'قيد المراجعة' : 'PENDING'}</option>
+                                                    <option value="SUSPENDED">{isRTL ? 'موقوف' : 'SUSPENDED'}</option>
+                                                    <option value="REJECTED">{isRTL ? 'مرفوض' : 'REJECTED'}</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -896,7 +1016,6 @@ const ShopsManager = ({ isRTL }) => {
                 );
             })}
 
-            {/* Custom Confirm Modal */}
             <ConfirmModal 
                 isOpen={showConfirm}
                 onClose={() => setShowConfirm(false)}
@@ -913,10 +1032,14 @@ const ShopsManager = ({ isRTL }) => {
                 iconType="trash"
             />
 
-            {shops.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
-                    <Store size={48} style={{ marginBottom: '10px' }} />
-                    <div>{isRTL ? 'لا يوجد متاجر مسجلة' : 'No shops registered'}</div>
+            {filteredShops.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    <Store size={48} style={{ marginBottom: '10px', color: '#64748b' }} />
+                    <div style={{ fontSize: '1rem', fontWeight: '600' }}>
+                        {searchQuery 
+                            ? (isRTL ? 'لا توجد نتائج مطابقة لبحثك' : 'No shops match your search criteria')
+                            : (isRTL ? 'لا توجد متاجر في هذا القسم' : 'No shops found in this category')}
+                    </div>
                 </div>
             )}
         </div>

@@ -19,8 +19,8 @@ export class ShopService {
 
     async getNearestShops(lat, lon, radius) {
         const shops = await this.shopRepository.findNearest(lat, lon, radius);
-        // Only return active shops for public nearest search
-        return shops ? shops.filter(s => s.status && s.status.toUpperCase() === 'ACTIVE') : [];
+        // Only return active/approved shops for public nearest search
+        return shops ? shops.filter(s => s.status && (s.status.toUpperCase() === 'ACTIVE' || s.status.toUpperCase() === 'APPROVED')) : [];
     }
 
     async getNearestShopsForProduct(productId, lat, lng, radius, limit) {
@@ -106,20 +106,23 @@ export class ShopService {
             throw new AppError('Forbidden: Cannot modify shops outside your regions', 403);
         }
 
+        const normalizedStatus = status.toUpperCase();
+        const isApprovedOrActive = normalizedStatus === 'APPROVED' || normalizedStatus === 'ACTIVE';
+
         const updates = {
-            status: status.toUpperCase(),
-            approved_by: status.toUpperCase() === 'APPROVED' ? admin.id : undefined,
-            approved_at: status.toUpperCase() === 'APPROVED' ? new Date().toISOString() : undefined
+            status: normalizedStatus,
+            approved_by: isApprovedOrActive ? admin.id : undefined,
+            approved_at: isApprovedOrActive ? new Date().toISOString() : undefined
         };
 
-        if (status.toUpperCase() === 'REJECTED') {
+        if (normalizedStatus === 'REJECTED') {
             updates.rejection_reason = rejectionReason || 'Administrative action';
         }
 
         const updatedShop = await this.shopRepository.update(id, updates);
 
         // Promote owner to vendor if approved
-        if (status.toUpperCase() === 'APPROVED' || status.toUpperCase() === 'ACTIVE') {
+        if (isApprovedOrActive) {
             await this.userRepository.update(shop.owner_id, { role: 'vendor' });
         }
 
