@@ -5,7 +5,7 @@ import {
     CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, 
     Image, ChevronDown, ChevronUp, Package as PackageIcon, 
     ShoppingCart, DollarSign, Edit, BarChart3, X, Star, 
-    Search, UserPlus, Check, Ban, RefreshCw
+    Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown
 } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
@@ -31,6 +31,7 @@ const ShopsManager = ({ isRTL }) => {
     const [editingShop, setEditingShop] = useState(null);
     const [editData, setEditData] = useState({});
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('approved_first');
     const [searchQuery, setSearchQuery] = useState('');
     const [formData, setFormData] = useState({
         ownerName: '',
@@ -422,18 +423,28 @@ const ShopsManager = ({ isRTL }) => {
     const sortedShops = useMemo(() => {
         return [...shops].sort((a, b) => {
             const getPriority = (s) => {
-                if (isPending(s?.status)) return 1;
-                if (isSuspended(s?.status)) return 2;
-                if (isRejected(s?.status)) return 3;
-                if (isApprovedOrActive(s?.status)) return 4;
-                return 5;
+                if (sortOrder === 'approved_first') {
+                    // Approved to Suspended (Approved/Active -> Pending -> Suspended -> Rejected)
+                    if (isApprovedOrActive(s?.status)) return 1;
+                    if (isPending(s?.status)) return 2;
+                    if (isSuspended(s?.status)) return 3;
+                    if (isRejected(s?.status)) return 4;
+                    return 5;
+                } else {
+                    // Suspended to Approved (Suspended/Pending -> Rejected -> Approved)
+                    if (isSuspended(s?.status)) return 1;
+                    if (isPending(s?.status)) return 2;
+                    if (isRejected(s?.status)) return 3;
+                    if (isApprovedOrActive(s?.status)) return 4;
+                    return 5;
+                }
             };
             const pA = getPriority(a);
             const pB = getPriority(b);
             if (pA !== pB) return pA - pB;
             return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         });
-    }, [shops]);
+    }, [shops, sortOrder]);
 
     const pendingShops = useMemo(() => sortedShops.filter(s => isPending(s.status)), [sortedShops]);
     const activeShops = useMemo(() => sortedShops.filter(s => isApprovedOrActive(s.status)), [sortedShops]);
@@ -864,9 +875,56 @@ const ShopsManager = ({ isRTL }) => {
                 </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#cbd5e1', fontWeight: '600' }}>{statusFilter === 'all' ? (isRTL ? 'قائمة المتاجر المسجلة (المعتمدة تظهر في الأسفل)' : 'Registered Vendors (Approved sorted to bottom)') : statusFilter === 'pending' ? (isRTL ? 'طلبات الانضمام' : 'Vendor Join Requests') : statusFilter === 'active' ? (isRTL ? 'المتاجر المعتمدة والنشطة' : 'Active & Approved Vendors') : (isRTL ? 'المتاجر الموقوفة' : 'Suspended Vendors')}</h3>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{filteredShops.length} {isRTL ? 'متجر معروض' : 'shops shown'}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#cbd5e1', fontWeight: '600' }}>
+                    {statusFilter === 'all' 
+                        ? (isRTL ? 'قائمة المتاجر المسجلة' : 'Registered Vendors') 
+                        : statusFilter === 'pending' 
+                        ? (isRTL ? 'طلبات الانضمام' : 'Vendor Join Requests') 
+                        : statusFilter === 'active' 
+                        ? (isRTL ? 'المتاجر المعتمدة والنشطة' : 'Active & Approved Vendors') 
+                        : (isRTL ? 'المتاجر الموقوفة' : 'Suspended Vendors')}
+                </h3>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    {/* Sorter with 2 options: Approved to Suspended and Suspended to Approved */}
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        background: '#0f172a', 
+                        padding: '5px 10px', 
+                        borderRadius: '8px', 
+                        border: '1px solid #334155' 
+                    }}>
+                        <ArrowUpDown size={14} color="#c8a951" />
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{isRTL ? 'الترتيب:' : 'Sort:'}</span>
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f8fafc',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                outline: 'none'
+                            }}
+                        >
+                            <option value="approved_first" style={{ background: '#1e293b', color: '#fff' }}>
+                                {isRTL ? 'المعتمدة ← الموقوفة' : 'Approved to Suspended'}
+                            </option>
+                            <option value="suspended_first" style={{ background: '#1e293b', color: '#fff' }}>
+                                {isRTL ? 'الموقوفة ← المعتمدة' : 'Suspended to Approved'}
+                            </option>
+                        </select>
+                    </div>
+
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        {filteredShops.length} {isRTL ? 'متجر معروض' : 'shops shown'}
+                    </span>
+                </div>
             </div>
 
             {filteredShops.map(shop => {
