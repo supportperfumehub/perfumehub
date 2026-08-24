@@ -277,10 +277,10 @@ const RegionsManager = ({ isRTL }) => {
                 </div>
             )}
 
-            <div className="grid-layout" style={{ display: isMobile ? 'block' : 'grid' }}>
+            <div className="grid-layout" style={{ display: isMobile ? 'block' : 'grid', width: '100%', boxSizing: 'border-box' }}>
                 {/* Add New Region */}
                 {(!isMobile || activeMobileTab === 'add_region') && (
-                    <div className="card" style={{ position: 'relative', background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px' }}>
+                    <div className="card" style={{ position: 'relative', background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
                         <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>
                             {editingRegionId 
                                 ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
@@ -292,8 +292,8 @@ const RegionsManager = ({ isRTL }) => {
                                 <X size={16} />
                             </button>
                         )}
-                        <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px' }}>
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px', width: '100%', boxSizing: 'border-box' }}>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                 <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اسم المنطقة' : 'Region Name'}</label>
                                 <input 
                                     type="text"
@@ -302,11 +302,11 @@ const RegionsManager = ({ isRTL }) => {
                                     onChange={(e) => setNewRegionName(e.target.value)}
                                     placeholder="e.g. United Arab Emirates"
                                     required 
-                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 12px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto' }}
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 />
                             </div>
-                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                     <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'رمز المنطقة' : 'Region Code'}</label>
                                     <input 
                                         type="text"
@@ -316,10 +316,10 @@ const RegionsManager = ({ isRTL }) => {
                                         placeholder="AE"
                                         maxLength={3}
                                         required 
-                                        style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 12px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto' }}
+                                        style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                     />
                                 </div>
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                     <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'العملة' : 'Currency'}</label>
                                     <input 
                                         type="text"
@@ -329,7 +329,7 @@ const RegionsManager = ({ isRTL }) => {
                                         placeholder="AED"
                                         maxLength={4}
                                         required 
-                                        style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 12px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto' }}
+                                        style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                     />
                                 </div>
                             </div>
@@ -346,17 +346,17 @@ const RegionsManager = ({ isRTL }) => {
 
                 {/* Assign Admin to Region */}
                 {(!isMobile || activeMobileTab === 'assign_admin') && (
-                    <div className="card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px' }}>
+                    <div className="card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
                         <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>{isRTL ? 'تخصيص مشرف إقليمي' : 'Assign Regional Admin'}</h3>
-                        <form onSubmit={handleAssignAdmin} className="region-form" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px' }}>
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <form onSubmit={handleAssignAdmin} className="region-form" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px', width: '100%', boxSizing: 'border-box' }}>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                 <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اختر المشرف' : 'Select Admin/Vendor'}</label>
                                 <select 
                                     className="form-control"
                                     value={assignAdminId}
                                     onChange={(e) => setAssignAdminId(e.target.value)}
                                     required
-                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto' }}
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 >
                                     <option value="">{isRTL ? '-- اختر --' : '-- Select User --'}</option>
                                     {users.map(u => (
@@ -366,14 +366,14 @@ const RegionsManager = ({ isRTL }) => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                 <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'المنطقة' : 'Select Region'}</label>
                                 <select 
                                     className="form-control"
                                     value={assignRegionId}
                                     onChange={(e) => setAssignRegionId(e.target.value)}
                                     required
-                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto' }}
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 >
                                     <option value="">{isRTL ? '-- اختر --' : '-- Select --'}</option>
                                     {regions.map(r => (
