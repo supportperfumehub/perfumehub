@@ -191,6 +191,13 @@ const DiscoveryManager = ({ isRTL }) => {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all'); // all, featured, regular
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Local inputs for shop boost multiplier (prevents API call on every single keystroke)
     const [boostInputs, setBoostInputs] = useState({});
@@ -482,20 +489,30 @@ const DiscoveryManager = ({ isRTL }) => {
     if (error) return <div className="admin-section center-content" style={{ color: '#e74c3c' }}>Error: {error}</div>;
 
     return (
-        <div className="admin-section animate-fade-in">
-            <div className="manager-header">
-                <h2>
-                    <Sparkles size={24} color="#c8a951" />
-                    {isRTL ? 'إدارة الاكتشاف' : 'Discovery Manager'}
-                </h2>
-                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="manager-content animate-fade-in">
+            <div className="manager-header" style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', justifyContent: 'space-between' }}>
+                    <h2 style={{ 
+                        margin: 0, 
+                        fontSize: isMobile ? '1.2rem' : '1.5rem', 
+                        whiteSpace: 'nowrap', 
+                        color: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <Sparkles size={isMobile ? 22 : 24} color="#c8a951" />
+                        {isRTL ? 'إدارة الاكتشاف' : 'Discovery Manager'}
+                    </h2>
+                </div>
+                <div className="manager-header-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', marginTop: isMobile ? '8px' : '0' }}>
                     <button 
                         onClick={fetchData}
                         style={{ 
                             border: '1px solid rgba(200, 169, 81, 0.4)', 
                             color: '#ffffff',
                             background: 'rgba(200, 169, 81, 0.12)',
-                            padding: '9px 18px',
+                            padding: '9px 16px',
                             borderRadius: '10px',
                             cursor: 'pointer',
                             display: 'flex',
@@ -504,17 +521,8 @@ const DiscoveryManager = ({ isRTL }) => {
                             fontSize: '0.85rem',
                             fontWeight: '700',
                             transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.25)';
-                            e.currentTarget.style.borderColor = '#c8a951';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
-                            e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.4)';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+                            flex: isMobile ? '1 1 auto' : 'none'
                         }}
                     >
                         <RefreshCw size={15} color="#c8a951" />
@@ -527,7 +535,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                 border: '1px solid rgba(239, 68, 68, 0.5)',
                                 color: '#fca5a5',
                                 background: 'rgba(239, 68, 68, 0.15)',
-                                padding: '9px 18px',
+                                padding: '9px 16px',
                                 borderRadius: '10px',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -536,19 +544,8 @@ const DiscoveryManager = ({ isRTL }) => {
                                 fontSize: '0.85rem',
                                 fontWeight: '700',
                                 transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.18)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
-                                e.currentTarget.style.borderColor = '#ef4444';
-                                e.currentTarget.style.color = '#ffffff';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
-                                e.currentTarget.style.color = '#fca5a5';
-                                e.currentTarget.style.transform = 'translateY(0)';
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.18)',
+                                flex: isMobile ? '1 1 auto' : 'none'
                             }}
                         >
                             <Trash2 size={15} color="#f87171" />
@@ -571,15 +568,8 @@ const DiscoveryManager = ({ isRTL }) => {
                             fontSize: '0.85rem',
                             letterSpacing: '0.3px',
                             boxShadow: '0 4px 14px rgba(200, 169, 81, 0.35)',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(200, 169, 81, 0.5)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(200, 169, 81, 0.35)';
+                            transition: 'all 0.2s ease',
+                            flex: isMobile ? '2 1 auto' : 'none'
                         }}
                     >
                         <Plus size={16} /> {isRTL ? 'حملة جديدة' : 'New Campaign'}
@@ -587,66 +577,84 @@ const DiscoveryManager = ({ isRTL }) => {
                 </div>
             </div>
 
-            {/* Region Filter Selector */}
+            {/* Region Filter Selector - Generous gap and single-line scrollable pills */}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
+                marginTop: '16px',
                 marginBottom: '24px',
-                padding: '14px 18px',
+                padding: '12px 16px',
                 background: 'rgba(30, 41, 59, 0.75)',
                 border: '1px solid rgba(51, 65, 85, 0.8)',
                 borderRadius: '14px',
-                flexWrap: 'wrap',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                flexWrap: isMobile ? 'wrap' : 'nowrap'
             }}>
-                <span style={{ color: '#f8fafc', fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#f8fafc', fontSize: '0.86rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     <Globe size={18} color="#c8a951" />
-                    {isRTL ? 'تصفية حسب المنطقة:' : 'Target Region:'}
+                    {isRTL ? 'المنطقة المستهدفة:' : 'Target Region:'}
                 </span>
-                <button
-                    type="button"
-                    onClick={() => setSelectedRegion('all')}
-                    style={{
-                        background: selectedRegion === 'all' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
-                        color: selectedRegion === 'all' ? '#000000' : '#f8fafc',
-                        border: selectedRegion === 'all' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '8px',
-                        padding: '7px 16px',
-                        fontSize: '0.84rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        boxShadow: selectedRegion === 'all' ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none'
-                    }}
-                >
-                    🌐 {isRTL ? 'جميع المناطق' : 'All Regions'}
-                </button>
-                {regions.map(r => {
-                    const badge = getRegionBadge(r.id);
-                    const isSelected = String(selectedRegion) === String(r.id);
-                    return (
-                        <button
-                            key={r.id}
-                            type="button"
-                            onClick={() => setSelectedRegion(String(r.id))}
-                            style={{
-                                background: isSelected ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
-                                color: isSelected ? '#000000' : '#f8fafc',
-                                border: isSelected ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
-                                borderRadius: '8px',
-                                padding: '7px 16px',
-                                fontSize: '0.84rem',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                boxShadow: isSelected ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none'
-                            }}
-                        >
-                            {badge.flag} {r.name} ({r.code})
-                        </button>
-                    );
-                })}
+
+                <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    overflowX: 'auto',
+                    flexWrap: 'nowrap',
+                    flex: 1,
+                    width: isMobile ? '100%' : 'auto',
+                    scrollbarWidth: 'none',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: isMobile ? '4px' : '0'
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedRegion('all')}
+                        style={{
+                            background: selectedRegion === 'all' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
+                            color: selectedRegion === 'all' ? '#000000' : '#f8fafc',
+                            border: selectedRegion === 'all' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '8px',
+                            padding: '7px 16px',
+                            fontSize: '0.84rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            boxShadow: selectedRegion === 'all' ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                        }}
+                    >
+                        🌐 {isRTL ? 'جميع المناطق' : 'All Regions'}
+                    </button>
+                    {regions.map(r => {
+                        const badge = getRegionBadge(r.id);
+                        const isSelected = String(selectedRegion) === String(r.id);
+                        return (
+                            <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => setSelectedRegion(String(r.id))}
+                                style={{
+                                    background: isSelected ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'rgba(15, 23, 42, 0.8)',
+                                    color: isSelected ? '#000000' : '#f8fafc',
+                                    border: isSelected ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                                    borderRadius: '8px',
+                                    padding: '7px 16px',
+                                    fontSize: '0.84rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isSelected ? '0 2px 10px rgba(200, 169, 81, 0.4)' : 'none',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {badge.flag} {r.name} ({r.code})
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Stats Summary */}
