@@ -644,16 +644,27 @@ const ShopsManager = ({ isRTL }) => {
     return (
         <div className="manager-content">
             <div className="manager-header" style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <h2>{isRTL ? 'إدارة المتاجر والبائعين' : 'Shops & Vendors Management'}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', justifyContent: 'space-between' }}>
+                    <h2 style={{ 
+                        margin: 0, 
+                        fontSize: isMobile ? '1.2rem' : '1.5rem', 
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        fontWeight: '700' 
+                    }}>
+                        {isRTL ? 'إدارة المتاجر والبائعين' : 'Shops & Vendors'}
+                    </h2>
                     <span style={{ 
                         background: 'rgba(200, 169, 81, 0.15)', 
                         border: '1px solid rgba(200, 169, 81, 0.3)', 
                         color: '#c8a951', 
                         padding: '3px 10px', 
                         borderRadius: '12px', 
-                        fontSize: '0.8rem', 
-                        fontWeight: '700' 
+                        fontSize: '0.78rem', 
+                        fontWeight: '700',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                     }}>
                         {shops.length} {isRTL ? 'متجر' : 'Total'}
                     </span>
@@ -737,7 +748,7 @@ const ShopsManager = ({ isRTL }) => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div className="admin-search-container" style={{ flex: 1, minWidth: '240px' }}>
+                <div className="admin-search-container" style={{ flex: 1, minWidth: '240px', width: '100%' }}>
                     <div className="admin-search-icon">
                         <Search size={18} />
                     </div>
@@ -772,7 +783,16 @@ const ShopsManager = ({ isRTL }) => {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '8px', 
+                    overflowX: 'auto', 
+                    flexWrap: 'nowrap',
+                    width: isMobile ? '100%' : 'auto',
+                    paddingBottom: isMobile ? '4px' : '0',
+                    scrollbarWidth: 'none',
+                    WebkitOverflowScrolling: 'touch'
+                }}>
                     {[
                         { key: 'all', label: isRTL ? 'الكل' : 'All', count: shops.length },
                         { key: 'pending', label: isRTL ? 'طلبات الانضمام' : 'Join Requests', count: pendingShops.length, highlight: pendingShops.length > 0 },
@@ -793,7 +813,9 @@ const ShopsManager = ({ isRTL }) => {
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px'
+                                gap: '6px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
                             }}
                         >
                             {f.label}
