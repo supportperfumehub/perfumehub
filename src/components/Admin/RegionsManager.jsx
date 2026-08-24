@@ -30,13 +30,19 @@ const RegionsManager = ({ isRTL }) => {
         regionName: '' 
     });
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     useEffect(() => {
         if (user) {
             fetchRegions();
             fetchUsers();
         } else {
-            // If after 1s user is still not there, stop loading to show "Login" or "Unauthorized" 
-            // if we had that logic, otherwise just clear loading so error banner shows.
             const timer = setTimeout(() => setLoading(false), 1000);
             return () => clearTimeout(timer);
         }
@@ -175,66 +181,97 @@ const RegionsManager = ({ isRTL }) => {
     if (loading) return <div className="loading-spinner">Loading...</div>;
 
     return (
-        <div className={`admin-section regions-manager ${isRTL ? 'rtl' : 'ltr'}`}>
-            <h2 className="section-title">
-                <Globe size={24} className="icon" /> 
-                {isRTL ? 'إدارة المناطق (المشرف العام)' : 'Global Regions Management'}
-            </h2>
+        <div className={`manager-content regions-manager ${isRTL ? 'rtl' : 'ltr'}`}>
+            <div className="manager-header" style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', justifyContent: 'space-between' }}>
+                    <h2 style={{ 
+                        margin: 0, 
+                        fontSize: isMobile ? '1.2rem' : '1.5rem', 
+                        color: '#f8fafc', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        whiteSpace: 'nowrap' 
+                    }}>
+                        <Globe size={isMobile ? 22 : 24} color="#c8a951" />
+                        {isRTL ? 'إدارة المناطق' : 'Regions Management'}
+                    </h2>
+                    <span style={{ 
+                        background: 'rgba(200, 169, 81, 0.15)', 
+                        border: '1px solid rgba(200, 169, 81, 0.3)', 
+                        color: '#c8a951', 
+                        padding: '3px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.78rem', 
+                        fontWeight: '700',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                    }}>
+                        {regions.length} {isRTL ? 'مناطق' : 'Regions'}
+                    </span>
+                </div>
+            </div>
 
             {error && <div className="error-banner">{error}</div>}
             {successMessage && <div className="success-banner">{successMessage}</div>}
 
             <div className="grid-layout">
                 {/* Add New Region */}
-                <div className="card" style={{ position: 'relative' }}>
-                        <h3>
-                            {editingRegionId 
-                                ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
-                                : (isRTL ? 'إضافة منطقة جديدة' : 'Add New Region')
-                            }
-                        </h3>
-                        {editingRegionId && (
-                            <button onClick={cancelEdit} className="admin-action-btn" style={{ position: 'absolute', top: '15px', right: isRTL ? 'auto' : '15px', left: isRTL ? '15px' : 'auto' }}>
-                                <X size={18} />
-                            </button>
-                        )}
-                    <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative' }}>
-                        <div className="form-group">
-                            <label>{isRTL ? 'اسم المنطقة' : 'Region Name'}</label>
+                <div className="card" style={{ position: 'relative', background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px' }}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1.05rem', color: '#f8fafc' }}>
+                        {editingRegionId 
+                            ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
+                            : (isRTL ? 'إضافة منطقة جديدة' : 'Add New Region')
+                        }
+                    </h3>
+                    {editingRegionId && (
+                        <button onClick={cancelEdit} className="admin-action-btn" style={{ position: 'absolute', top: '15px', right: isRTL ? 'auto' : '15px', left: isRTL ? '15px' : 'auto' }}>
+                            <X size={18} />
+                        </button>
+                    )}
+                    <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اسم المنطقة' : 'Region Name'}</label>
                             <input 
                                 type="text"
+                                className="form-control"
                                 value={newRegionName}
                                 onChange={(e) => setNewRegionName(e.target.value)}
                                 placeholder="e.g. United Arab Emirates"
                                 required 
+                                style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem' }}
                             />
                         </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>{isRTL ? 'رمز المنطقة' : 'Region Code'}</label>
+                        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'رمز المنطقة' : 'Region Code'}</label>
                                 <input 
                                     type="text"
+                                    className="form-control"
                                     value={newRegionCode}
                                     onChange={(e) => setNewRegionCode(e.target.value.toUpperCase())}
                                     placeholder="AE"
                                     maxLength={3}
                                     required 
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem' }}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>{isRTL ? 'العملة' : 'Currency'}</label>
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'العملة' : 'Currency'}</label>
                                 <input 
                                     type="text"
+                                    className="form-control"
                                     value={newCurrencyCode}
                                     onChange={(e) => setNewCurrencyCode(e.target.value.toUpperCase())}
                                     placeholder="AED"
                                     maxLength={4}
                                     required 
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem' }}
                                 />
                             </div>
                         </div>
-                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '48px', borderRadius: '8px', fontSize: '1rem' }}>
-                            {editingRegionId ? <Edit size={18} /> : <PlusCircle size={18} />}
+                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '44px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            {editingRegionId ? <Edit size={16} /> : <PlusCircle size={16} />}
                             {editingRegionId 
                                 ? (isRTL ? 'تحديث المنطقة' : 'Update Region') 
                                 : (isRTL ? 'إضافة جغرافية' : 'Create Region')
@@ -244,15 +281,17 @@ const RegionsManager = ({ isRTL }) => {
                 </div>
 
                 {/* Assign Admin to Region */}
-                <div className="card">
-                    <h3>{isRTL ? 'تخصيص مشرف إقليمي' : 'Assign Regional Admin'}</h3>
-                    <form onSubmit={handleAssignAdmin} className="region-form">
-                        <div className="form-group">
-                            <label>{isRTL ? 'اختر المشرف' : 'Select Admin/Vendor'}</label>
+                <div className="card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px' }}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1.05rem', color: '#f8fafc' }}>{isRTL ? 'تخصيص مشرف إقليمي' : 'Assign Regional Admin'}</h3>
+                    <form onSubmit={handleAssignAdmin} className="region-form" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اختر المشرف' : 'Select Admin/Vendor'}</label>
                             <select 
+                                className="form-control"
                                 value={assignAdminId}
                                 onChange={(e) => setAssignAdminId(e.target.value)}
                                 required
+                                style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem' }}
                             >
                                 <option value="">{isRTL ? '-- اختر --' : '-- Select User --'}</option>
                                 {users.map(u => (
@@ -262,12 +301,14 @@ const RegionsManager = ({ isRTL }) => {
                                 ))}
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'المنطقة' : 'Select Region'}</label>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'المنطقة' : 'Select Region'}</label>
                             <select 
+                                className="form-control"
                                 value={assignRegionId}
                                 onChange={(e) => setAssignRegionId(e.target.value)}
                                 required
+                                style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem' }}
                             >
                                 <option value="">{isRTL ? '-- اختر --' : '-- Select --'}</option>
                                 {regions.map(r => (
@@ -275,8 +316,8 @@ const RegionsManager = ({ isRTL }) => {
                                 ))}
                             </select>
                         </div>
-                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '48px', borderRadius: '8px', fontSize: '1rem' }}>
-                            <Link size={18} />
+                        <button type="submit" className="btn btn-gold" style={{ marginTop: '8px', width: '100%', height: '44px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <Link size={16} />
                             {isRTL ? 'ربط المشرف' : 'Assign to Region'}
                         </button>
                     </form>
@@ -284,13 +325,46 @@ const RegionsManager = ({ isRTL }) => {
             </div>
 
             {/* List Regions */}
-            <div className="card full-width mt-4">
-                <h3>{isRTL ? 'المناطق النشطة' : 'Active Regions'}</h3>
+            <div className="card full-width mt-4" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px', marginTop: '20px' }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', color: '#f8fafc' }}>{isRTL ? 'المناطق النشطة' : 'Active Regions'}</h3>
                 {regions.length === 0 ? (
-                    <p className="no-data">{isRTL ? 'لا توجد مناطق' : 'No regions found.'}</p>
+                    <p className="no-data" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد مناطق' : 'No regions found.'}</p>
+                ) : isMobile ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                        {regions.map(region => (
+                            <div key={region.id} style={{ background: '#0f172a', borderRadius: '12px', border: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.08)', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>#{region.id}</span>
+                                        <strong style={{ color: '#f8fafc', fontSize: '1.05rem' }}>{region.name}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button 
+                                            onClick={() => handleEdit(region)} 
+                                            title={isRTL ? 'تعديل' : 'Edit'}
+                                            style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.45)', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        >
+                                            <Edit size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(region.id, region.name)} 
+                                            title={isRTL ? 'حذف' : 'Delete'}
+                                            style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid rgba(51, 65, 85, 0.6)' }}>
+                                    <span className="badge code" style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>{isRTL ? 'الرمز:' : 'Code:'} {region.code}</span>
+                                    <span className="badge currency" style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>{isRTL ? 'العملة:' : 'Currency:'} {region.currency_code}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : (
-                    <div className="table-responsive">
-                        <table className="admin-table">
+                    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                        <table className="admin-table" style={{ width: '100%', minWidth: '600px' }}>
                             <thead>
                                 <tr>
                                     <th>ID</th>
