@@ -665,21 +665,22 @@ const ShopsManager = ({ isRTL }) => {
                         disabled={loading}
                         style={{ 
                             height: '44px', 
-                            padding: '0 16px', 
+                            padding: '0 18px', 
                             fontSize: '0.85rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            background: 'rgba(30, 41, 59, 0.8)',
-                            border: '1px solid #334155',
-                            color: '#f8fafc',
+                            background: 'rgba(30, 41, 59, 0.9)',
+                            border: '1px solid rgba(200, 169, 81, 0.4)',
+                            color: '#ffffff',
                             borderRadius: '10px',
-                            cursor: loading ? 'not-allowed' : 'pointer'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
                         }}
                         title={isRTL ? 'تحديث البيانات' : 'Refresh Data'}
                     >
                         <RefreshCw size={16} color="#c8a951" className={loading ? 'spin' : ''} />
-                        <span style={{ fontWeight: '600' }}>{isRTL ? 'تحديث' : 'Refresh'}</span>
+                        <span style={{ fontWeight: '700', color: '#ffffff', letterSpacing: '0.4px' }}>{isRTL ? 'تحديث' : 'Refresh'}</span>
                     </button>
                     <button 
                         className={`btn ${showForm ? 'btn-outline' : 'btn-gold'}`} 
