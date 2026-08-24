@@ -79,6 +79,39 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.sidebar-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mobile-storefront-link {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.mobile-storefront-link:hover {
+    background: rgba(200, 169, 81, 0.15);
+    color: #c8a951;
+    border-color: rgba(200, 169, 81, 0.4);
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -970,15 +1003,23 @@
 @media (max-width: 1024px) {
     .admin-dashboard {
         flex-direction: column;
-        padding-top: 80px; /* Adjust for shorter mobile Navbar */
+        padding-top: 70px;
+        min-height: 100vh;
     }
     
     .admin-sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid #334155;
-        padding: 20px 16px; /* Slightly more top padding */
-        background-color: #1e293b;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        position: static !important;
+        top: auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid #334155 !important;
+        padding: 14px 16px 10px !important;
+        background-color: #111827 !important;
+        flex-shrink: 0;
+        z-index: 10;
     }
 
     .sidebar-header {
@@ -986,16 +1027,22 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 0 8px 20px;
-        margin-bottom: 12px;
+        padding: 0 4px 10px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mobile-storefront-link {
+        display: inline-flex !important;
     }
     
     .sidebar-nav {
         flex-direction: row;
         overflow-x: auto;
-        padding-bottom: 8px;
+        padding: 2px 0 6px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        gap: 8px;
     }
     
     .sidebar-nav::-webkit-scrollbar {
@@ -1004,15 +1051,28 @@
     
     .nav-item {
         white-space: nowrap;
-        padding: 10px 16px;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        width: auto !important;
     }
-    
-    .main-header {
-        padding: 24px;
+
+    .sidebar-footer {
+        display: none !important;
     }
-    
+
+    .admin-main {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: 1;
+    }
+
+    .admin-topbar {
+        padding: 16px;
+    }
+
     .main-content-wrapper {
-        padding: 24px;
+        padding: 16px 12px;
     }
 }
 
@@ -1123,11 +1183,18 @@
         height: 16px;
     }
     
-    /* Buttons stack on mobile */
-    .btn-gold,
-    .btn {
+    /* Action buttons flexible on mobile */
+    .manager-header-actions {
         width: 100%;
-        justify-content: center;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .manager-header-actions .btn {
+        flex: 1 1 auto;
+        width: auto;
     }
     
     /* Sidebar nav compact */

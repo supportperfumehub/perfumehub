@@ -120,9 +120,15 @@ const Admin = () => {
             <aside className="admin-sidebar">
                 <div className="sidebar-header">
                     <h2>{isRTL ? 'لوحة القيادة' : 'Dashboard'}</h2>
-                    <span className="role-badge">
-                        {isSuperAdmin ? 'SA' : isRegionalAdmin ? 'RA' : (user?.name || 'Admin')}
-                    </span>
+                    <div className="sidebar-header-right">
+                        <span className="role-badge">
+                            {isSuperAdmin ? 'SA' : isRegionalAdmin ? 'RA' : (user?.name || 'Admin')}
+                        </span>
+                        <Link to="/" className="mobile-storefront-link" title={isRTL ? 'المتجر الرئيسي' : 'Storefront'}>
+                            <Home size={16} />
+                            <span>{isRTL ? 'المتجر' : 'Store'}</span>
+                        </Link>
+                    </div>
                 </div>
                 
                 <nav className="sidebar-nav">
@@ -138,8 +144,8 @@ const Admin = () => {
                     ))}
                 </nav>
 
-                {/* Sidebar Footer */}
-                <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                {/* Sidebar Footer (Desktop only) */}
+                <div className="sidebar-footer">
                     <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
                         <Home size={20} />
                         <span className="nav-label">{isRTL ? 'المتجر الرئيسي' : 'Storefront'}</span>
