@@ -286,7 +286,7 @@ const VendorPanel = () => {
     ];
 
     return (
-        <div className={`admin-dashboard ${isRTL ? 'rtl' : 'ltr'}`}>
+        <div className={`admin-dashboard vendor-panel-dashboard ${isRTL ? 'rtl' : 'ltr'}`}>
             {/* Sidebar Navigation */}
             <aside className="admin-sidebar">
                 <div className="sidebar-header">

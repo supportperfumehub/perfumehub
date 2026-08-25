@@ -7,6 +7,12 @@
     color: #f8fafc;
     font-family: 'Inter', sans-serif;
     padding-top: 0;
+    box-sizing: border-box;
+}
+
+/* Specific desktop offset when rendered with main store Navbar (e.g. Vendor Panel) */
+.admin-dashboard.vendor-panel-dashboard {
+    padding-top: 85px;
 }
 
 /* Sidebar */
@@ -25,6 +31,11 @@
     flex-shrink: 0;
     scrollbar-width: thin;
     scrollbar-color: #334155 #111827;
+}
+
+.admin-dashboard.vendor-panel-dashboard .admin-sidebar {
+    top: 85px;
+    height: calc(100vh - 85px);
 }
 
 .admin-sidebar::-webkit-scrollbar {
@@ -1041,8 +1052,13 @@
         padding-top: 0 !important;
         min-height: 100vh;
     }
+
+    .admin-dashboard.vendor-panel-dashboard {
+        padding-top: 75px !important;
+    }
     
-    .admin-sidebar {
+    .admin-sidebar,
+    .admin-dashboard.vendor-panel-dashboard .admin-sidebar {
         width: 100% !important;
         height: auto !important;
         min-height: auto !important;
