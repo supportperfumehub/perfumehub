@@ -743,30 +743,9 @@
     }
 }
 
-/* Sticky Action Bar */
-.sticky-action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0,0,0,0.05);
-    padding: 16px 0;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.04);
-    z-index: 1000;
-    transform: translateY(100%);
-    animation: slideUpActionBar 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: 0.2s;
-}
-
-@keyframes slideUpActionBar {
-    to { transform: translateY(0); }
-}
-
-/* Adjust page padding to account for sticky bar */
+/* Page padding */
 .product-details-page {
-    padding-bottom: 100px;
+    padding-bottom: 40px;
 }
 
 /* Accordion Vendor Selection */
