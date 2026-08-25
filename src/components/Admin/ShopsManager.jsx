@@ -5,7 +5,7 @@ import {
     CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, 
     Image, ChevronDown, ChevronUp, Package as PackageIcon, 
     ShoppingCart, DollarSign, Edit, BarChart3, X, Star, 
-    Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown
+    Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown, Save
 } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
