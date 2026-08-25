@@ -197,7 +197,7 @@ const VendorPanel = () => {
             img.onload = () => {
                 try {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 400;
+                    const MAX_SIZE = 800;
                     let width = img.width;
                     let height = img.height;
 
@@ -219,7 +219,11 @@ const VendorPanel = () => {
                     ctx.drawImage(img, 0, 0, width, height);
 
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                    setShopData(prev => ({ ...prev, logo_url: compressedBase64 }));
+                    setShopData(prev => ({ 
+                        ...prev, 
+                        logo_url: compressedBase64,
+                        images: [compressedBase64]
+                    }));
                     URL.revokeObjectURL(objectUrl);
                 } catch (err) {
                     console.error(err);
@@ -234,7 +238,7 @@ const VendorPanel = () => {
     };
 
     const removeLogo = () => {
-        setShopData(prev => ({ ...prev, logo_url: '' }));
+        setShopData(prev => ({ ...prev, logo_url: '', images: [] }));
     };
 
     const tabs = [
@@ -342,50 +346,55 @@ const VendorPanel = () => {
                                             setSavingSettings(false);
                                         }
                                     }}>
-                                        {/* Brand Identity / Logo Uploader */}
-                                        <div className="vendor-logo-section">
-                                            <div className="vendor-logo-preview">
-                                                {shopData.logo_url ? (
-                                                    <img src={shopData.logo_url} alt="Shop Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <Store size={34} color="#c8a951" />
-                                                )}
-                                            </div>
-                                            <div className="vendor-logo-info">
-                                                <h4 style={{ margin: '0 0 4px 0', fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
-                                                    {isRTL ? 'شعار المتجر' : 'Shop Brand Logo'}
-                                                </h4>
-                                                <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-                                                    {isRTL ? 'يظهر للعملاء في أعلى ملف المتجر وقائمة المتاجر' : 'Visible to customers across boutique discovery and profiles'}
-                                                </p>
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <label 
-                                                        htmlFor="vendor-logo-file-input" 
-                                                        className="btn-logo-upload"
-                                                    >
-                                                        <Upload size={14} />
-                                                        <span>{shopData.logo_url ? (isRTL ? 'تغيير الشعار' : 'Change Logo') : (isRTL ? 'رفع الشعار' : 'Upload Logo')}</span>
-                                                    </label>
-                                                    <input 
-                                                        type="file" 
-                                                        id="vendor-logo-file-input" 
-                                                        accept="image/*" 
-                                                        style={{ display: 'none' }} 
-                                                        onChange={handleLogoUpload} 
-                                                    />
-                                                    {shopData.logo_url && (
-                                                        <button 
-                                                            type="button" 
-                                                            className="btn-logo-remove" 
-                                                            onClick={removeLogo}
-                                                        >
-                                                            <Trash2 size={13} />
-                                                            <span>{isRTL ? 'حذف' : 'Remove'}</span>
-                                                        </button>
-                                                    )}
+                                        {/* Brand Identity / Profile Photo */}
+                                        {(() => {
+                                            const currentLogo = shopData?.logo_url || (Array.isArray(shopData?.images) && shopData.images.length > 0 ? shopData.images[0] : '');
+                                            return (
+                                                <div className="vendor-logo-section">
+                                                    <div className="vendor-logo-preview">
+                                                        {currentLogo ? (
+                                                            <img src={currentLogo} alt="Shop Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <Store size={34} color="#c8a951" />
+                                                        )}
+                                                    </div>
+                                                    <div className="vendor-logo-info">
+                                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
+                                                            {isRTL ? 'صورة وشعار المتجر' : 'Shop Profile Photo & Logo'}
+                                                        </h4>
+                                                        <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                                                            {isRTL ? 'تظهر للعملاء في ملف المتجر وقائمة المتاجر' : 'Visible to customers across boutique discovery and profiles'}
+                                                        </p>
+                                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                            <label 
+                                                                htmlFor="vendor-logo-file-input" 
+                                                                className="btn-logo-upload"
+                                                            >
+                                                                <Upload size={14} />
+                                                                <span>{currentLogo ? (isRTL ? 'تغيير الصورة' : 'Change Photo') : (isRTL ? 'رفع صورة المتجر' : 'Upload Photo')}</span>
+                                                            </label>
+                                                            <input 
+                                                                type="file" 
+                                                                id="vendor-logo-file-input" 
+                                                                accept="image/*" 
+                                                                style={{ display: 'none' }} 
+                                                                onChange={handleLogoUpload} 
+                                                            />
+                                                            {currentLogo && (
+                                                                <button 
+                                                                    type="button" 
+                                                                    className="btn-logo-remove" 
+                                                                    onClick={removeLogo}
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                    <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            );
+                                        })()}
 
                                         {/* Shop Name */}
                                         <div className="form-group">
@@ -434,53 +443,6 @@ const VendorPanel = () => {
                                                 onChange={(e) => setShopData({...shopData, address: e.target.value})}
                                                 placeholder={isRTL ? 'أدخل العنوان بالتفصيل، المدينة، والشارع' : 'Enter detailed address / location'}
                                             />
-                                        </div>
-
-                                        {/* Shop Photos Presentation */}
-                                        <div className="form-group" style={{ marginTop: '24px' }}>
-                                            <label className="form-label">
-                                                <ImageIcon size={15} color="#c8a951" />
-                                                {isRTL ? 'معرض صور المتجر' : 'Shop Photos'}
-                                            </label>
-                                            <small className="form-helper-text" style={{ marginBottom: '10px' }}>
-                                                {isRTL ? 'ارفع صور متجرك وعطورك لجذب المزيد من الزبائن' : 'Upload photos of your boutique and perfumes'}
-                                            </small>
-
-                                            <div className="vendor-photos-grid">
-                                                {(shopData.images || []).map((img, idx) => (
-                                                    <div key={idx} className="vendor-photo-card">
-                                                        <img src={img} alt={`Shop ${idx + 1}`} />
-                                                        {idx === 0 && (
-                                                            <span className="photo-cover-tag">{isRTL ? 'الرئيسية' : 'Cover'}</span>
-                                                        )}
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => removeImage(idx)} 
-                                                            className="btn-photo-delete"
-                                                            title={isRTL ? 'حذف الصورة' : 'Delete photo'}
-                                                        >
-                                                            <X size={13} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-
-                                                <label 
-                                                    htmlFor="vendor-photo-upload"
-                                                    className="vendor-photo-add-card"
-                                                >
-                                                    <div className="photo-add-icon-circle">
-                                                        <Plus size={20} />
-                                                    </div>
-                                                    <span>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
-                                                </label>
-                                                <input 
-                                                    type="file" 
-                                                    id="vendor-photo-upload" 
-                                                    style={{ display: 'none' }} 
-                                                    accept="image/*" 
-                                                    onChange={handleImageUpload} 
-                                                />
-                                            </div>
                                         </div>
 
                                         {/* Save Changes Button */}
