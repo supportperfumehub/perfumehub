@@ -27,9 +27,11 @@ const Layout = ({ isRTL, toggleLanguage }) => {
     }, [location.pathname]);
 
     const isAdminPath = location.pathname.startsWith('/admin');
+    const isVendorPath = location.pathname.startsWith('/vendor-panel');
+    const isDashboardPath = isAdminPath || isVendorPath;
 
     return (
-        <div className="app-layout">
+        <div className={`app-layout ${isVendorPath ? 'vendor-panel-layout' : ''} ${isAdminPath ? 'admin-layout' : ''}`}>
             {isHomePage && <PromotionBar isRTL={isRTL} />}
             <Toast
                 message={toast.message}
@@ -38,11 +40,11 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 onHide={() => showToast('', toast.type)}
             />
             {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
-            <main className={`main-content ${pageTransition}`} style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
+            <main className={`main-content ${pageTransition}`} style={{ minHeight: isDashboardPath ? '100vh' : '80vh' }}>
                 <Outlet context={{ isRTL, user }} />
             </main>
-            {!isAdminPath && <Footer isRTL={isRTL} />}
-            {!isAdminPath && <WhatsAppWidget isRTL={isRTL} />}
+            {!isDashboardPath && <Footer isRTL={isRTL} />}
+            {!isDashboardPath && <WhatsAppWidget isRTL={isRTL} />}
         </div>
     );
 };

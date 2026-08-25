@@ -10,9 +10,12 @@
     box-sizing: border-box;
 }
 
-/* Specific desktop offset when rendered with main store Navbar (e.g. Vendor Panel) */
-.admin-dashboard.vendor-panel-dashboard {
-    padding-top: 85px;
+/* On desktop, hide consumer store navbar on vendor panel dashboard so it never overlaps */
+@media (min-width: 1025px) {
+    .vendor-panel-layout .navbar,
+    .admin-layout .navbar {
+        display: none !important;
+    }
 }
 
 /* Sidebar */
@@ -31,11 +34,6 @@
     flex-shrink: 0;
     scrollbar-width: thin;
     scrollbar-color: #334155 #111827;
-}
-
-.admin-dashboard.vendor-panel-dashboard .admin-sidebar {
-    top: 85px;
-    height: calc(100vh - 85px);
 }
 
 .admin-sidebar::-webkit-scrollbar {
