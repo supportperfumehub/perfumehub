@@ -35,17 +35,18 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         if (!isAuthenticated || !user) return null;
         const role = (user.role || '').toLowerCase();
         const name = (user.name || '').toLowerCase();
+        const email = (user.email || '').toLowerCase();
 
-        if (role === 'super_admin' || name.includes('super admin')) {
+        if (email === 'supportperfumehub@gmail.com' || role === 'super_admin' || name.includes('super admin')) {
             return 'SA';
         }
         if (role === 'regional_admin' || name.includes('regional admin')) {
             return 'RA';
         }
-        if (role === 'vendor' || isVendor || name.includes('vendor')) {
+        if (user.shop_id || role === 'vendor' || isVendor || name.includes('vendor')) {
             return isRTL ? 'بائع' : 'Vendor';
         }
-        if (role === 'admin' || name.includes('admin')) {
+        if (role === 'admin') {
             return isRTL ? 'مشرف' : 'Admin';
         }
         return null; // Normal users / customers: profile symbol only!
