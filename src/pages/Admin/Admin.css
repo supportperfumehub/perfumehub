@@ -1050,13 +1050,8 @@
         padding-top: 0 !important;
         min-height: 100vh;
     }
-
-    .admin-dashboard.vendor-panel-dashboard {
-        padding-top: 75px !important;
-    }
     
-    .admin-sidebar,
-    .admin-dashboard.vendor-panel-dashboard .admin-sidebar {
+    .admin-sidebar {
         width: 100% !important;
         height: auto !important;
         min-height: auto !important;

@@ -291,9 +291,15 @@ const VendorPanel = () => {
             <aside className="admin-sidebar">
                 <div className="sidebar-header">
                     <h2>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</h2>
-                    <span className="role-badge">
-                        {isRTL ? 'بائع معتمد' : 'Vendor'}
-                    </span>
+                    <div className="sidebar-header-right">
+                        <span className="role-badge">
+                            {isRTL ? 'بائع معتمد' : 'Vendor'}
+                        </span>
+                        <Link to="/" className="mobile-storefront-link" title={isRTL ? 'المتجر الرئيسي' : 'Storefront'}>
+                            <Home size={16} />
+                            <span>{isRTL ? 'المتجر' : 'Store'}</span>
+                        </Link>
+                    </div>
                 </div>
                 
                 <nav className="sidebar-nav">

@@ -39,7 +39,7 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 visible={toast.visible}
                 onHide={() => showToast('', toast.type)}
             />
-            {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
+            {!isDashboardPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
             <main className={`main-content ${pageTransition}`} style={{ minHeight: isDashboardPath ? '100vh' : '80vh' }}>
                 <Outlet context={{ isRTL, user }} />
             </main>
