@@ -42,8 +42,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         if (role === 'regional_admin' || name.includes('regional admin')) {
             return 'RA';
         }
-        if (role === 'vendor' || isVendor || role === 'admin' || name.includes('vendor')) {
-            return 'Admin';
+        if (role === 'vendor' || isVendor || name.includes('vendor')) {
+            return isRTL ? 'بائع' : 'Vendor';
+        }
+        if (role === 'admin' || name.includes('admin')) {
+            return isRTL ? 'مشرف' : 'Admin';
         }
         return null; // Normal users / customers: profile symbol only!
     };
