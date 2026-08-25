@@ -39,12 +39,12 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 visible={toast.visible}
                 onHide={() => showToast('', toast.type)}
             />
-            {!isDashboardPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
-            <main className={`main-content ${pageTransition}`} style={{ minHeight: isDashboardPath ? '100vh' : '80vh' }}>
+            {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
+            <main className={`main-content ${pageTransition}`} style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
                 <Outlet context={{ isRTL, user }} />
             </main>
-            {!isDashboardPath && <Footer isRTL={isRTL} />}
-            {!isDashboardPath && <WhatsAppWidget isRTL={isRTL} />}
+            {!isAdminPath && <Footer isRTL={isRTL} />}
+            {!isAdminPath && <WhatsAppWidget isRTL={isRTL} />}
         </div>
     );
 };

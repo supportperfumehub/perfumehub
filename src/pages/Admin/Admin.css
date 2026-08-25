@@ -6,16 +6,8 @@
     background-color: #0b1120; /* Deep luxury dark navy */
     color: #f8fafc;
     font-family: 'Inter', sans-serif;
-    padding-top: 0;
+    padding-top: 85px; /* Offset for desktop navbar */
     box-sizing: border-box;
-}
-
-/* On desktop, hide consumer store navbar on vendor panel dashboard so it never overlaps */
-@media (min-width: 1025px) {
-    .vendor-panel-layout .navbar,
-    .admin-layout .navbar {
-        display: none !important;
-    }
 }
 
 /* Sidebar */
@@ -27,8 +19,8 @@
     flex-direction: column;
     padding: 20px 0;
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: 85px;
+    height: calc(100vh - 85px);
     overflow-y: auto;
     transition: all 0.3s ease;
     flex-shrink: 0;
@@ -1053,7 +1045,7 @@
 @media (max-width: 1024px) {
     .admin-dashboard {
         flex-direction: column;
-        padding-top: 0 !important;
+        padding-top: 75px !important;
         min-height: 100vh;
     }
     
