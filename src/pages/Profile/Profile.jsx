@@ -4,7 +4,11 @@ import { useOutletContext } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
-import { User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, Store, CalendarCheck, XCircle, ShieldCheck, Smartphone } from 'lucide-react';
+import { 
+    User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, 
+    Store, CalendarCheck, XCircle, ShieldCheck, Smartphone, Crown, Sparkles, 
+    ArrowRight, ArrowLeft, KeyRound, QrCode
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
 
@@ -18,9 +22,35 @@ const Profile = () => {
     const profileData = {
         name: user?.name || t('profile.customer'),
         email: user?.email || '',
-        phone: user?.phone || t('profile.not_provided'),
-        address: user?.address || t('profile.not_provided')
+        phone: user?.phone || '',
+        address: user?.address || ''
     };
+
+    // Helper for Monogram Initials
+    const getUserInitials = (name) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return name.slice(0, 2).toUpperCase();
+    };
+
+    // Helper for Role Tag Display
+    const getRoleBadge = (role) => {
+        switch(role) {
+            case 'super_admin': 
+                return { label: isRTL ? '👑 المدير العام' : '👑 Super Admin', className: 'role-pill super-admin' };
+            case 'admin': 
+                return { label: isRTL ? '🛡️ مسؤول النظام' : '🛡️ Administrator', className: 'role-pill admin' };
+            case 'regional_admin': 
+                return { label: isRTL ? '🌐 مسؤول إقليمي' : '🌐 Regional Admin', className: 'role-pill regional-admin' };
+            case 'vendor': 
+                return { label: isRTL ? '🏪 بائع معتمد' : '🏪 Verified Vendor', className: 'role-pill vendor' };
+            default: 
+                return { label: isRTL ? '💎 عضو مميز' : '💎 Premium Member', className: 'role-pill customer' };
+        }
+    };
+
+    const roleInfo = getRoleBadge(user?.role);
 
     // Filter orders to only show those for this user based on email
     const userOrders = orders.filter(o => o.email === user?.email).reverse();
@@ -123,6 +153,9 @@ const Profile = () => {
         <div className="profile-page">
             <div className="profile-header text-center">
                 <div className="container">
+                    <span className="luxury-eyebrow">
+                        <Sparkles size={14} color="#c8a951" /> {isRTL ? 'الحساب الشخصي الفاخر' : 'Private Client Sanctuary'}
+                    </span>
                     <h1>{t('profile.title')}</h1>
                     <p className="profile-subtitle">
                         {t('profile.subtitle')}
@@ -133,181 +166,212 @@ const Profile = () => {
             <div className="container section profile-container">
                 <div className="profile-sidebar">
                     <div className="profile-card">
+                        {/* Luxury Profile Avatar Header */}
                         <div className="profile-avatar text-center">
                             <div className="avatar-circle">
-                                <User size={40} color="var(--color-gold)" />
+                                <span className="avatar-initials">{getUserInitials(profileData.name)}</span>
+                                {user?.role === 'super_admin' && (
+                                    <div className="avatar-badge-crown" title="Super Admin">
+                                        <Crown size={13} fill="#000000" color="#000000" />
+                                    </div>
+                                )}
                             </div>
-                            <h3>{profileData.name}</h3>
-                            <p className="text-muted">{t('profile.premium_member')}</p>
+                            <h3 className="profile-user-name">{profileData.name}</h3>
+                            <div className="profile-role-wrapper">
+                                <span className={roleInfo.className}>
+                                    {roleInfo.label}
+                                </span>
+                            </div>
                         </div>
 
+                        {/* Contact & Profile Info Capsules */}
                         <div className="profile-details">
-                            <div className="detail-item">
-                                <Mail size={18} />
-                                <span>{profileData.email}</span>
+                            <div className="profile-info-pill">
+                                <div className="info-icon-bubble">
+                                    <Mail size={16} />
+                                </div>
+                                <div className="info-text-group">
+                                    <span className="info-label">{isRTL ? 'البريد الإلكتروني' : 'Email Address'}</span>
+                                    <span className="info-value">{profileData.email || '—'}</span>
+                                </div>
                             </div>
-                            <div className="detail-item">
-                                <Phone size={18} />
-                                <span>{profileData.phone}</span>
+
+                            <div className="profile-info-pill">
+                                <div className="info-icon-bubble">
+                                    <Phone size={16} />
+                                </div>
+                                <div className="info-text-group">
+                                    <span className="info-label">{isRTL ? 'رقم الهاتف' : 'Phone Number'}</span>
+                                    <span className={`info-value ${!profileData.phone ? 'muted-text' : ''}`}>
+                                        {profileData.phone || (isRTL ? 'غير محدد' : 'Not provided')}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="detail-item">
-                                <MapPin size={18} />
-                                <span>{profileData.address}</span>
+
+                            <div className="profile-info-pill">
+                                <div className="info-icon-bubble">
+                                    <MapPin size={16} />
+                                </div>
+                                <div className="info-text-group">
+                                    <span className="info-label">{isRTL ? 'عنوان التوصيل' : 'Delivery Address'}</span>
+                                    <span className={`info-value ${!profileData.address ? 'muted-text' : ''}`}>
+                                        {profileData.address || (isRTL ? 'غير محدد' : 'Not provided')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         
+                        {/* Role Based CTA Buttons */}
                         {user && user.role === 'customer' && (
-                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
-                                <Link to="/vendor-signup" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
-                                    <Store size={18} />
-                                    {isRTL ? 'كن بائعاً معنا' : 'Become a Vendor'}
+                            <div className="profile-action-box">
+                                <Link to="/vendor-signup" className="btn btn-profile-outline">
+                                    <Store size={17} />
+                                    <span>{isRTL ? 'كن بائعاً معنا' : 'Become a Partner Vendor'}</span>
                                 </Link>
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '10px' }}>
-                                    {isRTL ? 'ابدأ ببيع منتجاتك الخاصة' : 'Start selling your own products'}
-                                </p>
                             </div>
                         )}
                         {user && (user.role === 'super_admin' || user.role === 'admin') && (
-                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
-                                <Link to="/admin" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                            <div className="profile-action-box">
+                                <Link to="/admin" className="btn btn-profile-gold">
                                     <Store size={18} />
-                                    {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
+                                    <span>{isRTL ? 'لوحة التحكم الإدارية' : 'Admin Dashboard'}</span>
+                                    {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
                                 </Link>
                             </div>
                         )}
                         {user && user.role === 'regional_admin' && (
-                            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'center' }}>
-                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '10px' }} />
-                                <Link to="/admin" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                            <div className="profile-action-box" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <Link to="/admin" className="btn btn-profile-gold">
                                     <Store size={18} />
-                                    {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
+                                    <span>{isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}</span>
+                                    {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
                                 </Link>
-                                <Link to="/vendor" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', borderColor: 'var(--color-gold)', color: 'var(--color-gold)' }}>
-                                    <Store size={18} />
-                                    {isRTL ? 'لوحة البائع والاشتراكات' : 'Vendor & Subscriptions'}
+                                <Link to="/vendor" className="btn btn-profile-outline">
+                                    <Store size={17} />
+                                    <span>{isRTL ? 'لوحة البائع والاشتراكات' : 'Vendor & Subscriptions'}</span>
                                 </Link>
                             </div>
                         )}
                         {user && user.role === 'vendor' && (
-                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                                <hr style={{ borderTop: '1px solid #eee', marginBottom: '20px' }} />
-                                <Link to="/vendor" className="btn btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+                            <div className="profile-action-box">
+                                <Link to="/vendor" className="btn btn-profile-gold">
                                     <Store size={18} />
-                                    {isRTL ? 'لوحة تحكم البائع' : 'Vendor Dashboard'}
+                                    <span>{isRTL ? 'لوحة تحكم البائع' : 'Vendor Dashboard'}</span>
+                                    {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
                                 </Link>
                             </div>
                         )}
 
-                        {/* Two-Factor Authentication (2FA) Setup */}
-                        <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'left', direction: isRTL ? 'rtl' : 'ltr' }}>
-                            <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#1e293b' }}>
-                                <ShieldCheck size={18} style={{ color: 'var(--color-gold)' }} />
-                                {isRTL ? 'التحقق الثنائي (2FA)' : 'Two-Factor Authentication'}
-                            </h4>
+                        {/* Security Feature Card: Two-Factor Authentication (2FA) */}
+                        <div className="profile-feature-card">
+                            <div className="feature-card-header">
+                                <div className="feature-title-group">
+                                    <ShieldCheck size={18} className="feature-icon" />
+                                    <h4>{isRTL ? 'التحقق الثنائي (2FA)' : 'Two-Factor Auth'}</h4>
+                                </div>
+                                <span className={`security-status-badge ${twoFactorEnabled ? 'active' : 'inactive'}`}>
+                                    {twoFactorEnabled ? (isRTL ? 'مفعل' : 'Active') : (isRTL ? 'غير مفعل' : 'Disabled')}
+                                </span>
+                            </div>
                             
                             {twoFactorEnabled ? (
-                                <div>
-                                    <p style={{ fontSize: '0.8rem', color: '#16a34a', margin: '0 0 10px 0', fontWeight: '600' }}>
-                                        ✓ {isRTL ? 'نشط ومفعل' : 'Enabled and protecting your account'}
+                                <div className="feature-card-body">
+                                    <p className="feature-desc success-desc">
+                                        ✓ {isRTL ? 'حسابك محمي بطبقة أمان TOTP إضافية.' : 'Your account is secured with 2FA protection.'}
                                     </p>
                                     <button 
                                         type="button" 
-                                        className="btn btn-outline" 
+                                        className="btn btn-profile-danger" 
                                         onClick={handleDisable2FA}
                                         disabled={is2FALoading}
-                                        style={{ width: '100%', padding: '6px', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef444433' }}
                                     >
                                         {isRTL ? 'تعطيل التحقق الثنائي' : 'Disable 2FA'}
                                     </button>
                                 </div>
                             ) : show2FAForm && setup2FAData ? (
-                                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0' }}>
+                                <div className="setup-2fa-container">
+                                    <p className="setup-2fa-hint">
                                         {isRTL 
-                                            ? 'امسح الرمز أدناه بتطبيق Google Authenticator ثم أدخل رمز التحقق.' 
-                                            : 'Scan this QR code with Google Authenticator or custom TOTP app.'}
+                                            ? 'امسح رمز QR بتطبيق Google Authenticator ثم أدخل الرمز المكون من 6 أرقام.' 
+                                            : 'Scan this QR code with Google Authenticator, then enter the 6-digit code.'}
                                     </p>
-                                    <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                                        <img src={setup2FAData.qrCodeUrl} alt="QR Code" style={{ width: '130px', height: '130px', background: '#fff', padding: '4px', border: '1px solid #cbd5e1', display: 'inline-block' }} />
+                                    <div className="qr-wrapper">
+                                        <img src={setup2FAData.qrCodeUrl} alt="2FA QR Code" />
                                     </div>
-                                    <div style={{ marginBottom: '10px' }}>
-                                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                                            {isRTL ? 'أو أدخل المفتاح يدوياً:' : 'Or manual setup key:'}
-                                        </label>
-                                        <code style={{ fontSize: '0.75rem', display: 'block', background: '#e2e8f0', padding: '4px', borderRadius: '4px', wordBreak: 'break-all', textAlign: 'center' }}>
-                                            {setup2FAData.secret}
-                                        </code>
+                                    <div className="manual-key-box">
+                                        <span className="manual-key-label">{isRTL ? 'المفتاح اليدوي:' : 'Secret Key:'}</span>
+                                        <code>{setup2FAData.secret}</code>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                    <div className="otp-input-row">
                                         <input 
                                             type="text" 
                                             placeholder="123456" 
                                             maxLength="6"
                                             value={otpVerifyCode}
                                             onChange={(e) => setOtpVerifyCode(e.target.value)}
-                                            style={{ flex: 1, padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px', height: '32px', minWidth: 0 }}
+                                            className="otp-input"
                                         />
                                         <button 
                                             type="button" 
-                                            className="btn btn-gold" 
+                                            className="btn btn-profile-gold-sm" 
                                             onClick={handleConfirm2FA}
                                             disabled={is2FALoading || !otpVerifyCode}
-                                            style={{ padding: '0 10px', fontSize: '0.8rem', height: '32px' }}
                                         >
                                             {isRTL ? 'تفعيل' : 'Enable'}
                                         </button>
                                     </div>
                                     <button 
                                         type="button" 
-                                        className="text-link" 
+                                        className="btn-cancel-link" 
                                         onClick={() => { setShow2FAForm(false); setSetup2FAData(null); }}
-                                        style={{ fontSize: '0.75rem', marginTop: '8px', color: '#64748b', display: 'block', textAlign: 'center', width: '100%' }}
                                     >
                                         {isRTL ? 'إلغاء' : 'Cancel'}
                                     </button>
                                 </div>
                             ) : (
-                                <div>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0' }}>
+                                <div className="feature-card-body">
+                                    <p className="feature-desc">
                                         {isRTL 
-                                            ? 'قم بحماية حسابك بإضافة خطوة أمان إضافية باستخدام تطبيق التحقق.' 
-                                            : 'Add an extra layer of security to your account using a generator application.'}
+                                            ? 'أضف طبقة أمان مشددة لحماية حسابك من الاختراق.' 
+                                            : 'Protect your account with extra TOTP authenticator security.'}
                                     </p>
                                     <button 
                                         type="button" 
-                                        className="btn btn-gold" 
+                                        className="btn btn-profile-subtle-gold" 
                                         onClick={handleInitiate2FA}
                                         disabled={is2FALoading}
-                                        style={{ width: '100%', padding: '6px', fontSize: '0.8rem' }}
                                     >
-                                        {is2FALoading ? (isRTL ? 'جاري التحميل...' : 'Loading...') : (isRTL ? 'تفعيل التحقق الثنائي' : 'Setup 2FA')}
+                                        <KeyRound size={14} />
+                                        {is2FALoading ? (isRTL ? 'جاري التحميل...' : 'Loading...') : (isRTL ? 'إعداد التحقق الثنائي' : 'Setup 2FA')}
                                     </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Connected Devices Management for SA, RA, Vendor */}
+                        {/* Security Feature Card: Connected Devices Management */}
                         {['super_admin', 'admin', 'regional_admin', 'vendor'].includes(user?.role) && (
-                            <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'left', direction: isRTL ? 'rtl' : 'ltr' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#1e293b' }}>
-                                    <Smartphone size={18} style={{ color: 'var(--color-gold)' }} />
-                                    {isRTL ? 'الأجهزة المسجلة لحسابك' : 'Connected Devices'}
-                                </h4>
-                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 12px 0' }}>
-                                    {isRTL 
-                                        ? 'تحكم في المتصفحات والأجهزة النشطة التي سجلت الدخول بحسابك.' 
-                                        : 'Manage and monitor all active login sessions across your devices.'}
-                                </p>
-                                <Link 
-                                    to={user?.role === 'vendor' ? '/vendor-panel' : '/admin'} 
-                                    className="btn btn-outline" 
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', color: '#1e293b', borderColor: '#cbd5e1', fontWeight: '600' }}
-                                >
-                                    <Smartphone size={14} color="#c8a951" />
-                                    {isRTL ? 'فتح إدارة الأجهزة في لوحة التحكم' : 'Manage Devices in Dashboard'}
-                                </Link>
+                            <div className="profile-feature-card">
+                                <div className="feature-card-header">
+                                    <div className="feature-title-group">
+                                        <Smartphone size={18} className="feature-icon" />
+                                        <h4>{isRTL ? 'الأجهزة المسجلة' : 'Connected Devices'}</h4>
+                                    </div>
+                                </div>
+                                <div className="feature-card-body">
+                                    <p className="feature-desc">
+                                        {isRTL 
+                                            ? 'راقب وتحكم بجميع الجلسات والأجهزة النشطة.' 
+                                            : 'Monitor active browser sessions and trusted devices.'}
+                                    </p>
+                                    <Link 
+                                        to={user?.role === 'vendor' ? '/vendor-panel' : '/admin'} 
+                                        className="btn btn-profile-outline" 
+                                    >
+                                        <Smartphone size={14} />
+                                        <span>{isRTL ? 'إدارة الأجهزة' : 'Manage Devices'}</span>
+                                        {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
+                                    </Link>
+                                </div>
                             </div>
                         )}
                     </div>
