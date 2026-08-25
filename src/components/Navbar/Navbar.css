@@ -585,8 +585,20 @@
     flex-direction: column;
 }
 
-.region-selector-dropdown-container:hover .region-selector-menu {
-    display: flex;
+.region-selector-menu.show {
+    display: flex !important;
+}
+
+[dir="rtl"] .region-selector-menu,
+.rtl .region-selector-menu {
+    right: auto;
+    left: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .region-selector-dropdown-container:hover .region-selector-menu {
+        display: flex;
+    }
 }
 
 .region-selector-item {

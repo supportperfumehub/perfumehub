@@ -225,10 +225,12 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     {activeRegion && (
                         <div className="region-selector-dropdown-container" ref={regionRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <button 
+                                type="button"
                                 className="icon-btn" 
                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px', fontSize: '0.9rem', cursor: 'pointer', height: '40px', background: 'transparent', border: 'none' }}
                                 title={isRTL ? 'اختر البلد' : 'Select Country'}
                                 onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     setIsRegionMenuOpen(prev => !prev);
                                 }}
@@ -239,9 +241,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                     style={{ width: '18px', height: '12px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.1)' }} 
                                 />
                                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{activeRegion.code}</span>
-                                <ChevronDown size={12} />
+                                <ChevronDown size={12} style={{ transform: isRegionMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
                             </button>
-                            <div className="region-selector-menu" style={{ display: isRegionMenuOpen ? 'flex' : undefined, flexDirection: 'column' }}>
+                            <div className={`region-selector-menu ${isRegionMenuOpen ? 'show' : ''}`} style={{ display: isRegionMenuOpen ? 'flex' : 'none', flexDirection: 'column' }}>
                                 {!isSupported && (
                                     <div style={{
                                         padding: '12px',
