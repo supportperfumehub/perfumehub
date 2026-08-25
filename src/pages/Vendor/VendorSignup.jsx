@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock, Upload, Phone, MapPin, Clock } from 'lucide-react';
+import { Store, Send, CheckCircle, Plus, Trash2, Image, User, Mail, Lock, Upload, Phone, MapPin, Clock, Sparkles, Link2 as LinkIcon } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 import './VendorSignup.css';
 
@@ -362,7 +362,7 @@ const VendorSignup = () => {
                     <div className="vendor-form-section">
                         <h3 className="section-title">
                             <Image size={18} />
-                            {isRTL ? 'صور المتجر' : 'Shop Presentation'}
+                            {isRTL ? 'صور المتجر والمعرض' : 'Shop Presentation'}
                         </h3>
                         
                         <div className="photo-upload-container">
@@ -384,32 +384,72 @@ const VendorSignup = () => {
                                 </p>
                             </label>
 
-                            <div className="photo-input-list">
-                                {photoInputs.map((url, index) => (
-                                    <div key={index} className="photo-input-item">
-                                        <div className="photo-preview-box">
-                                            {url ? <img src={url} alt="Preview" /> : <Image size={20} style={{ opacity: 0.2 }} />}
-                                        </div>
-                                        <div className="vendor-input-wrapper photo-url-input">
-                                            <input
-                                                type="text"
-                                                placeholder={isRTL ? `رابط الصورة ${index + 1}` : `Photo URL or Data ${index + 1}`}
-                                                value={url}
-                                                onChange={(e) => updatePhotoInput(index, e.target.value)}
-                                            />
-                                        </div>
-                                        {photoInputs.length > 1 && (
-                                            <button type="button" className="remove-photo-btn" onClick={() => removePhotoInput(index)}>
-                                                <Trash2 size={18} />
-                                            </button>
-                                        )}
+                            {/* Visual Thumbnail Gallery Preview */}
+                            {photoInputs.some(p => p && p.trim() !== '') && (
+                                <div className="uploaded-gallery-strip">
+                                    <span className="gallery-strip-title">
+                                        <Sparkles size={13} color="#c8a951" /> {isRTL ? 'معاينة الصور المختارة' : 'Selected Photos Preview'} ({photoInputs.filter(p => p && p.trim() !== '').length})
+                                    </span>
+                                    <div className="gallery-thumbnails-grid">
+                                        {photoInputs.map((url, idx) => {
+                                            if (!url || !url.trim()) return null;
+                                            return (
+                                                <div key={idx} className="gallery-thumb-item">
+                                                    <img src={url} alt={`Shop ${idx + 1}`} />
+                                                    {idx === 0 && (
+                                                        <span className="cover-badge">{isRTL ? 'الرئيسية' : 'Cover'}</span>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        className="thumb-delete-btn"
+                                                        onClick={() => removePhotoInput(idx)}
+                                                        title={isRTL ? 'حذف الصورة' : 'Remove Photo'}
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            )}
 
-                            <button type="button" onClick={addPhotoInput} className="text-link" style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', opacity: 1, color: 'var(--color-gold)' }}>
-                                <Plus size={14} /> {isRTL ? 'إضافة رابط إضافي' : 'Add another link'}
-                            </button>
+                            {/* Direct URL Inputs */}
+                            <div className="photo-url-section">
+                                <span className="photo-url-section-label">
+                                    <LinkIcon size={13} /> {isRTL ? 'أو أدخل روابط الصور يدوياً:' : 'Or enter photo links manually:'}
+                                </span>
+                                <div className="photo-input-list">
+                                    {photoInputs.map((url, index) => (
+                                        <div key={index} className="photo-input-item">
+                                            <div className="photo-preview-box">
+                                                {url ? (
+                                                    <img src={url} alt="Preview" />
+                                                ) : (
+                                                    <Image size={18} style={{ color: '#c8a951', opacity: 0.5 }} />
+                                                )}
+                                            </div>
+                                            <div className="vendor-input-wrapper photo-url-input">
+                                                <input
+                                                    type="text"
+                                                    placeholder={isRTL ? `رابط الصورة ${index + 1}` : `Photo URL or Data ${index + 1}`}
+                                                    value={url}
+                                                    onChange={(e) => updatePhotoInput(index, e.target.value)}
+                                                />
+                                            </div>
+                                            {photoInputs.length > 1 && (
+                                                <button type="button" className="remove-photo-btn" onClick={() => removePhotoInput(index)} title={isRTL ? 'حذف' : 'Remove'}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button type="button" onClick={addPhotoInput} className="btn-add-photo-link">
+                                    <Plus size={14} /> {isRTL ? 'إضافة رابط إضافي' : 'Add another link'}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
