@@ -8,7 +8,7 @@ import ReservationManager from '../../components/Admin/ReservationManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
 import ConfirmModal from '../../components/Common/ConfirmModal';
 import '../Admin/Admin.css'; // Use the premium admin styles
-import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone } from 'lucide-react';
+import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone, Clock, Truck, Bell, MessageSquare, Shield } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
@@ -19,6 +19,36 @@ const VendorPanel = () => {
     const [activeTab, setActiveTab] = useState(shopId ? 'products' : 'billing');
     const [shopData, setShopData] = useState(null);
     const [savingSettings, setSavingSettings] = useState(false);
+    const [vendorPrefs, setVendorPrefs] = useState(() => {
+        try {
+            const saved = localStorage.getItem(`vendor_prefs_${shopId}`);
+            return saved ? JSON.parse(saved) : {
+                isAcceptingOrders: true,
+                openTime: '09:00',
+                closeTime: '22:00',
+                weekendHours: '04:00 PM - 11:30 PM',
+                allowStorePickup: true,
+                allowHomeDelivery: true,
+                deliveryWindow: 'same_day',
+                whatsappGreeting: '',
+                notifyLowStock: true,
+                notifyNewReservations: true
+            };
+        } catch {
+            return {
+                isAcceptingOrders: true,
+                openTime: '09:00',
+                closeTime: '22:00',
+                weekendHours: '04:00 PM - 11:30 PM',
+                allowStorePickup: true,
+                allowHomeDelivery: true,
+                deliveryWindow: 'same_day',
+                whatsappGreeting: '',
+                notifyLowStock: true,
+                notifyNewReservations: true
+            };
+        }
+    });
 
     useEffect(() => {
         if (!shopId) {
@@ -308,44 +338,59 @@ const VendorPanel = () => {
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {activeTab === 'settings' && shopId && (
                         <div className="admin-section">
-                            <div className="manager-header" style={{ marginBottom: '20px' }}>
+                            <div className="manager-header" style={{ marginBottom: '24px' }}>
                                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <Settings size={24} color="#c8a951" /> 
-                                    {isRTL ? 'إعدادات متجرك' : 'Your Shop Settings'}
+                                    {isRTL ? 'إعدادات وخيارات المتجر' : 'Shop Settings & Preferences'}
                                 </h2>
                                 <p style={{ color: '#94a3b8', fontSize: '0.86rem', margin: '6px 0 0 0' }}>
-                                    {isRTL ? 'تحكم ببيانات متجرك، الشعار، وصور العرض للعملاء' : 'Manage your shop details, brand logo, contact, and presentation gallery'}
+                                    {isRTL ? 'تحكم ببيانات المتجر، أوقات العمل، خيارات التوصيل، رسائل الطلبات، والتنبيهات' : 'Manage your boutique profile, business hours, delivery options, custom messages, and smart alerts'}
                                 </p>
                             </div>
                             
                             {shopData ? (
-                                <div className="vendor-settings-card">
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        setSavingSettings(true);
-                                        try {
-                                            const res = await api.put(`/shops/${shopId}`, {
-                                                name: shopData.name,
-                                                logo_url: shopData.logo_url,
-                                                whatsapp_number: shopData.whatsapp_number,
-                                                address: shopData.address,
-                                                images: shopData.images
-                                            });
-                                            if (res.status === 200 || res.data.success) {
-                                                showToast(isRTL ? 'تم حفظ التغييرات بنجاح' : 'Settings saved successfully', 'success');
-                                                if (res.data.shop) {
-                                                    setShopData(res.data.shop);
-                                                }
-                                            } else {
-                                                showToast(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`, 'error');
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    setSavingSettings(true);
+                                    try {
+                                        const res = await api.put(`/shops/${shopId}`, {
+                                            name: shopData.name,
+                                            logo_url: shopData.logo_url,
+                                            whatsapp_number: shopData.whatsapp_number,
+                                            address: shopData.address,
+                                            images: shopData.images
+                                        });
+
+                                        // Persist operational preferences locally
+                                        localStorage.setItem(`vendor_prefs_${shopId}`, JSON.stringify(vendorPrefs));
+
+                                        if (res.status === 200 || res.data.success) {
+                                            showToast(isRTL ? 'تم حفظ جميع إعدادات المتجر بنجاح!' : 'All shop settings saved successfully!', 'success');
+                                            if (res.data.shop) {
+                                                setShopData(res.data.shop);
                                             }
-                                        } catch (e) {
-                                            console.error(e);
-                                            showToast(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'), 'error');
-                                        } finally {
-                                            setSavingSettings(false);
+                                        } else {
+                                            showToast(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`, 'error');
                                         }
-                                    }}>
+                                    } catch (e) {
+                                        console.error(e);
+                                        showToast(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'), 'error');
+                                    } finally {
+                                        setSavingSettings(false);
+                                    }
+                                }}>
+                                    {/* 1. Boutique Profile & Visual Identity */}
+                                    <div className="settings-section-card">
+                                        <div className="settings-section-header">
+                                            <h3 className="settings-section-title">
+                                                <Store size={18} color="#c8a951" />
+                                                {isRTL ? 'معلومات وهوية المتجر' : 'Boutique Profile & Contact'}
+                                            </h3>
+                                            <p className="settings-section-desc">
+                                                {isRTL ? 'البيانات الأساسية التي تظهر للعملاء في دليل المتاجر والصفحة الرئيسية' : 'Primary store identity visible across customer discovery and shop listings'}
+                                            </p>
+                                        </div>
+
                                         {/* Brand Identity / Profile Photo */}
                                         {(() => {
                                             const currentLogo = shopData?.logo_url || (Array.isArray(shopData?.images) && shopData.images.length > 0 ? shopData.images[0] : '');
@@ -396,64 +441,351 @@ const VendorPanel = () => {
                                             );
                                         })()}
 
-                                        {/* Shop Name */}
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                <Store size={15} color="#c8a951" />
-                                                {isRTL ? 'اسم المتجر' : 'Shop Name'}
-                                            </label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                value={shopData.name || ''} 
-                                                onChange={(e) => setShopData({...shopData, name: e.target.value})}
-                                                required
-                                                placeholder={isRTL ? 'أدخل اسم متجرك' : 'Enter shop name'}
-                                            />
-                                        </div>
+                                        <div className="settings-grid-2">
+                                            {/* Shop Name */}
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    <Store size={15} color="#c8a951" />
+                                                    {isRTL ? 'اسم المتجر' : 'Shop Name'}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    value={shopData.name || ''} 
+                                                    onChange={(e) => setShopData({...shopData, name: e.target.value})}
+                                                    required
+                                                    placeholder={isRTL ? 'أدخل اسم متجرك' : 'Enter shop name'}
+                                                />
+                                            </div>
 
-                                        {/* WhatsApp Number */}
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                <Phone size={15} color="#c8a951" />
-                                                {isRTL ? 'رقم الواتساب (لتلقي طلبات الحجز)' : 'WhatsApp Number (For Orders)'}
-                                            </label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                placeholder="+974..."
-                                                value={shopData.whatsapp_number || ''} 
-                                                onChange={(e) => setShopData({...shopData, whatsapp_number: e.target.value})}
-                                            />
-                                            <small className="form-helper-text">
-                                                {isRTL ? 'الرقم الذي سيتم توجيه العملاء إليه عند تأكيد الحجز والطلبات' : 'The number customers will be redirected to for reservations'}
-                                            </small>
+                                            {/* WhatsApp Number */}
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    <Phone size={15} color="#c8a951" />
+                                                    {isRTL ? 'رقم الواتساب للطلبات' : 'WhatsApp Order Hotline'}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="+974..."
+                                                    value={shopData.whatsapp_number || ''} 
+                                                    onChange={(e) => setShopData({...shopData, whatsapp_number: e.target.value})}
+                                                />
+                                                <small className="form-helper-text">
+                                                    {isRTL ? 'الرقم الذي يتواصل عليه العملاء لتأكيد الحجز' : 'The number customers message for reservations and order confirmations'}
+                                                </small>
+                                            </div>
                                         </div>
 
                                         {/* Detailed Address */}
-                                        <div className="form-group">
+                                        <div className="form-group" style={{ marginTop: '8px' }}>
                                             <label className="form-label">
                                                 <MapPin size={15} color="#c8a951" />
-                                                {isRTL ? 'عنوان وموقع المتجر' : 'Shop Address'}
+                                                {isRTL ? 'عنوان وموقع المتجر' : 'Detailed Shop Address'}
                                             </label>
                                             <textarea 
                                                 className="form-control textarea-address" 
                                                 rows="3"
                                                 value={shopData.address || ''} 
                                                 onChange={(e) => setShopData({...shopData, address: e.target.value})}
-                                                placeholder={isRTL ? 'أدخل العنوان بالتفصيل، المدينة، والشارع' : 'Enter detailed address / location'}
+                                                placeholder={isRTL ? 'أدخل العنوان بالتفصيل، المدينة، واسم الشارع أو المول' : 'Enter detailed boutique address, mall/street, and city'}
                                             />
                                         </div>
+                                    </div>
 
-                                        {/* Save Changes Button */}
-                                        <div style={{ marginTop: '30px' }}>
-                                            <button type="submit" className="btn-save-settings" disabled={savingSettings}>
-                                                <Save size={18} />
-                                                {savingSettings ? (isRTL ? 'جاري حفظ التغييرات...' : 'Saving Changes...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
+                                    {/* 2. Operational Hours & Availability */}
+                                    <div className="settings-section-card">
+                                        <div className="settings-section-header">
+                                            <h3 className="settings-section-title">
+                                                <Clock size={18} color="#c8a951" />
+                                                {isRTL ? 'أوقات العمل واستقبال الطلبات' : 'Working Hours & Availability'}
+                                            </h3>
+                                            <p className="settings-section-desc">
+                                                {isRTL ? 'تحديد مواعيد فتح المتجر واستقبال الحجوزات أو تعليقها مؤقتاً' : 'Configure operating hours and pause customer orders during holidays or renovations'}
+                                            </p>
+                                        </div>
+
+                                        {/* Accepting Orders Toggle */}
+                                        <div className="settings-toggle-row">
+                                            <div className="settings-toggle-info">
+                                                <div className="settings-toggle-label">
+                                                    <span>{isRTL ? 'حالة استقبال الطلبات' : 'Accepting Orders & Inquiries'}</span>
+                                                    {vendorPrefs.isAcceptingOrders ? (
+                                                        <span className="settings-badge-active">
+                                                            <CheckCircle size={12} /> {isRTL ? 'مفتوح للطلبات' : 'Active / Open'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="settings-badge-paused">
+                                                            <Clock size={12} /> {isRTL ? 'معلق مؤقتاً' : 'Temporarily Paused'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="settings-toggle-sub">
+                                                    {isRTL ? 'عند التعطيل، سيتم إعلام العملاء بأن المتجر في فترة استراحة أو إجازة' : 'When disabled, customers are notified that your boutique is temporarily on pause or vacation'}
+                                                </div>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vendorPrefs.isAcceptingOrders} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, isAcceptingOrders: e.target.checked }))} 
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+
+                                        <div className="settings-grid-2" style={{ marginTop: '16px' }}>
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    <Clock size={15} color="#c8a951" />
+                                                    {isRTL ? 'ساعة فتح المتجر اليومي' : 'Daily Opening Time'}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="09:00 AM" 
+                                                    value={vendorPrefs.openTime || ''} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, openTime: e.target.value }))} 
+                                                />
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    <Clock size={15} color="#c8a951" />
+                                                    {isRTL ? 'ساعة إغلاق المتجر اليومي' : 'Daily Closing Time'}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="10:00 PM" 
+                                                    value={vendorPrefs.closeTime || ''} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, closeTime: e.target.value }))} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group" style={{ marginTop: '8px' }}>
+                                            <label className="form-label">
+                                                <CalendarCheck size={15} color="#c8a951" />
+                                                {isRTL ? 'ملاحظة مواعيد يوم الجمعة والعطلات' : 'Friday & Weekend Special Hours'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                placeholder="04:00 PM - 11:30 PM (Friday)" 
+                                                value={vendorPrefs.weekendHours || ''} 
+                                                onChange={(e) => setVendorPrefs(prev => ({ ...prev, weekendHours: e.target.value }))} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Order Fulfillment & Delivery Preferences */}
+                                    <div className="settings-section-card">
+                                        <div className="settings-section-header">
+                                            <h3 className="settings-section-title">
+                                                <Truck size={18} color="#c8a951" />
+                                                {isRTL ? 'خيارات الاستلام والتوصيل' : 'Fulfillment & Delivery Options'}
+                                            </h3>
+                                            <p className="settings-section-desc">
+                                                {isRTL ? 'حدد طرق الاستلام والتسليم المتاحة لزبائنك' : 'Configure delivery services and in-store boutique pickup availability'}
+                                            </p>
+                                        </div>
+
+                                        {/* Boutique Pickup Toggle */}
+                                        <div className="settings-toggle-row">
+                                            <div className="settings-toggle-info">
+                                                <div className="settings-toggle-label">
+                                                    <Store size={15} color="#c8a951" />
+                                                    <span>{isRTL ? 'الاستلام المباشر من المتجر (In-Store Pickup)' : 'In-Store Boutique Pickup'}</span>
+                                                </div>
+                                                <div className="settings-toggle-sub">
+                                                    {isRTL ? 'السماح للزبون بحجز العطر أونلاين واستلامه وتجربته في المتجر' : 'Allow customers to reserve perfumes online and collect/sample at your shop'}
+                                                </div>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vendorPrefs.allowStorePickup} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, allowStorePickup: e.target.checked }))} 
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+
+                                        {/* Direct Home Delivery Toggle */}
+                                        <div className="settings-toggle-row">
+                                            <div className="settings-toggle-info">
+                                                <div className="settings-toggle-label">
+                                                    <Truck size={15} color="#c8a951" />
+                                                    <span>{isRTL ? 'خدمة التوصيل المباشر للمنزل (Home Delivery)' : 'Direct Home Delivery'}</span>
+                                                </div>
+                                                <div className="settings-toggle-sub">
+                                                    {isRTL ? 'توفير خدمة شحن وتوصيل الطلبات إلى عنوان العميل' : 'Provide direct local courier dispatch to customer destination'}
+                                                </div>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vendorPrefs.allowHomeDelivery} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, allowHomeDelivery: e.target.checked }))} 
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+
+                                        {/* Processing Window */}
+                                        <div className="form-group" style={{ marginTop: '16px' }}>
+                                            <label className="form-label">
+                                                <Zap size={15} color="#c8a951" />
+                                                {isRTL ? 'متوسط سرعة تجهيز وتوصيل الطلبات' : 'Standard Fulfillment Window'}
+                                            </label>
+                                            <select 
+                                                className="form-control" 
+                                                value={vendorPrefs.deliveryWindow || 'same_day'} 
+                                                onChange={(e) => setVendorPrefs(prev => ({ ...prev, deliveryWindow: e.target.value }))}
+                                            >
+                                                <option value="express">{isRTL ? 'توصيل فوري سريع (2 - 4 ساعات)' : 'Express Courier (2 - 4 Hours)'}</option>
+                                                <option value="same_day">{isRTL ? 'توصيل في نفس اليوم (Same Day)' : 'Same Day Delivery'}</option>
+                                                <option value="next_day">{isRTL ? 'توصيل خلال 24 ساعة (Next Day)' : 'Next Day Delivery (24h)'}</option>
+                                                <option value="standard">{isRTL ? '1 - 2 أيام عمل (1 - 2 Business Days)' : '1 - 2 Business Days'}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* 4. WhatsApp Order Template & Smart Notifications */}
+                                    <div className="settings-section-card">
+                                        <div className="settings-section-header">
+                                            <h3 className="settings-section-title">
+                                                <MessageSquare size={18} color="#c8a951" />
+                                                {isRTL ? 'رسائل الواتساب والتنبيهات' : 'WhatsApp Messages & Alerts'}
+                                            </h3>
+                                            <p className="settings-section-desc">
+                                                {isRTL ? 'تخصيص نص رسالة الحجز وتفعيل إشعارات المخزون المنخفض' : 'Customize customer greeting messages and enable automated stock alert notifications'}
+                                            </p>
+                                        </div>
+
+                                        {/* Custom WhatsApp Greeting */}
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                <MessageSquare size={15} color="#c8a951" />
+                                                {isRTL ? 'رسالة الترحيب التلقائية عند طلب الحجز عبر الواتساب' : 'Custom WhatsApp Order Greeting Template'}
+                                            </label>
+                                            <textarea 
+                                                className="form-control textarea-address" 
+                                                rows="2"
+                                                placeholder={isRTL ? 'مرحباً! أود تأكيد حجز المنتج التالي من متجركم على بيرفيوم هب:' : 'Hello! I would like to reserve an item from your boutique on PerfumeHub:'}
+                                                value={vendorPrefs.whatsappGreeting || ''} 
+                                                onChange={(e) => setVendorPrefs(prev => ({ ...prev, whatsappGreeting: e.target.value }))}
+                                            />
+                                            <small className="form-helper-text">
+                                                {isRTL ? 'الرسالة الأولية التي تظهر للعميل في محادثة الواتساب عند النقر على حجز المنتج' : 'Initial greeting pre-filled in customer WhatsApp chat when reserving perfumes from your boutique'}
+                                            </small>
+                                        </div>
+
+                                        {/* Low Stock Alert Toggle */}
+                                        <div className="settings-toggle-row" style={{ marginTop: '14px' }}>
+                                            <div className="settings-toggle-info">
+                                                <div className="settings-toggle-label">
+                                                    <Bell size={15} color="#c8a951" />
+                                                    <span>{isRTL ? 'تنبيه انخفاض المخزون (Low Stock Alert)' : 'Low Stock Warning Alerts'}</span>
+                                                </div>
+                                                <div className="settings-toggle-sub">
+                                                    {isRTL ? 'إظهار شارة تنبيه عندما يصل مخزون أي عطر إلى أقل من 3 حبات' : 'Display alert badge when product stock drops below 3 units'}
+                                                </div>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vendorPrefs.notifyLowStock} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, notifyLowStock: e.target.checked }))} 
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+
+                                        {/* Reservation Alerts */}
+                                        <div className="settings-toggle-row">
+                                            <div className="settings-toggle-info">
+                                                <div className="settings-toggle-label">
+                                                    <CalendarCheck size={15} color="#c8a951" />
+                                                    <span>{isRTL ? 'تنبيهات الحجوزات الجديدة' : 'Instant Reservation Alerts'}</span>
+                                                </div>
+                                                <div className="settings-toggle-sub">
+                                                    {isRTL ? 'تلقي إشعارات فورية عند تسجيل حجز جديد من العملاء' : 'Receive instant status alerts when customers submit new reservation requests'}
+                                                </div>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vendorPrefs.notifyNewReservations} 
+                                                    onChange={(e) => setVendorPrefs(prev => ({ ...prev, notifyNewReservations: e.target.checked }))} 
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* 5. Account & Plan Overview */}
+                                    <div className="settings-section-card">
+                                        <div className="settings-section-header">
+                                            <h3 className="settings-section-title">
+                                                <ShieldCheck size={18} color="#c8a951" />
+                                                {isRTL ? 'بيانات الحساب والاشتراك' : 'Account & Subscription Overview'}
+                                            </h3>
+                                            <p className="settings-section-desc">
+                                                {isRTL ? 'معلومات اعتماد البائع وخطة الاشتراك الحالية' : 'Vendor partner credentials and active subscription tier'}
+                                            </p>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                                            <div style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{isRTL ? 'معرف المتجر' : 'Shop ID'}</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: '800', color: '#c8a951', marginTop: '4px' }}>#{shopId}</div>
+                                            </div>
+
+                                            <div style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{isRTL ? 'حالة الاعتماد' : 'Verification Status'}</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#4ade80', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <CheckCircle size={14} /> {isRTL ? 'بائع معتمد' : 'Verified Vendor'}
+                                                </div>
+                                            </div>
+
+                                            <div style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{isRTL ? 'البريد الإلكتروني' : 'Account Email'}</div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#f8fafc', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email || 'N/A'}</div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                            <button 
+                                                type="button" 
+                                                className="btn-logo-upload"
+                                                onClick={() => setActiveTab('billing')}
+                                                style={{ height: '38px', fontSize: '0.82rem' }}
+                                            >
+                                                <CreditCard size={15} />
+                                                <span>{isRTL ? 'إدارة الاشتراك والفوترة' : 'Manage Subscription & Plans'}</span>
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className="btn-logo-upload"
+                                                onClick={() => setActiveTab('devices')}
+                                                style={{ height: '38px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.05)', borderColor: '#334155', color: '#cbd5e1' }}
+                                            >
+                                                <Smartphone size={15} />
+                                                <span>{isRTL ? 'إدارة الأجهزة المسجلة' : 'Manage Connected Devices'}</span>
                                             </button>
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+
+                                    {/* Unified Save Changes Button */}
+                                    <div style={{ marginTop: '28px', marginBottom: '20px' }}>
+                                        <button type="submit" className="btn-save-settings" disabled={savingSettings}>
+                                            <Save size={18} />
+                                            {savingSettings ? (isRTL ? 'جاري حفظ التغييرات...' : 'Saving All Settings...') : (isRTL ? 'حفظ جميع الإعدادات' : 'Save All Settings')}
+                                        </button>
+                                    </div>
+                                </form>
                             ) : (
                                 <p style={{ color: '#94a3b8' }}>{isRTL ? 'جاري تحميل البيانات...' : 'Loading...'}</p>
                             )}
