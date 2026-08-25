@@ -8,7 +8,7 @@ import ReservationManager from '../../components/Admin/ReservationManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
 import ConfirmModal from '../../components/Common/ConfirmModal';
 import '../Admin/Admin.css'; // Use the premium admin styles
-import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone } from 'lucide-react';
+import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
@@ -181,9 +181,60 @@ const VendorPanel = () => {
     };
 
     const removeImage = (index) => {
-        const updatedImages = [...shopData.images];
+        const updatedImages = [...(shopData.images || [])];
         updatedImages.splice(index, 1);
         setShopData({ ...shopData, images: updatedImages });
+    };
+
+    const handleLogoUpload = (e) => {
+        try {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const objectUrl = URL.createObjectURL(file);
+            const img = new window.Image();
+
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                    setShopData(prev => ({ ...prev, logo_url: compressedBase64 }));
+                    URL.revokeObjectURL(objectUrl);
+                } catch (err) {
+                    console.error(err);
+                    URL.revokeObjectURL(objectUrl);
+                }
+            };
+            img.src = objectUrl;
+            e.target.value = '';
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const removeLogo = () => {
+        setShopData(prev => ({ ...prev, logo_url: '' }));
     };
 
     const tabs = [
@@ -253,115 +304,194 @@ const VendorPanel = () => {
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {activeTab === 'settings' && shopId && (
                         <div className="admin-section">
-                            <div className="manager-header">
+                            <div className="manager-header" style={{ marginBottom: '20px' }}>
                                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <Settings size={24} color="#c8a951" /> 
                                     {isRTL ? 'إعدادات متجرك' : 'Your Shop Settings'}
                                 </h2>
+                                <p style={{ color: '#94a3b8', fontSize: '0.86rem', margin: '6px 0 0 0' }}>
+                                    {isRTL ? 'تحكم ببيانات متجرك، الشعار، وصور العرض للعملاء' : 'Manage your shop details, brand logo, contact, and presentation gallery'}
+                                </p>
                             </div>
                             
                             {shopData ? (
-                                <form onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    setSavingSettings(true);
-                                    try {
-                                        const res = await api.put(`/shops/${shopId}`, {
-                                            name: shopData.name,
-                                            logo_url: shopData.logo_url,
-                                            whatsapp_number: shopData.whatsapp_number,
-                                            address: shopData.address,
-                                            images: shopData.images
-                                        });
-                                        if (res.status === 200 || res.data.success) {
-                                            showToast(isRTL ? 'تم الحفظ بنجاح' : 'Settings saved successfully', 'success');
-                                        } else {
-                                            showToast(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`, 'error');
+                                <div className="vendor-settings-card">
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        setSavingSettings(true);
+                                        try {
+                                            const res = await api.put(`/shops/${shopId}`, {
+                                                name: shopData.name,
+                                                logo_url: shopData.logo_url,
+                                                whatsapp_number: shopData.whatsapp_number,
+                                                address: shopData.address,
+                                                images: shopData.images
+                                            });
+                                            if (res.status === 200 || res.data.success) {
+                                                showToast(isRTL ? 'تم حفظ التغييرات بنجاح' : 'Settings saved successfully', 'success');
+                                                if (res.data.shop) {
+                                                    setShopData(res.data.shop);
+                                                }
+                                            } else {
+                                                showToast(`${isRTL ? 'فشل الحفظ' : 'Failed to save'}: ${res.data.error || res.data.message || 'Unknown error'}`, 'error');
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                            showToast(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'), 'error');
+                                        } finally {
+                                            setSavingSettings(false);
                                         }
-                                    } catch (e) {
-                                        console.error(e);
-                                        showToast(e.response?.data?.error || (isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'), 'error');
-                                    } finally {
-                                        setSavingSettings(false);
-                                    }
-                                }}>
-                                    <div className="form-group" style={{ marginBottom: '24px' }}>
-                                        <label className="form-label">{isRTL ? 'اسم المتجر' : 'Shop Name'}</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            value={shopData.name || ''} 
-                                            onChange={(e) => setShopData({...shopData, name: e.target.value})}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group" style={{ marginBottom: '24px' }}>
-                                        <label className="form-label">{isRTL ? 'رابط الشعار (Logo URL)' : 'Logo URL'}</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            placeholder="https://..."
-                                            value={shopData.logo_url || ''} 
-                                            onChange={(e) => setShopData({...shopData, logo_url: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="form-group" style={{ marginBottom: '24px' }}>
-                                        <label className="form-label">{isRTL ? 'رقم الواتساب (لتلقي الطلبات)' : 'WhatsApp Number (For Orders)'}</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            placeholder="+974..."
-                                            value={shopData.whatsapp_number || ''} 
-                                            onChange={(e) => setShopData({...shopData, whatsapp_number: e.target.value})}
-                                        />
-                                        <small style={{ color: '#64748b', display: 'block', marginTop: '6px' }}>
-                                            {isRTL ? 'الرقم الذي سيتم توجيه العملاء إليه للحجز' : 'The number customers will be redirected to for reservations'}
-                                        </small>
-                                    </div>
-                                    <div className="form-group" style={{ marginBottom: '32px' }}>
-                                        <label className="form-label">{isRTL ? 'عنوان المتجر' : 'Shop Address'}</label>
-                                        <textarea 
-                                            className="form-control" 
-                                            rows="4"
-                                            value={shopData.address || ''} 
-                                            onChange={(e) => setShopData({...shopData, address: e.target.value})}
-                                        />
-                                    </div>
-
-                                    {/* Shop Photos */}
-                                    <div className="form-group" style={{ marginBottom: '32px' }}>
-                                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <ImageIcon size={18} /> {isRTL ? 'صور المتجر' : 'Shop Photos'}
-                                        </label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', marginTop: '12px' }}>
-                                            {(shopData.images || []).map((img, idx) => (
-                                                <div key={idx} style={{ position: 'relative', height: '120px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155' }}>
-                                                    <img src={img} alt={`Shop ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => removeImage(idx)} 
-                                                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(231, 76, 60, 0.9)', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    }}>
+                                        {/* Brand Identity / Logo Uploader */}
+                                        <div className="vendor-logo-section">
+                                            <div className="vendor-logo-preview">
+                                                {shopData.logo_url ? (
+                                                    <img src={shopData.logo_url} alt="Shop Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <Store size={34} color="#c8a951" />
+                                                )}
+                                            </div>
+                                            <div className="vendor-logo-info">
+                                                <h4 style={{ margin: '0 0 4px 0', fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
+                                                    {isRTL ? 'شعار المتجر' : 'Shop Brand Logo'}
+                                                </h4>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'يظهر للعملاء في أعلى ملف المتجر وقائمة المتاجر' : 'Visible to customers across boutique discovery and profiles'}
+                                                </p>
+                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <label 
+                                                        htmlFor="vendor-logo-file-input" 
+                                                        className="btn-logo-upload"
                                                     >
-                                                        <X size={16} />
-                                                    </button>
+                                                        <Upload size={14} />
+                                                        <span>{shopData.logo_url ? (isRTL ? 'تغيير الشعار' : 'Change Logo') : (isRTL ? 'رفع الشعار' : 'Upload Logo')}</span>
+                                                    </label>
+                                                    <input 
+                                                        type="file" 
+                                                        id="vendor-logo-file-input" 
+                                                        accept="image/*" 
+                                                        style={{ display: 'none' }} 
+                                                        onChange={handleLogoUpload} 
+                                                    />
+                                                    {shopData.logo_url && (
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn-logo-remove" 
+                                                            onClick={removeLogo}
+                                                        >
+                                                            <Trash2 size={13} />
+                                                            <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            ))}
-                                            <label 
-                                                htmlFor="vendor-photo-upload"
-                                                style={{ height: '120px', borderRadius: '12px', border: '2px dashed #334155', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', background: 'rgba(255,255,255,0.02)', transition: 'all 0.2s ease' }}
-                                                onMouseOver={(e) => e.currentTarget.style.borderColor = '#c8a951'}
-                                                onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
-                                            >
-                                                <Plus size={28} />
-                                                <span style={{ fontSize: '0.8rem', marginTop: '8px', fontWeight: '500' }}>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
-                                            </label>
-                                            <input type="file" id="vendor-photo-upload" style={{ opacity: 0, position: 'absolute', zIndex: -1, width: '1px', height: '1px', overflow: 'hidden' }} accept="image/*" onChange={handleImageUpload} />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <button type="submit" className="btn btn-gold" disabled={savingSettings}>
-                                        <Save size={18} />
-                                        {savingSettings ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
-                                    </button>
-                                </form>
+
+                                        {/* Shop Name */}
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                <Store size={15} color="#c8a951" />
+                                                {isRTL ? 'اسم المتجر' : 'Shop Name'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                value={shopData.name || ''} 
+                                                onChange={(e) => setShopData({...shopData, name: e.target.value})}
+                                                required
+                                                placeholder={isRTL ? 'أدخل اسم متجرك' : 'Enter shop name'}
+                                            />
+                                        </div>
+
+                                        {/* WhatsApp Number */}
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                <Phone size={15} color="#c8a951" />
+                                                {isRTL ? 'رقم الواتساب (لتلقي طلبات الحجز)' : 'WhatsApp Number (For Orders)'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                placeholder="+974..."
+                                                value={shopData.whatsapp_number || ''} 
+                                                onChange={(e) => setShopData({...shopData, whatsapp_number: e.target.value})}
+                                            />
+                                            <small className="form-helper-text">
+                                                {isRTL ? 'الرقم الذي سيتم توجيه العملاء إليه عند تأكيد الحجز والطلبات' : 'The number customers will be redirected to for reservations'}
+                                            </small>
+                                        </div>
+
+                                        {/* Detailed Address */}
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                <MapPin size={15} color="#c8a951" />
+                                                {isRTL ? 'عنوان وموقع المتجر' : 'Shop Address'}
+                                            </label>
+                                            <textarea 
+                                                className="form-control textarea-address" 
+                                                rows="3"
+                                                value={shopData.address || ''} 
+                                                onChange={(e) => setShopData({...shopData, address: e.target.value})}
+                                                placeholder={isRTL ? 'أدخل العنوان بالتفصيل، المدينة، والشارع' : 'Enter detailed address / location'}
+                                            />
+                                        </div>
+
+                                        {/* Shop Photos Presentation */}
+                                        <div className="form-group" style={{ marginTop: '24px' }}>
+                                            <label className="form-label">
+                                                <ImageIcon size={15} color="#c8a951" />
+                                                {isRTL ? 'معرض صور المتجر' : 'Shop Photos'}
+                                            </label>
+                                            <small className="form-helper-text" style={{ marginBottom: '10px' }}>
+                                                {isRTL ? 'ارفع صور متجرك وعطورك لجذب المزيد من الزبائن' : 'Upload photos of your boutique and perfumes'}
+                                            </small>
+
+                                            <div className="vendor-photos-grid">
+                                                {(shopData.images || []).map((img, idx) => (
+                                                    <div key={idx} className="vendor-photo-card">
+                                                        <img src={img} alt={`Shop ${idx + 1}`} />
+                                                        {idx === 0 && (
+                                                            <span className="photo-cover-tag">{isRTL ? 'الرئيسية' : 'Cover'}</span>
+                                                        )}
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => removeImage(idx)} 
+                                                            className="btn-photo-delete"
+                                                            title={isRTL ? 'حذف الصورة' : 'Delete photo'}
+                                                        >
+                                                            <X size={13} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+
+                                                <label 
+                                                    htmlFor="vendor-photo-upload"
+                                                    className="vendor-photo-add-card"
+                                                >
+                                                    <div className="photo-add-icon-circle">
+                                                        <Plus size={20} />
+                                                    </div>
+                                                    <span>{isRTL ? 'إضافة صورة' : 'Add Photo'}</span>
+                                                </label>
+                                                <input 
+                                                    type="file" 
+                                                    id="vendor-photo-upload" 
+                                                    style={{ display: 'none' }} 
+                                                    accept="image/*" 
+                                                    onChange={handleImageUpload} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Save Changes Button */}
+                                        <div style={{ marginTop: '30px' }}>
+                                            <button type="submit" className="btn-save-settings" disabled={savingSettings}>
+                                                <Save size={18} />
+                                                {savingSettings ? (isRTL ? 'جاري حفظ التغييرات...' : 'Saving Changes...') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             ) : (
                                 <p style={{ color: '#94a3b8' }}>{isRTL ? 'جاري تحميل البيانات...' : 'Loading...'}</p>
                             )}

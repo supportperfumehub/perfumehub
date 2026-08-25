@@ -393,25 +393,60 @@
 .status-badge.rejected { background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 .status-badge.pending { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 
+.admin-dashboard .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.admin-dashboard .form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 4px;
+}
+
+.admin-dashboard .form-helper-text {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
 .admin-dashboard .form-control {
     background-color: #0f172a !important;
-    border: 1px solid #334155 !important;
+    border: 1.5px solid #334155 !important;
     color: #f8fafc !important;
     transition: all 0.2s ease;
-    border-radius: 999px !important;
-    padding: 12px 20px !important;
-    font-size: 0.9rem;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    font-size: 0.92rem;
     letter-spacing: 0.3px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-dashboard textarea.form-control {
+    border-radius: 12px !important;
+    min-height: 90px;
+    resize: vertical;
+    line-height: 1.5;
 }
 
 .admin-dashboard .form-control:focus {
     border-color: #c8a951 !important;
-    box-shadow: 0 0 0 2px rgba(200, 169, 81, 0.1) !important;
+    box-shadow: 0 0 0 2px rgba(200, 169, 81, 0.15) !important;
     outline: none;
 }
 
 .admin-dashboard .admin-search-container .admin-search-input {
     width: 100%;
+    border-radius: 999px !important;
     padding-left: 52px !important;
 }
 
@@ -1526,4 +1561,219 @@
     font-size: 11px;
     color: #64748b;
     margin-top: 2px;
+}
+
+/* ==========================================================================
+   Luxury Vendor Shop Settings Styling
+   ========================================================================== */
+
+.vendor-settings-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    margin-top: 12px;
+}
+
+.vendor-logo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+
+.vendor-logo-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    border: 2px solid #c8a951;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(200, 169, 81, 0.2);
+    flex-shrink: 0;
+}
+
+.vendor-logo-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-logo-upload {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(200, 169, 81, 0.12);
+    border: 1px solid rgba(200, 169, 81, 0.35);
+    color: #c8a951;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-logo-upload:hover {
+    background: rgba(200, 169, 81, 0.22);
+    border-color: #c8a951;
+}
+
+.btn-logo-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-logo-remove:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+}
+
+.vendor-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.vendor-photo-card {
+    position: relative;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(200, 169, 81, 0.3);
+    background: #0f172a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.vendor-photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-cover-tag {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: linear-gradient(135deg, #c8a951 0%, #ebb637 100%);
+    color: #000000;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-photo-delete {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-photo-delete:hover {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.vendor-photo-add-card {
+    height: 120px;
+    border-radius: 12px;
+    border: 1.5px dashed rgba(200, 169, 81, 0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #94a3b8;
+    background: rgba(200, 169, 81, 0.02);
+    transition: all 0.2s ease;
+}
+
+.vendor-photo-add-card:hover {
+    border-color: #c8a951;
+    background: rgba(200, 169, 81, 0.06);
+    color: #c8a951;
+}
+
+.photo-add-icon-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(200, 169, 81, 0.1);
+    color: #c8a951;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.vendor-photo-add-card span {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.btn-save-settings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #c8a951 0%, #ebb637 100%);
+    color: #000000;
+    font-weight: 800;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(200, 169, 81, 0.25);
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-save-settings:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(200, 169, 81, 0.35);
+}
+
+@media (max-width: 640px) {
+    .vendor-settings-card {
+        padding: 18px 14px;
+    }
+    .vendor-logo-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
 }
