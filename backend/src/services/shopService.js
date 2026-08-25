@@ -1,5 +1,6 @@
 import { AppError } from '../middleware/errorHandler.js';
 import bcrypt from 'bcryptjs';
+import { uploadImageToStorage, deleteImageFromStorage, syncImagesStorage } from '../utils/storageUtils.js';
 
 export class ShopService {
     constructor(shopRepository, userRepository) {
@@ -28,8 +29,12 @@ export class ShopService {
     }
 
     async registerShop(regData) {
-        const { owner_id, name, address, latitude, longitude, logo_url } = regData;
+        let { owner_id, name, address, latitude, longitude, logo_url } = regData;
         
+        if (logo_url && logo_url.startsWith('data:')) {
+            logo_url = await uploadImageToStorage(logo_url, name || 'shop_logo', 'shops');
+        }
+
         const shop = await this.shopRepository.create({
             owner_id, name, address, latitude, longitude, logo_url,
             status: 'PENDING'
@@ -49,6 +54,9 @@ export class ShopService {
         if (existingUser) {
             throw new AppError('Email already exists', 400);
         }
+
+        // Upload any base64 images to Supabase storage
+        const syncedImages = await syncImagesStorage([], images || [], shopName || 'shop', 'shops');
 
         // Hash user password
         const passwordHash = await bcrypt.hash(ownerPassword, parseInt(process.env.BCRYPT_ROUNDS || '12'));
@@ -70,7 +78,7 @@ export class ShopService {
             owner_id: user.id,
             name: shopName,
             address,
-            images: images || [],
+            images: syncedImages,
             status: shopStatus,
             whatsapp_number: whatsapp_number || null
         };
@@ -147,6 +155,32 @@ export class ShopService {
             }
         }
 
+        // Handle Image Synchronization (uploads new base64 & automatically deletes replaced/removed images)
+        if (shopUpdates.images !== undefined) {
+            const syncedImages = await syncImagesStorage(
+                shop.images || [], 
+                shopUpdates.images || [], 
+                shopUpdates.name || shop.name || 'shop', 
+                'shops'
+            );
+            shopUpdates.images = syncedImages;
+        }
+
+        if (shopUpdates.logo_url !== undefined) {
+            if (shopUpdates.logo_url && shopUpdates.logo_url.startsWith('data:')) {
+                if (shop.logo_url) {
+                    await deleteImageFromStorage(shop.logo_url);
+                }
+                shopUpdates.logo_url = await uploadImageToStorage(
+                    shopUpdates.logo_url, 
+                    shopUpdates.name || shop.name || 'shop_logo', 
+                    'shops'
+                );
+            } else if (!shopUpdates.logo_url && shop.logo_url) {
+                await deleteImageFromStorage(shop.logo_url);
+            }
+        }
+
         // Update owner details in customers table if updated
         if (ownerName !== undefined || ownerEmail !== undefined) {
             const customerUpdates = {};
@@ -165,6 +199,16 @@ export class ShopService {
 
         if (admin.role === 'regional_admin' && !admin.assignedRegionIds.includes(shop.region_id)) {
              throw new AppError('Forbidden: Access denied', 403);
+        }
+
+        // Cleanup images from Supabase storage
+        if (Array.isArray(shop.images)) {
+            for (const imgUrl of shop.images) {
+                await deleteImageFromStorage(imgUrl);
+            }
+        }
+        if (shop.logo_url) {
+            await deleteImageFromStorage(shop.logo_url);
         }
 
         // Cleanup user mapping

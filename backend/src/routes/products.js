@@ -6,48 +6,9 @@ import { validateBase64Image } from '../middleware/upload.js';
 import { validateRequest } from '../middleware/validate.js';
 import { body } from 'express-validator';
 import axios from 'axios';
+import { uploadImageToStorage, deleteImageFromStorage, syncImagesStorage } from '../utils/storageUtils.js';
 
 const router = express.Router();
-
-/**
- * Uploads a base64 image string to Supabase Storage.
- * Returns the public URL, or the original string if it's already a URL.
- */
-async function uploadImageToStorage(base64OrUrl, productName) {
-    if (!base64OrUrl) return null;
-    // If it's already a URL (not base64), return as-is
-    if (!base64OrUrl.startsWith('data:')) return base64OrUrl;
-
-    try {
-        const matches = base64OrUrl.match(/^data:([a-zA-Z0-9+/.-]+);base64,(.+)$/);
-        if (!matches) return base64OrUrl;
-
-        const mimeType = matches[1];
-        const base64Data = matches[2];
-        const buffer = Buffer.from(base64Data, 'base64');
-        const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-        const safeName = (productName || 'product').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `${safeName}_${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('product-images')
-            .upload(fileName, buffer, { contentType: mimeType, upsert: true });
-
-        if (uploadError) {
-            console.error('Image upload failed, storing base64 fallback:', uploadError.message);
-            return base64OrUrl; // fallback: store base64 if upload fails
-        }
-
-        const { data: urlData } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(fileName);
-
-        return urlData.publicUrl;
-    } catch (err) {
-        console.error('Image upload error:', err.message);
-        return base64OrUrl; // fallback
-    }
-}
 
 // Get all global products
 router.get('/', async (req, res) => {
@@ -242,12 +203,17 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
     } = req.body;
 
     try {
-        // Upload any new base64 images to Supabase Storage
+        // Fetch existing product to know current images for sync/cleanup
+        const { data: existingProd } = await supabase.from('products').select('image').eq('id', id).single();
+        let existingImages = [];
+        if (Array.isArray(existingProd?.image)) existingImages = existingProd.image;
+        else if (existingProd?.image) existingImages = [existingProd.image];
+
         let imageUrls = image;
-        if (Array.isArray(image)) {
-            imageUrls = await Promise.all(image.map(img => uploadImageToStorage(img, name)));
-        } else if (image) {
-            imageUrls = await uploadImageToStorage(image, name);
+        if (image !== undefined) {
+            const newImageArr = Array.isArray(image) ? image : (image ? [image] : []);
+            const synced = await syncImagesStorage(existingImages, newImageArr, name || 'product', 'products');
+            imageUrls = Array.isArray(image) ? synced : (synced[0] || null);
         }
 
         const updatePayload = {
@@ -328,6 +294,12 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
             .single();
 
         if (fetchError || !product) return res.status(404).json({ error: 'Product not found' });
+
+        // Clean up storage images for this deleted product
+        const prodImages = Array.isArray(product?.image) ? product.image : (product?.image ? [product.image] : []);
+        for (const imgUrl of prodImages) {
+            await deleteImageFromStorage(imgUrl);
+        }
 
         const { error: backupError } = await supabase
             .from('backups')
