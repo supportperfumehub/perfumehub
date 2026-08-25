@@ -1153,9 +1153,20 @@ const ShopsManager = ({ isRTL }) => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
-                                            <button className="btn btn-gold" style={{ height: '48px', flex: 1 }} onClick={() => updateShopDetails(shop.id)}>{isRTL ? 'حفظ التغييرات' : 'SAVE CHANGES'}</button>
-                                            <button className="btn btn-slate" style={{ height: '48px', flex: 1 }} onClick={() => { setEditingShop(null); setExpandedTab('overview'); }}>{isRTL ? 'إلغاء' : 'CANCEL'}</button>
+                                        <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row', alignItems: 'stretch' }}>
+                                            <button className="btn btn-gold" style={{ height: '46px', flex: isMobile ? 'none' : '2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '700' }} onClick={() => updateShopDetails(shop.id)}>
+                                                <Save size={16} /> {isRTL ? 'حفظ التغييرات' : 'SAVE CHANGES'}
+                                            </button>
+                                            <button className="btn btn-slate" style={{ height: '46px', flex: isMobile ? 'none' : '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setEditingShop(null); setExpandedTab('overview'); }}>
+                                                {isRTL ? 'إلغاء' : 'CANCEL'}
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                style={{ height: '46px', flex: isMobile ? 'none' : '1', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }} 
+                                                onClick={() => deleteShop(shop.id, shop.name)}
+                                            >
+                                                <Trash2 size={16} /> {isRTL ? 'حذف المتجر' : 'DELETE SHOP'}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
