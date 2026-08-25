@@ -5,7 +5,7 @@ import { CartContext } from '../../context/CartContext';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import { RegionContext } from '../../context/RegionContext';
-import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag } from 'lucide-react';
+import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag, Gift } from 'lucide-react';
 import './Cart.css';
 
 const Cart = () => {
@@ -119,9 +119,17 @@ const Cart = () => {
                                     <div className="cart-item-details">
                                         <div className="cart-item-header">
                                             <h3 className="cart-item-title">
-                                                <Link to={`/product/${item.product.id}`}>
-                                                    {item.product.name} {item.selectedSize && item.selectedSize !== 'default' ? `(${item.selectedSize})` : ''}
-                                                </Link>
+                                                {(() => {
+                                                    const sizeStr = item.selectedSize && typeof item.selectedSize === 'string' 
+                                                        ? item.selectedSize.trim() 
+                                                        : (item.selectedSize?.name ? String(item.selectedSize.name).trim() : '');
+                                                    const showSize = sizeStr && sizeStr !== 'default' && sizeStr !== '()' && sizeStr !== '';
+                                                    return (
+                                                        <Link to={`/product/${item.product.id}`}>
+                                                            {item.product.name}{showSize ? ` (${sizeStr})` : ''}
+                                                        </Link>
+                                                    );
+                                                })()}
                                             </h3>
                                             <button
                                                 className="remove-btn"
@@ -134,7 +142,10 @@ const Cart = () => {
                                         </div>
                                         <p className="cart-item-brand text-muted">{item.product.brand}</p>
                                         {item.isGiftWrapped && (
-                                            <p className="gift-badge">{t('cart.gift_wrap')}</p>
+                                            <div className="gift-badge">
+                                                <Gift size={12} className="gift-badge-icon" />
+                                                <span>{t('cart.gift_wrap')}</span>
+                                            </div>
                                         )}
 
                                         <div className="cart-item-actions">

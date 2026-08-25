@@ -109,8 +109,31 @@ html[dir="rtl"] .cart-title {
 
 .cart-item-brand {
     font-size: 0.75rem;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: var(--color-text-light);
+}
+
+.gift-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.76rem;
+    color: #b38e2d;
+    background: rgba(200, 169, 81, 0.08);
+    border: 1px solid rgba(200, 169, 81, 0.28);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.gift-badge-icon {
+    flex-shrink: 0;
+    color: #b38e2d;
 }
 
 .cart-item-actions {
