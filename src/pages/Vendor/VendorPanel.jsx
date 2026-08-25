@@ -326,14 +326,15 @@ const VendorPanel = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="main-header">
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h1>{filteredTabs.find(t => t.id === activeTab)?.label || (isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription')}</h1>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
-                            {isRTL
-                                ? `مرحباً بك في متجرك، ${user?.name}`
-                                : `Welcome to your shop, ${user?.name}`}
-                        </p>
+                <header className="admin-topbar">
+                    <div className="welcome-text">
+                        <h1>
+                            {isRTL ? 'مرحباً، ' : 'Welcome back, '}
+                            <span className="gold-gradient-text">
+                                {shopData?.name || user?.name || (isRTL ? 'المتجر' : 'Shop')}
+                            </span>
+                        </h1>
+                        <p>{isRTL ? 'إليك نظرة عامة على عمليات ومنتجات متجرك اليوم.' : "Manage your boutique products, reservations, and orders."}</p>
                     </div>
                 </header>
 
