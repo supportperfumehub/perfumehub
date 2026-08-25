@@ -365,7 +365,7 @@ const VendorPanel = () => {
                                                         <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
                                                             {isRTL ? 'تظهر للعملاء في ملف المتجر وقائمة المتاجر' : 'Visible to customers across boutique discovery and profiles'}
                                                         </p>
-                                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                        <div className="vendor-logo-actions">
                                                             <label 
                                                                 htmlFor="vendor-logo-file-input" 
                                                                 className="btn-logo-upload"
@@ -386,7 +386,7 @@ const VendorPanel = () => {
                                                                     className="btn-logo-remove" 
                                                                     onClick={removeLogo}
                                                                 >
-                                                                    <Trash2 size={13} />
+                                                                    <Trash2 size={14} />
                                                                     <span>{isRTL ? 'حذف' : 'Remove'}</span>
                                                                 </button>
                                                             )}

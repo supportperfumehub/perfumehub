@@ -1580,7 +1580,7 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    padding: 18px 20px;
+    padding: 20px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 14px;
@@ -1588,8 +1588,8 @@
 }
 
 .vendor-logo-preview {
-    width: 80px;
-    height: 80px;
+    width: 84px;
+    height: 84px;
     border-radius: 14px;
     border: 2px solid #c8a951;
     background: #0f172a;
@@ -1606,44 +1606,60 @@
     min-width: 0;
 }
 
-.btn-logo-upload {
-    display: inline-flex;
+.vendor-logo-actions {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(200, 169, 81, 0.12);
-    border: 1px solid rgba(200, 169, 81, 0.35);
-    color: #c8a951;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-logo-upload,
+.btn-logo-remove {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 8px !important;
+    font-size: 0.84rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    user-select: none !important;
+    margin: 0 !important;
+    border: 1px solid transparent !important;
+}
+
+.btn-logo-upload {
+    background: rgba(200, 169, 81, 0.12) !important;
+    border-color: rgba(200, 169, 81, 0.4) !important;
+    color: #c8a951 !important;
 }
 
 .btn-logo-upload:hover {
-    background: rgba(200, 169, 81, 0.22);
-    border-color: #c8a951;
+    background: rgba(200, 169, 81, 0.22) !important;
+    border-color: #c8a951 !important;
+    color: #ffd700 !important;
+    transform: translateY(-1px);
 }
 
 .btn-logo-remove {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: transparent;
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #ef4444;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    color: #f87171 !important;
 }
 
 .btn-logo-remove:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.18) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    transform: translateY(-1px);
 }
 
 .vendor-photos-grid {
@@ -1769,11 +1785,42 @@
 
 @media (max-width: 640px) {
     .vendor-settings-card {
-        padding: 18px 14px;
+        padding: 20px 16px;
     }
     .vendor-logo-section {
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+    }
+    .vendor-logo-preview {
+        width: 72px;
+        height: 72px;
+    }
+    .vendor-logo-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+    }
+    .btn-logo-upload,
+    .btn-logo-remove {
+        height: 38px !important;
+        padding: 0 14px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+@media (max-width: 440px) {
+    .vendor-logo-section {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 14px;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+    }
+    .vendor-logo-actions {
+        justify-content: center;
+        width: 100%;
     }
 }
