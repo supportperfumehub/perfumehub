@@ -27,7 +27,7 @@ const Layout = ({ isRTL, toggleLanguage }) => {
     }, [location.pathname]);
 
     const isAdminPath = location.pathname.startsWith('/admin');
-    const isVendorPath = location.pathname.startsWith('/vendor-panel');
+    const isVendorPath = (location.pathname.startsWith('/vendor') || location.pathname.startsWith('/vendor-panel')) && !location.pathname.startsWith('/vendor-signup');
     const isDashboardPath = isAdminPath || isVendorPath;
 
     return (

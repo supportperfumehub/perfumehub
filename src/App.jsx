@@ -163,6 +163,11 @@ function App() {
               <VendorPanel />
             </ProtectedRoute>
           } />
+          <Route path="vendor-panel" element={
+            <ProtectedRoute isVendorRequired={true}>
+              <VendorPanel />
+            </ProtectedRoute>
+          } />
           <Route path="verify" element={
             <ProtectedRoute isVendorRequired={true}>
               <VerificationPortal />
