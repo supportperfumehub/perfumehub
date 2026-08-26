@@ -5,7 +5,8 @@ import {
     CheckCircle, XCircle, Store, MapPin, Clock, Plus, Trash2, 
     Image, ChevronDown, ChevronUp, Package as PackageIcon, 
     ShoppingCart, DollarSign, Edit, BarChart3, X, Star, 
-    Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown, Save
+    Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown, Save,
+    Globe, AlertTriangle, ShieldCheck, ArrowRightLeft
 } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
@@ -31,6 +32,7 @@ const ShopsManager = ({ isRTL }) => {
     const [editingShop, setEditingShop] = useState(null);
     const [editData, setEditData] = useState({});
     const [statusFilter, setStatusFilter] = useState('all');
+    const [regionFilter, setRegionFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState('approved_first');
     const [searchQuery, setSearchQuery] = useState('');
     const [formData, setFormData] = useState({
@@ -121,6 +123,27 @@ const ShopsManager = ({ isRTL }) => {
             console.error('Error toggling shop recommendation:', error);
             const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
             showToast(`${isRTL ? 'خطأ في الاتصال بالخادم' : 'Server connection error'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
+        }
+    };
+
+    const handleAssignShopRegion = async (shopId, newRegionId) => {
+        try {
+            const parsedRegionId = newRegionId ? parseInt(newRegionId) : null;
+            const response = await api.put(`/shops/${shopId}`, { region_id: parsedRegionId });
+            if (response.data.success || response.data.shop) {
+                await fetchShopsAndRegions();
+                const matchedRegion = regions.find(r => r.id === parsedRegionId);
+                const msg = parsedRegionId 
+                    ? (isRTL ? `تم تعيين المتجر لمنطقة ${matchedRegion?.name || ''}` : `Shop assigned to ${matchedRegion?.name || 'region'} successfully`)
+                    : (isRTL ? 'تم فك تعيين المنطقة للمتجر' : 'Region removed from shop');
+                showToast(msg, 'success');
+            } else {
+                showToast(response.data.error || (isRTL ? 'فشل تعيين المنطقة' : 'Failed to assign region'), 'error');
+            }
+        } catch (error) {
+            console.error('Error assigning shop region:', error);
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            showToast(`${isRTL ? 'خطأ في تعيين المنطقة' : 'Error assigning region'}${errMsg ? `: ${errMsg}` : ''}`, 'error');
         }
     };
 
@@ -449,12 +472,17 @@ const ShopsManager = ({ isRTL }) => {
     const pendingShops = useMemo(() => sortedShops.filter(s => isPending(s.status)), [sortedShops]);
     const activeShops = useMemo(() => sortedShops.filter(s => isApprovedOrActive(s.status)), [sortedShops]);
     const suspendedShops = useMemo(() => sortedShops.filter(s => isSuspended(s.status)), [sortedShops]);
+    const unassignedShops = useMemo(() => sortedShops.filter(s => !s.region_id), [sortedShops]);
 
     const filteredShops = useMemo(() => {
         return sortedShops.filter(s => {
             if (statusFilter === 'pending' && !isPending(s.status)) return false;
             if (statusFilter === 'active' && !isApprovedOrActive(s.status)) return false;
             if (statusFilter === 'suspended' && !isSuspended(s.status)) return false;
+
+            // Region Filtering
+            if (regionFilter === 'unassigned' && s.region_id) return false;
+            if (regionFilter !== 'all' && regionFilter !== 'unassigned' && String(s.region_id) !== String(regionFilter)) return false;
 
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
@@ -463,11 +491,14 @@ const ShopsManager = ({ isRTL }) => {
                 const matchesEmail = s.customers?.email?.toLowerCase().includes(q);
                 const matchesAddress = s.address?.toLowerCase().includes(q);
                 const matchesPhone = s.whatsapp_number?.toLowerCase().includes(q);
-                return matchesName || matchesOwner || matchesEmail || matchesAddress || matchesPhone;
+                const matchedRegion = regions.find(r => r.id === s.region_id);
+                const matchesRegionName = matchedRegion?.name?.toLowerCase().includes(q);
+                const matchesRegionCode = matchedRegion?.code?.toLowerCase().includes(q);
+                return matchesName || matchesOwner || matchesEmail || matchesAddress || matchesPhone || matchesRegionName || matchesRegionCode;
             }
             return true;
         });
-    }, [sortedShops, statusFilter, searchQuery]);
+    }, [sortedShops, statusFilter, regionFilter, searchQuery, regions]);
 
     if (loading) return <div className="text-center p-4" style={{ color: '#94a3b8' }}>Loading shops...</div>;
 
@@ -714,7 +745,7 @@ const ShopsManager = ({ isRTL }) => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                <div onClick={() => setStatusFilter('all')} style={{ background: statusFilter === 'all' ? 'rgba(200, 169, 81, 0.12)' : '#1e293b', border: statusFilter === 'all' ? '1px solid #c8a951' : '1px solid #334155', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div onClick={() => { setStatusFilter('all'); setRegionFilter('all'); }} style={{ background: statusFilter === 'all' && regionFilter === 'all' ? 'rgba(200, 169, 81, 0.12)' : '#1e293b', border: statusFilter === 'all' && regionFilter === 'all' ? '1px solid #c8a951' : '1px solid #334155', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ color: '#c8a951' }}><Store size={22} /></div>
                     <div>
                         <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f8fafc' }}>{shops.length}</div>
@@ -745,7 +776,91 @@ const ShopsManager = ({ isRTL }) => {
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'المتاجر الموقوفة' : 'Suspended'}</div>
                     </div>
                 </div>
+
+                {(user?.role === 'super_admin' || user?.role === 'admin') && unassignedShops.length > 0 && (
+                    <div onClick={() => setRegionFilter(regionFilter === 'unassigned' ? 'all' : 'unassigned')} style={{ background: regionFilter === 'unassigned' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(234, 179, 8, 0.1)', border: regionFilter === 'unassigned' ? '1px solid #facc15' : '1px solid rgba(234, 179, 8, 0.4)', borderRadius: '12px', padding: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 0 12px rgba(234, 179, 8, 0.15)' }}>
+                        <div style={{ color: '#facc15' }}><AlertTriangle size={22} /></div>
+                        <div>
+                            <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#facc15' }}>{unassignedShops.length}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#fcd34d' }}>{isRTL ? 'بدون منطقة' : 'Unassigned Region'}</div>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Region Filter Bar for Super Admin / Admin */}
+            {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Globe size={14} color="#c8a951" />
+                        {isRTL ? 'تصفية حسب المنطقة:' : 'Filter by Region:'}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setRegionFilter('all')}
+                        style={{
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            border: regionFilter === 'all' ? '1px solid #c8a951' : '1px solid #334155',
+                            background: regionFilter === 'all' ? 'rgba(200, 169, 81, 0.2)' : '#0f172a',
+                            color: regionFilter === 'all' ? '#c8a951' : '#cbd5e1',
+                            fontSize: '0.78rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {isRTL ? 'جميع المناطق' : 'All Regions'} ({shops.length})
+                    </button>
+                    {regions.map(r => {
+                        const count = shops.filter(s => s.region_id === r.id).length;
+                        const isSelected = String(regionFilter) === String(r.id);
+                        return (
+                            <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => setRegionFilter(isSelected ? 'all' : String(r.id))}
+                                style={{
+                                    padding: '5px 12px',
+                                    borderRadius: '20px',
+                                    border: isSelected ? '1px solid #38bdf8' : '1px solid #334155',
+                                    background: isSelected ? 'rgba(56, 189, 248, 0.2)' : '#0f172a',
+                                    color: isSelected ? '#38bdf8' : '#cbd5e1',
+                                    fontSize: '0.78rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {r.name} ({r.code}) ({count})
+                            </button>
+                        );
+                    })}
+                    {unassignedShops.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setRegionFilter(regionFilter === 'unassigned' ? 'all' : 'unassigned')}
+                            style={{
+                                padding: '5px 12px',
+                                borderRadius: '20px',
+                                border: regionFilter === 'unassigned' ? '1px solid #facc15' : '1px solid rgba(234, 179, 8, 0.4)',
+                                background: regionFilter === 'unassigned' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(234, 179, 8, 0.1)',
+                                color: '#facc15',
+                                fontSize: '0.78rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            <AlertTriangle size={12} />
+                            {isRTL ? 'غير معين' : 'Unassigned'} ({unassignedShops.length})
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div className="admin-search-container" style={{ flex: 1, minWidth: '240px', width: '100%' }}>
@@ -1035,6 +1150,41 @@ const ShopsManager = ({ isRTL }) => {
                                 <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>{shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}</div>
                             </div>
                             {!isMobile && shop.address && (<div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', background: 'rgba(15, 23, 42, 0.6)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(51, 65, 85, 0.5)' }}><MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}</div>)}
+                            
+                            {/* Region Assigner for Super Admin / Admin or Region Badge for Regional Admin */}
+                            <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                {(user?.role === 'super_admin' || user?.role === 'admin') ? (
+                                    <select
+                                        value={shop.region_id || ''}
+                                        onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
+                                        style={{
+                                            background: shop.region_id ? 'rgba(200, 169, 81, 0.12)' : 'rgba(245, 158, 11, 0.18)',
+                                            border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid rgba(245, 158, 11, 0.7)',
+                                            color: shop.region_id ? '#f8fafc' : '#fcd34d',
+                                            padding: isMobile ? '4px 8px' : '5px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: isMobile ? '0.72rem' : '0.8rem',
+                                            fontWeight: '700',
+                                            cursor: 'pointer',
+                                            outline: 'none',
+                                            boxShadow: !shop.region_id ? '0 0 8px rgba(245, 158, 11, 0.25)' : 'none'
+                                        }}
+                                        title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
+                                    >
+                                        <option value="">{isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}</option>
+                                        {regions.map(r => (
+                                            <option key={r.id} value={r.id}>
+                                                {r.name} ({r.code})
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                        {regions.find(r => r.id === shop.region_id)?.name || 'Region'} ({regions.find(r => r.id === shop.region_id)?.code || 'RA'})
+                                    </span>
+                                )}
+                            </div>
+
                             <div style={{ marginLeft: isRTL ? '0' : 'auto', marginRight: isRTL ? 'auto' : '0' }}>{getStatusBadge(shop.status)}</div>
                             {renderActionButtons(shop)}
                             <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.08)' }}>{isExpanded ? <ChevronUp size={16} color="#c8a951" /> : <ChevronDown size={16} color="#94a3b8" />}</div>
@@ -1063,7 +1213,15 @@ const ShopsManager = ({ isRTL }) => {
                                         <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #d4af3744', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><DollarSign size={isMobile ? 18 : 22} color="#d4af37" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.totalSales.toFixed(0)}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'المبيعات' : 'Sales'}</div></div>
                                         <div style={{ background: '#0f172a', borderRadius: '12px', padding: isMobile ? '12px' : '16px', border: '1px solid #f1c40f44', textAlign: 'center', flex: '1', minWidth: isMobile ? '100px' : '120px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', color: '#f8fafc' }}><Clock size={isMobile ? 18 : 22} color="#f1c40f" style={{ marginBottom: '6px' }} /><div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', fontWeight: '800', color: '#f8fafc' }}>{analytics.pendingOrders}</div><div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>{isRTL ? 'معلقة' : 'Pending'}</div></div>
                                     </div>
-                                    <div style={cardStyle}><div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '15px', fontSize: '0.88rem' }}><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div><div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div></div></div>
+                                    <div style={cardStyle}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '15px', fontSize: '0.88rem' }}>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المنطقة المعينة:' : 'Assigned Region:'}</strong> <span style={{ color: '#f8fafc' }}>{regions.find(r => r.id === shop.region_id)?.name ? `${regions.find(r => r.id === shop.region_id)?.name} (${regions.find(r => r.id === shop.region_id)?.code}) - ${regions.find(r => r.id === shop.region_id)?.currency_code}` : (isRTL ? '⚠️ غير معين' : '⚠️ Unassigned')}</span></div>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div>
+                                        </div>
+                                    </div>
                                 </div>)}
                                 {expandedTab === 'reports' && (<div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '15px' : '20px' }}>
                                     <div style={cardStyle}><h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}><DollarSign size={18} color="var(--color-gold)" /> {isRTL ? 'الأداء المالي' : 'Sales Performance'}</h4><div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.monthlySales.toFixed(2)} QAR</div></div><div style={{ height: '1px', background: '#334155' }}></div><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.quarterlySales.toFixed(2)} QAR</div></div></div></div>
