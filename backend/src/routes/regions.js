@@ -207,4 +207,112 @@ router.post('/assign-admin', authenticateUser, verifyRole(['super_admin', 'admin
     }
 });
 
+// Get all assigned regional admins with region details and live vendor counts
+router.get('/assigned-admins', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+    try {
+        const { data: mappings, error: mapError } = await supabase
+            .from('admin_region_mapping')
+            .select('admin_id, region_id, assigned_by, created_at')
+            .order('created_at', { ascending: false });
+
+        if (mapError) throw mapError;
+
+        if (!mappings || mappings.length === 0) {
+            return res.json([]);
+        }
+
+        // Fetch users, regions, and shops
+        const adminIds = [...new Set(mappings.map(m => m.admin_id))];
+        const regionIds = [...new Set(mappings.map(m => m.region_id))];
+
+        const [usersRes, regionsRes, shopsRes] = await Promise.all([
+            supabase.from('customers').select('id, name, email, role').in('id', adminIds),
+            supabase.from('regions').select('id, name, code, currency_code').in('id', regionIds),
+            supabase.from('shops').select('id, name, region_id')
+        ]);
+
+        const usersMap = new Map((usersRes.data || []).map(u => [u.id, u]));
+        const regionsMap = new Map((regionsRes.data || []).map(r => [r.id, r]));
+
+        // Calculate vendor counts per region
+        const regionVendorCount = {};
+        (shopsRes.data || []).forEach(shop => {
+            if (shop.region_id) {
+                regionVendorCount[shop.region_id] = (regionVendorCount[shop.region_id] || 0) + 1;
+            }
+        });
+
+        const result = mappings.map(m => {
+            const user = usersMap.get(m.admin_id) || { name: 'Unknown User', email: '' };
+            const region = regionsMap.get(m.region_id) || { name: 'Unknown Region', code: '', currency_code: '' };
+            return {
+                id: `${m.admin_id}-${m.region_id}`,
+                admin_id: m.admin_id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                region_id: m.region_id,
+                region_name: region.name,
+                region_code: region.code,
+                currency_code: region.currency_code,
+                vendor_count: regionVendorCount[m.region_id] || 0,
+                assigned_at: m.created_at
+            };
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching assigned regional admins:', error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+});
+
+// Unassign a regional admin from a region
+router.post('/unassign-admin', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+    const { admin_id, region_id } = req.body;
+    try {
+        const targetAdminId = parseInt(admin_id) || admin_id;
+        const targetRegionId = parseInt(region_id) || region_id;
+
+        if (!targetAdminId || !targetRegionId) {
+            return res.status(400).json({ error: 'admin_id and region_id are required' });
+        }
+
+        // Delete from mapping
+        const { error: delError } = await supabase
+            .from('admin_region_mapping')
+            .delete()
+            .eq('admin_id', targetAdminId)
+            .eq('region_id', targetRegionId);
+
+        if (delError) throw delError;
+
+        // Check if user still has other assigned regions
+        const { data: remaining } = await supabase
+            .from('admin_region_mapping')
+            .select('region_id')
+            .eq('admin_id', targetAdminId);
+
+        // If no remaining regions, revert role from regional_admin to vendor (if has shop) or customer
+        if (!remaining || remaining.length === 0) {
+            const { data: userData } = await supabase
+                .from('customers')
+                .select('shop_id')
+                .eq('id', targetAdminId)
+                .single();
+
+            const fallbackRole = userData?.shop_id ? 'vendor' : 'customer';
+            await supabase
+                .from('customers')
+                .update({ role: fallbackRole })
+                .eq('id', targetAdminId);
+        }
+
+        res.json({ success: true, message: 'Regional admin unassigned successfully' });
+    } catch (error) {
+        console.error('Error unassigning regional admin:', error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+});
+
 export default router;

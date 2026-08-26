@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus } from 'lucide-react';
+import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus, Search, Store, ShieldCheck, UserMinus, Users } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import api from '../../utils/api_v1_0_2';
 import './RegionsManager.css';
@@ -9,6 +9,8 @@ const RegionsManager = ({ isRTL }) => {
     const { user } = useOutletContext();
     const [regions, setRegions] = useState([]);
     const [users, setUsers] = useState([]);
+    const [assignedAdmins, setAssignedAdmins] = useState([]);
+    const [searchAdminQuery, setSearchAdminQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
@@ -30,6 +32,15 @@ const RegionsManager = ({ isRTL }) => {
         regionName: '' 
     });
 
+    // Unassign Admin Modal
+    const [unassignConfirmModal, setUnassignConfirmModal] = useState({
+        isOpen: false,
+        adminId: null,
+        regionId: null,
+        adminName: '',
+        regionName: ''
+    });
+
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [activeMobileTab, setActiveMobileTab] = useState('add_region'); // 'add_region' | 'assign_admin'
 
@@ -43,11 +54,25 @@ const RegionsManager = ({ isRTL }) => {
         if (user) {
             fetchRegions();
             fetchUsers();
+            fetchAssignedAdmins();
         } else {
             const timer = setTimeout(() => setLoading(false), 1000);
             return () => clearTimeout(timer);
         }
     }, [user]);
+
+    const fetchAssignedAdmins = async () => {
+        try {
+            const res = await api.get('/regions/assigned-admins', {
+                headers: {
+                    'x-user-id': user?.id
+                }
+            });
+            setAssignedAdmins(res.data || []);
+        } catch (err) {
+            console.error('Fetch assigned admins error:', err);
+        }
+    };
 
     const fetchRegions = async () => {
         try {
@@ -182,10 +207,46 @@ const RegionsManager = ({ isRTL }) => {
             setSuccessMessage(isRTL ? 'تم تعيين المشرف الإقليمي بنجاح' : (res.data?.message || 'Regional admin assigned successfully'));
             setAssignAdminId('');
             setAssignRegionId('');
+            fetchAssignedAdmins();
             fetchUsers();
             fetchRegions();
         } catch (err) {
             setError(err.response?.data?.error || err.response?.data?.message || err.message);
+        }
+    };
+
+    const handleUnassignClick = (adminMapping) => {
+        setUnassignConfirmModal({
+            isOpen: true,
+            adminId: adminMapping.admin_id,
+            regionId: adminMapping.region_id,
+            adminName: adminMapping.name,
+            regionName: adminMapping.region_name
+        });
+    };
+
+    const confirmUnassign = async () => {
+        if (!unassignConfirmModal.adminId || !unassignConfirmModal.regionId) return;
+        setError(null);
+        setSuccessMessage('');
+        try {
+            const res = await api.post('/regions/unassign-admin', {
+                admin_id: unassignConfirmModal.adminId,
+                region_id: unassignConfirmModal.regionId
+            }, {
+                headers: {
+                    'x-user-id': user?.id
+                }
+            });
+
+            setSuccessMessage(isRTL ? 'تم إلغاء تعيين المشرف الإقليمي بنجاح' : (res.data?.message || 'Regional admin unassigned successfully'));
+            fetchAssignedAdmins();
+            fetchUsers();
+            fetchRegions();
+        } catch (err) {
+            setError(err.response?.data?.error || err.response?.data?.message || err.message);
+        } finally {
+            setUnassignConfirmModal({ isOpen: false, adminId: null, regionId: null, adminName: '', regionName: '' });
         }
     };
 
@@ -399,6 +460,182 @@ const RegionsManager = ({ isRTL }) => {
                 )}
             </div>
 
+            {/* Regional Admins Listing */}
+            <div className="card full-width mt-4" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px', marginTop: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ShieldCheck size={20} color="#c8a951" />
+                            {isRTL ? 'المشرفون الإقليميون والمتاجر التابعة' : 'Assigned Regional Admins & Jurisdictions'}
+                        </h3>
+                        <span style={{ 
+                            background: 'rgba(200, 169, 81, 0.15)', 
+                            border: '1px solid rgba(200, 169, 81, 0.3)', 
+                            color: '#c8a951', 
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: '700' 
+                        }}>
+                            {assignedAdmins.length} {isRTL ? 'مشرفين' : 'Admins'}
+                        </span>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div style={{ position: 'relative', width: isMobile ? '100%' : '320px' }}>
+                        <Search size={16} style={{ 
+                            position: 'absolute', 
+                            left: isRTL ? 'auto' : '12px', 
+                            right: isRTL ? '12px' : 'auto', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            color: '#94a3b8',
+                            pointerEvents: 'none'
+                        }} />
+                        <input
+                            type="text"
+                            value={searchAdminQuery}
+                            onChange={(e) => setSearchAdminQuery(e.target.value)}
+                            placeholder={isRTL ? 'ابحث بالاسم، البريد أو المنطقة...' : 'Search by name, email, region...'}
+                            style={{
+                                width: '100%',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                borderRadius: '8px',
+                                color: '#f8fafc',
+                                padding: isRTL ? '8px 36px 8px 12px' : '8px 12px 8px 36px',
+                                fontSize: '0.88rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {filteredAdmins.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 20px', background: '#0f172a', borderRadius: '12px', border: '1px dashed #334155', color: '#94a3b8' }}>
+                        <Users size={32} color="#64748b" style={{ margin: '0 auto 10px', display: 'block' }} />
+                        <p style={{ margin: 0, fontWeight: '600', color: '#cbd5e1' }}>
+                            {searchAdminQuery 
+                                ? (isRTL ? 'لا يوجد مشرفين إقليميين يطابقون بحثك' : 'No regional admins found matching your search.')
+                                : (isRTL ? 'لا يوجد مشرفين إقليميين معينين حالياً' : 'No regional admins currently assigned.')}
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                            {isRTL ? 'يمكنك تعيين مشرف لمنطقة باستخدام النموذج أعلاه' : 'Use the form above to assign an administrator to a country/region.'}
+                        </p>
+                    </div>
+                ) : isMobile ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                        {filteredAdmins.map(item => (
+                            <div key={item.id} style={{ background: '#0f172a', borderRadius: '12px', border: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <strong style={{ color: '#f8fafc', fontSize: '1rem' }}>{item.name}</strong>
+                                            <span style={{ background: 'linear-gradient(135deg, #c8a951, #ebb637)', color: '#000', fontSize: '0.68rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>RA</span>
+                                        </div>
+                                        <span style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>{item.email}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleUnassignClick(item)}
+                                        title={isRTL ? 'إلغاء التعيين' : 'Unassign'}
+                                        style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.6)' }}>
+                                    <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                        {item.region_name} ({item.region_code})
+                                    </span>
+                                    <span style={{ 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '5px', 
+                                        background: item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
+                                        border: `1px solid ${item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`,
+                                        color: item.vendor_count > 0 ? '#4ade80' : '#94a3b8', 
+                                        padding: '3px 8px', 
+                                        borderRadius: '6px', 
+                                        fontSize: '0.75rem', 
+                                        fontWeight: '700' 
+                                    }}>
+                                        <Store size={12} />
+                                        {item.vendor_count} {isRTL ? 'متاجر' : (item.vendor_count === 1 ? 'Vendor' : 'Vendors')}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                        <table className="admin-table" style={{ width: '100%', minWidth: '700px' }}>
+                            <thead>
+                                <tr>
+                                    <th>{isRTL ? 'المشرف الإقليمي' : 'Regional Admin'}</th>
+                                    <th>{isRTL ? 'المنطقة المعينة' : 'Assigned Region'}</th>
+                                    <th>{isRTL ? 'المتاجر التابعة للمنطقة' : 'Vendors in Region'}</th>
+                                    <th>{isRTL ? 'تاريخ التعيين' : 'Assigned Date'}</th>
+                                    <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredAdmins.map(item => (
+                                    <tr key={item.id}>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <strong style={{ color: '#f8fafc', fontSize: '0.95rem' }}>{item.name}</strong>
+                                                    <span style={{ background: 'linear-gradient(135deg, #c8a951, #ebb637)', color: '#000', fontSize: '0.68rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>RA</span>
+                                                </div>
+                                                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{item.email}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ color: '#f8fafc', fontWeight: '600' }}>{item.region_name}</span>
+                                                <span className="badge code" style={{ padding: '2px 6px', fontSize: '0.72rem' }}>{item.region_code}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span style={{ 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                gap: '6px', 
+                                                background: item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
+                                                border: `1px solid ${item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`,
+                                                color: item.vendor_count > 0 ? '#4ade80' : '#94a3b8', 
+                                                padding: '4px 10px', 
+                                                borderRadius: '6px', 
+                                                fontSize: '0.8rem', 
+                                                fontWeight: '700' 
+                                            }}>
+                                                <Store size={14} />
+                                                {item.vendor_count} {isRTL ? 'متاجر' : (item.vendor_count === 1 ? 'Vendor' : 'Vendors')}
+                                            </span>
+                                        </td>
+                                        <td style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                                            {item.assigned_at ? new Date(item.assigned_at).toLocaleDateString() : '-'}
+                                        </td>
+                                        <td>
+                                            <button 
+                                                className="admin-action-btn delete-btn" 
+                                                onClick={() => handleUnassignClick(item)} 
+                                                title={isRTL ? 'إلغاء تعيين المشرف' : 'Unassign Regional Admin'}
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', height: 'auto', fontSize: '0.8rem', borderRadius: '6px' }}
+                                            >
+                                                <Trash2 size={14} />
+                                                <span>{isRTL ? 'فك الارتباط' : 'Unassign'}</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             {/* List Regions */}
             <div className="card full-width mt-4" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px', marginTop: '20px' }}>
                 <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', color: '#f8fafc' }}>{isRTL ? 'المناطق النشطة' : 'Active Regions'}</h3>
@@ -474,6 +711,7 @@ const RegionsManager = ({ isRTL }) => {
                 )}
             </div>
 
+            {/* Region Delete Confirmation Modal */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
@@ -484,6 +722,24 @@ const RegionsManager = ({ isRTL }) => {
                     : `Are you sure you want to permanently delete the region "${confirmModal.regionName}"? This action may fail if there are shops or admins assigned to it.`
                 }
                 confirmText={isRTL ? 'حذف نهائياً' : 'PERMANENTLY DELETE'}
+                cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
+                isRTL={isRTL}
+                variant="danger"
+                isPremium={true}
+                iconType="trash"
+            />
+
+            {/* Unassign Regional Admin Confirmation Modal */}
+            <ConfirmModal
+                isOpen={unassignConfirmModal.isOpen}
+                onClose={() => setUnassignConfirmModal({ ...unassignConfirmModal, isOpen: false })}
+                onConfirm={confirmUnassign}
+                title={isRTL ? 'إلغاء تعيين المشرف الإقليمي' : 'UNASSIGN REGIONAL ADMIN'}
+                message={isRTL 
+                    ? `هل أنت متأكد أنك تريد إلغاء تعيين "${unassignConfirmModal.adminName}" من منطقة "${unassignConfirmModal.regionName}"؟` 
+                    : `Are you sure you want to unassign "${unassignConfirmModal.adminName}" from region "${unassignConfirmModal.regionName}"?`
+                }
+                confirmText={isRTL ? 'فك الارتباط' : 'UNASSIGN'}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"
