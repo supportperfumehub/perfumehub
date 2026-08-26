@@ -10,7 +10,7 @@ const adminOnly = [authenticateUser, verifyRole(['super_admin', 'admin'])];
 // Get coupons
 router.get('/', async (req, res) => {
     try {
-        const query = supabase.from('coupons').select('*');
+        const query = supabase.from('coupons').select('*').not('code', 'like', '__%');
         const { data, error } = await withTimeout(query);
 
         if (error) throw error;

@@ -43,55 +43,55 @@ const INITIAL_DEFAULT_BANNERS = [
     }
 ];
 
-let inMemoryBanners = null;
-
-// Helper to fetch persistent banners from system_settings
+// Helper to fetch persistent banners from database
 const getBannersFromDB = async () => {
     try {
         const { data, error } = await supabase
-            .from('system_settings')
+            .from('coupons')
             .select('*')
-            .eq('key', 'site_banners')
+            .eq('code', '__SITE_BANNERS__')
             .maybeSingle();
 
-        if (data && Array.isArray(data.value)) {
-            inMemoryBanners = data.value;
-            return data.value;
+        if (data && data.used_by) {
+            try {
+                const parsed = typeof data.used_by === 'string' ? JSON.parse(data.used_by) : data.used_by;
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error('Error parsing site_banners JSON from DB:', e);
+            }
         }
 
-        // If key not found yet in system_settings, initialize it with default banners
+        // If row does not exist at all, initialize it with default banners
         if (!data) {
-            inMemoryBanners = [...INITIAL_DEFAULT_BANNERS];
-            await supabase
-                .from('system_settings')
-                .upsert({
-                    key: 'site_banners',
-                    value: inMemoryBanners,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'key' });
-            return inMemoryBanners;
+            await saveBannersToDB(INITIAL_DEFAULT_BANNERS);
+            return [...INITIAL_DEFAULT_BANNERS];
         }
 
-        return inMemoryBanners || INITIAL_DEFAULT_BANNERS;
+        return [];
     } catch (err) {
-        console.warn('Error reading site_banners from system_settings:', err.message);
-        return inMemoryBanners || INITIAL_DEFAULT_BANNERS;
+        console.error('Error reading site_banners from DB:', err.message);
+        return [...INITIAL_DEFAULT_BANNERS];
     }
 };
 
-// Helper to save banners to system_settings
+// Helper to save banners to database
 const saveBannersToDB = async (bannersList) => {
-    inMemoryBanners = bannersList;
     try {
         await supabase
-            .from('system_settings')
+            .from('coupons')
             .upsert({
-                key: 'site_banners',
-                value: bannersList,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'key' });
+                code: '__SITE_BANNERS__',
+                discount_type: 'metadata',
+                discount_percentage: 0,
+                usage_limit: 0,
+                is_active: false,
+                used_by: JSON.stringify(bannersList),
+                expiry_date: null
+            }, { onConflict: 'code' });
     } catch (err) {
-        console.warn('Error saving site_banners to system_settings:', err.message);
+        console.error('Error saving site_banners to DB:', err.message);
     }
 };
 
