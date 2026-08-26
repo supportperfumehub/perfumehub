@@ -1859,12 +1859,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(15, 23, 42, 0.8)',
+                        background: 'rgba(15, 23, 42, 0.85)',
                         backdropFilter: 'blur(8px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 1000,
+                        zIndex: 99999,
                         padding: '20px'
                     }}
                 >
@@ -1878,7 +1878,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             padding: '28px',
                             maxWidth: '560px',
                             width: '100%',
-                            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
                             position: 'relative'
                         }}
                     >
@@ -1930,18 +1930,20 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     gap: '16px',
                                     padding: '18px 20px',
                                     borderRadius: '14px',
-                                    background: 'linear-gradient(135deg, rgba(200, 169, 81, 0.1) 0%, rgba(30, 41, 59, 0.8) 100%)',
-                                    border: '1px solid rgba(200, 169, 81, 0.4)',
+                                    background: 'linear-gradient(135deg, rgba(200, 169, 81, 0.12) 0%, rgba(30, 41, 59, 0.9) 100%)',
+                                    border: '1px solid rgba(200, 169, 81, 0.45)',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#c8a951'}
+                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.45)'}
                             >
                                 <div style={{
                                     width: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
-                                    background: 'rgba(200, 169, 81, 0.18)',
-                                    border: '1px solid rgba(200, 169, 81, 0.4)',
+                                    background: 'rgba(200, 169, 81, 0.2)',
+                                    border: '1px solid rgba(200, 169, 81, 0.5)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -1954,7 +1956,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                         <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#f8fafc', fontWeight: '700' }}>
                                             {isRTL ? 'إضافة منتج مخصص جديد' : 'Add Custom Product'}
                                         </h4>
-                                        <span style={{ background: 'rgba(200, 169, 81, 0.2)', color: '#c8a951', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
+                                        <span style={{ background: 'rgba(200, 169, 81, 0.25)', color: '#c8a951', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
                                             {isRTL ? 'مخصص' : 'Custom'}
                                         </span>
                                     </div>
@@ -1980,18 +1982,20 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     gap: '16px',
                                     padding: '18px 20px',
                                     borderRadius: '14px',
-                                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(30, 41, 59, 0.8) 100%)',
-                                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(30, 41, 59, 0.9) 100%)',
+                                    border: '1px solid rgba(56, 189, 248, 0.4)',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#38bdf8'}
+                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'}
                             >
                                 <div style={{
                                     width: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
-                                    background: 'rgba(56, 189, 248, 0.15)',
-                                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                                    background: 'rgba(56, 189, 248, 0.2)',
+                                    border: '1px solid rgba(56, 189, 248, 0.4)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -2004,7 +2008,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                         <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#f8fafc', fontWeight: '700' }}>
                                             {isRTL ? 'إضافة من الكتالوج العالمي' : 'Add from Catalog'}
                                         </h4>
-                                        <span style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
+                                        <span style={{ background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
                                             {isRTL ? 'سريع' : 'Fast'}
                                         </span>
                                     </div>
