@@ -6,31 +6,7 @@ const router = express.Router();
 
 const INITIAL_DEFAULT_BANNERS = [
     {
-        id: 'top-banner-1',
-        type: 'top_banner',
-        title_en: 'Special Offer: Code GOLDEN20 for an extra 20% discount',
-        title_ar: 'عرض خاص: كود GOLDEN20 للحصول على خصم إضافي 20%',
-        badge: 'Special Offer',
-        discount_code: 'GOLDEN20',
-        link_url: '/shop',
-        is_active: true,
-        display_order: 1,
-        created_at: new Date().toISOString()
-    },
-    {
-        id: 'top-banner-2',
-        type: 'top_banner',
-        title_en: 'Free Delivery on all orders above 100 QAR',
-        title_ar: 'توصيل مجاني لجميع الطلبات فوق 100 ريال',
-        badge: 'Free Delivery',
-        discount_code: '',
-        link_url: '/shop',
-        is_active: true,
-        display_order: 2,
-        created_at: new Date().toISOString()
-    },
-    {
-        id: 'top-banner-3',
+        id: 'top-banner-welcome',
         type: 'top_banner',
         title_en: 'Welcome to PerfumeHub - Luxury Arabian & French Scents',
         title_ar: 'مرحباً بكم في بيرفيوم هاب - أفخم العطور الشرقية والفرنسية',
@@ -38,7 +14,7 @@ const INITIAL_DEFAULT_BANNERS = [
         discount_code: '',
         link_url: '/shop',
         is_active: true,
-        display_order: 3,
+        display_order: 1,
         created_at: new Date().toISOString()
     }
 ];

@@ -9,12 +9,20 @@ const PromotionBar = () => {
     const isRTL = i18n.language === 'ar';
 
     const defaultCoupons = useMemo(() => [
-        { title_en: 'Special Offer: Code GOLDEN20 for an extra 20% discount', title_ar: 'عرض خاص: كود GOLDEN20 للحصول على خصم إضافي 20%', link_url: '/shop' },
-        { title_en: `Free Delivery on all orders above 100 ${t('common.currency')}`, title_ar: `توصيل مجاني لجميع الطلبات فوق 100 ${t('common.currency')}`, link_url: '/shop' },
-        { title_en: 'Welcome to PerfumeHub - Luxury Arabian & French Scents', title_ar: 'مرحباً بكم في بيرفيوم هاب - أفخم العطور الشرقية والفرنسية', link_url: '/shop' }
-    ], [t]);
+        { 
+            title_en: 'Welcome to PerfumeHub - Luxury Arabian & French Scents', 
+            title_ar: 'مرحباً بكم في بيرفيوم هاب - أفخم العطور الشرقية والفرنسية', 
+            link_url: '/shop' 
+        }
+    ], []);
 
-    const [dbBanners, setDbBanners] = useState([]);
+    const [dbBanners, setDbBanners] = useState(() => {
+        try {
+            const cached = localStorage.getItem('perfumehub_top_banners');
+            if (cached) return JSON.parse(cached);
+        } catch (e) {}
+        return [];
+    });
     const [loaded, setLoaded] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -26,6 +34,9 @@ const PromotionBar = () => {
                 const res = await api.get('/banners?type=top_banner&active=true');
                 if (Array.isArray(res.data)) {
                     setDbBanners(res.data);
+                    try {
+                        localStorage.setItem('perfumehub_top_banners', JSON.stringify(res.data));
+                    } catch (e) {}
                 }
             } catch (err) {
                 console.warn('Could not fetch dynamic top banners:', err);
