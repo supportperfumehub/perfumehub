@@ -66,7 +66,7 @@ const RegionsManager = ({ isRTL }) => {
 
     const fetchUsers = async () => {
         try {
-            const res = await api.get('/users?role=vendor', {
+            const res = await api.get('/users', {
                 headers: {
                     'x-user-id': user?.id
                 }
@@ -162,9 +162,9 @@ const RegionsManager = ({ isRTL }) => {
         setError(null);
         setSuccessMessage('');
         try {
-            await api.post('/regions/assign-admin', {
-                admin_id: parseInt(assignAdminId),
-                region_id: parseInt(assignRegionId),
+            const res = await api.post('/regions/assign-admin', {
+                admin_id: parseInt(assignAdminId) || assignAdminId,
+                region_id: parseInt(assignRegionId) || assignRegionId,
                 assigned_by: user?.id
             }, {
                 headers: { 
@@ -172,11 +172,13 @@ const RegionsManager = ({ isRTL }) => {
                 }
             });
             
-            setSuccessMessage(isRTL ? 'تم تعيين المشرف بنجاح' : 'Admin assigned successfully');
+            setSuccessMessage(isRTL ? 'تم تعيين المشرف الإقليمي بنجاح' : (res.data?.message || 'Regional admin assigned successfully'));
             setAssignAdminId('');
             setAssignRegionId('');
+            fetchUsers();
+            fetchRegions();
         } catch (err) {
-            setError(err.response?.data?.error || err.message);
+            setError(err.response?.data?.error || err.response?.data?.message || err.message);
         }
     };
 

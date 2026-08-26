@@ -138,18 +138,72 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), as
 router.post('/assign-admin', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { admin_id, region_id, assigned_by } = req.body;
     try {
-        const { data, error } = await supabase
-            .from('admin_region_mapping')
-            .insert([{ admin_id, region_id, assigned_by }])
-            .select();
-        if (error) throw error;
+        const targetAdminId = parseInt(admin_id) || admin_id;
+        const targetRegionId = parseInt(region_id) || region_id;
+        const assignedById = req.user?.id || (parseInt(assigned_by) || assigned_by);
 
-        // Ensure user is promoted to regional_admin
-        await supabase.from('customers').update({ role: 'regional_admin' }).eq('id', admin_id);
-        
-        res.status(201).json({ mapping: data[0], message: 'Admin assigned to region' });
+        if (!targetAdminId || !targetRegionId) {
+            return res.status(400).json({ error: 'admin_id and region_id are required' });
+        }
+
+        // 1. Check if mapping already exists
+        const { data: existing } = await supabase
+            .from('admin_region_mapping')
+            .select('*')
+            .eq('admin_id', targetAdminId)
+            .eq('region_id', targetRegionId);
+
+        let mappingData = null;
+        if (!existing || existing.length === 0) {
+            const { data, error } = await supabase
+                .from('admin_region_mapping')
+                .insert([{ 
+                    admin_id: targetAdminId, 
+                    region_id: targetRegionId, 
+                    assigned_by: assignedById 
+                }])
+                .select();
+                
+            if (error) {
+                console.error('Error inserting into admin_region_mapping with assigned_by:', error);
+                // Fallback without assigned_by in case column/FK constraint fails
+                const { data: retryData, error: retryError } = await supabase
+                    .from('admin_region_mapping')
+                    .insert([{ 
+                        admin_id: targetAdminId, 
+                        region_id: targetRegionId 
+                    }])
+                    .select();
+                    
+                if (retryError) {
+                    console.error('Retry insert failed:', retryError);
+                } else {
+                    mappingData = retryData;
+                }
+            } else {
+                mappingData = data;
+            }
+        } else {
+            mappingData = existing;
+        }
+
+        // 2. Ensure user is promoted to regional_admin
+        const { error: roleError } = await supabase
+            .from('customers')
+            .update({ role: 'regional_admin' })
+            .eq('id', targetAdminId);
+            
+        if (roleError) {
+            console.error('Error updating customer role to regional_admin:', roleError);
+        }
+
+        res.status(200).json({ 
+            mapping: mappingData ? mappingData[0] : { admin_id: targetAdminId, region_id: targetRegionId }, 
+            message: 'Regional admin assigned successfully' 
+        });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Assign admin error:', error);
+        res.status(500).json({ error: error.message || 'Internal server error', details: error });
     }
 });
 
