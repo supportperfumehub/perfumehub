@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store } from 'lucide-react';
+import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import api from '../../utils/api_v1_0_2';
 
@@ -928,23 +928,173 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </div>
                     )}
                     {!showForm && !isBindingCatalog && (
-                        <button 
-                            type="button" 
-                            className="btn btn-gold" 
-                            onClick={() => setShowAddChoiceModal(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '10px 20px',
-                                borderRadius: '10px',
-                                fontWeight: '700',
-                                boxShadow: '0 4px 12px rgba(200, 169, 81, 0.25)'
-                            }}
-                        >
-                            <Plus size={18} />
-                            {isRTL ? 'إضافة منتج' : 'Add Product'}
-                        </button>
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button 
+                                type="button" 
+                                className="btn btn-gold" 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAddChoiceModal(!showAddChoiceModal);
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '10px 20px',
+                                    borderRadius: '10px',
+                                    fontWeight: '700',
+                                    boxShadow: '0 4px 12px rgba(200, 169, 81, 0.25)',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Plus size={18} />
+                                {isRTL ? 'إضافة منتج' : 'Add Product'}
+                                <ChevronDown size={16} style={{ transform: showAddChoiceModal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </button>
+
+                            {showAddChoiceModal && (
+                                <>
+                                    {/* Backdrop to close on outside click */}
+                                    <div 
+                                        onClick={() => setShowAddChoiceModal(false)} 
+                                        style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                                    />
+                                    
+                                    {/* Dropdown Menu directly attached under the button */}
+                                    <div 
+                                        className="animate-scale-up"
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 'calc(100% + 8px)',
+                                            [isRTL ? 'left' : 'right']: 0,
+                                            width: '320px',
+                                            background: '#1e293b',
+                                            border: '1px solid rgba(200, 169, 81, 0.35)',
+                                            borderRadius: '14px',
+                                            padding: '8px',
+                                            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(200, 169, 81, 0.15)',
+                                            zIndex: 1000,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChoiceModal(false);
+                                                setShowForm(true);
+                                                setIsBindingCatalog(false);
+                                                setEditingId(null);
+                                                setFormData({
+                                                    ...initialFormState,
+                                                    shop_id: shopId || 'core'
+                                                });
+                                                window.scrollTo({ top: 120, behavior: 'smooth' });
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '12px 14px',
+                                                borderRadius: '10px',
+                                                border: '1px solid transparent',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                transition: 'all 0.15s ease',
+                                                width: '100%'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(200, 169, 81, 0.12)';
+                                                e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.35)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                                e.currentTarget.style.borderColor = 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '38px',
+                                                height: '38px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(200, 169, 81, 0.2)',
+                                                border: '1px solid rgba(200, 169, 81, 0.4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <Plus size={20} color="#c8a951" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.92rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'إضافة منتج مخصص جديد' : 'Add Custom Product'}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'إنشاء عطر جديد بصور ومكونات مخصصة' : 'Create new fragrance with custom notes'}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChoiceModal(false);
+                                                setIsBindingCatalog(true);
+                                                setShowForm(false);
+                                                setSelectedCatalogProduct(null);
+                                                window.scrollTo({ top: 120, behavior: 'smooth' });
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '12px 14px',
+                                                borderRadius: '10px',
+                                                border: '1px solid transparent',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                transition: 'all 0.15s ease',
+                                                width: '100%'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                                e.currentTarget.style.borderColor = 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '38px',
+                                                height: '38px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(56, 189, 248, 0.2)',
+                                                border: '1px solid rgba(56, 189, 248, 0.4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <Store size={20} color="#38bdf8" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.92rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'إضافة من الكتالوج العالمي' : 'Add from Catalog'}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'تحديد عطر مسجل وتعيين السعر والمخزون' : 'Pick from master catalog & set price'}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
@@ -1847,182 +1997,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     </tbody>
                 </table>
             </div>
-
-            {/* Add Product Choice Modal Popup */}
-            {showAddChoiceModal && (
-                <div 
-                    className="modal-overlay animate-fade-in" 
-                    onClick={() => setShowAddChoiceModal(false)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(15, 23, 42, 0.85)',
-                        backdropFilter: 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 99999,
-                        padding: '20px'
-                    }}
-                >
-                    <div 
-                        className="modal-content animate-scale-up"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: '#1e293b',
-                            border: '1px solid #334155',
-                            borderRadius: '18px',
-                            padding: '28px',
-                            maxWidth: '560px',
-                            width: '100%',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
-                            position: 'relative'
-                        }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div>
-                                <h3 style={{ margin: 0, fontSize: '1.35rem', color: '#f8fafc', fontWeight: '800' }}>
-                                    {isRTL ? 'إضافة منتج' : 'Add Product'}
-                                </h3>
-                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                                    {isRTL ? 'اختر طريقة إضافة المنتج إلى المتجر أو الكتالوج' : 'Choose how you want to add the product to your store or catalog'}
-                                </p>
-                            </div>
-                            <button 
-                                type="button" 
-                                onClick={() => setShowAddChoiceModal(false)}
-                                style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    color: '#94a3b8',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div style={{ display: 'grid', gap: '14px', marginTop: '10px' }}>
-                            {/* Option 1: Add Custom Product */}
-                            <div 
-                                onClick={() => {
-                                    setShowAddChoiceModal(false);
-                                    setShowForm(true);
-                                    setIsBindingCatalog(false);
-                                    setEditingId(null);
-                                    setFormData({
-                                        ...initialFormState,
-                                        shop_id: shopId || 'core'
-                                    });
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '16px',
-                                    padding: '18px 20px',
-                                    borderRadius: '14px',
-                                    background: 'linear-gradient(135deg, rgba(200, 169, 81, 0.12) 0%, rgba(30, 41, 59, 0.9) 100%)',
-                                    border: '1px solid rgba(200, 169, 81, 0.45)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#c8a951'}
-                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(200, 169, 81, 0.45)'}
-                            >
-                                <div style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '12px',
-                                    background: 'rgba(200, 169, 81, 0.2)',
-                                    border: '1px solid rgba(200, 169, 81, 0.5)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                }}>
-                                    <Plus size={24} color="#c8a951" />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#f8fafc', fontWeight: '700' }}>
-                                            {isRTL ? 'إضافة منتج مخصص جديد' : 'Add Custom Product'}
-                                        </h4>
-                                        <span style={{ background: 'rgba(200, 169, 81, 0.25)', color: '#c8a951', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
-                                            {isRTL ? 'مخصص' : 'Custom'}
-                                        </span>
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
-                                        {isRTL 
-                                            ? 'إنشاء عطر جديد بالكامل مع صور وأحجام وأسعار ومكونات هرم عطري مخصصة.' 
-                                            : 'Create a brand-new perfume with unique photos, notes, sizes, brand, and custom pricing.'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Option 2: Add from Global Catalog */}
-                            <div 
-                                onClick={() => {
-                                    setShowAddChoiceModal(false);
-                                    setIsBindingCatalog(true);
-                                    setShowForm(false);
-                                    setSelectedCatalogProduct(null);
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '16px',
-                                    padding: '18px 20px',
-                                    borderRadius: '14px',
-                                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(30, 41, 59, 0.9) 100%)',
-                                    border: '1px solid rgba(56, 189, 248, 0.4)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#38bdf8'}
-                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'}
-                            >
-                                <div style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '12px',
-                                    background: 'rgba(56, 189, 248, 0.2)',
-                                    border: '1px solid rgba(56, 189, 248, 0.4)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                }}>
-                                    <Store size={24} color="#38bdf8" />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#f8fafc', fontWeight: '700' }}>
-                                            {isRTL ? 'إضافة من الكتالوج العالمي' : 'Add from Catalog'}
-                                        </h4>
-                                        <span style={{ background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
-                                            {isRTL ? 'سريع' : 'Fast'}
-                                        </span>
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
-                                        {isRTL 
-                                            ? 'اختر عطراً معروفاً ومسجلاً بالكتالوج العالمي وحدد سعرك ومخزونك بنقرة واحدة.' 
-                                            : 'Select an existing brand perfume from the master catalog and set your custom shop price & stock.'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
