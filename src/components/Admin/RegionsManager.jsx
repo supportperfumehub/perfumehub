@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
 import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus, Search, Store, ShieldCheck, UserMinus, Users } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
+import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
 import './RegionsManager.css';
 
 const RegionsManager = ({ isRTL }) => {
-    const { user } = useOutletContext();
+    const { user } = useContext(AuthContext);
     const [regions, setRegions] = useState([]);
     const [users, setUsers] = useState([]);
     const [assignedAdmins, setAssignedAdmins] = useState([]);
@@ -249,6 +249,17 @@ const RegionsManager = ({ isRTL }) => {
             setUnassignConfirmModal({ isOpen: false, adminId: null, regionId: null, adminName: '', regionName: '' });
         }
     };
+
+    const filteredAdmins = (assignedAdmins || []).filter(item => {
+        if (!searchAdminQuery || !searchAdminQuery.trim()) return true;
+        const q = searchAdminQuery.toLowerCase();
+        return (
+            (item.name || '').toLowerCase().includes(q) ||
+            (item.email || '').toLowerCase().includes(q) ||
+            (item.region_name || '').toLowerCase().includes(q) ||
+            (item.region_code || '').toLowerCase().includes(q)
+        );
+    });
 
     if (loading) return <div className="loading-spinner">Loading...</div>;
 
