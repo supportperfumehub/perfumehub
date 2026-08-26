@@ -98,10 +98,13 @@ const Admin = () => {
         { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
         { id: 'products', label: isRTL ? 'المنتجات' : 'Products', icon: <Package size={20} /> },
         { id: 'orders', label: isRTL ? 'إدارة الطلبات' : 'Orders', icon: <ShoppingCart size={20} /> },
-        { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
-        { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
+        // SA-Only tabs
+        ...(isSuperAdmin ? [
+            { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
+            { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
+            { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
+        ] : []),
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
-        { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
         // Platform Master Controls (Super Admin Only)
         ...(isSuperAdmin ? [
@@ -239,18 +242,18 @@ const Admin = () => {
                 </header>
 
                 <div className="main-content-wrapper">
+                    {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
                     {activeTab === 'products' && <ProductManager isRTL={isRTL} />}
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} />}
-                    {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
-                    {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
-                    {activeTab === 'shops' && <ShopsManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
-                    {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
-                    {activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
-                    {activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
-                    {activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
-                    {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                     {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
                 </div>
             </main>
