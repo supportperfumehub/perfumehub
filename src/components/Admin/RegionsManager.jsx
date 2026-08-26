@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus, Search, Store, ShieldCheck, UserMinus, Users } from 'lucide-react';
+import { PlusCircle, Link, Globe, Edit, Trash2, X, Plus, Search, Store, ShieldCheck, UserMinus, Users, CheckSquare, Square, Check } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
@@ -9,6 +9,7 @@ const RegionsManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
     const [regions, setRegions] = useState([]);
     const [users, setUsers] = useState([]);
+    const [shops, setShops] = useState([]);
     const [assignedAdmins, setAssignedAdmins] = useState([]);
     const [searchAdminQuery, setSearchAdminQuery] = useState('');
     const [loading, setLoading] = useState(true);
@@ -41,6 +42,15 @@ const RegionsManager = ({ isRTL }) => {
         regionName: ''
     });
 
+    // Manage Vendors under RA Modal
+    const [manageVendorsModal, setManageVendorsModal] = useState({
+        isOpen: false,
+        adminMapping: null,
+        selectedShopIds: [],
+        searchQuery: '',
+        saving: false
+    });
+
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [activeMobileTab, setActiveMobileTab] = useState('add_region'); // 'add_region' | 'assign_admin'
 
@@ -54,6 +64,7 @@ const RegionsManager = ({ isRTL }) => {
         if (user) {
             fetchRegions();
             fetchUsers();
+            fetchShops();
             fetchAssignedAdmins();
         } else {
             const timer = setTimeout(() => setLoading(false), 1000);
@@ -89,6 +100,19 @@ const RegionsManager = ({ isRTL }) => {
         }
     };
 
+    const fetchShops = async () => {
+        try {
+            const res = await api.get('/shops', {
+                headers: {
+                    'x-user-id': user?.id
+                }
+            });
+            setShops(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error('Fetch shops error:', err);
+        }
+    };
+
     const fetchUsers = async () => {
         try {
             const res = await api.get('/users', {
@@ -97,13 +121,12 @@ const RegionsManager = ({ isRTL }) => {
                 }
             });
             const allUsers = res.data || [];
-            // Filter to only show Vendors and Admins (exclude retail customers)
-            const adminAndVendors = allUsers.filter(u => 
+            // Strictly filter to VENDORS and existing Regional Admins (exclude retail customers)
+            const vendorsOnly = allUsers.filter(u => 
                 u.role === 'vendor' || 
-                u.role === 'admin' || 
                 u.role === 'regional_admin'
             );
-            setUsers(adminAndVendors);
+            setUsers(vendorsOnly);
         } catch (err) {
             console.error('Fetch users error:', err);
         }
@@ -117,7 +140,7 @@ const RegionsManager = ({ isRTL }) => {
             const url = editingRegionId ? `/regions/${editingRegionId}` : '/regions';
             const method = editingRegionId ? 'put' : 'post';
 
-            const res = await api[method](url, {
+            await api[method](url, {
                 name: newRegionName,
                 code: newRegionCode,
                 currencyCode: newCurrencyCode
@@ -182,6 +205,7 @@ const RegionsManager = ({ isRTL }) => {
             
             setSuccessMessage(isRTL ? 'تم حذف المنطقة' : 'Region deleted successfully');
             fetchRegions();
+            fetchAssignedAdmins();
         } catch (err) {
             setError(err.response?.data?.error || err.message);
         } finally {
@@ -204,7 +228,7 @@ const RegionsManager = ({ isRTL }) => {
                 }
             });
             
-            setSuccessMessage(isRTL ? 'تم تعيين المشرف الإقليمي بنجاح' : (res.data?.message || 'Regional admin assigned successfully'));
+            setSuccessMessage(isRTL ? 'تم ترقية البائع وتعيينه كمشرف إقليمي بنجاح' : (res.data?.message || 'Vendor promoted and assigned as Regional Admin successfully'));
             setAssignAdminId('');
             setAssignRegionId('');
             fetchAssignedAdmins();
@@ -250,6 +274,66 @@ const RegionsManager = ({ isRTL }) => {
         }
     };
 
+    // Open Manage Vendors Modal
+    const handleOpenManageVendors = (adminMapping) => {
+        // Pre-select shops currently assigned to this region
+        const currentRegionShopIds = shops
+            .filter(s => String(s.region_id) === String(adminMapping.region_id))
+            .map(s => s.id);
+
+        setManageVendorsModal({
+            isOpen: true,
+            adminMapping,
+            selectedShopIds: currentRegionShopIds,
+            searchQuery: '',
+            saving: false
+        });
+    };
+
+    const handleToggleShopSelection = (shopId) => {
+        setManageVendorsModal(prev => {
+            const exists = prev.selectedShopIds.includes(shopId);
+            return {
+                ...prev,
+                selectedShopIds: exists 
+                    ? prev.selectedShopIds.filter(id => id !== shopId)
+                    : [...prev.selectedShopIds, shopId]
+            };
+        });
+    };
+
+    const handleSaveShopAssignments = async () => {
+        const { adminMapping, selectedShopIds } = manageVendorsModal;
+        if (!adminMapping || !adminMapping.region_id) return;
+
+        setManageVendorsModal(prev => ({ ...prev, saving: true }));
+        setError(null);
+        setSuccessMessage('');
+
+        try {
+            await api.post(`/regions/${adminMapping.region_id}/assign-shops`, {
+                shop_ids: selectedShopIds,
+                unassign_others: true
+            }, {
+                headers: {
+                    'x-user-id': user?.id
+                }
+            });
+
+            setSuccessMessage(isRTL 
+                ? `تم تحديث المتاجر التابعة لمنطقة ${adminMapping.region_name} بنجاح` 
+                : `Shops assigned to ${adminMapping.region_name} updated successfully`
+            );
+
+            // Refresh shops and assigned admins data
+            await Promise.all([fetchShops(), fetchAssignedAdmins()]);
+            setManageVendorsModal(prev => ({ ...prev, isOpen: false, saving: false }));
+        } catch (err) {
+            setError(err.response?.data?.error || err.message);
+            setManageVendorsModal(prev => ({ ...prev, saving: false }));
+        }
+    };
+
     const filteredAdmins = (assignedAdmins || []).filter(item => {
         if (!searchAdminQuery || !searchAdminQuery.trim()) return true;
         const q = searchAdminQuery.toLowerCase();
@@ -258,6 +342,18 @@ const RegionsManager = ({ isRTL }) => {
             (item.email || '').toLowerCase().includes(q) ||
             (item.region_name || '').toLowerCase().includes(q) ||
             (item.region_code || '').toLowerCase().includes(q)
+        );
+    });
+
+    // Filter shops inside Manage Vendors Modal
+    const filteredModalShops = shops.filter(s => {
+        if (!manageVendorsModal.searchQuery.trim()) return true;
+        const q = manageVendorsModal.searchQuery.toLowerCase();
+        return (
+            (s.name || '').toLowerCase().includes(q) ||
+            (s.address || '').toLowerCase().includes(q) ||
+            (s.phone || '').toLowerCase().includes(q) ||
+            (s.customers?.name || '').toLowerCase().includes(q)
         );
     });
 
@@ -277,7 +373,7 @@ const RegionsManager = ({ isRTL }) => {
                         whiteSpace: 'nowrap' 
                     }}>
                         <Globe size={isMobile ? 20 : 24} color="#c8a951" />
-                        {isRTL ? 'إدارة المناطق' : 'Regions Management'}
+                        {isRTL ? 'إدارة المناطق والمشرفين' : 'Regions & Regional Admins'}
                     </h2>
                     <span style={{ 
                         background: 'rgba(200, 169, 81, 0.15)', 
@@ -353,7 +449,7 @@ const RegionsManager = ({ isRTL }) => {
                         }}
                     >
                         <Link size={14} />
-                        {isRTL ? 'تخصيص مشرف' : 'Assign Admin'}
+                        {isRTL ? 'ترقية بائع لمشرف' : 'Promote Vendor to RA'}
                     </button>
                 </div>
             )}
@@ -365,7 +461,7 @@ const RegionsManager = ({ isRTL }) => {
                         <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>
                             {editingRegionId 
                                 ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
-                                : (isRTL ? 'إضافة منطقة جديدة' : 'Add New Region')
+                                : (isRTL ? 'إضافة منطقة جغرافية جديدة' : 'Add New Region')
                             }
                         </h3>
                         {editingRegionId && (
@@ -375,7 +471,7 @@ const RegionsManager = ({ isRTL }) => {
                         )}
                         <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px', width: '100%', boxSizing: 'border-box' }}>
                             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اسم المنطقة' : 'Region Name'}</label>
+                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اسم الدولة / المنطقة' : 'Region Name'}</label>
                                 <input 
                                     type="text"
                                     className="form-control"
@@ -388,7 +484,7 @@ const RegionsManager = ({ isRTL }) => {
                             </div>
                             <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
                                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'رمز المنطقة' : 'Region Code'}</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'رمز الدولة (ISO)' : 'Region Code'}</label>
                                     <input 
                                         type="text"
                                         className="form-control"
@@ -418,20 +514,24 @@ const RegionsManager = ({ isRTL }) => {
                                 {editingRegionId ? <Edit size={15} /> : <PlusCircle size={15} />}
                                 {editingRegionId 
                                     ? (isRTL ? 'تحديث المنطقة' : 'Update Region') 
-                                    : (isRTL ? 'إضافة جغرافية' : 'Create Region')
+                                    : (isRTL ? 'إضافة منطقة' : 'Create Region')
                                 }
                             </button>
                         </form>
                     </div>
                 )}
 
-                {/* Assign Admin to Region */}
+                {/* Promote Vendor to Regional Admin */}
                 {(!isMobile || activeMobileTab === 'assign_admin') && (
                     <div className="card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-                        <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>{isRTL ? 'تخصيص مشرف إقليمي' : 'Assign Regional Admin'}</h3>
+                        <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>
+                            {isRTL ? 'ترقية بائع لمشرف إقليمي (RA)' : 'Promote Vendor to Regional Admin'}
+                        </h3>
                         <form onSubmit={handleAssignAdmin} className="region-form" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px', width: '100%', boxSizing: 'border-box' }}>
                             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اختر المشرف' : 'Select Admin/Vendor'}</label>
+                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>
+                                    {isRTL ? 'اختر البائع للترقية' : 'Select Vendor to Promote'}
+                                </label>
                                 <select 
                                     className="form-control"
                                     value={assignAdminId}
@@ -439,16 +539,16 @@ const RegionsManager = ({ isRTL }) => {
                                     required
                                     style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 >
-                                    <option value="">{isRTL ? '-- اختر --' : '-- Select User --'}</option>
+                                    <option value="" style={{ background: '#0f172a', color: '#94a3b8' }}>{isRTL ? '-- اختر بائعاً --' : '-- Select Vendor --'}</option>
                                     {users.map(u => (
-                                        <option key={u.id} value={u.id}>
-                                            {u.name} ({u.role}) - {u.email}
+                                        <option key={u.id} value={u.id} style={{ background: '#0f172a', color: '#f8fafc' }}>
+                                            {u.name} ({u.role === 'regional_admin' ? 'RA' : 'Vendor'}) - {u.email}
                                         </option>
                                     ))}
                                 </select>
                             </div>
                             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'المنطقة' : 'Select Region'}</label>
+                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'المنطقة المعينة' : 'Assigned Territory'}</label>
                                 <select 
                                     className="form-control"
                                     value={assignRegionId}
@@ -456,15 +556,17 @@ const RegionsManager = ({ isRTL }) => {
                                     required
                                     style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 >
-                                    <option value="">{isRTL ? '-- اختر --' : '-- Select --'}</option>
+                                    <option value="" style={{ background: '#0f172a', color: '#94a3b8' }}>{isRTL ? '-- اختر المنطقة --' : '-- Select Region --'}</option>
                                     {regions.map(r => (
-                                        <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                                        <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc' }}>
+                                            {r.name} ({r.code})
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             <button type="submit" className="btn btn-gold" style={{ marginTop: '4px', width: '100%', height: isMobile ? '38px' : '44px', borderRadius: '8px', fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                 <Link size={15} />
-                                {isRTL ? 'ربط المشرف' : 'Assign to Region'}
+                                {isRTL ? 'ترقية وتعيين للمنطقة' : 'Promote & Assign Region'}
                             </button>
                         </form>
                     </div>
@@ -477,7 +579,7 @@ const RegionsManager = ({ isRTL }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <ShieldCheck size={20} color="#c8a951" />
-                            {isRTL ? 'المشرفون الإقليميون والمتاجر التابعة' : 'Assigned Regional Admins & Jurisdictions'}
+                            {isRTL ? 'المشرفون الإقليميون وإدارة المتاجر' : 'Assigned Regional Admins & Jurisdictions'}
                         </h3>
                         <span style={{ 
                             background: 'rgba(200, 169, 81, 0.15)', 
@@ -532,7 +634,7 @@ const RegionsManager = ({ isRTL }) => {
                                 : (isRTL ? 'لا يوجد مشرفين إقليميين معينين حالياً' : 'No regional admins currently assigned.')}
                         </p>
                         <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                            {isRTL ? 'يمكنك تعيين مشرف لمنطقة باستخدام النموذج أعلاه' : 'Use the form above to assign an administrator to a country/region.'}
+                            {isRTL ? 'يمكنك ترقية أي بائع لمنصب مشرف إقليمي باستخدام النموذج أعلاه' : 'Select any vendor above to promote them to Regional Admin.'}
                         </p>
                     </div>
                 ) : isMobile ? (
@@ -547,13 +649,23 @@ const RegionsManager = ({ isRTL }) => {
                                         </div>
                                         <span style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>{item.email}</span>
                                     </div>
-                                    <button
-                                        onClick={() => handleUnassignClick(item)}
-                                        title={isRTL ? 'إلغاء التعيين' : 'Unassign'}
-                                        style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        <button
+                                            onClick={() => handleOpenManageVendors(item)}
+                                            title={isRTL ? 'تخصيص المتاجر' : 'Manage Vendors'}
+                                            style={{ height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.45)', background: 'rgba(200, 169, 81, 0.15)', color: '#fcd34d', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}
+                                        >
+                                            <Store size={14} />
+                                            <span>{isRTL ? 'المتاجر' : 'Vendors'}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleUnassignClick(item)}
+                                            title={isRTL ? 'إلغاء التعيين' : 'Unassign'}
+                                            style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.6)' }}>
                                     <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
@@ -580,12 +692,12 @@ const RegionsManager = ({ isRTL }) => {
                     </div>
                 ) : (
                     <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                        <table className="admin-table" style={{ width: '100%', minWidth: '700px' }}>
+                        <table className="admin-table" style={{ width: '100%', minWidth: '750px' }}>
                             <thead>
                                 <tr>
-                                    <th>{isRTL ? 'المشرف الإقليمي' : 'Regional Admin'}</th>
+                                    <th>{isRTL ? 'المشرف الإقليمي (RA)' : 'Regional Admin'}</th>
                                     <th>{isRTL ? 'المنطقة المعينة' : 'Assigned Region'}</th>
-                                    <th>{isRTL ? 'المتاجر التابعة للمنطقة' : 'Vendors in Region'}</th>
+                                    <th>{isRTL ? 'المتاجر التابعة للمشرف' : 'Jurisdiction Vendors'}</th>
                                     <th>{isRTL ? 'تاريخ التعيين' : 'Assigned Date'}</th>
                                     <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                                 </tr>
@@ -609,58 +721,103 @@ const RegionsManager = ({ isRTL }) => {
                                             </div>
                                         </td>
                                         <td>
-                                            <span style={{ 
-                                                display: 'inline-flex', 
-                                                alignItems: 'center', 
-                                                gap: '6px', 
-                                                background: item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
-                                                border: `1px solid ${item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`,
-                                                color: item.vendor_count > 0 ? '#4ade80' : '#94a3b8', 
-                                                padding: '4px 10px', 
-                                                borderRadius: '6px', 
-                                                fontSize: '0.8rem', 
-                                                fontWeight: '700' 
-                                            }}>
-                                                <Store size={14} />
-                                                {item.vendor_count} {isRTL ? 'متاجر' : (item.vendor_count === 1 ? 'Vendor' : 'Vendors')}
-                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '6px', 
+                                                    background: item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
+                                                    border: `1px solid ${item.vendor_count > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`,
+                                                    color: item.vendor_count > 0 ? '#4ade80' : '#94a3b8', 
+                                                    padding: '4px 10px', 
+                                                    borderRadius: '6px', 
+                                                    fontSize: '0.8rem', 
+                                                    fontWeight: '700' 
+                                                }}>
+                                                    <Store size={14} />
+                                                    {item.vendor_count} {isRTL ? 'متاجر' : (item.vendor_count === 1 ? 'Vendor' : 'Vendors')}
+                                                </span>
+                                                
+                                                {/* Mini pills of shop names */}
+                                                {item.shops && item.shops.slice(0, 2).map(s => (
+                                                    <span key={s.id} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', fontSize: '0.72rem', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        {s.name}
+                                                    </span>
+                                                ))}
+                                                {item.shops && item.shops.length > 2 && (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>+{item.shops.length - 2} more</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
                                             {item.assigned_at ? new Date(item.assigned_at).toLocaleDateString() : '-'}
                                         </td>
                                         <td>
-                                            <button 
-                                                onClick={() => handleUnassignClick(item)} 
-                                                title={isRTL ? 'إلغاء تعيين المشرف الإقليمي' : 'Unassign Regional Admin'}
-                                                style={{ 
-                                                    display: 'inline-flex', 
-                                                    alignItems: 'center', 
-                                                    gap: '6px', 
-                                                    padding: '6px 14px', 
-                                                    height: '32px', 
-                                                    width: 'auto',
-                                                    fontSize: '0.8rem', 
-                                                    fontWeight: '600',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid rgba(239, 68, 68, 0.45)',
-                                                    background: 'rgba(239, 68, 68, 0.15)',
-                                                    color: '#fca5a5',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
-                                                    e.currentTarget.style.color = '#ffffff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                                                    e.currentTarget.style.color = '#fca5a5';
-                                                }}
-                                            >
-                                                <UserMinus size={14} />
-                                                <span>{isRTL ? 'فك الارتباط' : 'Unassign'}</span>
-                                            </button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => handleOpenManageVendors(item)}
+                                                    title={isRTL ? 'تخصيص المتاجر التابعة للمشرف' : 'Manage Shops under this RA'}
+                                                    style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        gap: '6px', 
+                                                        padding: '6px 14px', 
+                                                        height: '32px', 
+                                                        fontSize: '0.8rem', 
+                                                        fontWeight: '700', 
+                                                        borderRadius: '6px', 
+                                                        border: '1px solid rgba(200, 169, 81, 0.45)', 
+                                                        background: 'rgba(200, 169, 81, 0.15)', 
+                                                        color: '#fcd34d', 
+                                                        cursor: 'pointer', 
+                                                        transition: 'all 0.2s ease',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(200, 169, 81, 0.3)';
+                                                        e.currentTarget.style.color = '#ffffff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(200, 169, 81, 0.15)';
+                                                        e.currentTarget.style.color = '#fcd34d';
+                                                    }}
+                                                >
+                                                    <Store size={14} />
+                                                    <span>{isRTL ? 'تخصيص المتاجر' : 'Manage Vendors'}</span>
+                                                </button>
+
+                                                <button 
+                                                    onClick={() => handleUnassignClick(item)} 
+                                                    title={isRTL ? 'إلغاء تعيين المشرف الإقليمي' : 'Unassign Regional Admin'}
+                                                    style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        gap: '6px', 
+                                                        padding: '6px 12px', 
+                                                        height: '32px', 
+                                                        fontSize: '0.8rem', 
+                                                        fontWeight: '600', 
+                                                        borderRadius: '6px', 
+                                                        border: '1px solid rgba(239, 68, 68, 0.45)', 
+                                                        background: 'rgba(239, 68, 68, 0.15)', 
+                                                        color: '#fca5a5', 
+                                                        cursor: 'pointer', 
+                                                        transition: 'all 0.2s ease',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
+                                                        e.currentTarget.style.color = '#ffffff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                                        e.currentTarget.style.color = '#fca5a5';
+                                                    }}
+                                                >
+                                                    <UserMinus size={14} />
+                                                    <span>{isRTL ? 'فك الارتباط' : 'Unassign'}</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -672,7 +829,7 @@ const RegionsManager = ({ isRTL }) => {
 
             {/* List Regions */}
             <div className="card full-width mt-4" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: isMobile ? '16px' : '24px', marginTop: '20px' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', color: '#f8fafc' }}>{isRTL ? 'المناطق النشطة' : 'Active Regions'}</h3>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', color: '#f8fafc' }}>{isRTL ? 'المناطق الجغرافية المسجلة' : 'Active Regions'}</h3>
                 {regions.length === 0 ? (
                     <p className="no-data" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{isRTL ? 'لا توجد مناطق' : 'No regions found.'}</p>
                 ) : isMobile ? (
@@ -717,33 +874,281 @@ const RegionsManager = ({ isRTL }) => {
                                     <th>{isRTL ? 'المنطقة' : 'Region'}</th>
                                     <th>{isRTL ? 'الرمز' : 'Code'}</th>
                                     <th>{isRTL ? 'العملة' : 'Currency'}</th>
+                                    <th>{isRTL ? 'المتاجر التابعة' : 'Assigned Shops'}</th>
                                     <th>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {regions.map(region => (
-                                    <tr key={region.id}>
-                                        <td>#{region.id}</td>
-                                        <td>{region.name}</td>
-                                        <td><span className="badge code">{region.code}</span></td>
-                                        <td><span className="badge currency">{region.currency_code}</span></td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button className="admin-action-btn edit-btn" onClick={() => handleEdit(region)} title={isRTL ? 'تعديل' : 'Edit'}>
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button className="admin-action-btn delete-btn" onClick={() => handleDelete(region.id, region.name)} title={isRTL ? 'حذف' : 'Delete'}>
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {regions.map(region => {
+                                    const regionShopsCount = shops.filter(s => String(s.region_id) === String(region.id)).length;
+                                    return (
+                                        <tr key={region.id}>
+                                            <td>#{region.id}</td>
+                                            <td><strong style={{ color: '#f8fafc' }}>{region.name}</strong></td>
+                                            <td><span className="badge code">{region.code}</span></td>
+                                            <td><span className="badge currency">{region.currency_code}</span></td>
+                                            <td>
+                                                <span style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '5px', 
+                                                    background: regionShopsCount > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
+                                                    border: `1px solid ${regionShopsCount > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`,
+                                                    color: regionShopsCount > 0 ? '#4ade80' : '#94a3b8', 
+                                                    padding: '3px 8px', 
+                                                    borderRadius: '6px', 
+                                                    fontSize: '0.75rem', 
+                                                    fontWeight: '700' 
+                                                }}>
+                                                    <Store size={12} />
+                                                    {regionShopsCount} {isRTL ? 'متاجر' : 'Shops'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button className="admin-action-btn edit-btn" onClick={() => handleEdit(region)} title={isRTL ? 'تعديل' : 'Edit'}>
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button className="admin-action-btn delete-btn" onClick={() => handleDelete(region.id, region.name)} title={isRTL ? 'حذف' : 'Delete'}>
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                 )}
             </div>
+
+            {/* Manage Vendors Modal Popup */}
+            {manageVendorsModal.isOpen && manageVendorsModal.adminMapping && (
+                <div 
+                    className="modal-overlay animate-fade-in" 
+                    onClick={() => setManageVendorsModal(prev => ({ ...prev, isOpen: false }))}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(15, 23, 42, 0.85)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 99999,
+                        padding: '20px'
+                    }}
+                >
+                    <div 
+                        className="modal-content animate-scale-up"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '18px',
+                            padding: '24px',
+                            maxWidth: '650px',
+                            width: '100%',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+                            position: 'relative'
+                        }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #334155', paddingBottom: '14px' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#f8fafc', fontWeight: '800' }}>
+                                        {isRTL ? 'تخصيص المتاجر للمشرف الإقليمي' : 'Assign Vendors to Regional Admin'}
+                                    </h3>
+                                    <span style={{ background: 'linear-gradient(135deg, #c8a951, #ebb637)', color: '#000', fontSize: '0.68rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>RA</span>
+                                </div>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#94a3b8' }}>
+                                    {isRTL 
+                                        ? `المشرف: ${manageVendorsModal.adminMapping.name} • المنطقة: ${manageVendorsModal.adminMapping.region_name} (${manageVendorsModal.adminMapping.region_code})`
+                                        : `Admin: ${manageVendorsModal.adminMapping.name} • Region: ${manageVendorsModal.adminMapping.region_name} (${manageVendorsModal.adminMapping.region_code})`}
+                                </p>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setManageVendorsModal(prev => ({ ...prev, isOpen: false }))}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    color: '#94a3b8',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Search and Selection Counter */}
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                                <Search size={16} style={{ 
+                                    position: 'absolute', 
+                                    left: isRTL ? 'auto' : '12px', 
+                                    right: isRTL ? '12px' : 'auto', 
+                                    top: '50%', 
+                                    transform: 'translateY(-50%)', 
+                                    color: '#94a3b8' 
+                                }} />
+                                <input
+                                    type="text"
+                                    placeholder={isRTL ? 'ابحث عن متجر بالاسم أو العنوان...' : 'Search shops by name, address...'}
+                                    value={manageVendorsModal.searchQuery}
+                                    onChange={(e) => setManageVendorsModal(prev => ({ ...prev, searchQuery: e.target.value }))}
+                                    style={{
+                                        width: '100%',
+                                        background: '#0f172a',
+                                        border: '1px solid #334155',
+                                        borderRadius: '8px',
+                                        color: '#f8fafc',
+                                        padding: isRTL ? '8px 36px 8px 12px' : '8px 12px 8px 36px',
+                                        fontSize: '0.85rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <span style={{ background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', border: '1px solid rgba(200, 169, 81, 0.3)' }}>
+                                {manageVendorsModal.selectedShopIds.length} {isRTL ? 'متاجر محددة' : 'shops selected'}
+                            </span>
+                        </div>
+
+                        {/* Shops List Checkboxes */}
+                        <div style={{ flex: 1, overflowY: 'auto', maxHeight: '420px', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {filteredModalShops.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', background: '#0f172a', borderRadius: '10px', border: '1px dashed #334155' }}>
+                                    {isRTL ? 'لا توجد متاجر مطابقة' : 'No shops found.'}
+                                </div>
+                            ) : (
+                                filteredModalShops.map(shop => {
+                                    const isSelected = manageVendorsModal.selectedShopIds.includes(shop.id);
+                                    const currentRegion = regions.find(r => String(r.id) === String(shop.region_id));
+                                    const isCurrentThisRegion = String(shop.region_id) === String(manageVendorsModal.adminMapping.region_id);
+
+                                    return (
+                                        <div 
+                                            key={shop.id}
+                                            onClick={() => handleToggleShopSelection(shop.id)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '12px 14px',
+                                                borderRadius: '10px',
+                                                background: isSelected ? 'rgba(200, 169, 81, 0.1)' : '#0f172a',
+                                                border: isSelected ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #334155',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            <div style={{ color: isSelected ? '#c8a951' : '#64748b' }}>
+                                                {isSelected ? <CheckSquare size={20} color="#c8a951" /> : <Square size={20} color="#64748b" />}
+                                            </div>
+
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid #334155', flexShrink: 0 }}>
+                                                {shop.images && shop.images[0] ? (
+                                                    <img src={shop.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <Store size={18} color="#94a3b8" />
+                                                )}
+                                            </div>
+
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <strong style={{ color: '#f8fafc', fontSize: '0.92rem' }}>{shop.name}</strong>
+                                                    {shop.status === 'ACTIVE' && (
+                                                        <span style={{ color: '#4ade80', fontSize: '0.7rem', fontWeight: '700' }}>● {isRTL ? 'نشط' : 'Active'}</span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: '0.78rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {shop.address || (isRTL ? 'بدون عنوان' : 'No address')} {shop.customers?.name ? `• ${shop.customers.name}` : ''}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                {currentRegion ? (
+                                                    <span style={{ 
+                                                        background: isCurrentThisRegion ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                                                        color: isCurrentThisRegion ? '#4ade80' : '#facc15',
+                                                        border: `1px solid ${isCurrentThisRegion ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+                                                        fontSize: '0.72rem',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '6px',
+                                                        fontWeight: '700'
+                                                    }}>
+                                                        {currentRegion.name} ({currentRegion.code})
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ background: 'rgba(100, 116, 139, 0.15)', color: '#94a3b8', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                                                        {isRTL ? 'بدون منطقة' : 'Unassigned'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Modal Footer Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', borderTop: '1px solid #334155', paddingTop: '14px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setManageVendorsModal(prev => ({ ...prev, isOpen: false }))}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    color: '#cbd5e1',
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {isRTL ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveShopAssignments}
+                                disabled={manageVendorsModal.saving}
+                                className="btn btn-gold"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '8px 20px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '700',
+                                    cursor: manageVendorsModal.saving ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                <Check size={16} />
+                                {manageVendorsModal.saving 
+                                    ? (isRTL ? 'جاري الحفظ...' : 'Saving...') 
+                                    : (isRTL ? 'حفظ تخصيص المتاجر' : 'Save Assignments')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Region Delete Confirmation Modal */}
             <ConfirmModal

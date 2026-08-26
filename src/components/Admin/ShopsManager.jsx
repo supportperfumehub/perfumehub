@@ -25,6 +25,7 @@ const ShopsManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
     const [shops, setShops] = useState([]);
     const [regions, setRegions] = useState([]);
+    const [assignedAdmins, setAssignedAdmins] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [expandedShop, setExpandedShop] = useState(null);
@@ -59,13 +60,16 @@ const ShopsManager = ({ isRTL }) => {
         if (!user?.id) return;
         try {
             setLoading(true);
-            const [shopsRes, regionsRes] = await Promise.all([
+            const isSA = user?.role === 'super_admin' || user?.role === 'admin';
+            const [shopsRes, regionsRes, adminsRes] = await Promise.all([
                 api.get('/shops'),
-                api.get('/regions')
+                api.get('/regions'),
+                isSA ? api.get('/regions/assigned-admins').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
             ]);
             
             setShops(shopsRes.data || []);
             setRegions(regionsRes.data || []);
+            setAssignedAdmins(adminsRes.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -1154,32 +1158,50 @@ const ShopsManager = ({ isRTL }) => {
                             {/* Region Assigner for Super Admin / Admin or Region Badge for Regional Admin */}
                             <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                 {(user?.role === 'super_admin' || user?.role === 'admin') ? (
-                                    <select
-                                        value={shop.region_id || ''}
-                                        onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
-                                        style={{
-                                            background: shop.region_id ? '#1e293b' : 'rgba(234, 179, 8, 0.12)',
-                                            border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #facc15',
-                                            color: shop.region_id ? '#f8fafc' : '#facc15',
-                                            padding: isMobile ? '4px 8px' : '5px 12px',
-                                            borderRadius: '8px',
-                                            fontSize: isMobile ? '0.75rem' : '0.82rem',
-                                            fontWeight: '700',
-                                            cursor: 'pointer',
-                                            outline: 'none',
-                                            boxShadow: !shop.region_id ? '0 0 10px rgba(234, 179, 8, 0.25)' : 'none'
-                                        }}
-                                        title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
-                                    >
-                                        <option value="" style={{ background: '#0f172a', color: '#facc15', fontWeight: '700' }}>
-                                            {isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}
-                                        </option>
-                                        {regions.map(r => (
-                                            <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc', fontWeight: '600' }}>
-                                                {r.name} ({r.code})
+                                    <>
+                                        <select
+                                            value={shop.region_id || ''}
+                                            onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
+                                            style={{
+                                                background: shop.region_id ? '#1e293b' : 'rgba(234, 179, 8, 0.12)',
+                                                border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #facc15',
+                                                color: shop.region_id ? '#f8fafc' : '#facc15',
+                                                padding: isMobile ? '4px 8px' : '5px 12px',
+                                                borderRadius: '8px',
+                                                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                                                fontWeight: '700',
+                                                cursor: 'pointer',
+                                                outline: 'none',
+                                                boxShadow: !shop.region_id ? '0 0 10px rgba(234, 179, 8, 0.25)' : 'none'
+                                            }}
+                                            title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
+                                        >
+                                            <option value="" style={{ background: '#0f172a', color: '#facc15', fontWeight: '700' }}>
+                                                {isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}
                                             </option>
-                                        ))}
-                                    </select>
+                                            {regions.map(r => (
+                                                <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc', fontWeight: '600' }}>
+                                                    {r.name} ({r.code})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {assignedAdmins.find(a => String(a.region_id) === String(shop.region_id)) && (
+                                            <span style={{ 
+                                                background: 'rgba(200, 169, 81, 0.12)', 
+                                                border: '1px solid rgba(200, 169, 81, 0.3)', 
+                                                color: '#fcd34d', 
+                                                fontSize: '0.72rem', 
+                                                fontWeight: '700', 
+                                                padding: '3px 8px', 
+                                                borderRadius: '6px',
+                                                display: isMobile ? 'none' : 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                RA: {assignedAdmins.find(a => String(a.region_id) === String(shop.region_id)).name}
+                                            </span>
+                                        )}
+                                    </>
                                 ) : (
                                     <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
                                         {regions.find(r => r.id === shop.region_id)?.name || 'Region'} ({regions.find(r => r.id === shop.region_id)?.code || 'RA'})
@@ -1220,6 +1242,7 @@ const ShopsManager = ({ isRTL }) => {
                                             <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المالك:' : 'Owner:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.name || 'N/A'}</span></div>
                                             <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'البريد:' : 'Email:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.customers?.email || 'N/A'}</span></div>
                                             <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المنطقة المعينة:' : 'Assigned Region:'}</strong> <span style={{ color: '#f8fafc' }}>{regions.find(r => r.id === shop.region_id)?.name ? `${regions.find(r => r.id === shop.region_id)?.name} (${regions.find(r => r.id === shop.region_id)?.code}) - ${regions.find(r => r.id === shop.region_id)?.currency_code}` : (isRTL ? '⚠️ غير معين' : '⚠️ Unassigned')}</span></div>
+                                            <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'المشرف الإقليمي (RA):' : 'Supervising RA:'}</strong> <span style={{ color: '#c8a951', fontWeight: '700' }}>{assignedAdmins.find(a => String(a.region_id) === String(shop.region_id))?.name ? `👑 ${assignedAdmins.find(a => String(a.region_id) === String(shop.region_id)).name} (RA)` : (isRTL ? 'لا يوجد مشرف معين' : 'None Assigned')}</span></div>
                                             <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'العنوان:' : 'Address:'}</strong> <span style={{ color: '#f8fafc' }}>{shop.address}</span></div>
                                             <div><strong style={{ color: '#94a3b8', marginRight: '5px' }}>{isRTL ? 'تاريخ الانضمام:' : 'Joined:'}</strong> <span style={{ color: '#f8fafc' }}>{new Date(shop.created_at).toLocaleDateString()}</span></div>
                                         </div>

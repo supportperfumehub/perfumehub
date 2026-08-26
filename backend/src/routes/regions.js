@@ -207,7 +207,40 @@ router.post('/assign-admin', authenticateUser, verifyRole(['super_admin', 'admin
     }
 });
 
-// Get all assigned regional admins with region details and live vendor counts
+// Assign multiple shops to a region
+router.post('/:id/assign-shops', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    const { shop_ids, unassign_others } = req.body;
+    try {
+        const targetRegionId = parseInt(id) || id;
+        const targetShopIds = Array.isArray(shop_ids) ? shop_ids : [];
+
+        if (unassign_others) {
+            // Optional: clear region_id from shops previously assigned to this region that are not in the new list
+            await supabase
+                .from('shops')
+                .update({ region_id: null })
+                .eq('region_id', targetRegionId)
+                .not('id', 'in', targetShopIds.length > 0 ? `(${targetShopIds.join(',')})` : '(0)');
+        }
+
+        // Assign selected shops to this region
+        if (targetShopIds.length > 0) {
+            const { error: assignError } = await supabase
+                .from('shops')
+                .update({ region_id: targetRegionId })
+                .in('id', targetShopIds);
+            if (assignError) throw assignError;
+        }
+
+        res.json({ success: true, message: 'Shops assigned to region successfully' });
+    } catch (error) {
+        console.error('Error assigning shops to region:', error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+});
+
+// Get all assigned regional admins with region details and live vendor list
 router.get('/assigned-admins', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     try {
         const { data: mappings, error: mapError } = await supabase
@@ -226,36 +259,42 @@ router.get('/assigned-admins', authenticateUser, verifyRole(['super_admin', 'adm
         const regionIds = [...new Set(mappings.map(m => m.region_id))];
 
         const [usersRes, regionsRes, shopsRes] = await Promise.all([
-            supabase.from('customers').select('id, name, email, role').in('id', adminIds),
+            supabase.from('customers').select('id, name, email, role, shop_id').in('id', adminIds),
             supabase.from('regions').select('id, name, code, currency_code').in('id', regionIds),
-            supabase.from('shops').select('id, name, region_id')
+            supabase.from('shops').select('id, name, region_id, status, images, address, phone')
         ]);
 
         const usersMap = new Map((usersRes.data || []).map(u => [u.id, u]));
         const regionsMap = new Map((regionsRes.data || []).map(r => [r.id, r]));
 
-        // Calculate vendor counts per region
-        const regionVendorCount = {};
+        // Group shops by region
+        const regionShopsMap = {};
         (shopsRes.data || []).forEach(shop => {
             if (shop.region_id) {
-                regionVendorCount[shop.region_id] = (regionVendorCount[shop.region_id] || 0) + 1;
+                if (!regionShopsMap[shop.region_id]) {
+                    regionShopsMap[shop.region_id] = [];
+                }
+                regionShopsMap[shop.region_id].push(shop);
             }
         });
 
         const result = mappings.map(m => {
             const user = usersMap.get(m.admin_id) || { name: 'Unknown User', email: '' };
             const region = regionsMap.get(m.region_id) || { name: 'Unknown Region', code: '', currency_code: '' };
+            const shopsInRegion = regionShopsMap[m.region_id] || [];
             return {
                 id: `${m.admin_id}-${m.region_id}`,
                 admin_id: m.admin_id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                shop_id: user.shop_id,
                 region_id: m.region_id,
                 region_name: region.name,
                 region_code: region.code,
                 currency_code: region.currency_code,
-                vendor_count: regionVendorCount[m.region_id] || 0,
+                vendor_count: shopsInRegion.length,
+                shops: shopsInRegion,
                 assigned_at: m.created_at
             };
         });
