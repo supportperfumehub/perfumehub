@@ -15,6 +15,7 @@ const PromotionBar = () => {
     ], [t]);
 
     const [dbBanners, setDbBanners] = useState([]);
+    const [loaded, setLoaded] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -23,12 +24,13 @@ const PromotionBar = () => {
         const fetchTopBanners = async () => {
             try {
                 const res = await api.get('/banners?type=top_banner&active=true');
-                if (Array.isArray(res.data) && res.data.length > 0) {
+                if (Array.isArray(res.data)) {
                     setDbBanners(res.data);
                 }
             } catch (err) {
-                // Silently fallback to default coupons
-                console.warn('Could not fetch dynamic top banners, using defaults');
+                console.warn('Could not fetch dynamic top banners:', err);
+            } finally {
+                setLoaded(true);
             }
         };
 
@@ -43,7 +45,7 @@ const PromotionBar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const activeList = dbBanners.length > 0 ? dbBanners : defaultCoupons;
+    const activeList = loaded ? dbBanners : defaultCoupons;
 
     useEffect(() => {
         if (activeList.length <= 1) return;
@@ -58,6 +60,11 @@ const PromotionBar = () => {
 
         return () => clearInterval(interval);
     }, [activeList.length]);
+
+    // If loaded and no active banners exist, completely hide the top promotion bar
+    if (loaded && activeList.length === 0) {
+        return null;
+    }
 
     const currentBanner = activeList[currentIndex] || activeList[0];
     if (!currentBanner) return null;

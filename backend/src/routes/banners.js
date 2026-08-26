@@ -4,8 +4,7 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Fallback in-memory / cache store in case table doesn't exist yet
-let fallbackBanners = [
+const INITIAL_DEFAULT_BANNERS = [
     {
         id: 'top-banner-1',
         type: 'top_banner',
@@ -44,50 +43,80 @@ let fallbackBanners = [
     }
 ];
 
+let inMemoryBanners = null;
+
+// Helper to fetch persistent banners from system_settings
+const getBannersFromDB = async () => {
+    try {
+        const { data, error } = await supabase
+            .from('system_settings')
+            .select('*')
+            .eq('key', 'site_banners')
+            .maybeSingle();
+
+        if (data && Array.isArray(data.value)) {
+            inMemoryBanners = data.value;
+            return data.value;
+        }
+
+        // If key not found yet in system_settings, initialize it with default banners
+        if (!data) {
+            inMemoryBanners = [...INITIAL_DEFAULT_BANNERS];
+            await supabase
+                .from('system_settings')
+                .upsert({
+                    key: 'site_banners',
+                    value: inMemoryBanners,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'key' });
+            return inMemoryBanners;
+        }
+
+        return inMemoryBanners || INITIAL_DEFAULT_BANNERS;
+    } catch (err) {
+        console.warn('Error reading site_banners from system_settings:', err.message);
+        return inMemoryBanners || INITIAL_DEFAULT_BANNERS;
+    }
+};
+
+// Helper to save banners to system_settings
+const saveBannersToDB = async (bannersList) => {
+    inMemoryBanners = bannersList;
+    try {
+        await supabase
+            .from('system_settings')
+            .upsert({
+                key: 'site_banners',
+                value: bannersList,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'key' });
+    } catch (err) {
+        console.warn('Error saving site_banners to system_settings:', err.message);
+    }
+};
+
 // 1. Get all banners (Public / Filterable)
 router.get('/', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const { type, active } = req.query;
 
     try {
-        let query = supabase.from('site_banners').select('*');
+        const allBanners = await getBannersFromDB();
+        let filtered = [...allBanners];
 
         if (type) {
-            query = query.eq('type', type);
+            filtered = filtered.filter(b => (b.type || 'top_banner') === type);
         }
         if (active === 'true') {
-            query = query.eq('is_active', true);
+            filtered = filtered.filter(b => b.is_active);
         }
 
-        query = query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
+        filtered.sort((a, b) => (a.display_order || 1) - (b.display_order || 1));
 
-        const { data, error } = await query;
-
-        if (error) {
-            console.warn('site_banners query error, falling back to local store:', error.message);
-            // Fallback filtering
-            let filtered = [...fallbackBanners];
-            if (type) {
-                filtered = filtered.filter(b => b.type === type);
-            }
-            if (active === 'true') {
-                filtered = filtered.filter(b => b.is_active);
-            }
-            return res.json(filtered);
-        }
-
-        if (!data || data.length === 0) {
-            // If table exists but is empty, return fallback top banners
-            if (type === 'top_banner' || !type) {
-                return res.json(fallbackBanners.filter(b => !type || b.type === type));
-            }
-            return res.json([]);
-        }
-
-        res.json(data);
+        res.json(filtered);
     } catch (err) {
         console.error('Error fetching banners:', err);
-        res.json(fallbackBanners.filter(b => !type || b.type === type));
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -111,6 +140,7 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'admin']), async (
     }
 
     const newBanner = {
+        id: `banner-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         title_en: title_en || title_ar,
         title_ar: title_ar || title_en,
         type,
@@ -126,50 +156,38 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'admin']), async (
     };
 
     try {
-        const { data, error } = await supabase
-            .from('site_banners')
-            .insert([newBanner])
-            .select();
+        const currentList = await getBannersFromDB();
+        const updatedList = [newBanner, ...currentList];
+        await saveBannersToDB(updatedList);
 
-        if (error) {
-            console.warn('DB insert error into site_banners, saving to fallback cache:', error.message);
-            const fallbackItem = { ...newBanner, id: `banner-${Date.now()}` };
-            fallbackBanners.unshift(fallbackItem);
-            return res.status(201).json(fallbackItem);
-        }
-
-        res.status(201).json(data ? data[0] : newBanner);
+        res.status(201).json(newBanner);
     } catch (err) {
         console.error('Error creating banner:', err);
-        const fallbackItem = { ...newBanner, id: `banner-${Date.now()}` };
-        fallbackBanners.unshift(fallbackItem);
-        res.status(201).json(fallbackItem);
+        res.status(500).json({ error: err.message });
     }
 });
 
 // 3. Update existing banner (Super Admin Only)
 router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    const updates = req.body || {};
 
     try {
-        const { data, error } = await supabase
-            .from('site_banners')
-            .update(updates)
-            .eq('id', id)
-            .select();
+        const currentList = await getBannersFromDB();
+        const idx = currentList.findIndex(b => String(b.id) === String(id));
 
-        if (error) {
-            console.warn('DB update error on site_banners, updating fallback cache:', error.message);
-            const idx = fallbackBanners.findIndex(b => String(b.id) === String(id));
-            if (idx !== -1) {
-                fallbackBanners[idx] = { ...fallbackBanners[idx], ...updates };
-                return res.json(fallbackBanners[idx]);
-            }
+        if (idx === -1) {
             return res.status(404).json({ error: 'Banner not found' });
         }
 
-        res.json(data ? data[0] : updates);
+        currentList[idx] = {
+            ...currentList[idx],
+            ...updates,
+            updated_at: new Date().toISOString()
+        };
+
+        await saveBannersToDB(currentList);
+        res.json(currentList[idx]);
     } catch (err) {
         console.error('Error updating banner:', err);
         res.status(500).json({ error: err.message });
@@ -182,22 +200,18 @@ router.patch('/:id/toggle', authenticateUser, verifyRole(['super_admin', 'admin'
     const { is_active } = req.body;
 
     try {
-        const { data, error } = await supabase
-            .from('site_banners')
-            .update({ is_active, updated_at: new Date().toISOString() })
-            .eq('id', id)
-            .select();
+        const currentList = await getBannersFromDB();
+        const idx = currentList.findIndex(b => String(b.id) === String(id));
 
-        if (error) {
-            const idx = fallbackBanners.findIndex(b => String(b.id) === String(id));
-            if (idx !== -1) {
-                fallbackBanners[idx].is_active = is_active;
-                return res.json(fallbackBanners[idx]);
-            }
+        if (idx === -1) {
             return res.status(404).json({ error: 'Banner not found' });
         }
 
-        res.json(data ? data[0] : { id, is_active });
+        currentList[idx].is_active = is_active;
+        currentList[idx].updated_at = new Date().toISOString();
+
+        await saveBannersToDB(currentList);
+        res.json(currentList[idx]);
     } catch (err) {
         console.error('Error toggling banner status:', err);
         res.status(500).json({ error: err.message });
@@ -209,17 +223,10 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), as
     const { id } = req.params;
 
     try {
-        const { error } = await supabase
-            .from('site_banners')
-            .delete()
-            .eq('id', id);
+        const currentList = await getBannersFromDB();
+        const filteredList = currentList.filter(b => String(b.id) !== String(id));
 
-        if (error) {
-            fallbackBanners = fallbackBanners.filter(b => String(b.id) !== String(id));
-            return res.json({ success: true, message: 'Banner deleted from cache' });
-        }
-
-        fallbackBanners = fallbackBanners.filter(b => String(b.id) !== String(id));
+        await saveBannersToDB(filteredList);
         res.json({ success: true, message: 'Banner deleted successfully' });
     } catch (err) {
         console.error('Error deleting banner:', err);
