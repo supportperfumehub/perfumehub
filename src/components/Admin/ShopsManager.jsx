@@ -973,8 +973,8 @@ const ShopsManager = ({ isRTL }) => {
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label className="form-label">{isRTL ? 'المنطقة' : 'Region (Optional)'}</label>
                                 <select className="form-control" value={formData.region_id} onChange={(e) => setFormData({...formData, region_id: e.target.value})}>
-                                    <option value="">{isRTL ? '-- لا يوجد منطقة محددة --' : '-- No Region Assigned --'}</option>
-                                    {regions.filter(r => user?.role === 'super_admin' || user?.role === 'admin' || user?.assignedRegionIds?.includes(r.id)).map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
+                                    <option value="" style={{ background: '#0f172a', color: '#94a3b8' }}>{isRTL ? '-- لا يوجد منطقة محددة --' : '-- No Region Assigned --'}</option>
+                                    {regions.filter(r => user?.role === 'super_admin' || user?.role === 'admin' || user?.assignedRegionIds?.includes(r.id)).map(r => <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc' }}>{r.name} ({r.code})</option>)}
                                 </select>
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
@@ -1158,22 +1158,24 @@ const ShopsManager = ({ isRTL }) => {
                                         value={shop.region_id || ''}
                                         onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
                                         style={{
-                                            background: shop.region_id ? 'rgba(200, 169, 81, 0.12)' : 'rgba(245, 158, 11, 0.18)',
-                                            border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid rgba(245, 158, 11, 0.7)',
-                                            color: shop.region_id ? '#f8fafc' : '#fcd34d',
+                                            background: shop.region_id ? '#1e293b' : 'rgba(234, 179, 8, 0.12)',
+                                            border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #facc15',
+                                            color: shop.region_id ? '#f8fafc' : '#facc15',
                                             padding: isMobile ? '4px 8px' : '5px 12px',
                                             borderRadius: '8px',
-                                            fontSize: isMobile ? '0.72rem' : '0.8rem',
+                                            fontSize: isMobile ? '0.75rem' : '0.82rem',
                                             fontWeight: '700',
                                             cursor: 'pointer',
                                             outline: 'none',
-                                            boxShadow: !shop.region_id ? '0 0 8px rgba(245, 158, 11, 0.25)' : 'none'
+                                            boxShadow: !shop.region_id ? '0 0 10px rgba(234, 179, 8, 0.25)' : 'none'
                                         }}
                                         title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
                                     >
-                                        <option value="">{isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}</option>
+                                        <option value="" style={{ background: '#0f172a', color: '#facc15', fontWeight: '700' }}>
+                                            {isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}
+                                        </option>
                                         {regions.map(r => (
-                                            <option key={r.id} value={r.id}>
+                                            <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc', fontWeight: '600' }}>
                                                 {r.name} ({r.code})
                                             </option>
                                         ))}
@@ -1239,17 +1241,17 @@ const ShopsManager = ({ isRTL }) => {
                                             <div>
                                                 <label className="form-label">{isRTL ? 'الحالة' : 'Status'}</label>
                                                 <select className="form-control" value={editData.status || shop.status} onChange={(e) => setEditData({...editData, status: e.target.value})}>
-                                                    <option value="ACTIVE">{isRTL ? 'نشط / معتمد' : 'ACTIVE / Approved'}</option>
-                                                    <option value="PENDING">{isRTL ? 'قيد المراجعة' : 'PENDING'}</option>
-                                                    <option value="SUSPENDED">{isRTL ? 'موقوف' : 'SUSPENDED'}</option>
-                                                    <option value="REJECTED">{isRTL ? 'مرفوض' : 'REJECTED'}</option>
+                                                    <option value="ACTIVE" style={{ background: '#0f172a', color: '#4ade80' }}>{isRTL ? 'نشط / معتمد' : 'ACTIVE / Approved'}</option>
+                                                    <option value="PENDING" style={{ background: '#0f172a', color: '#facc15' }}>{isRTL ? 'قيد المراجعة' : 'PENDING'}</option>
+                                                    <option value="SUSPENDED" style={{ background: '#0f172a', color: '#f87171' }}>{isRTL ? 'موقوف' : 'SUSPENDED'}</option>
+                                                    <option value="REJECTED" style={{ background: '#0f172a', color: '#ef4444' }}>{isRTL ? 'مرفوض' : 'REJECTED'}</option>
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className="form-label">{isRTL ? 'حالة التوصية' : 'Recommendation'}</label>
                                                 <select className="form-control" value={editData.is_recommended ? 'true' : 'false'} onChange={(e) => setEditData({...editData, is_recommended: e.target.value === 'true'})}>
-                                                    <option value="true">{isRTL ? 'متجر موصى به' : 'Recommended Shop'}</option>
-                                                    <option value="false">{isRTL ? 'عادي' : 'Normal'}</option>
+                                                    <option value="true" style={{ background: '#0f172a', color: '#c8a951' }}>{isRTL ? 'متجر موصى به' : 'Recommended Shop'}</option>
+                                                    <option value="false" style={{ background: '#0f172a', color: '#cbd5e1' }}>{isRTL ? 'عادي' : 'Normal'}</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -1271,8 +1273,8 @@ const ShopsManager = ({ isRTL }) => {
                                             <div style={{ gridColumn: '1 / -1' }}>
                                                 <label className="form-label">{isRTL ? 'المنطقة' : 'Region'}</label>
                                                 <select className="form-control" value={editData.region_id || ''} onChange={(e) => setEditData({...editData, region_id: e.target.value})}>
-                                                    <option value="">{isRTL ? '-- غير محدد --' : '-- Unassigned --'}</option>
-                                                    {regions.map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
+                                                    <option value="" style={{ background: '#0f172a', color: '#94a3b8' }}>{isRTL ? '-- غير محدد --' : '-- Unassigned --'}</option>
+                                                    {regions.map(r => <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc' }}>{r.name} ({r.code})</option>)}
                                                 </select>
                                             </div>
                                             <div style={{ gridColumn: '1 / -1' }}>
