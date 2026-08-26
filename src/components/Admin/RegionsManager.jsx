@@ -630,12 +630,35 @@ const RegionsManager = ({ isRTL }) => {
                                         </td>
                                         <td>
                                             <button 
-                                                className="admin-action-btn delete-btn" 
                                                 onClick={() => handleUnassignClick(item)} 
-                                                title={isRTL ? 'إلغاء تعيين المشرف' : 'Unassign Regional Admin'}
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', height: 'auto', fontSize: '0.8rem', borderRadius: '6px' }}
+                                                title={isRTL ? 'إلغاء تعيين المشرف الإقليمي' : 'Unassign Regional Admin'}
+                                                style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '6px', 
+                                                    padding: '6px 14px', 
+                                                    height: '32px', 
+                                                    width: 'auto',
+                                                    fontSize: '0.8rem', 
+                                                    fontWeight: '600',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid rgba(239, 68, 68, 0.45)',
+                                                    background: 'rgba(239, 68, 68, 0.15)',
+                                                    color: '#fca5a5',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.35)';
+                                                    e.currentTarget.style.color = '#ffffff';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                                    e.currentTarget.style.color = '#fca5a5';
+                                                }}
                                             >
-                                                <Trash2 size={14} />
+                                                <UserMinus size={14} />
                                                 <span>{isRTL ? 'فك الارتباط' : 'Unassign'}</span>
                                             </button>
                                         </td>
