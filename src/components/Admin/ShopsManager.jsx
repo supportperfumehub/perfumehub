@@ -1150,58 +1150,47 @@ const ShopsManager = ({ isRTL }) => {
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
+                                    {shop.customers?.role === 'regional_admin' && (
+                                        <span style={{ background: 'linear-gradient(135deg, #c8a951, #ebb637)', color: '#000', fontSize: '0.65rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>
+                                            RA Owner
+                                        </span>
+                                    )}
                                 </div>
-                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>{shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}</div>
+                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                                    {shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}
+                                </div>
                             </div>
                             {!isMobile && shop.address && (<div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', background: 'rgba(15, 23, 42, 0.6)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(51, 65, 85, 0.5)' }}><MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}</div>)}
                             
                             {/* Region Assigner for Super Admin / Admin or Region Badge for Regional Admin */}
                             <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                 {(user?.role === 'super_admin' || user?.role === 'admin') ? (
-                                    <>
-                                        <select
-                                            value={shop.region_id || ''}
-                                            onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
-                                            style={{
-                                                background: shop.region_id ? '#1e293b' : 'rgba(234, 179, 8, 0.12)',
-                                                border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #facc15',
-                                                color: shop.region_id ? '#f8fafc' : '#facc15',
-                                                padding: isMobile ? '4px 8px' : '5px 12px',
-                                                borderRadius: '8px',
-                                                fontSize: isMobile ? '0.75rem' : '0.82rem',
-                                                fontWeight: '700',
-                                                cursor: 'pointer',
-                                                outline: 'none',
-                                                boxShadow: !shop.region_id ? '0 0 10px rgba(234, 179, 8, 0.25)' : 'none'
-                                            }}
-                                            title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
-                                        >
-                                            <option value="" style={{ background: '#0f172a', color: '#facc15', fontWeight: '700' }}>
-                                                {isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}
+                                    <select
+                                        value={shop.region_id || ''}
+                                        onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
+                                        style={{
+                                            background: shop.region_id ? '#1e293b' : 'rgba(234, 179, 8, 0.12)',
+                                            border: shop.region_id ? '1px solid rgba(200, 169, 81, 0.45)' : '1px solid #facc15',
+                                            color: shop.region_id ? '#f8fafc' : '#facc15',
+                                            padding: isMobile ? '4px 8px' : '5px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: isMobile ? '0.75rem' : '0.82rem',
+                                            fontWeight: '700',
+                                            cursor: 'pointer',
+                                            outline: 'none',
+                                            boxShadow: !shop.region_id ? '0 0 10px rgba(234, 179, 8, 0.25)' : 'none'
+                                        }}
+                                        title={isRTL ? 'تعيين / تغيير منطقة المتجر' : 'Assign / Change Region'}
+                                    >
+                                        <option value="" style={{ background: '#0f172a', color: '#facc15', fontWeight: '700' }}>
+                                            {isRTL ? '⚠️ بدون منطقة' : '⚠️ No Region'}
+                                        </option>
+                                        {regions.map(r => (
+                                            <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc', fontWeight: '600' }}>
+                                                {r.name} ({r.code})
                                             </option>
-                                            {regions.map(r => (
-                                                <option key={r.id} value={r.id} style={{ background: '#0f172a', color: '#f8fafc', fontWeight: '600' }}>
-                                                    {r.name} ({r.code})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {assignedAdmins.find(a => String(a.region_id) === String(shop.region_id)) && (
-                                            <span style={{ 
-                                                background: 'rgba(200, 169, 81, 0.12)', 
-                                                border: '1px solid rgba(200, 169, 81, 0.3)', 
-                                                color: '#fcd34d', 
-                                                fontSize: '0.72rem', 
-                                                fontWeight: '700', 
-                                                padding: '3px 8px', 
-                                                borderRadius: '6px',
-                                                display: isMobile ? 'none' : 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px'
-                                            }}>
-                                                RA: {assignedAdmins.find(a => String(a.region_id) === String(shop.region_id)).name}
-                                            </span>
-                                        )}
-                                    </>
+                                        ))}
+                                    </select>
                                 ) : (
                                     <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
                                         {regions.find(r => r.id === shop.region_id)?.name || 'Region'} ({regions.find(r => r.id === shop.region_id)?.code || 'RA'})
