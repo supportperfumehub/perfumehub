@@ -10,10 +10,12 @@ import ShopsManager from '../../components/Admin/ShopsManager';
 import RegionsManager from '../../components/Admin/RegionsManager';
 import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import SettingsManager from '../../components/Admin/SettingsManager';
+import BannersManager from '../../components/Admin/BannersManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon
+    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
+    Megaphone
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
@@ -103,6 +105,7 @@ const Admin = () => {
             { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
             { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
             { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
+            { id: 'banners', label: isRTL ? 'البانرات' : 'Banners', icon: <Megaphone size={20} /> },
         ] : []),
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
@@ -249,6 +252,7 @@ const Admin = () => {
                     {isSuperAdmin && activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}

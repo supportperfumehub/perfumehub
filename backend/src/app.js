@@ -24,6 +24,7 @@ import recommendationRoutes from './routes/recommendations.js';
 import reservationsRoutes from './routes/reservations.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscriptions.js';
+import bannersRoutes from './routes/banners.js';
 
 dotenv.config();
 
@@ -137,6 +138,7 @@ apiRouter.use('/recommendations', recommendationRoutes);
 apiRouter.use('/reservations', reservationsRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/subscriptions', subscriptionRoutes);
+apiRouter.use('/banners', bannersRoutes);
 
 // Root health check endpoint
 app.get('/health', async (req, res) => {
