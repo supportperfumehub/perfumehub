@@ -71,7 +71,14 @@ const RegionsManager = ({ isRTL }) => {
                     'x-user-id': user?.id
                 }
             });
-            setUsers(res.data || []);
+            const allUsers = res.data || [];
+            // Filter to only show Vendors and Admins (exclude retail customers)
+            const adminAndVendors = allUsers.filter(u => 
+                u.role === 'vendor' || 
+                u.role === 'admin' || 
+                u.role === 'regional_admin'
+            );
+            setUsers(adminAndVendors);
         } catch (err) {
             console.error('Fetch users error:', err);
         }
