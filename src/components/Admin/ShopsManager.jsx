@@ -1140,6 +1140,9 @@ const ShopsManager = ({ isRTL }) => {
             {filteredShops.map(shop => {
                 const isExpanded = expandedShop === shop.id;
                 const analytics = isExpanded ? getShopAnalytics(shop) : null;
+                const isOwnerRA = shop.customers?.role === 'regional_admin' || assignedAdmins.some(a => a.admin_id === shop.customer_id || (shop.customers?.email && a.email === shop.customers.email));
+                const raMapping = assignedAdmins.find(a => a.admin_id === shop.customer_id || (shop.customers?.email && a.email === shop.customers.email));
+                const shopRegion = regions.find(r => r.id === (raMapping ? raMapping.region_id : shop.region_id));
 
                 return (
                     <div key={shop.id} style={{ marginBottom: '14px', border: isApprovedOrActive(shop.status) ? '1px solid #334155' : (isPending(shop.status) ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid rgba(239, 68, 68, 0.3)'), borderRadius: '12px', overflow: 'hidden', background: '#1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
@@ -1150,11 +1153,6 @@ const ShopsManager = ({ isRTL }) => {
                             <div style={{ flex: 1, minWidth: '150px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</div>
-                                    {shop.customers?.role === 'regional_admin' && (
-                                        <span style={{ background: 'linear-gradient(135deg, #c8a951, #ebb637)', color: '#000', fontSize: '0.65rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>
-                                            RA Owner
-                                        </span>
-                                    )}
                                 </div>
                                 <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
                                     {shop.customers?.name || 'Vendor Admin'} {shop.customers?.email ? `· ${shop.customers.email}` : ''}
@@ -1162,9 +1160,29 @@ const ShopsManager = ({ isRTL }) => {
                             </div>
                             {!isMobile && shop.address && (<div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', background: 'rgba(15, 23, 42, 0.6)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(51, 65, 85, 0.5)' }}><MapPin size={14} color="#c8a951" /> {shop.address?.substring(0, 35)}{shop.address?.length > 35 ? '...' : ''}</div>)}
                             
-                            {/* Region Assigner for Super Admin / Admin or Region Badge for Regional Admin */}
+                            {/* Regional Admin Status Badge vs Super Admin Region Selector */}
                             <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                {(user?.role === 'super_admin' || user?.role === 'admin') ? (
+                                {isOwnerRA ? (
+                                    <span 
+                                        style={{ 
+                                            background: 'linear-gradient(135deg, rgba(200, 169, 81, 0.22) 0%, rgba(234, 179, 8, 0.12) 100%)',
+                                            border: '1px solid rgba(200, 169, 81, 0.55)',
+                                            color: '#facc15',
+                                            padding: isMobile ? '4px 10px' : '5px 14px',
+                                            borderRadius: '8px',
+                                            fontSize: isMobile ? '0.75rem' : '0.82rem',
+                                            fontWeight: '800',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            boxShadow: '0 0 10px rgba(200, 169, 81, 0.15)'
+                                        }}
+                                        title={isRTL ? `المشرف الإقليمي لمنطقة ${shopRegion?.name || ''}` : `Regional Admin for ${shopRegion?.name || ''}`}
+                                    >
+                                        <ShieldCheck size={15} color="#facc15" />
+                                        <span>RA: {shop.customers?.name || 'Regional Admin'} {shopRegion ? `(${shopRegion.name})` : ''}</span>
+                                    </span>
+                                ) : (user?.role === 'super_admin' || user?.role === 'admin') ? (
                                     <select
                                         value={shop.region_id || ''}
                                         onChange={(e) => handleAssignShopRegion(shop.id, e.target.value)}
@@ -1193,7 +1211,7 @@ const ShopsManager = ({ isRTL }) => {
                                     </select>
                                 ) : (
                                     <span className="badge code" style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
-                                        {regions.find(r => r.id === shop.region_id)?.name || 'Region'} ({regions.find(r => r.id === shop.region_id)?.code || 'RA'})
+                                        {shopRegion?.name || 'Region'} ({shopRegion?.code || 'RA'})
                                     </span>
                                 )}
                             </div>
