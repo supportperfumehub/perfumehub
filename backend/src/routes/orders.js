@@ -35,20 +35,49 @@ router.get('/', authenticateUser, async (req, res) => {
                     return res.json([]);
                 }
             } else if (req.user.role === 'vendor') {
-                if (!req.user.shop_id) return res.status(403).json({ error: 'Forbidden: No shop assigned' });
-                // NEW: Vendors fetch their specific sub-orders for multi-vendor fulfillment
+                // Fetch all shops owned by this vendor
+                const { data: vendorShops } = await supabase
+                    .from('shops')
+                    .select('id, name')
+                    .eq('owner_id', req.user.id);
+                
+                let ownedShopIds = vendorShops ? vendorShops.map(s => s.id) : [];
+                if (req.user.shop_id && !ownedShopIds.includes(req.user.shop_id)) {
+                    ownedShopIds.push(req.user.shop_id);
+                }
+
+                if (ownedShopIds.length === 0) {
+                    return res.json([]);
+                }
+
+                let targetShopIds = ownedShopIds;
+                if (req.query.shop_id && req.query.shop_id !== 'all') {
+                    if (ownedShopIds.includes(req.query.shop_id)) {
+                        targetShopIds = [req.query.shop_id];
+                    } else {
+                        return res.status(403).json({ error: 'Forbidden: You do not own this shop' });
+                    }
+                }
+
+                // Fetch specific sub-orders for multi-vendor fulfillment
                 const { data: subOrders, error: subError } = await supabase
                     .from('sub_orders')
                     .select('*, orders(*)')
-                    .eq('shop_id', req.user.shop_id)
+                    .in('shop_id', targetShopIds)
                     .order('created_at', { ascending: false });
                 
                 if (subError) throw subError;
+
+                const shopNameMap = {};
+                (vendorShops || []).forEach(s => { shopNameMap[s.id] = s.name; });
+
                 return res.json(subOrders.map(so => ({
                     ...so.orders,
                     id: so.parent_order_id,
                     sub_order_id: so.id,
-                    status: so.status, // Use the sub-order specific status
+                    shop_id: so.shop_id,
+                    shop_name: shopNameMap[so.shop_id] || 'Branch',
+                    status: so.status,
                     subtotal: so.subtotal,
                     total: so.total_amount
                 })));

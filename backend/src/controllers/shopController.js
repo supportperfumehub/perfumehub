@@ -94,6 +94,37 @@ export class ShopController {
     };
 
     /**
+     * GET /api/shops/my-shops
+     */
+    getMyShops = async (req, res, next) => {
+        try {
+            const user = req.user;
+            if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+            const shops = await this.shopService.getMyShops(user);
+            res.status(200).json({ success: true, shops: shops || [] });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/shops/create-branch
+     */
+    createBranch = async (req, res, next) => {
+        try {
+            const user = req.user;
+            if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+            if (user.role !== 'vendor' && user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'regional_admin') {
+                return res.status(403).json({ success: false, error: 'Forbidden' });
+            }
+            const shop = await this.shopService.createBranch(user, req.body);
+            res.status(201).json({ success: true, shop, message: 'Branch created successfully' });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
      * POST /api/shops/manual
      */
     registerManual = async (req, res, next) => {

@@ -25,8 +25,27 @@ router.get('/', async (req, res) => {
 
         // Apply RBAC filters
         if (admin && admin.role === 'vendor') {
-            if (!admin.shop_id) return res.status(403).json({ error: 'Forbidden: No shop assigned to this vendor.' });
-            shopIds = [admin.shop_id];
+            const { data: vendorShops } = await supabase
+                .from('shops')
+                .select('id')
+                .eq('owner_id', admin.id);
+            
+            let ownedShopIds = vendorShops ? vendorShops.map(s => s.id) : [];
+            if (admin.shop_id && !ownedShopIds.includes(admin.shop_id)) {
+                ownedShopIds.push(admin.shop_id);
+            }
+
+            if (ownedShopIds.length === 0) return res.json([]);
+
+            if (req.query.shop_id && req.query.shop_id !== 'all') {
+                if (ownedShopIds.includes(req.query.shop_id)) {
+                    shopIds = [req.query.shop_id];
+                } else {
+                    return res.status(403).json({ error: 'Forbidden: You do not own this shop.' });
+                }
+            } else {
+                shopIds = ownedShopIds;
+            }
         } else if (admin && admin.role === 'regional_admin') {
             const { data: shops } = await supabase
                 .from('shops')

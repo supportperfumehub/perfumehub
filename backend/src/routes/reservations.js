@@ -4,6 +4,13 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const checkVendorShopAccess = async (user, shopId) => {
+    if (!user || !shopId) return false;
+    if (user.shop_id && user.shop_id === shopId) return true;
+    const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', shopId).single();
+    return shop && shop.owner_id === user.id;
+};
+
 // Get reservations (Customer or Vendor)
 router.get('/', authenticateUser, async (req, res) => {
     try {
@@ -22,9 +29,27 @@ router.get('/', authenticateUser, async (req, res) => {
         if (user.role === 'customer') {
             query = query.eq('customer_id', user.id);
         } else if (user.role === 'vendor') {
-            // Vendors see reservations for their shop
-            if (!user.shop_id) return res.status(403).json({ error: 'No shop assigned.' });
-            query = query.eq('shop_id', user.shop_id);
+            const { data: vendorShops } = await supabase
+                .from('shops')
+                .select('id')
+                .eq('owner_id', user.id);
+            
+            let ownedShopIds = vendorShops ? vendorShops.map(s => s.id) : [];
+            if (user.shop_id && !ownedShopIds.includes(user.shop_id)) {
+                ownedShopIds.push(user.shop_id);
+            }
+
+            if (ownedShopIds.length === 0) return res.json([]);
+
+            if (req.query.shop_id && req.query.shop_id !== 'all') {
+                if (ownedShopIds.includes(req.query.shop_id)) {
+                    query = query.eq('shop_id', req.query.shop_id);
+                } else {
+                    return res.status(403).json({ error: 'Forbidden: You do not own this shop' });
+                }
+            } else {
+                query = query.in('shop_id', ownedShopIds);
+            }
         } else if (user.role === 'regional_admin' || user.role === 'super_admin') {
             // Admins can filter by shop
             if (req.query.shop_id) {
@@ -88,7 +113,8 @@ router.post('/:id/confirm', authenticateUser, verifyRole(['vendor', 'super_admin
         // Verify ownership
         if (user.role === 'vendor') {
             const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            if (!resv || resv.shop_id !== user.shop_id) {
+            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
+            if (!hasAccess) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         } else if (user.role === 'regional_admin') {
@@ -126,7 +152,8 @@ router.post('/:id/complete', authenticateUser, verifyRole(['vendor', 'super_admi
     try {
         if (user.role === 'vendor') {
             const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            if (!resv || resv.shop_id !== user.shop_id) {
+            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
+            if (!hasAccess) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         } else if (user.role === 'regional_admin') {
@@ -163,7 +190,10 @@ router.post('/:id/cancel', authenticateUser, async (req, res) => {
 
         // Customers can cancel their own, vendors can cancel their shop's
         if (user.role === 'customer' && resv.customer_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
-        if (user.role === 'vendor' && resv.shop_id !== user.shop_id) return res.status(403).json({ error: 'Forbidden' });
+        if (user.role === 'vendor') {
+            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
+            if (!hasAccess) return res.status(403).json({ error: 'Forbidden' });
+        }
         if (user.role === 'regional_admin') {
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
             if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {

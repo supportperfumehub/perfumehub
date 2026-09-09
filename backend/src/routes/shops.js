@@ -40,6 +40,8 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
 /**
  * Vendor/Shared Routes
  */
+router.get('/my-shops', authenticateUser, noCache, shopController.getMyShops);
+router.post('/create-branch', authenticateUser, shopController.createBranch);
 router.post('/', authenticateUser, shopController.register);
 router.put('/:id', authenticateUser, shopController.updateShop);
 

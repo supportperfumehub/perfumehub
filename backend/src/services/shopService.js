@@ -46,6 +46,39 @@ export class ShopService {
         return shop;
     }
 
+    async getMyShops(user) {
+        if (!user || !user.id) return [];
+        return this.shopRepository.findAll({ owner_id: user.id });
+    }
+
+    async createBranch(user, branchData) {
+        let { name, address, latitude, longitude, logo_url, whatsapp_number, images } = branchData;
+
+        if (logo_url && logo_url.startsWith('data:')) {
+            logo_url = await uploadImageToStorage(logo_url, name || 'branch_logo', 'shops');
+        }
+
+        const syncedImages = await syncImagesStorage([], images || (logo_url ? [logo_url] : []), name || 'branch', 'shops');
+
+        const shop = await this.shopRepository.create({
+            owner_id: user.id,
+            name,
+            address,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            logo_url: logo_url || (syncedImages[0] || null),
+            images: syncedImages,
+            whatsapp_number: whatsapp_number || null,
+            status: 'APPROVED'
+        });
+
+        if (!user.shop_id) {
+            await this.userRepository.update(user.id, { shop_id: shop.id });
+        }
+
+        return shop;
+    }
+
     async registerShopManual(data) {
         const { ownerName, ownerEmail, ownerPassword, shopName, address, whatsapp_number, images, is_recommended, adminCreated, reqUser } = data;
 

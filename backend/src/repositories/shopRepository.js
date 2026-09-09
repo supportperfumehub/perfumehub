@@ -24,6 +24,7 @@ export class ShopRepository {
             query = query.in('region_id', filters.region_ids);
         }
         if (filters.region_id) query = query.eq('region_id', filters.region_id);
+        if (filters.owner_id) query = query.eq('owner_id', filters.owner_id);
 
         const { data, error } = await withTimeout(query);
         if (error) throw error;

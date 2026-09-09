@@ -8,20 +8,42 @@ import ReservationManager from '../../components/Admin/ReservationManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
 import ConfirmModal from '../../components/Common/ConfirmModal';
 import '../Admin/Admin.css'; // Use the premium admin styles
-import { Store, Package as PackageIcon, Target, Settings, Save, Plus, X, Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone, Clock, Truck, Bell, MessageSquare, Shield } from 'lucide-react';
+import AddBranchModal from '../../components/Vendor/AddBranchModal';
+import { 
+    Store, Package as PackageIcon, Target, Settings, Save, Plus, X, 
+    Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, 
+    Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone, Clock, 
+    Truck, Bell, MessageSquare, Shield, Layers, ChevronDown, TrendingUp, 
+    DollarSign, Building2, Eye, ArrowUpRight
+} from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
     const { isRTL } = useOutletContext();
     const { user, isVendor } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
-    const shopId = user?.shop_id;
-    const [activeTab, setActiveTab] = useState(shopId ? 'products' : 'billing');
+    
+    // Multi-shop states
+    const [myShops, setMyShops] = useState([]);
+    const [selectedShopId, setSelectedShopId] = useState('all'); // 'all' for All-Round View or specific shop ID
+    const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+    const [isShopSwitcherOpen, setIsShopSwitcherOpen] = useState(false);
+    const [overviewStats, setOverviewStats] = useState({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        totalReservations: 0,
+        loading: false
+    });
+
+    const primaryShopId = user?.shop_id;
+    const effectiveShopId = selectedShopId === 'all' ? (primaryShopId || (myShops[0]?.id || null)) : selectedShopId;
+    const [activeTab, setActiveTab] = useState('overview'); // Default to All-Round Overview
     const [shopData, setShopData] = useState(null);
     const [savingSettings, setSavingSettings] = useState(false);
     const [vendorPrefs, setVendorPrefs] = useState(() => {
         try {
-            const saved = localStorage.getItem(`vendor_prefs_${shopId}`);
+            const saved = localStorage.getItem(`vendor_prefs_${effectiveShopId}`);
             return saved ? JSON.parse(saved) : {
                 isAcceptingOrders: true,
                 openTime: '09:00',
@@ -49,12 +71,6 @@ const VendorPanel = () => {
             };
         }
     });
-
-    useEffect(() => {
-        if (!shopId) {
-            setActiveTab('billing');
-        }
-    }, [shopId]);
 
     // Billing & Subscriptions state
     const [mySubscription, setMySubscription] = useState(null);
@@ -119,22 +135,95 @@ const VendorPanel = () => {
         }
     };
 
-    useEffect(() => {
-        if (shopId && activeTab === 'settings' && !shopData) {
-            api.get('/shops')
-                .then(response => {
-                    const data = response.data;
-                    const shopsList = Array.isArray(data) ? data : (data.shops || []);
-                    // Backend already filters the list to only return the vendor's own shop
-                    const myShop = shopsList[0];
-                    setShopData(myShop || {});
-                })
-                .catch(err => {
-                    console.error("Error fetching shop data:", err);
-                    setShopData({});
-                });
+    const fetchMyShops = async () => {
+        if (!user?.id) return;
+        try {
+            const res = await api.get('/shops/my-shops');
+            const list = res.data?.shops || [];
+            setMyShops(list);
+            if (list.length > 0) {
+                if (selectedShopId !== 'all') {
+                    const matched = list.find(s => String(s.id) === String(selectedShopId));
+                    setShopData(matched || list[0]);
+                } else {
+                    setShopData(list[0]);
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching my shops:", err);
         }
-    }, [shopId, activeTab, shopData, user]);
+    };
+
+    const fetchOverviewStats = async () => {
+        if (!user?.id) return;
+        try {
+            setOverviewStats(prev => ({ ...prev, loading: true }));
+            const [ordersRes, resvRes, invRes] = await Promise.all([
+                api.get('/orders?shop_id=all').catch(() => ({ data: [] })),
+                api.get('/reservations?shop_id=all').catch(() => ({ data: [] })),
+                api.get('/inventory?all=true').catch(() => ({ data: [] }))
+            ]);
+
+            const ordersList = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+            const resvList = Array.isArray(resvRes.data) ? resvRes.data : [];
+            const invList = Array.isArray(invRes.data) ? invRes.data : [];
+
+            const totalRev = ordersList.reduce((acc, o) => acc + (Number(o.total) || Number(o.total_amount) || 0), 0);
+
+            setOverviewStats({
+                totalRevenue: totalRev,
+                totalOrders: ordersList.length,
+                totalProducts: invList.length,
+                totalReservations: resvList.length,
+                loading: false
+            });
+        } catch (e) {
+            console.error("Error fetching overview stats:", e);
+            setOverviewStats(prev => ({ ...prev, loading: false }));
+        }
+    };
+
+    useEffect(() => {
+        fetchMyShops();
+        fetchOverviewStats();
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (selectedShopId !== 'all' && myShops.length > 0) {
+            const matched = myShops.find(s => String(s.id) === String(selectedShopId));
+            if (matched) setShopData(matched);
+        }
+    }, [selectedShopId, myShops]);
+
+    useEffect(() => {
+        const closeSwitcher = (e) => {
+            if (!e.target.closest('.vendor-shop-switcher-container')) {
+                setIsShopSwitcherOpen(false);
+            }
+        };
+        document.addEventListener('click', closeSwitcher);
+        return () => document.removeEventListener('click', closeSwitcher);
+    }, []);
+
+    const handleSelectShop = (id) => {
+        setSelectedShopId(id);
+        setIsShopSwitcherOpen(false);
+        if (id === 'all') {
+            if (myShops.length > 0) setShopData(myShops[0]);
+        } else {
+            const matched = myShops.find(s => String(s.id) === String(id));
+            if (matched) setShopData(matched);
+        }
+    };
+
+    const handleBranchCreated = (newShop) => {
+        showToast(isRTL ? 'تم إنشاء الفرع الجديد بنجاح!' : 'New branch created successfully!', 'success');
+        setMyShops(prev => [...prev, newShop]);
+        setSelectedShopId(newShop.id);
+        setShopData(newShop);
+        setActiveTab('settings');
+        fetchOverviewStats();
+    };
 
     // If somehow landed here without vendor/admin/regional_admin role (moved after hooks to prevent rules of hooks violation)
     if (!isVendor && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'regional_admin') {
@@ -272,18 +361,16 @@ const VendorPanel = () => {
     };
 
     const tabs = [
+        { id: 'overview', label: isRTL ? 'نظرة شاملة' : 'All-Round View', icon: <Layers size={20} /> },
         { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <PackageIcon size={20} /> },
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
-        { id: 'settings', label: isRTL ? 'إعدادات المتجر' : 'Shop Settings', icon: <Settings size={20} /> },
+        { id: 'settings', label: isRTL ? 'إعدادات الفرع' : 'Shop Settings', icon: <Settings size={20} /> },
         { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
     ];
 
-    const filteredTabs = shopId ? tabs : [
-        { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
-        { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
-    ];
+    const filteredTabs = tabs;
 
     return (
         <div className={`admin-dashboard vendor-panel-dashboard ${isRTL ? 'rtl' : 'ltr'}`}>
@@ -326,24 +413,440 @@ const VendorPanel = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="admin-topbar">
+                <header className="admin-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                     <div className="welcome-text">
                         <h1>
                             {isRTL ? 'مرحباً، ' : 'Welcome back, '}
                             <span className="gold-gradient-text">
-                                {shopData?.name || user?.name || (isRTL ? 'المتجر' : 'Shop')}
+                                {selectedShopId === 'all' 
+                                    ? (user?.name || (isRTL ? 'المالك' : 'Vendor'))
+                                    : (shopData?.name || user?.name || (isRTL ? 'المتجر' : 'Shop'))}
                             </span>
                         </h1>
-                        <p>{isRTL ? 'إليك نظرة عامة على عمليات ومنتجات متجرك اليوم.' : "Manage your boutique products, reservations, and orders."}</p>
+                        <p>
+                            {selectedShopId === 'all' 
+                                ? (isRTL ? 'عرض النظرة الشاملة المجمعة لجميع الفروع والعمليات.' : "All-Round consolidated view across all your boutique branches.") 
+                                : (isRTL ? 'إليك نظرة عامة على عمليات ومنتجات هذا الفرع.' : `Managing operations for ${shopData?.name || 'this branch'}.`)}
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        {/* Shop Switcher Dropdown */}
+                        <div className="vendor-shop-switcher-container" style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setIsShopSwitcherOpen(prev => !prev); }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '9px 16px',
+                                    background: 'rgba(212, 175, 55, 0.12)',
+                                    border: '1px solid rgba(212, 175, 55, 0.35)',
+                                    borderRadius: '10px',
+                                    color: '#f8fafc',
+                                    fontSize: '0.88rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {selectedShopId === 'all' ? (
+                                    <>
+                                        <span style={{ fontSize: '1rem' }}>🌐</span>
+                                        <span>{isRTL ? 'جميع الفروع (نظرة شاملة)' : 'All Shops (All-Round)'}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span style={{ fontSize: '1rem' }}>🏬</span>
+                                        <span>{myShops.find(s => String(s.id) === String(selectedShopId))?.name || (isRTL ? 'المتجر' : 'Shop')}</span>
+                                    </>
+                                )}
+                                <ChevronDown size={14} style={{ transform: isShopSwitcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </button>
+
+                            {isShopSwitcherOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '115%',
+                                    [isRTL ? 'left' : 'right']: 0,
+                                    width: '280px',
+                                    background: '#18181b',
+                                    border: '1px solid rgba(212, 175, 55, 0.3)',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 12px 32px rgba(0,0,0,0.8)',
+                                    zIndex: 999,
+                                    padding: '8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px'
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectShop('all')}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '10px 12px',
+                                            background: selectedShopId === 'all' ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                                            border: selectedShopId === 'all' ? '1px solid rgba(212, 175, 55, 0.4)' : 'none',
+                                            borderRadius: '8px',
+                                            color: selectedShopId === 'all' ? '#d4af37' : '#e2e8f0',
+                                            cursor: 'pointer',
+                                            textAlign: isRTL ? 'right' : 'left',
+                                            fontSize: '0.86rem',
+                                            fontWeight: '600'
+                                        }}
+                                    >
+                                        <span>🌐</span>
+                                        <span>{isRTL ? 'جميع الفروع (نظرة شاملة)' : 'All Shops (All-Round View)'}</span>
+                                    </button>
+
+                                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+
+                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', padding: '2px 8px', fontWeight: 'bold' }}>
+                                        {isRTL ? 'فروع ومتاجر حسابك:' : 'YOUR BOUTIQUE BRANCHES:'}
+                                    </div>
+
+                                    {myShops.map(shop => (
+                                        <button
+                                            key={shop.id}
+                                            type="button"
+                                            onClick={() => handleSelectShop(shop.id)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '8px',
+                                                padding: '8px 12px',
+                                                background: String(selectedShopId) === String(shop.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                                                border: String(selectedShopId) === String(shop.id) ? '1px solid rgba(212, 175, 55, 0.4)' : 'none',
+                                                borderRadius: '8px',
+                                                color: String(selectedShopId) === String(shop.id) ? '#d4af37' : '#e2e8f0',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                fontSize: '0.84rem'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                                                <span>🏬</span>
+                                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }}>
+                                                    {shop.name}
+                                                </span>
+                                            </div>
+                                            {String(selectedShopId) === String(shop.id) && <CheckCircle size={14} color="#d4af37" />}
+                                        </button>
+                                    ))}
+
+                                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsShopSwitcherOpen(false); setIsBranchModalOpen(true); }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            padding: '9px 12px',
+                                            background: 'rgba(212, 175, 55, 0.1)',
+                                            border: '1px dashed var(--color-gold, #d4af37)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-gold, #d4af37)',
+                                            cursor: 'pointer',
+                                            fontSize: '0.84rem',
+                                            fontWeight: '700'
+                                        }}
+                                    >
+                                        <Plus size={14} />
+                                        <span>{isRTL ? 'إضافة فرع جديد' : 'Add New Branch'}</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Add Branch Action Button */}
+                        <button
+                            type="button"
+                            onClick={() => setIsBranchModalOpen(true)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '9px 16px',
+                                background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                border: 'none',
+                                borderRadius: '10px',
+                                color: '#000',
+                                fontSize: '0.86rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.25)'
+                            }}
+                        >
+                            <Plus size={16} />
+                            <span>{isRTL ? 'فرع جديد' : 'New Branch'}</span>
+                        </button>
                     </div>
                 </header>
 
                 <div className="main-content-wrapper">
-                    {activeTab === 'products' && shopId && <ProductManager isRTL={isRTL} shopId={shopId} />}
-                    {activeTab === 'orders' && shopId && <OrderManager isRTL={isRTL} shopId={shopId} />}
-                    {activeTab === 'reservations' && shopId && <ReservationManager isRTL={isRTL} shopId={shopId} />}
+                    {/* 1. All-Round Overview Tab */}
+                    {activeTab === 'overview' && (
+                        <div className="vendor-overview-section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            {/* KPI Metrics Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(212, 175, 55, 0.25)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(212, 175, 55, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37' }}>
+                                        <TrendingUp size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'إجمالي المبيعات المجمعة' : 'Total Combined Sales'}</div>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc', marginTop: '2px' }}>
+                                            {Math.round(overviewStats.totalRevenue).toLocaleString()} {isRTL ? 'ر.ق' : 'QAR'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa' }}>
+                                        <Target size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'إجمالي طلبات الفروع' : 'Total Orders (All Branches)'}</div>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc', marginTop: '2px' }}>
+                                            {overviewStats.totalOrders}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399' }}>
+                                        <PackageIcon size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'المنتجات في المخزون' : 'Active Products in Stock'}</div>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc', marginTop: '2px' }}>
+                                            {overviewStats.totalProducts}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f472b6' }}>
+                                        <CalendarCheck size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{isRTL ? 'الحجوزات والاستلام' : 'In-Store Reservations'}</div>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc', marginTop: '2px' }}>
+                                            {overviewStats.totalReservations}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Branches Card Grid */}
+                            <div style={{ background: '#1e293b', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '24px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div>
+                                        <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Store size={20} color="#d4af37" />
+                                            {isRTL ? 'فروع ومتاجر حسابك' : 'Your Boutiques & Branches'}
+                                            <span style={{ fontSize: '0.8rem', background: 'rgba(212, 175, 55, 0.15)', color: '#d4af37', padding: '2px 8px', borderRadius: '12px' }}>
+                                                {myShops.length}
+                                            </span>
+                                        </h2>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                                            {isRTL ? 'إدارة كل فرع على حدة، وتعديل بياناته ومنتجاته وساعات عمله' : 'Manage each branch individually or switch to inspect specific catalog and orders'}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsBranchModalOpen(true)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '8px 14px',
+                                            background: 'rgba(212, 175, 55, 0.15)',
+                                            border: '1px solid rgba(212, 175, 55, 0.4)',
+                                            borderRadius: '8px',
+                                            color: '#d4af37',
+                                            fontSize: '0.84rem',
+                                            cursor: 'pointer',
+                                            fontWeight: '600'
+                                        }}
+                                    >
+                                        <Plus size={15} />
+                                        {isRTL ? 'إضافة فرع جديد' : 'Add New Branch'}
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                                    {myShops.map(shop => {
+                                        const isCurrent = String(selectedShopId) === String(shop.id);
+                                        return (
+                                            <div 
+                                                key={shop.id}
+                                                style={{
+                                                    background: '#18181b',
+                                                    border: isCurrent ? '1px solid var(--color-gold, #d4af37)' : '1px solid rgba(255, 255, 255, 0.08)',
+                                                    borderRadius: '12px',
+                                                    padding: '18px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '12px',
+                                                    position: 'relative'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    {shop.logo_url || (shop.images && shop.images[0]) ? (
+                                                        <img 
+                                                            src={shop.logo_url || shop.images[0]} 
+                                                            alt={shop.name} 
+                                                            style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                                        />
+                                                    ) : (
+                                                        <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37' }}>
+                                                            <Store size={22} />
+                                                        </div>
+                                                    )}
+                                                    <div style={{ overflow: 'hidden', flex: 1 }}>
+                                                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: '700', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            {shop.name}
+                                                        </h4>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                                            <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                                                                {isRTL ? 'معتمد' : 'Approved'}
+                                                            </span>
+                                                            {isCurrent && (
+                                                                <span style={{ fontSize: '0.72rem', background: 'rgba(212, 175, 55, 0.15)', color: '#d4af37', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                                                                    {isRTL ? 'الفرع النشط' : 'Active Selection'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <MapPin size={13} color="#60a5fa" />
+                                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shop.address || 'Qatar'}</span>
+                                                    </div>
+                                                    {shop.whatsapp_number && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Phone size={13} color="#34d399" />
+                                                            <span>{shop.whatsapp_number}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedShopId(shop.id);
+                                                            setShopData(shop);
+                                                            setActiveTab('products');
+                                                        }}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '7px 10px',
+                                                            background: 'rgba(212, 175, 55, 0.15)',
+                                                            border: '1px solid rgba(212, 175, 55, 0.35)',
+                                                            borderRadius: '6px',
+                                                            color: '#d4af37',
+                                                            fontSize: '0.78rem',
+                                                            fontWeight: '600',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {isRTL ? 'المنتجات' : 'Products'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedShopId(shop.id);
+                                                            setShopData(shop);
+                                                            setActiveTab('orders');
+                                                        }}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '7px 10px',
+                                                            background: 'rgba(255,255,255,0.06)',
+                                                            border: '1px solid rgba(255,255,255,0.12)',
+                                                            borderRadius: '6px',
+                                                            color: '#e2e8f0',
+                                                            fontSize: '0.78rem',
+                                                            fontWeight: '600',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {isRTL ? 'الطلبات' : 'Orders'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedShopId(shop.id);
+                                                            setShopData(shop);
+                                                            setActiveTab('settings');
+                                                        }}
+                                                        style={{
+                                                            padding: '7px 10px',
+                                                            background: 'rgba(255,255,255,0.06)',
+                                                            border: '1px solid rgba(255,255,255,0.12)',
+                                                            borderRadius: '6px',
+                                                            color: '#cbd5e1',
+                                                            fontSize: '0.78rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        title={isRTL ? 'إعدادات الفرع' : 'Branch Settings'}
+                                                    >
+                                                        <Settings size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Add Branch Card */}
+                                    <div
+                                        onClick={() => setIsBranchModalOpen(true)}
+                                        style={{
+                                            background: 'rgba(212, 175, 55, 0.04)',
+                                            border: '1px dashed rgba(212, 175, 55, 0.4)',
+                                            borderRadius: '12px',
+                                            padding: '24px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '10px',
+                                            cursor: 'pointer',
+                                            minHeight: '160px'
+                                        }}
+                                    >
+                                        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(212, 175, 55, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37' }}>
+                                            <Plus size={22} />
+                                        </div>
+                                        <div style={{ fontSize: '0.92rem', fontWeight: '700', color: '#d4af37' }}>
+                                            {isRTL ? 'إضافة فرع أو متجر جديد' : 'Add New Branch'}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>
+                                            {isRTL ? 'توسيع عملياتك بإضافة فرع جديد تحت حسابك' : 'Expand your boutique network in Qatar'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
+                    {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
+                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
-                    {activeTab === 'settings' && shopId && (
+                    {activeTab === 'settings' && effectiveShopId && (
                         <div className="admin-section">
                             <div className="manager-header" style={{ marginBottom: '24px' }}>
                                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -360,7 +863,7 @@ const VendorPanel = () => {
                                     e.preventDefault();
                                     setSavingSettings(true);
                                     try {
-                                        const res = await api.put(`/shops/${shopId}`, {
+                                        const res = await api.put(`/shops/${effectiveShopId}`, {
                                             name: shopData.name,
                                             logo_url: shopData.logo_url,
                                             whatsapp_number: shopData.whatsapp_number,
@@ -369,7 +872,7 @@ const VendorPanel = () => {
                                         });
 
                                         // Persist operational preferences locally
-                                        localStorage.setItem(`vendor_prefs_${shopId}`, JSON.stringify(vendorPrefs));
+                                        localStorage.setItem(`vendor_prefs_${effectiveShopId}`, JSON.stringify(vendorPrefs));
 
                                         if (res.status === 200 || res.data.success) {
                                             showToast(isRTL ? 'تم حفظ جميع إعدادات المتجر بنجاح!' : 'All shop settings saved successfully!', 'success');
@@ -747,7 +1250,7 @@ const VendorPanel = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '16px' }}>
                                             <div style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
                                                 <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{isRTL ? 'معرف المتجر' : 'Shop ID'}</div>
-                                                <div style={{ fontSize: '1rem', fontWeight: '800', color: '#c8a951', marginTop: '4px' }}>#{shopId}</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: '800', color: '#c8a951', marginTop: '4px' }}>#{effectiveShopId || '---'}</div>
                                             </div>
 
                                             <div style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
@@ -983,6 +1486,13 @@ const VendorPanel = () => {
                     )}
                 </div>
             </main>
+
+            <AddBranchModal
+                isOpen={isBranchModalOpen}
+                onClose={() => setIsBranchModalOpen(false)}
+                onBranchCreated={handleBranchCreated}
+                isRTL={isRTL}
+            />
         </div>
     );
 };

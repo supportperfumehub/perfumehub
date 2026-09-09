@@ -29,9 +29,20 @@ const VendorSignup = () => {
                     <h2 className="vendor-signup-title" style={{ marginTop: '20px' }}>
                         {isRTL ? 'أنت بالفعل تمتلك متجرًا' : 'You already have shop access'}
                     </h2>
-                    <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="submit-request-btn" style={{ marginTop: '30px' }}>
-                        {isRTL ? 'اذهب إلى لوحة التحكم' : 'Go to Dashboard'}
-                    </Link>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '30px' }}>
+                        <Link to={user.role === 'admin' ? '/admin' : '/vendor'} className="submit-request-btn">
+                            {isRTL ? 'اذهب إلى لوحة التحكم' : 'Go to Dashboard'}
+                        </Link>
+                        {user.role === 'vendor' && (
+                            <Link 
+                                to="/vendor" 
+                                className="submit-request-btn"
+                                style={{ background: 'transparent', border: '1px solid var(--color-gold)', color: 'var(--color-gold)' }}
+                            >
+                                {isRTL ? 'إدارة أو إضافة فروع أخرى لمتجرك' : 'Manage or Add Other Branches'}
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
         );

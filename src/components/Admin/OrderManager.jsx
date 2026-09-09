@@ -349,7 +349,14 @@ const OrderManager = ({ isRTL, shopId }) => {
                                                     borderBottom: idx === group.orders.length - 1 ? 'none' : '1px solid rgba(51, 65, 85, 0.6)'
                                                 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                        <strong style={{ color: '#f8fafc', fontSize: '0.95rem' }}>Order #{order.id}</strong>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                            <strong style={{ color: '#f8fafc', fontSize: '0.95rem' }}>Order #{order.id}</strong>
+                                                            {order.shop_name && (
+                                                                <span style={{ fontSize: '0.72rem', background: 'rgba(212, 175, 55, 0.15)', color: '#d4af37', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                                                                    🏬 {order.shop_name}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{orderDateFormatted}</span>
                                                     </div>
 
@@ -535,6 +542,11 @@ const OrderManager = ({ isRTL, shopId }) => {
                                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
                                                                                 <PackageIcon size={18} color="#c8a951" />
                                                                                 <strong style={{ fontSize: '1.15rem', color: '#f8fafc', letterSpacing: '0.3px' }}>Order #{order.id}</strong>
+                                                                                {order.shop_name && (
+                                                                                    <span style={{ fontSize: '0.75rem', background: 'rgba(212, 175, 55, 0.15)', color: '#d4af37', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(212, 175, 55, 0.3)', fontWeight: '600' }}>
+                                                                                        🏬 {order.shop_name}
+                                                                                    </span>
+                                                                                )}
                                                                                 <span style={{ 
                                                                                     color: '#94a3b8', 
                                                                                     fontSize: '0.85rem',
