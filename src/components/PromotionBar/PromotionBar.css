@@ -27,14 +27,81 @@
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
     text-align: center;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
 }
 
-.promotion-content p {
+.promotion-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+}
+
+.promotion-inner-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.promotion-badge {
+    background: rgba(200, 169, 81, 0.22);
+    border: 1px solid var(--color-gold, #c8a951);
+    color: #facc15;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    line-height: 1.35;
+    flex-shrink: 0;
+}
+
+.promotion-text {
     margin: 0;
-    padding: 0 20px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.promotion-code-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #0f172a;
+    border: 1px dashed var(--color-gold, #c8a951);
+    color: #fcd34d;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.73rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    line-height: 1.35;
+    flex-shrink: 0;
+    outline: none;
+}
+
+.promotion-code-badge:hover {
+    background: rgba(200, 169, 81, 0.2);
+    border-style: solid;
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.promotion-code-badge:active {
+    transform: scale(0.95);
 }
 
 .fade-in {
@@ -50,12 +117,26 @@
 /* Luxury hover effect */
 .promotion-bar:hover {
     color: #f9e29c; /* Brighten gold on hover */
-    cursor: default;
 }
 
 @media (max-width: 768px) {
     .promotion-bar {
         height: 32px;
         font-size: 0.7rem;
+    }
+
+    .promotion-inner-content {
+        gap: 6px;
+    }
+
+    .promotion-badge {
+        font-size: 0.65rem;
+        padding: 1px 5px;
+    }
+
+    .promotion-code-badge {
+        font-size: 0.68rem;
+        padding: 1px 5px;
+        gap: 3px;
     }
 }

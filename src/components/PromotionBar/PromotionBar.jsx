@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { Copy, Check } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
+import { ShopContext } from '../../context/ShopContext';
 import './PromotionBar.css';
 
 const PromotionBar = () => {
     const { t, i18n } = useTranslation();
     const isRTL = i18n.language === 'ar';
+    const { showToast } = useContext(ShopContext) || {};
 
     const defaultCoupons = useMemo(() => [
         { 
@@ -27,6 +30,7 @@ const PromotionBar = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [copiedCode, setCopiedCode] = useState(null);
 
     useEffect(() => {
         const fetchTopBanners = async () => {
@@ -72,6 +76,22 @@ const PromotionBar = () => {
         return () => clearInterval(interval);
     }, [activeList.length]);
 
+    const handleCopyCode = (e, code) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!code) return;
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(code);
+        }
+        setCopiedCode(code);
+        if (showToast) {
+            showToast(isRTL ? `تم نسخ كود الخصم: ${code}` : `Promo code ${code} copied!`, 'success');
+        }
+        setTimeout(() => {
+            setCopiedCode(null);
+        }, 2500);
+    };
+
     // If loaded and no active banners exist, completely hide the top promotion bar
     if (loaded && activeList.length === 0) {
         return null;
@@ -84,27 +104,51 @@ const PromotionBar = () => {
         ? (currentBanner.title_ar || currentBanner.title_en) 
         : (currentBanner.title_en || currentBanner.title_ar);
 
+    const promoCode = currentBanner.discount_code || currentBanner.promo_code;
+
+    const renderBannerContent = () => (
+        <div className="promotion-inner-content">
+            {currentBanner.badge && (
+                <span className="promotion-badge">
+                    {currentBanner.badge}
+                </span>
+            )}
+            {bannerText && <span className="promotion-text">{bannerText}</span>}
+            {promoCode && (
+                <button
+                    type="button"
+                    className="promotion-code-badge"
+                    onClick={(e) => handleCopyCode(e, promoCode)}
+                    title={isRTL ? 'انقر لنسخ كود الخصم' : 'Click to copy promo code'}
+                >
+                    {copiedCode === promoCode ? (
+                        <Check size={12} color="#4ade80" />
+                    ) : (
+                        <Copy size={11} />
+                    )}
+                    <span>{promoCode}</span>
+                </button>
+            )}
+        </div>
+    );
+
+    const customBarStyle = {
+        ...(currentBanner.bg_color ? { backgroundColor: currentBanner.bg_color } : {}),
+        ...(currentBanner.text_color ? { color: currentBanner.text_color } : {})
+    };
+
     return (
-        <div className={`promotion-bar ${isScrolled ? 'scrolled' : ''}`}>
+        <div 
+            className={`promotion-bar ${isScrolled ? 'scrolled' : ''}`}
+            style={customBarStyle}
+        >
             <div className={`promotion-content ${isTransitioning ? 'fade-out' : 'fade-in'}`}>
                 {currentBanner.link_url ? (
-                    <Link to={currentBanner.link_url} style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                        {currentBanner.badge && (
-                            <span style={{ background: 'rgba(200, 169, 81, 0.25)', border: '1px solid #c8a951', color: '#facc15', padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                {currentBanner.badge}
-                            </span>
-                        )}
-                        <p style={{ margin: 0 }}>{bannerText}</p>
+                    <Link to={currentBanner.link_url} className="promotion-link">
+                        {renderBannerContent()}
                     </Link>
                 ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                        {currentBanner.badge && (
-                            <span style={{ background: 'rgba(200, 169, 81, 0.25)', border: '1px solid #c8a951', color: '#facc15', padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                {currentBanner.badge}
-                            </span>
-                        )}
-                        <p style={{ margin: 0 }}>{bannerText}</p>
-                    </div>
+                    renderBannerContent()
                 )}
             </div>
         </div>
