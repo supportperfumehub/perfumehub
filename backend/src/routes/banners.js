@@ -6,12 +6,12 @@ const router = express.Router();
 
 const INITIAL_DEFAULT_BANNERS = [
     {
-        id: 'top-banner-welcome',
+        id: 'banner-top-hello025',
         type: 'top_banner',
-        title_en: 'Welcome to PerfumeHub - Luxury Arabian & French Scents',
-        title_ar: 'مرحباً بكم في بيرفيوم هاب - أفخم العطور الشرقية والفرنسية',
-        badge: 'Welcome',
-        discount_code: '',
+        title_en: 'NEW',
+        title_ar: 'جديد',
+        badge: 'Special Offer',
+        discount_code: 'HELLO025',
         link_url: '/shop',
         is_active: true,
         display_order: 1,
@@ -31,7 +31,7 @@ const getBannersFromDB = async () => {
         if (data && data.used_by) {
             try {
                 const parsed = typeof data.used_by === 'string' ? JSON.parse(data.used_by) : data.used_by;
-                if (Array.isArray(parsed)) {
+                if (Array.isArray(parsed) && parsed.length > 0) {
                     return parsed;
                 }
             } catch (e) {
@@ -39,8 +39,8 @@ const getBannersFromDB = async () => {
             }
         }
 
-        // If row does not exist at all, initialize it with default banners
-        if (!data) {
+        // If row does not exist at all or is empty, initialize it with default banners
+        if (!data || !data.used_by || data.used_by === '[]') {
             await saveBannersToDB(INITIAL_DEFAULT_BANNERS);
             return [...INITIAL_DEFAULT_BANNERS];
         }

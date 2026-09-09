@@ -13,16 +13,23 @@ const PromotionBar = () => {
 
     const defaultCoupons = useMemo(() => [
         { 
-            title_en: 'Welcome to PerfumeHub - Luxury Arabian & French Scents', 
-            title_ar: 'مرحباً بكم في بيرفيوم هاب - أفخم العطور الشرقية والفرنسية', 
-            link_url: '/shop' 
+            id: 'default-top-hello025',
+            title_en: 'NEW', 
+            title_ar: 'جديد', 
+            badge: 'Special Offer',
+            discount_code: 'HELLO025',
+            link_url: '/shop',
+            is_active: true
         }
     ], []);
 
     const [dbBanners, setDbBanners] = useState(() => {
         try {
             const cached = localStorage.getItem('perfumehub_top_banners');
-            if (cached) return JSON.parse(cached);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
         } catch (e) {}
         return [];
     });
@@ -36,7 +43,7 @@ const PromotionBar = () => {
         const fetchTopBanners = async () => {
             try {
                 const res = await api.get('/banners?type=top_banner&active=true');
-                if (Array.isArray(res.data)) {
+                if (Array.isArray(res.data) && res.data.length > 0) {
                     setDbBanners(res.data);
                     try {
                         localStorage.setItem('perfumehub_top_banners', JSON.stringify(res.data));
@@ -60,7 +67,7 @@ const PromotionBar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const activeList = loaded ? dbBanners : defaultCoupons;
+    const activeList = (dbBanners && dbBanners.length > 0) ? dbBanners : defaultCoupons;
 
     useEffect(() => {
         if (activeList.length <= 1) return;
