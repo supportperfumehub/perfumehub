@@ -52,7 +52,7 @@ export class ShopService {
     }
 
     async createBranch(user, branchData) {
-        let { name, address, latitude, longitude, logo_url, whatsapp_number, images } = branchData;
+        let { name, address, latitude, longitude, logo_url, whatsapp_number, images, region_id } = branchData;
 
         if (logo_url && logo_url.startsWith('data:')) {
             logo_url = await uploadImageToStorage(logo_url, name || 'branch_logo', 'shops');
@@ -60,10 +60,21 @@ export class ShopService {
 
         const syncedImages = await syncImagesStorage([], images || (logo_url ? [logo_url] : []), name || 'branch', 'shops');
 
+        let resolvedRegionId = region_id ? parseInt(region_id) : null;
+        if (!resolvedRegionId && user.shop_id) {
+            try {
+                const primaryShop = await this.shopRepository.findById(user.shop_id);
+                if (primaryShop && primaryShop.region_id) {
+                    resolvedRegionId = primaryShop.region_id;
+                }
+            } catch (e) {}
+        }
+
         const shop = await this.shopRepository.create({
             owner_id: user.id,
             name,
             address,
+            region_id: resolvedRegionId,
             latitude: latitude || null,
             longitude: longitude || null,
             logo_url: logo_url || (syncedImages[0] || null),

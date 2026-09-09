@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Store, MapPin, Phone, Clock, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
@@ -9,10 +9,19 @@ const AddBranchModal = ({ isOpen, onClose, onBranchCreated, isRTL }) => {
         address: '',
         whatsapp_number: '',
         working_hours: '09:00 AM - 10:00 PM',
-        logo_url: ''
+        logo_url: '',
+        region_id: ''
     });
+    const [regionsList, setRegionsList] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!isOpen) return;
+        api.get('/regions')
+            .then(res => setRegionsList(Array.isArray(res.data) ? res.data : []))
+            .catch(err => console.error('Failed to load regions in branch modal:', err));
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -43,7 +52,8 @@ const AddBranchModal = ({ isOpen, onClose, onBranchCreated, isRTL }) => {
                 address: formData.address.trim(),
                 whatsapp_number: formData.whatsapp_number.trim() || null,
                 logo_url: formData.logo_url || null,
-                images: formData.logo_url ? [formData.logo_url] : []
+                images: formData.logo_url ? [formData.logo_url] : [],
+                region_id: formData.region_id || null
             });
 
             if (res.data?.success && res.data?.shop) {
@@ -251,6 +261,38 @@ const AddBranchModal = ({ isOpen, onClose, onBranchCreated, isRTL }) => {
                             />
                         </div>
                     </div>
+
+                    {regionsList.length > 0 && (
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.82rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: '600' }}>
+                                {isRTL ? 'البلدية أو المنطقة في قطر' : 'Zone / Municipality in Qatar'}
+                            </label>
+                            <select
+                                value={formData.region_id}
+                                onChange={(e) => setFormData({ ...formData, region_id: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    background: '#27272a',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            >
+                                <option value="" style={{ background: '#18181b', color: '#94a3b8' }}>
+                                    {isRTL ? '-- اختر البلدية / المنطقة (اختياري) --' : '-- Select Municipality / Zone (Optional) --'}
+                                </option>
+                                {regionsList.map(r => (
+                                    <option key={r.id} value={r.id} style={{ background: '#18181b', color: '#fff' }}>
+                                        {r.name} ({r.code})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div>
                         <label style={{ display: 'block', fontSize: '0.82rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: '600' }}>

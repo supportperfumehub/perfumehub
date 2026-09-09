@@ -7,6 +7,7 @@ import CustomersManager from '../../components/Admin/CustomersManager';
 import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
 import ShopsManager from '../../components/Admin/ShopsManager';
+import RegionsManager from '../../components/Admin/RegionsManager';
 import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import SettingsManager from '../../components/Admin/SettingsManager';
 import BannersManager from '../../components/Admin/BannersManager';
@@ -103,6 +104,7 @@ const Admin = () => {
         ...(isSuperAdmin ? [
             { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
             { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
+            { id: 'regions', label: isRTL ? 'المناطق والبلديات' : 'Regions & Zones', icon: <Globe size={20} /> },
             { id: 'discovery', label: isRTL ? 'الاكتشاف' : 'Discovery', icon: <Sparkles size={20} /> },
             { id: 'banners', label: isRTL ? 'البانرات' : 'Banners', icon: <Megaphone size={20} /> },
         ] : []),
@@ -249,6 +251,7 @@ const Admin = () => {
                     {isSuperAdmin && activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
+                    {isSuperAdmin && activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}

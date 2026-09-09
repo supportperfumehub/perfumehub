@@ -5,6 +5,20 @@ import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api_v1_0_2';
 import './RegionsManager.css';
 
+const QATAR_PRESETS = [
+    { name: 'Doha', nameAr: 'الدوحة', code: 'DOH', currency: 'QAR' },
+    { name: 'Al Rayyan', nameAr: 'الريان', code: 'RAY', currency: 'QAR' },
+    { name: 'Lusail', nameAr: 'لوسيل', code: 'LUS', currency: 'QAR' },
+    { name: 'Al Wakrah', nameAr: 'الوكرة', code: 'WAK', currency: 'QAR' },
+    { name: 'The Pearl', nameAr: 'اللؤلؤة', code: 'PRL', currency: 'QAR' },
+    { name: 'West Bay', nameAr: 'الخليج الغربي', code: 'WBY', currency: 'QAR' },
+    { name: 'Al Khor', nameAr: 'الخور', code: 'KHO', currency: 'QAR' },
+    { name: 'Al Daayen', nameAr: 'الظعاين', code: 'DAA', currency: 'QAR' },
+    { name: 'Umm Salal', nameAr: 'أم صلال', code: 'UMS', currency: 'QAR' },
+    { name: 'Al Shamal', nameAr: 'الشمال', code: 'SHM', currency: 'QAR' },
+    { name: 'Al Shahaniya', nameAr: 'الشحانية', code: 'SHH', currency: 'QAR' }
+];
+
 const RegionsManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
     const [regions, setRegions] = useState([]);
@@ -19,7 +33,7 @@ const RegionsManager = ({ isRTL }) => {
     // New Region Form
     const [newRegionName, setNewRegionName] = useState('');
     const [newRegionCode, setNewRegionCode] = useState('');
-    const [newCurrencyCode, setNewCurrencyCode] = useState('');
+    const [newCurrencyCode, setNewCurrencyCode] = useState('QAR');
 
     // Assign Admin Form
     const [assignAdminId, setAssignAdminId] = useState('');
@@ -143,7 +157,7 @@ const RegionsManager = ({ isRTL }) => {
             await api[method](url, {
                 name: newRegionName,
                 code: newRegionCode,
-                currencyCode: newCurrencyCode
+                currencyCode: newCurrencyCode || 'QAR'
             }, {
                 headers: { 
                     'x-user-id': user?.id
@@ -157,7 +171,7 @@ const RegionsManager = ({ isRTL }) => {
             
             setNewRegionName('');
             setNewRegionCode('');
-            setNewCurrencyCode('');
+            setNewCurrencyCode('QAR');
             setEditingRegionId(null);
             fetchRegions();
         } catch (err) {
@@ -168,7 +182,7 @@ const RegionsManager = ({ isRTL }) => {
     const handleEdit = (region) => {
         setNewRegionName(region.name);
         setNewRegionCode(region.code);
-        setNewCurrencyCode(region.currency_code);
+        setNewCurrencyCode(region.currency_code || 'QAR');
         setEditingRegionId(region.id);
         setActiveMobileTab('add_region');
         setSuccessMessage('');
@@ -179,7 +193,7 @@ const RegionsManager = ({ isRTL }) => {
     const cancelEdit = () => {
         setNewRegionName('');
         setNewRegionCode('');
-        setNewCurrencyCode('');
+        setNewCurrencyCode('QAR');
         setEditingRegionId(null);
     };
 
@@ -373,7 +387,7 @@ const RegionsManager = ({ isRTL }) => {
                         whiteSpace: 'nowrap' 
                     }}>
                         <Globe size={isMobile ? 20 : 24} color="#c8a951" />
-                        {isRTL ? 'إدارة المناطق والمشرفين' : 'Regions & Regional Admins'}
+                        {isRTL ? 'إدارة مناطق وبلديات قطر' : 'Qatar Regional Zones & Districts'}
                     </h2>
                     <span style={{ 
                         background: 'rgba(200, 169, 81, 0.15)', 
@@ -386,7 +400,7 @@ const RegionsManager = ({ isRTL }) => {
                         whiteSpace: 'nowrap',
                         flexShrink: 0
                     }}>
-                        {regions.length} {isRTL ? 'مناطق' : 'Regions'}
+                        {regions.length} {isRTL ? 'مناطق / بلديات' : 'Zones / Municipalities'}
                     </span>
                 </div>
             </div>
@@ -460,8 +474,8 @@ const RegionsManager = ({ isRTL }) => {
                     <div className="card" style={{ position: 'relative', background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '14px 16px' : '20px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
                         <h3 style={{ margin: '0 0 12px', fontSize: isMobile ? '0.95rem' : '1.05rem', color: '#f8fafc' }}>
                             {editingRegionId 
-                                ? (isRTL ? 'تعديل المنطقة' : 'Edit Region') 
-                                : (isRTL ? 'إضافة منطقة جغرافية جديدة' : 'Add New Region')
+                                ? (isRTL ? 'تعديل البلدية / المنطقة' : 'Edit Qatar Zone') 
+                                : (isRTL ? 'إضافة بلدية أو منطقة جديدة في قطر' : 'Add New Qatar Zone / Municipality')
                             }
                         </h3>
                         {editingRegionId && (
@@ -469,41 +483,86 @@ const RegionsManager = ({ isRTL }) => {
                                 <X size={16} />
                             </button>
                         )}
+
+                        {/* Quick Presets for Qatar Municipalities */}
+                        {!editingRegionId && (
+                            <div style={{ marginBottom: '14px', background: 'rgba(15, 23, 42, 0.6)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(51, 65, 85, 0.7)' }}>
+                                <label style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: '700', display: 'block', marginBottom: '8px' }}>
+                                    {isRTL ? '⚡ اختيار سريع لبلديات ومناطق قطر الشائعة (انقر للتعبئة التلقائية):' : '⚡ Quick presets for Qatar municipalities (Click to autofill):'}
+                                </label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {QATAR_PRESETS.map(preset => {
+                                        const isSelected = newRegionCode === preset.code;
+                                        return (
+                                            <button
+                                                key={preset.code}
+                                                type="button"
+                                                onClick={() => {
+                                                    setNewRegionName(isRTL ? preset.nameAr : preset.name);
+                                                    setNewRegionCode(preset.code);
+                                                    setNewCurrencyCode(preset.currency);
+                                                }}
+                                                style={{
+                                                    background: isSelected ? 'rgba(200, 169, 81, 0.25)' : '#1e293b',
+                                                    border: isSelected ? '1px solid #c8a951' : '1px solid #334155',
+                                                    color: isSelected ? '#facc15' : '#cbd5e1',
+                                                    padding: '3px 8px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                            >
+                                                {isRTL ? preset.nameAr : preset.name} ({preset.code})
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         <form onSubmit={handleCreateRegion} className="region-form" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px', width: '100%', boxSizing: 'border-box' }}>
                             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'اسم الدولة / المنطقة' : 'Region Name'}</label>
+                                <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>
+                                    {isRTL ? 'اسم البلدية / المنطقة' : 'Zone / Municipality Name'}
+                                </label>
                                 <input 
                                     type="text"
                                     className="form-control"
                                     value={newRegionName}
                                     onChange={(e) => setNewRegionName(e.target.value)}
-                                    placeholder="e.g. United Arab Emirates"
+                                    placeholder={isRTL ? 'مثال: الدوحة أو الريان أو لوسيل' : 'e.g. Doha, Al Rayyan, or Lusail'}
                                     required 
                                     style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                 />
                             </div>
                             <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
                                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'رمز الدولة (ISO)' : 'Region Code'}</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>
+                                        {isRTL ? 'رمز المنطقة (3 أحرف)' : 'Zone Code (3 chars)'}
+                                    </label>
                                     <input 
                                         type="text"
                                         className="form-control"
                                         value={newRegionCode}
                                         onChange={(e) => setNewRegionCode(e.target.value.toUpperCase())}
-                                        placeholder="AE"
-                                        maxLength={3}
+                                        placeholder="DOH"
+                                        maxLength={5}
                                         required 
                                         style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                                     />
                                 </div>
                                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>{isRTL ? 'العملة' : 'Currency'}</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '600' }}>
+                                        {isRTL ? 'العملة (QAR)' : 'Currency (QAR)'}
+                                    </label>
                                     <input 
                                         type="text"
                                         className="form-control"
                                         value={newCurrencyCode}
                                         onChange={(e) => setNewCurrencyCode(e.target.value.toUpperCase())}
-                                        placeholder="AED"
+                                        placeholder="QAR"
                                         maxLength={4}
                                         required 
                                         style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: isMobile ? '7px 10px' : '10px 14px', borderRadius: '8px', fontSize: isMobile ? '0.84rem' : '0.9rem', height: isMobile ? '38px' : 'auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
@@ -513,8 +572,8 @@ const RegionsManager = ({ isRTL }) => {
                             <button type="submit" className="btn btn-gold" style={{ marginTop: '4px', width: '100%', height: isMobile ? '38px' : '44px', borderRadius: '8px', fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                 {editingRegionId ? <Edit size={15} /> : <PlusCircle size={15} />}
                                 {editingRegionId 
-                                    ? (isRTL ? 'تحديث المنطقة' : 'Update Region') 
-                                    : (isRTL ? 'إضافة منطقة' : 'Create Region')
+                                    ? (isRTL ? 'تحديث البلدية' : 'Update Zone') 
+                                    : (isRTL ? 'إضافة البلدية / المنطقة' : 'Create Zone')
                                 }
                             </button>
                         </form>
