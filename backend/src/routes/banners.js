@@ -28,10 +28,10 @@ const getBannersFromDB = async () => {
             .eq('code', '__SITE_BANNERS__')
             .maybeSingle();
 
-        if (data && data.used_by) {
+        if (data && data.used_by !== null && data.used_by !== undefined) {
             try {
                 const parsed = typeof data.used_by === 'string' ? JSON.parse(data.used_by) : data.used_by;
-                if (Array.isArray(parsed) && parsed.length > 0) {
+                if (Array.isArray(parsed)) {
                     return parsed;
                 }
             } catch (e) {
@@ -39,8 +39,8 @@ const getBannersFromDB = async () => {
             }
         }
 
-        // If row does not exist at all or is empty, initialize it with default banners
-        if (!data || !data.used_by || data.used_by === '[]') {
+        // Only if record does not exist at all in database, initialize once
+        if (!data) {
             await saveBannersToDB(INITIAL_DEFAULT_BANNERS);
             return [...INITIAL_DEFAULT_BANNERS];
         }
@@ -48,7 +48,7 @@ const getBannersFromDB = async () => {
         return [];
     } catch (err) {
         console.error('Error reading site_banners from DB:', err.message);
-        return [...INITIAL_DEFAULT_BANNERS];
+        return [];
     }
 };
 

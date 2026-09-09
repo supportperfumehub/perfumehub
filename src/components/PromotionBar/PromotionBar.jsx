@@ -11,24 +11,12 @@ const PromotionBar = () => {
     const isRTL = i18n.language === 'ar';
     const { showToast } = useContext(ShopContext) || {};
 
-    const defaultCoupons = useMemo(() => [
-        { 
-            id: 'default-top-hello025',
-            title_en: 'NEW', 
-            title_ar: 'جديد', 
-            badge: 'Special Offer',
-            discount_code: 'HELLO025',
-            link_url: '/shop',
-            is_active: true
-        }
-    ], []);
-
     const [dbBanners, setDbBanners] = useState(() => {
         try {
             const cached = localStorage.getItem('perfumehub_top_banners');
             if (cached) {
                 const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                if (Array.isArray(parsed)) return parsed;
             }
         } catch (e) {}
         return [];
@@ -42,8 +30,10 @@ const PromotionBar = () => {
     useEffect(() => {
         const fetchTopBanners = async () => {
             try {
-                const res = await api.get('/banners?type=top_banner&active=true');
-                if (Array.isArray(res.data) && res.data.length > 0) {
+                const res = await api.get(`/banners?type=top_banner&active=true&_t=${Date.now()}`, {
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                if (Array.isArray(res.data)) {
                     setDbBanners(res.data);
                     try {
                         localStorage.setItem('perfumehub_top_banners', JSON.stringify(res.data));
@@ -67,7 +57,7 @@ const PromotionBar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const activeList = (dbBanners && dbBanners.length > 0) ? dbBanners : defaultCoupons;
+    const activeList = dbBanners || [];
 
     useEffect(() => {
         if (activeList.length <= 1) return;

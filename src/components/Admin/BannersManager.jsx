@@ -53,7 +53,9 @@ const BannersManager = ({ isRTL }) => {
     const fetchBanners = async () => {
         try {
             setLoading(true);
-            const res = await api.get('/banners');
+            const res = await api.get(`/banners?_t=${Date.now()}`, {
+                headers: { 'Cache-Control': 'no-cache' }
+            });
             setBanners(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Error fetching banners:', err);
@@ -187,6 +189,14 @@ const BannersManager = ({ isRTL }) => {
             });
             setSuccessMessage(isRTL ? 'تم حذف الإعلان بنجاح' : 'Banner deleted successfully');
             setBanners(prev => prev.filter(b => b.id !== confirmModal.bannerId));
+            try {
+                const cached = localStorage.getItem('perfumehub_top_banners');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    const updated = parsed.filter(b => b.id !== confirmModal.bannerId);
+                    localStorage.setItem('perfumehub_top_banners', JSON.stringify(updated));
+                }
+            } catch (e) {}
         } catch (err) {
             setError(err.response?.data?.error || err.message);
         } finally {
