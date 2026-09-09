@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')
-                .eq('region_id', req.query.region_id);
+                .or(`region_id.eq.${req.query.region_id},region_id.is.null`);
             
             const shopIds = regionShops ? regionShops.map(s => s.id) : [];
             if (shopIds.length > 0) {
@@ -31,10 +31,10 @@ router.get('/', async (req, res) => {
                     .eq('is_active', true)
                     .in('shop_id', shopIds);
                 
-                productIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
-                if (productIds.length === 0) return res.json([]);
-            } else {
-                return res.json([]);
+                const matchedIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
+                if (matchedIds.length > 0) {
+                    productIds = matchedIds;
+                }
             }
         }
 

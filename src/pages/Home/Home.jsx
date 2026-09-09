@@ -34,10 +34,12 @@ const Home = () => {
     useEffect(() => {
         if (featuredProducts && featuredProducts.length > 0) {
             setShuffledFeatured([...featuredProducts].sort(() => 0.5 - Math.random()));
+        } else if (products && products.length > 0) {
+            setShuffledFeatured([...products].slice(0, 6));
         } else {
             setShuffledFeatured([]);
         }
-    }, [featuredProducts]);
+    }, [featuredProducts, products]);
 
     useEffect(() => {
         if (heroItems.length <= 1) return;

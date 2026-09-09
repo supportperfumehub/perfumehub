@@ -77,8 +77,20 @@ export const ShopProvider = ({ children }) => {
                 api.get(invUrl, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
             ]);
             
-            const data = productsRes.data;
-            const invData = invRes.data;
+            let data = productsRes.data;
+            let invData = invRes.data;
+
+            // Graceful fallback: If region-filtered products return empty, fetch global catalog so storefront is never blank
+            if ((!Array.isArray(data) || data.length === 0) && params.region_id) {
+                try {
+                    const fallbackRes = await api.get(`/products?_t=${Date.now()}`);
+                    if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+                        data = fallbackRes.data;
+                    }
+                } catch (fbErr) {
+                    console.error('Fallback product fetch error:', fbErr);
+                }
+            }
 
             // Group inventory by product_id (string key for safety)
             const inventoryByProduct = {};
@@ -188,10 +200,21 @@ export const ShopProvider = ({ children }) => {
 
     const fetchShops = async () => {
         try {
-            const url = activeRegion ? `/shops?region_id=${activeRegion.id}&_t=${Date.now()}` : `/shops?_t=${Date.now()}`;
+            const url = activeRegion?.id ? `/shops?region_id=${activeRegion.id}&_t=${Date.now()}` : `/shops?_t=${Date.now()}`;
             const response = await api.get(url, { headers: { 'Cache-Control': 'no-cache' } });
-            if (Array.isArray(response.data)) {
-                setShops(response.data);
+            let shopList = response.data;
+            if ((!Array.isArray(shopList) || shopList.length === 0) && activeRegion?.id) {
+                try {
+                    const fallbackRes = await api.get(`/shops?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                    if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+                        shopList = fallbackRes.data;
+                    }
+                } catch (fbErr) {
+                    console.error('Fallback shops fetch error:', fbErr);
+                }
+            }
+            if (Array.isArray(shopList)) {
+                setShops(shopList);
             }
         } catch (error) {
             console.error('Error fetching shops:', error);
@@ -202,8 +225,19 @@ export const ShopProvider = ({ children }) => {
         try {
             const regionParam = activeRegion?.id ? `&region_id=${activeRegion.id}` : '';
             const response = await api.get(`/discover?_t=${Date.now()}${regionParam}`, { headers: { 'Cache-Control': 'no-cache' } });
-            if (Array.isArray(response.data)) {
-                setDiscoverCampaigns(response.data);
+            let list = response.data;
+            if ((!Array.isArray(list) || list.length === 0) && activeRegion?.id) {
+                try {
+                    const fallbackRes = await api.get(`/discover?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                    if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+                        list = fallbackRes.data;
+                    }
+                } catch (fbErr) {
+                    console.error('Fallback discover fetch error:', fbErr);
+                }
+            }
+            if (Array.isArray(list)) {
+                setDiscoverCampaigns(list);
             }
         } catch (error) {
             console.error('Error fetching discover campaigns:', error);
