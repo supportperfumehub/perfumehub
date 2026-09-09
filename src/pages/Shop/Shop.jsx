@@ -290,16 +290,14 @@ const Shop = () => {
         return banners[type] || allBanner;
     };
 
-    const regionName = activeRegion?.name || 'Qatar';
+    const regionName = 'Qatar';
     const dynamicTitle = isRTL 
-        ? `المتجر | بيرفيوم هوب - عطور وفخامة في ${regionName}`
-        : `Shop | PerfumeHub - Luxury Fragrances & Marketplace ${regionName}`;
+        ? `المتجر | بيرفيوم هوب - عطور وفخامة في قطر`
+        : `Shop | PerfumeHub - Luxury Fragrances & Marketplace Qatar`;
     const dynamicDesc = isRTL
-        ? `تسوق أفضل العطور والساعات والمجوهرات في ${regionName}. وجهتك الأولى للفخامة مع توصيل سريع.`
-        : `Shop the best perfumes, watches, and jewellery in ${regionName}. Your premier destination for luxury with fast delivery.`;
-    const dynamicCanonical = activeRegion?.code 
-        ? `https://perfumehub.com/${activeRegion.code.toLowerCase()}/shop`
-        : "https://perfumehub.com/shop";
+        ? `تسوق أفضل العطور والساعات والمجوهرات في قطر. وجهتك الأولى للفخامة مع توصيل سريع.`
+        : `Shop the best perfumes, watches, and jewellery in Qatar. Your premier destination for luxury with fast delivery.`;
+    const dynamicCanonical = "https://perfumehub.com/shop";
 
     return (
         <div className="shop-page">

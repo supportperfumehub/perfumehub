@@ -50,13 +50,11 @@ const Home = () => {
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % heroItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev === 0 ? heroItems.length - 1 : prev - 1));
 
-    const regionName = activeRegion?.name || 'Qatar';
-    const seoTitle = `PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in ${regionName}`;
-    const seoDescription = `Shop authentic luxury perfumes, fashion, and jewellery in ${regionName} at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery.`;
-    const seoKeywords = `perfume, perfumehub, ${regionName.toLowerCase()} perfume, perfumes ${regionName.toLowerCase()}, buy perfume online ${regionName.toLowerCase()}, luxury fragrances ${regionName.toLowerCase()}, fashion ${regionName.toLowerCase()}, jewellery ${regionName.toLowerCase()}, perfume hub ${regionName.toLowerCase()}`;
-    const seoCanonical = activeRegion?.code 
-        ? `https://perfumehub.com/${activeRegion.code.toLowerCase()}`
-        : "https://perfumehub.com/";
+    const regionName = 'Qatar';
+    const seoTitle = `PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in Qatar`;
+    const seoDescription = `Shop authentic luxury perfumes, fashion, and jewellery in Qatar at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery.`;
+    const seoKeywords = `perfume, perfumehub, qatar perfume, perfumes qatar, buy perfume online qatar, luxury fragrances qatar, fashion qatar, jewellery qatar, perfume hub qatar`;
+    const seoCanonical = "https://perfumehub.com/";
 
     const websiteSchema = {
         "@context": "https://schema.org",

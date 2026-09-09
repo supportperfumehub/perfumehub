@@ -6,13 +6,11 @@ import WhatsAppWidget from '../WhatsAppWidget/WhatsAppWidget';
 import Toast from '../Toast/Toast';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { RegionContext } from '../../context/RegionContext';
 import PromotionBar from '../PromotionBar/PromotionBar';
 
 const Layout = ({ isRTL, toggleLanguage }) => {
     const { toast, showToast } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
-    const { isSupported, detectedCountry, activeRegion } = useContext(RegionContext);
     const location = useLocation();
     const isHomePage = location.pathname === '/';
     const [pageTransition, setPageTransition] = React.useState('page-fade-active');

@@ -14,7 +14,7 @@ const Checkout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isRTL } = useOutletContext();
-    const { isSupported, activeRegion } = useContext(RegionContext);
+    const { activeRegion } = useContext(RegionContext);
     const { placeOrder, coupons, showToast, incrementCouponUsage, fetchCoupons } = useContext(ShopContext);
     const { clearCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
@@ -158,11 +158,6 @@ const Checkout = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
-        if (!isSupported) {
-            setError(isRTL ? 'عذراً، الشراء والتوصيل غير متاح في منطقتك.' : 'Sorry, purchasing and delivery are not available in your location.');
-            return;
-        }
 
         if (orderData.isReservation) {
             if (!formData.fullName || !formData.phone || !pickupShopId || !pickupDateTime) {
@@ -683,8 +678,7 @@ const Checkout = () => {
                             <button 
                                 type="submit" 
                                 className="btn-confirm" 
-                                disabled={isSubmitting || !isSupported}
-                                style={!isSupported ? { opacity: 0.5, cursor: 'not-allowed', background: '#555' } : {}}
+                                disabled={isSubmitting}
                             >
                                 {isSubmitting 
                                     ? t('checkout.processing') 

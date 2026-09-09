@@ -7,7 +7,6 @@ import CustomersManager from '../../components/Admin/CustomersManager';
 import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
 import ShopsManager from '../../components/Admin/ShopsManager';
-import RegionsManager from '../../components/Admin/RegionsManager';
 import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import SettingsManager from '../../components/Admin/SettingsManager';
 import BannersManager from '../../components/Admin/BannersManager';
@@ -112,7 +111,6 @@ const Admin = () => {
         // Platform Master Controls (Super Admin Only)
         ...(isSuperAdmin ? [
             { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
-            { id: 'regions', label: isRTL ? 'المناطق' : 'Regions', icon: <Globe size={20} /> },
             { id: 'subscriptions', label: isRTL ? 'الاشتراكات' : 'Subscriptions', icon: <Ticket size={20} /> },
             { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }
         ] : []),
@@ -255,7 +253,6 @@ const Admin = () => {
                     {isSuperAdmin && activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
                     {isSuperAdmin && activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                     {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
