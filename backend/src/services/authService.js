@@ -6,6 +6,7 @@ import { parseUserAgent } from '../utils/deviceParser.js';
 import { AppError } from '../middleware/errorHandler.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { supabase } from '../config/supabaseClient.js';
 
 dotenv.config();
 
@@ -313,15 +314,30 @@ export class AuthService {
      */
     async googleLogin(supabaseToken, req = null) {
         try {
-            // 1. Verify token with Supabase
-            const response = await axios.get(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-                headers: {
-                    'apikey': process.env.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${supabaseToken}`
-                }
-            });
+            // 1. Verify token with Supabase (try official SDK first)
+            let supabaseUser = null;
 
-            const supabaseUser = response.data;
+            try {
+                const { data, error } = await supabase.auth.getUser(supabaseToken);
+                if (data?.user) {
+                    supabaseUser = data.user;
+                }
+            } catch (sdkErr) {
+                console.warn('Supabase SDK getUser error, trying HTTP fallback:', sdkErr.message);
+            }
+
+            // HTTP Fallback with service role key or anon key
+            if (!supabaseUser) {
+                const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+                const response = await axios.get(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${supabaseToken}`
+                    }
+                });
+                supabaseUser = response.data;
+            }
+
             if (!supabaseUser || !supabaseUser.email) {
                 throw new AppError('Invalid Google session', 401);
             }
@@ -332,20 +348,28 @@ export class AuthService {
             if (!user) {
                 // Auto-register new Google user
                 user = await this.userRepository.create({
-                    name: supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
+                    name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || supabaseUser.email.split('@')[0],
                     email: supabaseUser.email,
                     role: 'customer',
                     email_verified: true, // Google emails are already verified
                     auth_provider: 'google',
                     supabase_id: supabaseUser.id
                 });
+            } else if (!user.auth_provider || user.auth_provider === 'email') {
+                // Link Google account to existing email record
+                await this.userRepository.update(user.id, {
+                    auth_provider: 'google',
+                    supabase_id: supabaseUser.id,
+                    email_verified: true
+                });
+                user = await this.userRepository.findById(user.id);
             }
 
             // 3. Issue backend tokens
             return this.issueTokens(user, req);
         } catch (error) {
             console.error('AuthService.googleLogin Error:', error.response?.data || error.message);
-            throw new AppError('Google verification failed', 401);
+            throw new AppError(error.message || 'Google verification failed', 401);
         }
     }
 

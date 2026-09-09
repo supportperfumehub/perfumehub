@@ -27,23 +27,56 @@ export const AuthProvider = ({ children }) => {
     /**
      * Initialize Auth (Silent Refresh)
      */
+    /**
+     * Helper to apply backend user & token state
+     */
+    const applyBackendAuth = useCallback((data) => {
+        const { accessToken, refreshToken, user: authUser } = data;
+        setAccessToken(accessToken);
+        if (refreshToken) {
+            localStorage.setItem('perfumehub_refresh_token', refreshToken);
+        }
+        setUser(authUser);
+        localStorage.setItem('perfumehub_user', JSON.stringify(authUser));
+        const adminFlag = authUser.role === 'super_admin' || authUser.role === 'admin' || authUser.role === 'regional_admin';
+        const vendorFlag = authUser.role === 'vendor';
+        setIsAdmin(adminFlag);
+        setIsVendor(vendorFlag);
+
+        // Clean up OAuth fragment or query code from address bar
+        if (typeof window !== 'undefined' && (window.location.hash || window.location.search.includes('code='))) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
+
+    /**
+     * Initialize Auth (Check Supabase OAuth session first, then Silent Refresh)
+     */
     const initAuth = useCallback(async () => {
         try {
+            // 1. Check if Supabase has an active OAuth session (from redirect or cached token)
+            try {
+                if (supabase?.auth?.getSession) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.access_token) {
+                        console.log('[Auth] Found active Supabase OAuth session, syncing with backend...');
+                        const response = await api.post('/auth/google', { token: session.access_token });
+                        if (response.data.success) {
+                            applyBackendAuth(response.data);
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+            } catch (sbErr) {
+                console.warn('[Auth] Supabase session sync check note:', sbErr.message);
+            }
+
+            // 2. Fall back to standard refresh token
             const backupToken = localStorage.getItem('perfumehub_refresh_token');
             const response = await api.post('/auth/refresh', { refreshToken: backupToken });
             if (response.data.success) {
-                const { accessToken, refreshToken, user } = response.data;
-                setAccessToken(accessToken);
-                if (refreshToken) {
-                    localStorage.setItem('perfumehub_refresh_token', refreshToken);
-                }
-                setUser(user);
-                localStorage.setItem('perfumehub_user', JSON.stringify(user));
-                console.log('User Role from Server:', user.role);
-                const adminFlag = user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin';
-                const vendorFlag = user.role === 'vendor';
-                setIsAdmin(adminFlag);
-                setIsVendor(vendorFlag);
+                applyBackendAuth(response.data);
             } else {
                 setUser(null);
                 localStorage.removeItem('perfumehub_user');
@@ -75,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [applyBackendAuth]);
 
     useEffect(() => {
         if (user) {
@@ -94,22 +127,16 @@ export const AuthProvider = ({ children }) => {
         const handleLogout = () => logout();
         window.addEventListener('auth-logout', handleLogout);
 
-        // Listen for Supabase OAuth changes
+        // Listen for Supabase OAuth changes (SIGNED_IN, INITIAL_SESSION, TOKEN_REFRESHED)
         const syncGoogleLogin = () => {
+            if (!supabase?.auth?.onAuthStateChange) return { unsubscribe: () => {} };
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN' && session) {
+                console.log('[Auth] onAuthStateChange:', event, 'Has session token:', !!session?.access_token);
+                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.access_token) {
                     try {
                         const response = await api.post('/auth/google', { token: session.access_token });
                         if (response.data.success) {
-                            const { accessToken, refreshToken, user } = response.data;
-                            setAccessToken(accessToken);
-                            if (refreshToken) {
-                                localStorage.setItem('perfumehub_refresh_token', refreshToken);
-                            }
-                            setUser(user);
-                            localStorage.setItem('perfumehub_user', JSON.stringify(user));
-                            setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
-                            setIsVendor(user.role === 'vendor');
+                            applyBackendAuth(response.data);
                         }
                     } catch (error) {
                         console.error('Failed to sync Google login with backend:', error);
@@ -125,7 +152,7 @@ export const AuthProvider = ({ children }) => {
             window.removeEventListener('auth-logout', handleLogout);
             subscription?.unsubscribe();
         };
-    }, [initAuth]);
+    }, [initAuth, applyBackendAuth]);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_isAdmin', JSON.stringify(isAdmin));
