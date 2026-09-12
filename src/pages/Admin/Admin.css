@@ -284,6 +284,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    padding-top: max(4px, env(safe-area-inset-top));
 }
 
 .table-responsive,
@@ -297,6 +298,30 @@
     border: 1px solid #334155;
     background: #0f172a;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(200, 169, 81, 0.4) rgba(15, 23, 42, 0.6);
+}
+
+.table-responsive::-webkit-scrollbar,
+.admin-table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.admin-table-container::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.admin-table-container::-webkit-scrollbar-thumb {
+    background: rgba(200, 169, 81, 0.4);
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.admin-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gold);
 }
 
 .admin-table-container .admin-table {
@@ -352,6 +377,36 @@
     padding: 6px 12px;
     border-radius: 12px;
     border: 1px solid #334155;
+}
+
+/* Add Product Dropdown */
+.add-product-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.add-product-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    background: #1e293b;
+    border: 1px solid rgba(200, 169, 81, 0.35);
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(200, 169, 81, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-dashboard.rtl .add-product-dropdown,
+.rtl .add-product-dropdown {
+    right: auto;
+    left: 0;
 }
 
 /* Search Bar Standardized */
@@ -1041,11 +1096,22 @@
     background-color: #111827;
 }
 
+/* Admin Layout without Store Navbar */
+.admin-layout .admin-dashboard {
+    padding-top: 0;
+}
+
+.admin-layout .admin-sidebar {
+    top: 0;
+    height: 100vh;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
-    .admin-dashboard {
+    .admin-dashboard,
+    .admin-layout .admin-dashboard {
         flex-direction: column;
-        padding-top: 75px !important;
+        padding-top: max(10px, env(safe-area-inset-top)) !important;
         min-height: 100vh;
     }
     
@@ -1058,7 +1124,7 @@
         top: auto !important;
         border-right: none !important;
         border-bottom: 1px solid #334155 !important;
-        padding: 14px 16px 10px !important;
+        padding: max(14px, env(safe-area-inset-top)) 16px 10px !important;
         background-color: #111827 !important;
         flex-shrink: 0;
         z-index: 10;
@@ -1135,23 +1201,56 @@
         padding: 16px;
     }
     
-    /* Manager headers stack vertically */
+    /* Manager headers stack vertically with safe area */
     .manager-header {
         flex-direction: column;
         align-items: flex-start !important;
-        gap: 16px;
+        gap: 14px;
+        padding-top: max(8px, env(safe-area-inset-top));
+    }
+
+    .manager-header h2 {
+        font-size: 1.35rem;
+        margin: 0;
     }
     
     .manager-header-actions {
         width: 100%;
-        flex-direction: column;
-        gap: 12px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .manager-header-actions .btn {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    /* Add product dropdown & button full width on mobile */
+    .add-product-wrapper {
+        width: 100% !important;
+        display: block !important;
+    }
+
+    .add-product-wrapper > button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .add-product-dropdown {
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     
     .header-controls-group {
         width: 100%;
         flex-wrap: wrap;
         gap: 10px;
+        padding: 8px 10px;
     }
 
     .admin-order-controls {
@@ -1194,21 +1293,22 @@
         width: 100% !important;
     }
     
-    /* Tables scroll horizontally */
+    /* Tables scroll horizontally without breaking container */
     .table-responsive {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        margin: 0 -16px;
-        padding: 0 16px;
+        margin: 8px 0 0 0;
+        padding: 0;
+        border-radius: 12px;
     }
     
     .admin-table {
-        min-width: 850px;
+        min-width: 620px;
     }
     
     .admin-table th,
     .admin-table td {
-        padding: 12px 10px;
+        padding: 10px 8px;
         font-size: 0.8rem; /* Slightly smaller */
         white-space: normal; /* Allow wrapping in cells */
         word-break: break-word; /* Prevent overflow of long strings */
@@ -1223,20 +1323,6 @@
     .admin-action-btn svg {
         width: 16px;
         height: 16px;
-    }
-    
-    /* Action buttons flexible on mobile */
-    .manager-header-actions {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .manager-header-actions .btn {
-        flex: 1 1 auto;
-        width: auto;
     }
     
     /* Sidebar nav compact */
@@ -1308,7 +1394,7 @@
     }
     
     .admin-table {
-        min-width: 850px;
+        min-width: 600px;
     }
     
     .admin-table th,

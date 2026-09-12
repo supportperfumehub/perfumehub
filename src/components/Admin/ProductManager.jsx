@@ -937,7 +937,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </div>
                     )}
                     {!showForm && !isBindingCatalog && (
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <div className="add-product-wrapper" style={{ position: 'relative' }}>
                             <button 
                                 type="button" 
                                 className="btn btn-gold" 
@@ -971,13 +971,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     
                                     {/* Dropdown Menu directly attached under the button */}
                                     <div 
-                                        className="animate-scale-up"
+                                        className="animate-scale-up add-product-dropdown"
                                         onClick={(e) => e.stopPropagation()}
                                         style={{
                                             position: 'absolute',
                                             top: 'calc(100% + 8px)',
                                             [isRTL ? 'left' : 'right']: 0,
-                                            width: '320px',
                                             background: '#1e293b',
                                             border: '1px solid rgba(200, 169, 81, 0.35)',
                                             borderRadius: '14px',
@@ -1049,7 +1048,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                     {isRTL ? 'إضافة منتج مخصص جديد' : 'Add Custom Product'}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                    {isRTL ? 'إنشاء عطر جديد بصور ومكونات مخصصة' : 'Create new fragrance with custom notes'}
+                                                    {isRTL ? 'إنشاء منتج جديد بتفاصيل ومواصفات مخصصة' : 'Create new product with custom details'}
                                                 </div>
                                             </div>
                                         </button>
@@ -1103,7 +1102,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                     {isRTL ? 'إضافة من الكتالوج العالمي' : 'Add from Catalog'}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                    {isRTL ? 'تحديد عطر مسجل وتعيين السعر والمخزون' : 'Pick from master catalog & set price'}
+                                                    {isRTL ? 'تحديد منتج مسجل وتعيين السعر والمخزون' : 'Pick from master catalog & set price'}
                                                 </div>
                                             </div>
                                         </button>
@@ -1909,13 +1908,13 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th style={{ minWidth: '70px' }}>{isRTL ? 'الصورة' : 'Image'}</th>
-                            <th style={{ minWidth: '180px' }}>{isRTL ? 'المنتج' : 'Product'}</th>
-                            <th style={{ minWidth: '140px' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
-                            <th style={{ whiteSpace: 'nowrap', minWidth: '100px' }}>{isRTL ? 'السعر' : 'Price'}</th>
-                            <th style={{ whiteSpace: 'nowrap', minWidth: '80px' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
-                            <th style={{ whiteSpace: 'nowrap', textAlign: 'center', minWidth: '100px' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
-                            <th style={{ textAlign: 'center', minWidth: '100px' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                            <th style={{ minWidth: '55px', width: '55px' }}>{isRTL ? 'الصورة' : 'Image'}</th>
+                            <th style={{ minWidth: '150px' }}>{isRTL ? 'المنتج' : 'Product'}</th>
+                            <th style={{ minWidth: '100px' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '90px' }}>{isRTL ? 'السعر' : 'Price'}</th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '65px' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                            <th style={{ whiteSpace: 'nowrap', textAlign: 'center', minWidth: '75px' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
+                            <th style={{ textAlign: 'center', minWidth: '85px' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
