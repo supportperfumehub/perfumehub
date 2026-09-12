@@ -44,20 +44,50 @@ const Shop = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [activeSubcategory, setActiveSubcategory] = useState('all');
 
+    const FASHION_TAGS = React.useMemo(() => ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'], []);
+    const JEWELLERY_TAGS = React.useMemo(() => ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'], []);
+    const GIFTBOX_TAGS = React.useMemo(() => ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'], []);
+
     // Dynamically compute brands from mockProducts based on category
     const categoryBrands = React.useMemo(() => {
         let items = [...mockProducts];
         if (type) {
-            items = items.filter(p =>
-                (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
-                p.gender === type
-            );
+            const normalizedType = type.toLowerCase().replace('-', '');
+            if (normalizedType === 'fashion') {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => FASHION_TAGS.includes(c)) || p.gender === 'fashion';
+                });
+            } else if (normalizedType === 'abaya') {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.includes('abaya') || (p.name && p.name.toLowerCase().includes('abaya'));
+                });
+            } else if (normalizedType === 'jewellery' || normalizedType === 'jewelry') {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => JEWELLERY_TAGS.includes(c));
+                });
+            } else if (normalizedType === 'giftbox') {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => GIFTBOX_TAGS.includes(c));
+                });
+            } else {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
+                    return cats.includes(type) || cats.includes(normalizedType) || p.gender === type;
+                });
+            }
         }
         return [...new Set(items.map(p => p.brand))].filter(Boolean).sort();
-    }, [mockProducts, type]);
+    }, [mockProducts, type, FASHION_TAGS, JEWELLERY_TAGS, GIFTBOX_TAGS]);
 
     const availableSizes = React.useMemo(() => {
-        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('fashion'));
+        let items = mockProducts.filter(p => {
+            const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
+            return cats.some(c => FASHION_TAGS.includes(c));
+        });
         let sizes = new Set();
         items.forEach(p => {
             if (Array.isArray(p.size)) {
@@ -67,10 +97,13 @@ const Shop = () => {
             }
         });
         return Array.from(sizes).sort();
-    }, [mockProducts]);
+    }, [mockProducts, FASHION_TAGS]);
 
     const availableColors = React.useMemo(() => {
-        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('fashion'));
+        let items = mockProducts.filter(p => {
+            const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
+            return cats.some(c => FASHION_TAGS.includes(c));
+        });
         let colors = new Set();
         items.forEach(p => {
             const color = p.attributes?.color || p.attributes?.colors;
@@ -78,10 +111,13 @@ const Shop = () => {
             else if (color) colors.add(color);
         });
         return Array.from(colors).sort();
-    }, [mockProducts]);
+    }, [mockProducts, FASHION_TAGS]);
 
     const availableMaterials = React.useMemo(() => {
-        let items = mockProducts.filter(p => Array.isArray(p.category) && p.category.includes('jewellery'));
+        let items = mockProducts.filter(p => {
+            const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
+            return cats.some(c => JEWELLERY_TAGS.includes(c));
+        });
         let materials = new Set();
         items.forEach(p => {
             const mat = p.attributes?.material || p.attributes?.materials;
@@ -89,27 +125,61 @@ const Shop = () => {
             else if (mat) materials.add(mat);
         });
         return Array.from(materials).sort();
-    }, [mockProducts]);
+    }, [mockProducts, JEWELLERY_TAGS]);
 
     useEffect(() => {
         let result = [...mockProducts];
 
         // Filter by category param
         if (type) {
-            result = result.filter(p =>
-                (Array.isArray(p.category) && (p.category.includes(type) || p.category.includes(type.replace('-', '')))) ||
-                p.gender === type
-            );
+            const normalizedType = type.toLowerCase().replace('-', '');
+            if (normalizedType === 'fashion') {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => FASHION_TAGS.includes(c)) || p.gender === 'fashion';
+                });
+            } else if (normalizedType === 'abaya') {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.includes('abaya') || (p.name && p.name.toLowerCase().includes('abaya'));
+                });
+            } else if (normalizedType === 'jewellery' || normalizedType === 'jewelry') {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => JEWELLERY_TAGS.includes(c));
+                });
+            } else if (normalizedType === 'giftbox') {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => GIFTBOX_TAGS.includes(c));
+                });
+            } else {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.includes(type) || cats.includes(normalizedType) || p.gender === type;
+                });
+            }
         } else {
             result = result.filter(p => {
-                const cats = Array.isArray(p.category) ? p.category : [];
-                return !cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box');
+                const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
+                return !cats.some(c => FASHION_TAGS.includes(c)) && 
+                       !cats.some(c => JEWELLERY_TAGS.includes(c)) && 
+                       !cats.some(c => GIFTBOX_TAGS.includes(c));
             });
         }
 
         // Subcategory Filter (Fashion only)
         if (type === 'fashion' && activeSubcategory !== 'all') {
-            result = result.filter(p => Array.isArray(p.category) && p.category.includes(activeSubcategory));
+            result = result.filter(p => {
+                const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                if (activeSubcategory === 'accessories') {
+                    return cats.includes('accessories') || cats.includes('bags') || cats.includes('bag');
+                }
+                if (activeSubcategory === 'clothing') {
+                    return cats.includes('clothing') || cats.includes('apparel');
+                }
+                return cats.includes(activeSubcategory);
+            });
         }
 
         // Filter by shop ID

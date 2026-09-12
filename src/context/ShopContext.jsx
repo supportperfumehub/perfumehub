@@ -313,8 +313,11 @@ export const ShopProvider = ({ children }) => {
                 // Replace temp ID with real ID from backend
                 setProducts(prevProducts => prevProducts.map(p => p.id === tempId ? { ...p, id: response.data.id } : p));
                 showToast('Product added successfully', 'success');
+                // Refresh full products catalog & inventory bindings
+                await fetchProducts();
             }
         } catch (error) {
+            setProducts(prevProducts => prevProducts.filter(p => p.id !== tempId));
             showToast(`Failed to save: ${error.response?.data?.error || error.message}`, 'error');
             console.error('Save failed:', error);
         }

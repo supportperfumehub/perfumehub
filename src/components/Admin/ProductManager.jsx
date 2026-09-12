@@ -851,25 +851,34 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
     const getCategoryCounts = () => {
         const counts = { all: 0, perfume: 0, fashion: 0, abaya: 0, giftbox: 0, jewellery: 0 };
+        const fashionTags = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
+        const jewTags = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
+        const giftTags = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
+
         shopFilteredProducts.forEach(product => {
             counts.all++;
-            const cats = Array.isArray(product.category) ? product.category.map(c => c.toLowerCase()) : [];
+            const cats = Array.isArray(product.category) 
+                ? product.category.map(c => String(c).toLowerCase()) 
+                : (product.category ? [String(product.category).toLowerCase()] : []);
             
-            if (cats.includes('abaya')) {
+            const isAbaya = cats.includes('abaya') || (product.name && product.name.toLowerCase().includes('abaya'));
+            const isFashion = cats.some(c => fashionTags.includes(c)) || product.gender === 'fashion';
+            const isJewellery = cats.some(c => jewTags.includes(c));
+            const isGiftbox = cats.some(c => giftTags.includes(c));
+
+            if (isAbaya) {
                 counts.abaya++;
-            } else if (cats.includes('fashion')) {
+            }
+            if (isFashion && !isAbaya) {
                 counts.fashion++;
             }
-            
-            if (cats.includes('jewellery')) {
+            if (isJewellery) {
                 counts.jewellery++;
             }
-            
-            if (cats.includes('giftbox') || cats.includes('gift-box')) {
+            if (isGiftbox) {
                 counts.giftbox++;
             }
-            
-            if (!cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box') && !cats.includes('abaya')) {
+            if (!isFashion && !isJewellery && !isGiftbox && !isAbaya) {
                 counts.perfume++;
             }
         });
@@ -987,8 +996,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 setShowForm(true);
                                                 setIsBindingCatalog(false);
                                                 setEditingId(null);
+                                                let defaultCats = [];
+                                                if (selectedCategory === 'fashion') defaultCats = ['fashion'];
+                                                else if (selectedCategory === 'abaya') defaultCats = ['fashion', 'abaya'];
+                                                else if (selectedCategory === 'jewellery') defaultCats = ['jewellery'];
+                                                else if (selectedCategory === 'giftbox') defaultCats = ['giftbox'];
+
                                                 setFormData({
                                                     ...initialFormState,
+                                                    category: defaultCats,
                                                     shop_id: shopId || 'core'
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -1315,11 +1331,46 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             </div>
                             <div className="form-group">
                                 <label>{isRTL ? 'القسم الرئيسي' : 'Primary Department'}</label>
-                                <select name="gender" className="form-control" value={formData.gender} onChange={handleInputChange}>
-                                    <option value="men">{isRTL ? 'أزياء' : 'Fashion'}</option>
-                                    <option value="women">{isRTL ? 'مجوهرات' : 'Jewellery'}</option>
-                                    <option value="arabic">{isRTL ? 'صناديق الهدايا' : 'Gift Boxes'}</option>
+                                <select 
+                                    name="department" 
+                                    className="form-control" 
+                                    value={
+                                        formData.category?.includes('fashion') 
+                                            ? 'fashion' 
+                                            : (formData.category?.includes('jewellery') 
+                                                ? 'jewellery' 
+                                                : (formData.category?.includes('giftbox') || formData.category?.includes('gift-box') 
+                                                    ? 'giftbox' 
+                                                    : 'perfume'))
+                                    } 
+                                    onChange={(e) => {
+                                        const newDept = e.target.value;
+                                        setFormData(prev => {
+                                            const oldCats = Array.isArray(prev.category) ? prev.category : [];
+                                            let cleanCats = oldCats.filter(c => !['fashion', 'jewellery', 'giftbox', 'gift-box'].includes(c.toLowerCase()));
+                                            if (newDept !== 'perfume') {
+                                                cleanCats.push(newDept);
+                                            }
+                                            return {
+                                                ...prev,
+                                                category: cleanCats
+                                            };
+                                        });
+                                    }}
+                                >
+                                    <option value="perfume">{isRTL ? 'عطور ومستحضرات (Perfume)' : 'Perfume & Fragrances'}</option>
+                                    <option value="fashion">{isRTL ? 'أزياء وعبايات وحقائب (Fashion)' : 'Fashion & Abayas & Bags'}</option>
+                                    <option value="jewellery">{isRTL ? 'مجوهرات وساعات (Jewellery)' : 'Jewellery & Watches'}</option>
+                                    <option value="giftbox">{isRTL ? 'صناديق الهدايا (Gift Boxes)' : 'Gift Boxes'}</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'الفئة المستهدفة' : 'Target Audience / Gender'}</label>
+                                <select name="gender" className="form-control" value={formData.gender || 'unisex'} onChange={handleInputChange}>
                                     <option value="unisex">{isRTL ? 'للجنسين / عام' : 'Unisex / General'}</option>
+                                    <option value="women">{isRTL ? 'نسائي' : 'Women'}</option>
+                                    <option value="men">{isRTL ? 'رجالي' : 'Men'}</option>
+                                    <option value="arabic">{isRTL ? 'شرقي / عربي' : 'Oriental / Arabic'}</option>
                                 </select>
                             </div>
                             <div className="form-group">
@@ -1330,17 +1381,86 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     className="form-control" 
                                     value={formData.type} 
                                     onChange={handleInputChange}
-                                    placeholder={isRTL ? 'مثلاً: عطر، قلادة، ساعة...' : 'e.g. Perfume, Necklace, Watch...'}
+                                    placeholder={isRTL ? 'مثلاً: عطر، حقيبة، عباية، قلادة...' : 'e.g. Perfume, Bag, Abaya, Necklace...'}
                                 />
                                 <datalist id="product-types">
                                     <option value="Perfume">Perfume</option>
+                                    <option value="Abaya">Abaya</option>
+                                    <option value="Bag">Bag</option>
+                                    <option value="Crossbody Bag">Crossbody Bag</option>
+                                    <option value="Dress">Dress</option>
                                     <option value="Necklace">Necklace</option>
                                     <option value="Ring">Ring</option>
                                     <option value="Watch">Watch</option>
-                                    <option value="Bag">Bag</option>
                                     <option value="Gift Set">Gift Set</option>
                                     <option value="EDP (Eau de Parfum)">EDP (Eau de Parfum)</option>
                                 </datalist>
+                            </div>
+                        </div>
+
+                        {/* Quick Department Subcategory Tags (Directly visible) */}
+                        <div className="form-group" style={{ marginTop: '10px', marginBottom: '20px' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--color-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                🏷️ {isRTL ? 'التصنيفات والوسوم المباشرة:' : 'Department Category Tags (Click to select):'}
+                            </label>
+                            <div className="category-pills" style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {formData.category?.includes('fashion') ? (
+                                    [
+                                        { value: 'abaya', label: isRTL ? 'عبايات حصرية' : 'Exclusive Abaya' },
+                                        { value: 'clothing', label: isRTL ? 'ملابس' : 'Clothing / Apparel' },
+                                        { value: 'bags', label: isRTL ? 'حقائب' : 'Handbags & Bags' },
+                                        { value: 'accessories', label: isRTL ? 'إكسسوارات' : 'Accessories' },
+                                        { value: 'eyewear', label: isRTL ? 'نظارات' : 'Eyewear' },
+                                        { value: 'shoes', label: isRTL ? 'أحذية' : 'Shoes' }
+                                    ].map(cat => (
+                                        <button
+                                            type="button"
+                                            key={cat.value}
+                                            className={`category-pill ${formData.category?.includes(cat.value) ? 'active' : ''}`}
+                                            onClick={() => handleCategoryToggle(cat.value)}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))
+                                ) : formData.category?.includes('jewellery') ? (
+                                    [
+                                        { value: 'watches', label: isRTL ? 'ساعات' : 'Watches' },
+                                        { value: 'rings', label: isRTL ? 'خواتم' : 'Rings' },
+                                        { value: 'necklaces', label: isRTL ? 'قلائد' : 'Necklaces' },
+                                        { value: 'earrings', label: isRTL ? 'أقراط' : 'Earrings' },
+                                        { value: 'bracelets', label: isRTL ? 'أساور' : 'Bracelets' }
+                                    ].map(cat => (
+                                        <button
+                                            type="button"
+                                            key={cat.value}
+                                            className={`category-pill ${formData.category?.includes(cat.value) ? 'active' : ''}`}
+                                            onClick={() => handleCategoryToggle(cat.value)}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))
+                                ) : (
+                                    [
+                                        { value: 'arabic', label: isRTL ? 'شرقي' : 'Arabic' },
+                                        { value: 'woody', label: isRTL ? 'خشبي' : 'Woody' },
+                                        { value: 'floral', label: isRTL ? 'زهري' : 'Floral' },
+                                        { value: 'spicy', label: isRTL ? 'حار / توابل' : 'Spicy' },
+                                        { value: 'citrus', label: isRTL ? 'حمضيات' : 'Citrus' },
+                                        { value: 'musk', label: isRTL ? 'مسك' : 'Musk' },
+                                        { value: 'fresh', label: isRTL ? 'منعش' : 'Fresh' },
+                                        { value: 'sweet', label: isRTL ? 'حلو' : 'Sweet' },
+                                        { value: 'luxury', label: isRTL ? 'فاخر' : 'Luxury' }
+                                    ].map(cat => (
+                                        <button
+                                            type="button"
+                                            key={cat.value}
+                                            className={`category-pill ${formData.category?.includes(cat.value) ? 'active' : ''}`}
+                                            onClick={() => handleCategoryToggle(cat.value)}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))
+                                )}
                             </div>
                         </div>
 
@@ -1804,21 +1924,28 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             .filter(product => {
                                 // Category filter
                                 if (selectedCategory !== 'all') {
-                                    const cats = Array.isArray(product.category) ? product.category.map(c => c.toLowerCase()) : [];
+                                    const cats = Array.isArray(product.category) 
+                                        ? product.category.map(c => String(c).toLowerCase()) 
+                                        : (product.category ? [String(product.category).toLowerCase()] : []);
+                                    const fashionTags = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
+                                    const jewTags = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
+                                    const giftTags = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
+
+                                    const isAbaya = cats.includes('abaya') || (product.name && product.name.toLowerCase().includes('abaya'));
+                                    const isFashion = cats.some(c => fashionTags.includes(c)) || product.gender === 'fashion';
+                                    const isJewellery = cats.some(c => jewTags.includes(c));
+                                    const isGiftbox = cats.some(c => giftTags.includes(c));
+
                                     if (selectedCategory === 'perfume') {
-                                        // Not fashion, jewellery, giftbox, gift-box, or abaya
-                                        if (cats.includes('fashion') || cats.includes('jewellery') || cats.includes('giftbox') || cats.includes('gift-box') || cats.includes('abaya')) {
-                                            return false;
-                                        }
+                                        if (isFashion || isJewellery || isGiftbox || isAbaya) return false;
                                     } else if (selectedCategory === 'abaya') {
-                                        if (!cats.includes('abaya')) return false;
+                                        if (!isAbaya) return false;
                                     } else if (selectedCategory === 'fashion') {
-                                        // Under fashion category but not abaya
-                                        if (!cats.includes('fashion') || cats.includes('abaya')) return false;
+                                        if (!isFashion || isAbaya) return false;
                                     } else if (selectedCategory === 'giftbox') {
-                                        if (!cats.includes('giftbox') && !cats.includes('gift-box')) return false;
+                                        if (!isGiftbox) return false;
                                     } else if (selectedCategory === 'jewellery') {
-                                        if (!cats.includes('jewellery')) return false;
+                                        if (!isJewellery) return false;
                                     }
                                 }
 
