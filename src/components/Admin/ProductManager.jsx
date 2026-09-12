@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import api from '../../utils/api_v1_0_2';
 
@@ -504,155 +504,324 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         }));
     };
 
+    const getDepartmentPresets = () => {
+        const cats = formData.category || [];
+        if (cats.includes('fashion')) {
+            return ['52', '54', '56', '58', '60', 'Free Size', 'S', 'M', 'L', 'XL'];
+        }
+        if (cats.includes('jewellery')) {
+            return ['Sz 5', 'Sz 6', 'Sz 7', 'Sz 8', '40cm', '45cm', '50cm', 'One Size'];
+        }
+        if (cats.includes('giftbox') || cats.includes('gift-box')) {
+            return ['Standard Box', 'Deluxe Box', 'VIP Royal Chest', 'Mini Set'];
+        }
+        return ['30ml', '50ml', '75ml', '100ml', '125ml', '200ml'];
+    };
+
     const renderAttributeFields = () => {
         const categories = formData.category || [];
         const isFashion = categories.includes('fashion');
         const isJewellery = categories.includes('jewellery');
         const isGiftBox = categories.includes('giftbox') || categories.includes('gift-box');
-
-        if (!isFashion && !isJewellery && !isGiftBox) return null;
+        const isPerfume = !isFashion && !isJewellery && !isGiftBox;
 
         const attributes = formData.attributes || {};
 
+        let deptTitle = isRTL ? 'مواصفات ومكونات العطر (Perfume Specifications)' : 'Perfume Specifications & Fragrance Profile';
+        let deptIcon = <Sparkles size={18} color="#c8a951" />;
+        let deptColor = '#c8a951';
+
+        if (isFashion) {
+            deptTitle = isRTL ? 'مواصفات الأزياء والعبايات (Fashion & Abaya Features)' : 'Fashion & Abaya Specifications';
+            deptIcon = <Shirt size={18} color="#ec4899" />;
+            deptColor = '#ec4899';
+        } else if (isJewellery) {
+            deptTitle = isRTL ? 'مواصفات المجوهرات والساعات (Jewellery & Watch Features)' : 'Jewellery & Watch Specifications';
+            deptIcon = <Diamond size={18} color="#38bdf8" />;
+            deptColor = '#38bdf8';
+        } else if (isGiftBox) {
+            deptTitle = isRTL ? 'مواصفات صندوق الهدايا والمحتويات (Gift Box Features)' : 'Gift Box Specifications & Contents';
+            deptIcon = <Gift size={18} color="#f59e0b" />;
+            deptColor = '#f59e0b';
+        }
+
         return (
-            <div className="form-column-attributes animate-fade-in" style={{ marginTop: '20px', padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(200, 169, 81, 0.2)', borderRadius: '12px', marginBottom: '20px' }}>
-                <div className="form-section-title" style={{ marginTop: 0, color: 'var(--color-gold)', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '15px' }}>
-                    <Plus size={16} /> {isRTL ? 'المواصفات والخصائص (Attributes)' : 'Category Specifications (Attributes)'}
+            <div 
+                className="form-column-attributes animate-fade-in" 
+                style={{ 
+                    marginTop: '20px', 
+                    padding: '20px', 
+                    background: 'rgba(255, 255, 255, 0.02)', 
+                    border: `1px solid ${deptColor}44`, 
+                    borderRadius: '14px', 
+                    marginBottom: '20px',
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.2), inset 0 0 20px ${deptColor}08`
+                }}
+            >
+                <div className="form-section-title" style={{ marginTop: 0, color: deptColor, display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '12px', marginBottom: '18px', fontSize: '1rem', fontWeight: '700' }}>
+                    {deptIcon}
+                    <span>{deptTitle}</span>
                 </div>
                 
+                {isPerfume && (
+                    <>
+                        <div className="form-row grid-3" style={{ gap: '15px', marginBottom: '15px' }}>
+                            <div className="form-group">
+                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'الإفتتاحية (Top Notes)' : 'Top Notes'}</label>
+                                <textarea 
+                                    name="topNotes" 
+                                    className="form-control" 
+                                    value={formData.topNotes || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder={isRTL ? 'مثال: برغموت، تفاح، كشمش أسود' : 'e.g. Bergamot, Blackcurrant, Apple'}
+                                    rows="2"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القلب (Middle Notes)' : 'Middle Notes'}</label>
+                                <textarea 
+                                    name="middleNotes" 
+                                    className="form-control" 
+                                    value={formData.middleNotes || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder={isRTL ? 'مثال: خشب البتولا، الباتشولي، ياسمين' : 'e.g. Birch, Patchouli, Moroccan Jasmine'}
+                                    rows="2"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القاعدة (Base Notes)' : 'Base Notes'}</label>
+                                <textarea 
+                                    name="baseNotes" 
+                                    className="form-control" 
+                                    value={formData.baseNotes || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder={isRTL ? 'مثال: المسك، طحلب البلوط، العنبر، الفانيليا' : 'e.g. Musk, Oakmoss, Ambergris, Vanilla'}
+                                    rows="2"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-row grid-3" style={{ gap: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'عائلة العطر (Scent Family)' : 'Scent Family'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.scentFamily || ''} 
+                                    onChange={(e) => handleAttributeChange('scentFamily', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: شرقي خشبي / عنبر زهري' : 'e.g. Oriental Woody / Amber Floral'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'درجة الثبات (Longevity)' : 'Longevity'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.longevity || ''} 
+                                    onChange={(e) => handleAttributeChange('longevity', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: طويل جداً (8-12 ساعة)' : 'e.g. Long Lasting (8-12 hrs)'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'الفوحان (Sillage / Projection)' : 'Sillage / Projection'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.sillage || ''} 
+                                    onChange={(e) => handleAttributeChange('sillage', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: قوي وجذاب' : 'e.g. Strong / Enormous'}
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
+
                 {isFashion && (
-                    <div className="form-row grid-3">
-                        <div className="form-group">
-                            <label>{isRTL ? 'اللون' : 'Color'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.color || ''} 
-                                onChange={(e) => handleAttributeChange('color', e.target.value)} 
-                                placeholder="e.g. Nero Black"
-                            />
+                    <>
+                        <div className="form-row grid-3" style={{ gap: '15px', marginBottom: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'اللون' : 'Color'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.color || ''} 
+                                    onChange={(e) => handleAttributeChange('color', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: أسود كلاسيكي / كحلي / بيج' : 'e.g. Nero Black / Midnight Blue / Beige'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'نوع القماش / المادة' : 'Fabric / Material'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.material || ''} 
+                                    onChange={(e) => handleAttributeChange('material', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: كريب ياباني فاخر، حرير، كتان' : 'e.g. Royal Japanese Crepe, Pure Silk, Linen'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'قصة الموديل / التصميم' : 'Cut / Style'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.style || ''} 
+                                    onChange={(e) => handleAttributeChange('style', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: بشت واسع، كيمونو، كلاسيك مفتوح' : 'e.g. Bisht Cut, Kimono, Open Front, Butterfly'}
+                                />
+                            </div>
                         </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'المادة' : 'Material'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.material || ''} 
-                                onChange={(e) => handleAttributeChange('material', e.target.value)} 
-                                placeholder="e.g. 100% Cashmere"
-                            />
+
+                        <div className="form-row grid-3" style={{ gap: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'بلد الصنع / التصميم' : 'Origin / Made In'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.origin || ''} 
+                                    onChange={(e) => handleAttributeChange('origin', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: قطر / الإمارات / فرنسا / إيطاليا' : 'e.g. Qatar / UAE / Italy / France'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'يشمل الملحقات' : 'Includes'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.includes || ''} 
+                                    onChange={(e) => handleAttributeChange('includes', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: طرحة متطابقة + حزام' : 'e.g. Matching Sheila / Scarf + Belt'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'تعليمات العناية والغسيل' : 'Care Instructions'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.care || ''} 
+                                    onChange={(e) => handleAttributeChange('care', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: غسيل جاف فقط' : 'e.g. Dry Clean Only / Hand Wash Cold'}
+                                />
+                            </div>
                         </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'البلد المصنع' : 'Origin / Manufacturer'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.origin || ''} 
-                                onChange={(e) => handleAttributeChange('origin', e.target.value)} 
-                                placeholder="e.g. Italy"
-                            />
-                        </div>
-                    </div>
+                    </>
                 )}
 
                 {isJewellery && (
-                    <div className="form-row grid-3" style={{ gap: '15px' }}>
-                        <div className="form-group">
-                            <label>{isRTL ? 'نوع المعدن' : 'Metal / Material'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.material || ''} 
-                                onChange={(e) => handleAttributeChange('material', e.target.value)} 
-                                placeholder="e.g. 18K Yellow Gold"
-                            />
+                    <>
+                        <div className="form-row grid-3" style={{ gap: '15px', marginBottom: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'نوع المعدن' : 'Metal / Material'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.material || ''} 
+                                    onChange={(e) => handleAttributeChange('material', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: ذهب أصفر عيار 18 / بلاتين / فضة 925' : 'e.g. 18K Yellow Gold / Platinum / 925 Silver'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'نوع الحجر الكريم' : 'Stone / Gemstone'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.stone || ''} 
+                                    onChange={(e) => handleAttributeChange('stone', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: ألماس طبيعي بقصة دائرية، ياقوت، زمرد' : 'e.g. Brilliant Round Diamond, Emerald, Sapphire'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'الوزن (قيراط أو جرام)' : 'Carat / Weight'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.carat || ''} 
+                                    onChange={(e) => handleAttributeChange('carat', e.target.value)} 
+                                    placeholder="e.g. 1.25 ct / 18.5g"
+                                />
+                            </div>
                         </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'نوع الحجر' : 'Stone Type'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.stone || ''} 
-                                onChange={(e) => handleAttributeChange('stone', e.target.value)} 
-                                placeholder="e.g. Brilliant Round Diamond"
-                            />
+
+                        <div className="form-row grid-3" style={{ gap: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'النقاء / العيار' : 'Clarity / Purity'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.purity || ''} 
+                                    onChange={(e) => handleAttributeChange('purity', e.target.value)} 
+                                    placeholder="e.g. VVS1 / Color F / 750"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'شهادة التوثيق' : 'Certification'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.certification || ''} 
+                                    onChange={(e) => handleAttributeChange('certification', e.target.value)} 
+                                    placeholder="e.g. GIA Certified / IGI Certified"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'حركة الساعة / الإطار' : 'Watch Movement / Dial'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.movement || ''} 
+                                    onChange={(e) => handleAttributeChange('movement', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: أوتوماتيك سويسري / إطار 41 ملم' : 'e.g. Swiss Automatic / 41mm Case'}
+                                />
+                            </div>
                         </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'الوزن (قيراط)' : 'Carat Weight'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.carat || ''} 
-                                onChange={(e) => handleAttributeChange('carat', e.target.value)} 
-                                placeholder="e.g. 0.85 ct"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'النقاء / العيار' : 'Clarity / Purity'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.purity || ''} 
-                                onChange={(e) => handleAttributeChange('purity', e.target.value)} 
-                                placeholder="e.g. VVS1 / G Color"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'الشهادة' : 'Certification'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.certification || ''} 
-                                onChange={(e) => handleAttributeChange('certification', e.target.value)} 
-                                placeholder="e.g. GIA Certified"
-                            />
-                        </div>
-                    </div>
+                    </>
                 )}
 
                 {isGiftBox && (
-                    <div className="form-row grid-2" style={{ gap: '15px' }}>
-                        <div className="form-group">
-                            <label>{isRTL ? 'موضوع الصندوق' : 'Theme'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.theme || ''} 
-                                onChange={(e) => handleAttributeChange('theme', e.target.value)} 
-                                placeholder="e.g. Imperial Oud / Celebration"
-                            />
+                    <>
+                        <div className="form-row grid-3" style={{ gap: '15px', marginBottom: '15px' }}>
+                            <div className="form-group">
+                                <label>{isRTL ? 'مناسبة الصندوق / الطابع' : 'Theme / Occasion'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.theme || ''} 
+                                    onChange={(e) => handleAttributeChange('theme', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: إهداء زفاف ملكي، تهنئة العيد، VIP' : 'e.g. Royal Wedding, Eid Mubarak, VIP Prestige'}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'أبعاد وحجم الصندوق' : 'Box Dimensions'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.dimensions || ''} 
+                                    onChange={(e) => handleAttributeChange('dimensions', e.target.value)} 
+                                    placeholder="e.g. 35cm x 25cm x 15cm"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>{isRTL ? 'نوع التغليف والشكل' : 'Packaging Chest Type'}</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={attributes.packaging || ''} 
+                                    onChange={(e) => handleAttributeChange('packaging', e.target.value)} 
+                                    placeholder={isRTL ? 'مثال: صندوق خشبي فاخر مبطن بالمخمل' : 'e.g. Handcrafted Wooden Chest with Velvet Lining'}
+                                />
+                            </div>
                         </div>
+
                         <div className="form-group">
-                            <label>{isRTL ? 'أبعاد الصندوق' : 'Dimensions'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.dimensions || ''} 
-                                onChange={(e) => handleAttributeChange('dimensions', e.target.value)} 
-                                placeholder="e.g. 25cm x 20cm x 12cm"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'نوع التغليف' : 'Packaging Type'}</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={attributes.packaging || ''} 
-                                onChange={(e) => handleAttributeChange('packaging', e.target.value)} 
-                                placeholder="e.g. Handcrafted Wooden Chest"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>{isRTL ? 'محتويات الصندوق' : 'Contents'}</label>
+                            <label>{isRTL ? 'محتويات الصندوق التفصيلية' : 'Included Contents & Gifts'}</label>
                             <textarea 
                                 className="form-control" 
                                 value={attributes.contents || ''} 
                                 onChange={(e) => handleAttributeChange('contents', e.target.value)} 
-                                placeholder="e.g. Perfume, dates box, organic honey..."
-                                rows="2"
+                                placeholder={isRTL ? 'مثال: عطر 100 مل + تولة دهن عود سيوفي + مخلط ملكي + بطاقة إهداء مذهبة...' : 'e.g. Perfume 100ml + Royal Dehn Oud 12ml + Bakhoor 50g + Gold foil greeting card...'}
+                                rows="3"
                             ></textarea>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
         );
@@ -985,9 +1154,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                             zIndex: 1000,
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            gap: '6px'
+                                            gap: '6px',
+                                            minWidth: '290px',
+                                            maxWidth: 'calc(100vw - 28px)'
                                         }}
                                     >
+                                        {/* Option 1: Perfumes */}
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -995,15 +1167,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 setShowForm(true);
                                                 setIsBindingCatalog(false);
                                                 setEditingId(null);
-                                                let defaultCats = [];
-                                                if (selectedCategory === 'fashion') defaultCats = ['fashion'];
-                                                else if (selectedCategory === 'abaya') defaultCats = ['fashion', 'abaya'];
-                                                else if (selectedCategory === 'jewellery') defaultCats = ['jewellery'];
-                                                else if (selectedCategory === 'giftbox') defaultCats = ['giftbox'];
-
                                                 setFormData({
                                                     ...initialFormState,
-                                                    category: defaultCats,
+                                                    category: ['perfume'],
+                                                    type: 'EDP (Eau de Parfum)',
+                                                    gender: 'unisex',
                                                     shop_id: shopId || 'core'
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -1012,7 +1180,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '12px',
-                                                padding: '12px 14px',
+                                                padding: '10px 12px',
                                                 borderRadius: '10px',
                                                 border: '1px solid transparent',
                                                 background: 'rgba(255, 255, 255, 0.02)',
@@ -1031,8 +1199,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                             }}
                                         >
                                             <div style={{
-                                                width: '38px',
-                                                height: '38px',
+                                                width: '36px',
+                                                height: '36px',
                                                 borderRadius: '10px',
                                                 background: 'rgba(200, 169, 81, 0.2)',
                                                 border: '1px solid rgba(200, 169, 81, 0.4)',
@@ -1041,32 +1209,102 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 justifyContent: 'center',
                                                 flexShrink: 0
                                             }}>
-                                                <Plus size={20} color="#c8a951" />
+                                                <Sparkles size={18} color="#c8a951" />
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: '700', fontSize: '0.92rem', color: '#f8fafc', marginBottom: '2px' }}>
-                                                    {isRTL ? 'إضافة منتج مخصص جديد' : 'Add Custom Product'}
+                                                <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'عطور وبخور فاخر' : 'Perfumes & Fragrances'}
                                                 </div>
-                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                    {isRTL ? 'إنشاء منتج جديد بتفاصيل ومواصفات مخصصة' : 'Create new product with custom details'}
+                                                <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'نفحات الإفتتاحية والقلب والقاعدة وتركيز العطر' : 'Olfactory pyramid notes & concentrations'}
                                                 </div>
                                             </div>
                                         </button>
 
+                                        {/* Option 2: Fashion & Abayas */}
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setShowAddChoiceModal(false);
-                                                setIsBindingCatalog(true);
-                                                setShowForm(false);
-                                                setSelectedCatalogProduct(null);
+                                                setShowForm(true);
+                                                setIsBindingCatalog(false);
+                                                setEditingId(null);
+                                                setFormData({
+                                                    ...initialFormState,
+                                                    category: ['fashion', 'abaya'],
+                                                    type: 'Abaya',
+                                                    gender: 'women',
+                                                    shop_id: shopId || 'core'
+                                                });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
                                             }}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '12px',
-                                                padding: '12px 14px',
+                                                padding: '10px 12px',
+                                                borderRadius: '10px',
+                                                border: '1px solid transparent',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                transition: 'all 0.15s ease',
+                                                width: '100%'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(236, 72, 153, 0.12)';
+                                                e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.35)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                                e.currentTarget.style.borderColor = 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(236, 72, 153, 0.2)',
+                                                border: '1px solid rgba(236, 72, 153, 0.4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <Shirt size={18} color="#ec4899" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'أزياء وعبايات حصرية' : 'Fashion & Exclusive Abayas'}
+                                                </div>
+                                                <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'مقاسات (52-60)، القماش، القصة، والألوان' : 'Abaya cuts (52-60), fabrics, color & styling'}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Option 3: Jewellery & Watches */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChoiceModal(false);
+                                                setShowForm(true);
+                                                setIsBindingCatalog(false);
+                                                setEditingId(null);
+                                                setFormData({
+                                                    ...initialFormState,
+                                                    category: ['jewellery'],
+                                                    type: 'Jewellery',
+                                                    gender: 'unisex',
+                                                    shop_id: shopId || 'core'
+                                                });
+                                                window.scrollTo({ top: 120, behavior: 'smooth' });
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '10px 12px',
                                                 borderRadius: '10px',
                                                 border: '1px solid transparent',
                                                 background: 'rgba(255, 255, 255, 0.02)',
@@ -1085,8 +1323,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                             }}
                                         >
                                             <div style={{
-                                                width: '38px',
-                                                height: '38px',
+                                                width: '36px',
+                                                height: '36px',
                                                 borderRadius: '10px',
                                                 background: 'rgba(56, 189, 248, 0.2)',
                                                 border: '1px solid rgba(56, 189, 248, 0.4)',
@@ -1095,14 +1333,132 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 justifyContent: 'center',
                                                 flexShrink: 0
                                             }}>
-                                                <Store size={20} color="#38bdf8" />
+                                                <Diamond size={18} color="#38bdf8" />
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: '700', fontSize: '0.92rem', color: '#f8fafc', marginBottom: '2px' }}>
-                                                    {isRTL ? 'إضافة من الكتالوج العالمي' : 'Add from Catalog'}
+                                                <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'مجوهرات وساعات راقية' : 'Jewellery & Luxury Watches'}
                                                 </div>
-                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                    {isRTL ? 'تحديد منتج مسجل وتعيين السعر والمخزون' : 'Pick from master catalog & set price'}
+                                                <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'المعادن الثمينة، الألماس، القيراط والشهادات' : 'Precious metals, carats, gemstones & watch specs'}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Option 4: Luxury Gift Box */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChoiceModal(false);
+                                                setShowForm(true);
+                                                setIsBindingCatalog(false);
+                                                setEditingId(null);
+                                                setFormData({
+                                                    ...initialFormState,
+                                                    category: ['giftbox'],
+                                                    type: 'Gift Set',
+                                                    gender: 'unisex',
+                                                    shop_id: shopId || 'core'
+                                                });
+                                                window.scrollTo({ top: 120, behavior: 'smooth' });
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '10px 12px',
+                                                borderRadius: '10px',
+                                                border: '1px solid transparent',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                transition: 'all 0.15s ease',
+                                                width: '100%'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.12)';
+                                                e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                                e.currentTarget.style.borderColor = 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(245, 158, 11, 0.2)',
+                                                border: '1px solid rgba(245, 158, 11, 0.4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <Gift size={18} color="#f59e0b" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'صناديق وباقات الهدايا' : 'Luxury Gift Boxes & Sets'}
+                                                </div>
+                                                <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'تغليف ملكي فاخر، أبعاد الصندوق ومحتويات الباقة' : 'Curated gift sets, chest types & contents'}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Option 5: Global Master Catalog */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChoiceModal(false);
+                                                setIsBindingCatalog(true);
+                                                setShowForm(false);
+                                                setSelectedCatalogProduct(null);
+                                                window.scrollTo({ top: 120, behavior: 'smooth' });
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '10px 12px',
+                                                borderRadius: '10px',
+                                                border: '1px solid transparent',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                cursor: 'pointer',
+                                                textAlign: isRTL ? 'right' : 'left',
+                                                transition: 'all 0.15s ease',
+                                                width: '100%',
+                                                borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.12)';
+                                                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.35)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                                e.currentTarget.style.borderColor = 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(168, 85, 247, 0.2)',
+                                                border: '1px solid rgba(168, 85, 247, 0.4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}>
+                                                <Store size={18} color="#a855f7" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#f8fafc', marginBottom: '2px' }}>
+                                                    {isRTL ? 'من الكتالوج العالمي' : 'Pick from Global Catalog'}
+                                                </div>
+                                                <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'تحديد منتج مسجل وتعيين السعر والمخزون' : 'Select from master catalog & set shop pricing'}
                                                 </div>
                                             </div>
                                         </button>
@@ -1463,28 +1819,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             </div>
                         </div>
 
-                        {/* Section 2: Olfactory Notes */}
-                        {showAdvanced && (
-                            <>
-                                <div className="form-section-title">
-                                    <Plus size={16} /> {isRTL ? 'مكونات العطر' : 'Fragrance Notes'}
-                                </div>
-                                <div className="form-row grid-3">
-                                    <div className="form-group">
-                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'الإفتتاحية (Top)' : 'Top Notes'}</label>
-                                        <textarea name="topNotes" className="form-control" value={formData.topNotes} onChange={handleInputChange} rows="2"></textarea>
-                                    </div>
-                                    <div className="form-group">
-                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القلب (Middle)' : 'Middle Notes'}</label>
-                                        <textarea name="middleNotes" className="form-control" value={formData.middleNotes} onChange={handleInputChange} rows="2"></textarea>
-                                    </div>
-                                    <div className="form-group">
-                                        <label style={{ fontSize: '0.85rem' }}>{isRTL ? 'القاعدة (Base)' : 'Base Notes'}</label>
-                                        <textarea name="baseNotes" className="form-control" value={formData.baseNotes} onChange={handleInputChange} rows="2"></textarea>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                        {/* Section 2: Department Category Specifications & Features */}
+                        {renderAttributeFields()}
                             </>
                         )}
 
@@ -1555,9 +1891,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                 
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '15px' }}>
                                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
-                                        {isRTL ? 'إضافة سريعة لمقاس:' : 'Quick Add Size:'}
+                                        {isRTL ? 'إضافة سريعة لمقاس / خيار:' : 'Quick Add Size / Option:'}
                                     </span>
-                                    {['50ml', '75ml', '100ml', '150ml', '200ml'].map(preset => (
+                                    {getDepartmentPresets().map(preset => (
                                         <button
                                             type="button"
                                             key={preset}
@@ -1580,8 +1916,19 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
                                 <div className="variant-input-grid">
                                     <div className="form-group">
-                                        <label>{isRTL ? 'الحجم' : 'Size'}</label>
-                                        <input type="text" name="name" className="form-control" value={variantData.name} onChange={handleVariantInputChange} placeholder="100ml" />
+                                        <label>{isRTL ? 'المقاس / الخيار' : 'Size / Variant'}</label>
+                                        <input 
+                                            type="text" 
+                                            name="name" 
+                                            className="form-control" 
+                                            value={variantData.name} 
+                                            onChange={handleVariantInputChange} 
+                                            placeholder={
+                                                formData.category?.includes('fashion') ? '56' :
+                                                formData.category?.includes('jewellery') ? 'Sz 7 / 45cm' :
+                                                (formData.category?.includes('giftbox') || formData.category?.includes('gift-box')) ? 'Deluxe Chest' : '100ml'
+                                            } 
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>{isRTL ? 'السعر' : 'Price'}</label>
@@ -1703,8 +2050,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                 </button>
                                             </div>
                                         </div>
-
-                                        {renderAttributeFields()}
                                     </>
                                 )}
 
