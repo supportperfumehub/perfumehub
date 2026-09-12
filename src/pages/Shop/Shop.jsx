@@ -168,7 +168,7 @@ const Shop = () => {
             });
         }
 
-        // Subcategory Filter (Fashion only)
+        // Subcategory Filter (Fashion)
         if (type === 'fashion' && activeSubcategory !== 'all') {
             result = result.filter(p => {
                 const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
@@ -178,6 +178,22 @@ const Shop = () => {
                 if (activeSubcategory === 'clothing') {
                     return cats.includes('clothing') || cats.includes('apparel');
                 }
+                if (activeSubcategory === 'abaya') {
+                    return cats.includes('abaya') || (p.name && p.name.toLowerCase().includes('abaya'));
+                }
+                return cats.includes(activeSubcategory);
+            });
+        }
+
+        // Subcategory Filter (Jewellery)
+        if ((type === 'jewellery' || type === 'jewelry') && activeSubcategory !== 'all') {
+            result = result.filter(p => {
+                const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                if (activeSubcategory === 'rings') return cats.includes('rings') || cats.includes('ring');
+                if (activeSubcategory === 'necklaces') return cats.includes('necklaces') || cats.includes('necklace');
+                if (activeSubcategory === 'bracelets') return cats.includes('bracelets') || cats.includes('bracelet');
+                if (activeSubcategory === 'earrings') return cats.includes('earrings') || cats.includes('earring');
+                if (activeSubcategory === 'watches') return cats.includes('watches') || cats.includes('watch');
                 return cats.includes(activeSubcategory);
             });
         }
@@ -679,7 +695,7 @@ const Shop = () => {
                             gap: '10px',
                             flexWrap: 'wrap',
                             marginBottom: '25px',
-                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            borderBottom: '1px solid #e2e8f0',
                             paddingBottom: '15px'
                         }}>
                             {[
@@ -688,25 +704,102 @@ const Shop = () => {
                                 { id: 'clothing', label: isRTL ? 'ملابس' : 'Apparel' },
                                 { id: 'accessories', label: isRTL ? 'إكسسوارات' : 'Accessories' },
                                 { id: 'eyewear', label: isRTL ? 'نظارات' : 'Eyewear' }
-                            ].map(pill => (
-                                <button
-                                    key={pill.id}
-                                    className={`btn ${activeSubcategory === pill.id ? 'btn-gold' : 'btn-outline'}`}
-                                    onClick={() => setActiveSubcategory(pill.id)}
-                                    style={{
-                                        padding: '8px 18px',
-                                        fontSize: '0.85rem',
-                                        borderRadius: '30px',
-                                        borderWidth: '1px',
-                                        backgroundColor: activeSubcategory === pill.id ? 'var(--color-gold)' : 'transparent',
-                                        color: activeSubcategory === pill.id ? '#000000' : 'inherit',
-                                        fontWeight: '700',
-                                        letterSpacing: '0.5px'
-                                    }}
-                                >
-                                    {pill.label}
-                                </button>
-                            ))}
+                            ].map(pill => {
+                                const isActive = activeSubcategory === pill.id;
+                                return (
+                                    <button
+                                        key={pill.id}
+                                        type="button"
+                                        className={`subcategory-pill-btn ${isActive ? 'active' : ''}`}
+                                        onClick={() => setActiveSubcategory(pill.id)}
+                                        style={{
+                                            padding: '8px 20px',
+                                            fontSize: '0.85rem',
+                                            borderRadius: '30px',
+                                            border: isActive ? '1.5px solid var(--color-gold)' : '1.5px solid #cbd5e1',
+                                            backgroundColor: isActive ? 'var(--color-gold)' : '#ffffff',
+                                            color: isActive ? '#000000' : '#1e293b',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.5px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            boxShadow: isActive ? '0 4px 12px rgba(200, 169, 81, 0.35)' : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = 'var(--color-gold)';
+                                                e.currentTarget.style.color = 'var(--color-gold)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                e.currentTarget.style.color = '#1e293b';
+                                            }
+                                        }}
+                                    >
+                                        {pill.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Render subcategory pills for Jewellery */}
+                    {(type === 'jewellery' || type === 'jewelry') && (
+                        <div className="subcategories-pills animate-fade-in" style={{
+                            display: 'flex',
+                            gap: '10px',
+                            flexWrap: 'wrap',
+                            marginBottom: '25px',
+                            borderBottom: '1px solid #e2e8f0',
+                            paddingBottom: '15px'
+                        }}>
+                            {[
+                                { id: 'all', label: isRTL ? 'الكل' : 'All Jewellery' },
+                                { id: 'rings', label: isRTL ? 'خواتم' : 'Rings' },
+                                { id: 'necklaces', label: isRTL ? 'قلائد' : 'Necklaces' },
+                                { id: 'bracelets', label: isRTL ? 'أساور' : 'Bracelets' },
+                                { id: 'earrings', label: isRTL ? 'أقراط' : 'Earrings' },
+                                { id: 'watches', label: isRTL ? 'ساعات' : 'Watches' }
+                            ].map(pill => {
+                                const isActive = activeSubcategory === pill.id;
+                                return (
+                                    <button
+                                        key={pill.id}
+                                        type="button"
+                                        className={`subcategory-pill-btn ${isActive ? 'active' : ''}`}
+                                        onClick={() => setActiveSubcategory(pill.id)}
+                                        style={{
+                                            padding: '8px 20px',
+                                            fontSize: '0.85rem',
+                                            borderRadius: '30px',
+                                            border: isActive ? '1.5px solid var(--color-gold)' : '1.5px solid #cbd5e1',
+                                            backgroundColor: isActive ? 'var(--color-gold)' : '#ffffff',
+                                            color: isActive ? '#000000' : '#1e293b',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.5px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            boxShadow: isActive ? '0 4px 12px rgba(200, 169, 81, 0.35)' : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = 'var(--color-gold)';
+                                                e.currentTarget.style.color = 'var(--color-gold)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                e.currentTarget.style.color = '#1e293b';
+                                            }
+                                        }}
+                                    >
+                                        {pill.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
 

@@ -687,7 +687,7 @@
 }
 
 /* Custom Gradients and premium aesthetics for buttons */
-.btn {
+.admin-dashboard .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -703,8 +703,8 @@
     letter-spacing: 0.3px;
 }
 
-.btn-gold,
-.btn-primary {
+.admin-dashboard .btn-gold,
+.admin-dashboard .btn-primary {
     background: linear-gradient(135deg, #c8a951 0%, #ebb637 100%) !important;
     color: #000000 !important;
     border: 1px solid rgba(255, 255, 255, 0.25) !important;
@@ -712,21 +712,19 @@
     font-weight: 800;
 }
 
-.btn-gold:hover,
-.btn-primary:hover {
+.admin-dashboard .btn-gold:hover,
+.admin-dashboard .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(200, 169, 81, 0.5);
     filter: brightness(1.05);
 }
 
-.btn-outline,
 .admin-dashboard .btn-outline {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(200, 169, 81, 0.35) !important;
     color: #f8fafc !important;
 }
 
-.btn-outline:hover,
 .admin-dashboard .btn-outline:hover {
     background: rgba(200, 169, 81, 0.18) !important;
     color: #c8a951 !important;
@@ -734,27 +732,27 @@
     transform: translateY(-1px);
 }
 
-.btn-danger {
+.admin-dashboard .btn-danger {
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.45);
     color: #fca5a5;
     font-weight: 700;
 }
 
-.btn-danger:hover {
+.admin-dashboard .btn-danger:hover {
     background: rgba(239, 68, 68, 0.3);
     border-color: #ef4444;
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
 
-.btn-slate {
+.admin-dashboard .btn-slate {
     background: rgba(51, 65, 85, 0.6);
     color: #f8fafc;
     border: 1px solid rgba(100, 116, 139, 0.5);
 }
 
-.btn-slate:hover {
+.admin-dashboard .btn-slate:hover {
     background: rgba(71, 85, 105, 0.8);
     border-color: #94a3b8;
     color: #ffffff;
