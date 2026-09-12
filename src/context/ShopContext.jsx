@@ -63,8 +63,6 @@ export const ShopProvider = ({ children }) => {
 
             if (isVendor && user?.shop_id) {
                 params.shop_id = user.shop_id;
-            } else if (!isAdmin && !isInsideAdmin && activeRegion) {
-                params.region_id = activeRegion.id;
             }
 
             const invUrl = (!isAdmin && !isInsideAdmin && activeRegion)
@@ -484,12 +482,41 @@ export const ShopProvider = ({ children }) => {
     const safeProducts = Array.isArray(products) ? products : [];
     const featuredProducts = safeProducts.filter(p => p?.isFeatured);
     const newArrivals = safeProducts.filter(p => p?.isNew);
-    const fashionProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('fashion'));
-    const jewelleryProducts = safeProducts.filter(p => Array.isArray(p?.category) && p.category.includes('jewellery'));
-    const giftBoxProducts = safeProducts.filter(p => Array.isArray(p?.category) && (p.category.includes('giftbox') || p.category.includes('gift-box')));
+
+    const FASHION_TAGS = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
+    const JEWELLERY_TAGS = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
+    const GIFTBOX_TAGS = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
+
+    const getProductCats = (p) => {
+        if (!p?.category) return [];
+        if (Array.isArray(p.category)) return p.category.map(c => String(c).toLowerCase().trim());
+        if (typeof p.category === 'string') {
+            try {
+                const parsed = JSON.parse(p.category);
+                if (Array.isArray(parsed)) return parsed.map(c => String(c).toLowerCase().trim());
+            } catch (e) {}
+            return [p.category.toLowerCase().trim()];
+        }
+        return [];
+    };
+
+    const fashionProducts = safeProducts.filter(p => {
+        const cats = getProductCats(p);
+        return cats.some(c => FASHION_TAGS.includes(c)) || p?.gender === 'fashion';
+    });
+    const jewelleryProducts = safeProducts.filter(p => {
+        const cats = getProductCats(p);
+        return cats.some(c => JEWELLERY_TAGS.includes(c));
+    });
+    const giftBoxProducts = safeProducts.filter(p => {
+        const cats = getProductCats(p);
+        return cats.some(c => GIFTBOX_TAGS.includes(c));
+    });
     const perfumeProducts = safeProducts.filter(p => {
-        const cats = Array.isArray(p?.category) ? p.category : [];
-        return !cats.includes('fashion') && !cats.includes('jewellery') && !cats.includes('giftbox') && !cats.includes('gift-box');
+        const cats = getProductCats(p);
+        return !cats.some(c => FASHION_TAGS.includes(c)) &&
+               !cats.some(c => JEWELLERY_TAGS.includes(c)) &&
+               !cats.some(c => GIFTBOX_TAGS.includes(c));
     });
 
     // Order Functions

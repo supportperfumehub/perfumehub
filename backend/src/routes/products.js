@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
     res.setHeader('Expires', '0');
     try {
         let productIds = null;
-        if (req.query.region_id && req.query.all !== 'true') {
+        if (req.query.strict_region === 'true' && req.query.region_id && req.query.all !== 'true') {
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')
@@ -25,13 +25,21 @@ router.get('/', async (req, res) => {
             
             const shopIds = regionShops ? regionShops.map(s => s.id) : [];
             if (shopIds.length > 0) {
-                const { data: activeProductInvs } = await supabase
-                    .from('vendor_inventory')
-                    .select('product_id')
-                    .eq('is_active', true)
-                    .in('shop_id', shopIds);
-                
-                const matchedIds = activeProductInvs ? [...new Set(activeProductInvs.map(item => item.product_id))] : [];
+                let allInvs = [];
+                let invPage = 0;
+                while (true) {
+                    const { data } = await supabase
+                        .from('vendor_inventory')
+                        .select('product_id')
+                        .eq('is_active', true)
+                        .in('shop_id', shopIds)
+                        .range(invPage * 1000, (invPage + 1) * 1000 - 1);
+                    if (!data || data.length === 0) break;
+                    allInvs = allInvs.concat(data);
+                    if (data.length < 1000) break;
+                    invPage++;
+                }
+                const matchedIds = [...new Set(allInvs.map(item => item.product_id))];
                 if (matchedIds.length > 0) {
                     productIds = matchedIds;
                 }
