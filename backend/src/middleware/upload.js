@@ -71,22 +71,29 @@ export const validateMagicBytes = (req, res, next) => {
  * Useful when the frontend doesn't use Multipart/Form-data
  */
 export const validateBase64Image = (fieldName) => (req, res, next) => {
-    const base64String = req.body[fieldName];
-    if (!base64String) return next();
+    const value = req.body?.[fieldName];
+    if (!value) return next();
 
-    // Check if it's a valid data URI
-    const matches = base64String.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-    if (!matches) return res.status(400).json({ error: `Invalid ${fieldName} format.` });
+    const checkSingleImage = (img) => {
+        if (!img || typeof img !== 'string') return true;
+        // If it's already a web URL, allow it
+        if (img.startsWith('http://') || img.startsWith('https://')) return true;
 
-    const mimeType = matches[1];
-    const buffer = Buffer.from(matches[2], 'base64');
+        // Check if it's a valid data URI
+        const matches = img.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (!matches) return false;
 
-    // Magic Bytes check
-    const header = buffer.toString('hex', 0, 4);
-    const allowedHeaders = ['89504e47', 'ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2', 'ffd8ffe3', 'ffd8ffe8', '52494646'];
+        const buffer = Buffer.from(matches[2], 'base64');
+        const header = buffer.toString('hex', 0, 4);
+        const allowedHeaders = ['89504e47', 'ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2', 'ffd8ffe3', 'ffd8ffe8', '52494646'];
+        return allowedHeaders.includes(header);
+    };
 
-    if (!allowedHeaders.includes(header)) {
-        return res.status(400).json({ error: `Invalid file signature in ${fieldName}.` });
+    const images = Array.isArray(value) ? value : [value];
+    for (const img of images) {
+        if (!checkSingleImage(img)) {
+            return res.status(400).json({ error: `Invalid image format or file signature in ${fieldName}.` });
+        }
     }
 
     next();

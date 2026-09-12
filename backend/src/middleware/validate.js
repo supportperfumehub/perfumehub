@@ -1,4 +1,4 @@
-import { validationResult, matchedData } from 'express-validator';
+import { validationResult } from 'express-validator';
 
 /**
  * Generic middleware to check for validation errors from express-validator.
@@ -19,11 +19,6 @@ export const validateRequest = (req, res, next) => {
         });
     }
     
-    // Replace req.body with ONLY the validated, matched data
-    // This strips out any unexpected or malicious extra fields sent by the client
-    req.body = matchedData(req, { locations: ['body'] });
-    req.query = matchedData(req, { locations: ['query'] });
-    req.params = matchedData(req, { locations: ['params'] });
-    
     next();
 };
+

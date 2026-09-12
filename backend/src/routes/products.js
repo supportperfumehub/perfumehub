@@ -259,6 +259,12 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
         }
         if (stock !== undefined) updatePayload.stock = Number(stock);
 
+        Object.keys(updatePayload).forEach(key => {
+            if (updatePayload[key] === undefined) {
+                delete updatePayload[key];
+            }
+        });
+
         const { error } = await supabase
             .from('products')
             .update(updatePayload)

@@ -356,6 +356,9 @@ export const ShopProvider = ({ children }) => {
                     is_active: updatedProduct.is_active !== undefined ? updatedProduct.is_active : true,
                     pickup_available: updatedProduct.pickup_available !== undefined ? updatedProduct.pickup_available : true
                 });
+                if (!isVendor) {
+                    await api.put(`/products/${id}`, updatedProduct);
+                }
                 showToast('Shop inventory updated successfully', 'success');
             } else if (targetShopId) {
                 await api.post('/inventory', {
@@ -366,6 +369,9 @@ export const ShopProvider = ({ children }) => {
                     is_active: true,
                     pickup_available: true
                 });
+                if (!isVendor) {
+                    await api.put(`/products/${id}`, updatedProduct);
+                }
                 showToast('Shop inventory created and updated successfully', 'success');
             } else {
                 await api.put(`/products/${id}`, updatedProduct);
