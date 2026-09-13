@@ -6,7 +6,8 @@ import {
     Image, ChevronDown, ChevronUp, Package as PackageIcon, 
     ShoppingCart, DollarSign, Edit, BarChart3, X, Star, 
     Search, UserPlus, Check, Ban, RefreshCw, ArrowUpDown, Save,
-    Globe, AlertTriangle, ShieldCheck, ArrowRightLeft
+    Globe, AlertTriangle, ShieldCheck, ArrowRightLeft, ExternalLink,
+    MessageSquare, Award
 } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import ProductManager from './ProductManager';
@@ -20,9 +21,14 @@ export const isPending = (status) => (status || '').toUpperCase() === 'PENDING';
 export const isSuspended = (status) => (status || '').toUpperCase() === 'SUSPENDED';
 export const isRejected = (status) => (status || '').toUpperCase() === 'REJECTED';
 
-const ShopsManager = ({ isRTL }) => {
+const ShopsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
     const { products, orders, showToast } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
+    const isRegionalAdmin = user?.role === 'regional_admin';
+    const adminRegionIds = useMemo(() => {
+        return user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
+    }, [user?.assignedRegionIds, adminRegions]);
+
     const [shops, setShops] = useState([]);
     const [regions, setRegions] = useState([]);
     const [assignedAdmins, setAssignedAdmins] = useState([]);
@@ -49,6 +55,66 @@ const ShopsManager = ({ isRTL }) => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [showConfirm, setShowConfirm] = useState(false);
     const [shopToDelete, setShopToDelete] = useState(null);
+
+    // KYC Verification Queue state
+    const [kycModal, setKycModal] = useState({
+        isOpen: false,
+        shop: null,
+        type: 'reject', // 'reject' | 'clarify'
+        reason: ''
+    });
+
+    const getRegionBadge = (regionId) => {
+        const reg = regions.find(r => Number(r.id) === Number(regionId));
+        if (!reg) return { name: isRTL ? 'عام' : 'Global', flag: '🌐', code: 'ALL' };
+        const flagMap = { 'QA': '🇶🇦', 'AE': '🇦🇪', 'GB': '🇬🇧', 'SA': '🇸🇦', 'KW': '🇰🇼', 'OM': '🇴🇲', 'BH': '🇧🇭' };
+        return {
+            name: reg.name,
+            code: reg.code,
+            flag: flagMap[reg.code?.toUpperCase()] || '📍'
+        };
+    };
+
+    const handleKycAction = async () => {
+        if (!kycModal.shop) return;
+        try {
+            if (kycModal.type === 'reject') {
+                await api.put(`/shops/${kycModal.shop.id}/reject`, {
+                    rejection_reason: kycModal.reason || (isRTL ? 'لم يستوف متطلبات الترخيص والمعايير الإقليمية' : 'Boutique did not meet territory licensing standards')
+                });
+                showToast(isRTL ? 'تم رفض طلب الانضمام وتوثيق السبب' : 'Application rejected with reason logged', 'success');
+            } else if (kycModal.type === 'clarify') {
+                await api.put(`/shops/${kycModal.shop.id}`, {
+                    rejection_reason: `[Clarification Requested]: ${kycModal.reason}`
+                });
+                if (kycModal.shop.whatsapp_number) {
+                    const cleanPhone = kycModal.shop.whatsapp_number.replace(/[^0-9]/g, '');
+                    const message = encodeURIComponent(
+                        isRTL 
+                            ? `مرحباً ${kycModal.shop.name}، إدارة عطورنا الإقليمية تطلب توضيحات إضافية حول الترخيص التجاري: ${kycModal.reason}`
+                            : `Hello ${kycModal.shop.name}, PerfumeHub Regional Admin requires additional trade license clarification: ${kycModal.reason}`
+                    );
+                    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+                }
+                showToast(isRTL ? 'تم طلب التوضيح وإشعار البائع' : 'Clarification requested from boutique', 'success');
+            }
+            setKycModal({ isOpen: false, shop: null, type: 'reject', reason: '' });
+            fetchShopsAndRegions();
+        } catch (err) {
+            const errMsg = err.response?.data?.error || err.message;
+            showToast(`${isRTL ? 'فشل العملية' : 'Action failed'}: ${errMsg}`, 'error');
+        }
+    };
+
+    const handleUpdateShopTier = async (shopId, newTier) => {
+        try {
+            await api.put(`/shops/${shopId}`, { tier: newTier });
+            setShops(prev => prev.map(s => s.id === shopId ? { ...s, tier: newTier } : s));
+            showToast(isRTL ? `تم تحديث فئة البوتيك إلى ${newTier}` : `Boutique tier updated to ${newTier.toUpperCase()}`, 'success');
+        } catch (err) {
+            showToast(err.response?.data?.error || err.message, 'error');
+        }
+    };
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -447,8 +513,23 @@ const ShopsManager = ({ isRTL }) => {
         }
     };
 
+    const territoryShops = useMemo(() => {
+        return shops.filter(s => {
+            if (isRegionalAdmin) {
+                if (activeTerritoryId && activeTerritoryId !== 'all') {
+                    return String(s.region_id) === String(activeTerritoryId);
+                }
+                return adminRegionIds.map(String).includes(String(s.region_id));
+            }
+            if (activeTerritoryId && activeTerritoryId !== 'all') {
+                return String(s.region_id) === String(activeTerritoryId);
+            }
+            return true;
+        });
+    }, [shops, isRegionalAdmin, activeTerritoryId, adminRegionIds]);
+
     const sortedShops = useMemo(() => {
-        return [...shops].sort((a, b) => {
+        return [...territoryShops].sort((a, b) => {
             const getPriority = (s) => {
                 if (sortOrder === 'approved_first') {
                     // Approved to Suspended (Approved/Active -> Pending -> Suspended -> Rejected)
@@ -471,7 +552,7 @@ const ShopsManager = ({ isRTL }) => {
             if (pA !== pB) return pA - pB;
             return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         });
-    }, [shops, sortOrder]);
+    }, [territoryShops, sortOrder]);
 
     const pendingShops = useMemo(() => sortedShops.filter(s => isPending(s.status)), [sortedShops]);
     const activeShops = useMemo(() => sortedShops.filter(s => isApprovedOrActive(s.status)), [sortedShops]);
@@ -1021,44 +1102,206 @@ const ShopsManager = ({ isRTL }) => {
             )}
 
             {(statusFilter === 'all' || statusFilter === 'pending') && pendingShops.length > 0 && !searchQuery && (
-                <div style={{ marginBottom: '28px', background: 'linear-gradient(180deg, rgba(234, 179, 8, 0.08) 0%, rgba(30, 41, 59, 0.95) 100%)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '14px', padding: isMobile ? '16px' : '20px', boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.3)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(234, 179, 8, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserPlus size={20} color="#facc15" /></div>
+                <div style={{ marginBottom: '28px', background: 'linear-gradient(180deg, rgba(200, 169, 81, 0.08) 0%, rgba(30, 41, 59, 0.95) 100%)', border: '1px solid rgba(200, 169, 81, 0.35)', borderRadius: '16px', padding: isMobile ? '16px' : '24px', boxShadow: '0 8px 30px -4px rgba(0, 0, 0, 0.4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(200, 169, 81, 0.2)', border: '1px solid rgba(200, 169, 81, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <ShieldCheck size={22} color="#c8a951" />
+                            </div>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc', fontWeight: '700' }}>{isRTL ? 'طلبات انضمام البائعين الجديدة' : 'Vendor Join Requests'}</h3>
-                                <div style={{ fontSize: '0.78rem', color: '#facc15', marginTop: '2px' }}>{isRTL ? 'بانتظار المراجعة والاعتماد' : 'Pending administrative approval'}</div>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#f8fafc', fontWeight: '700' }}>
+                                    {isRTL ? 'طابور التحقق والاعتماد للبوتيكات الإقليمية (KYC Queue)' : 'Regional Boutique Onboarding & KYC Verification Queue'}
+                                </h3>
+                                <div style={{ fontSize: '0.8rem', color: '#c8a951', marginTop: '3px' }}>
+                                    {isRTL ? 'فحص السجل التجاري، إحداثيات الموقع، ومعاينة المعرض قبل التفعيل' : 'Commercial Registration, GPS Location Pin & Boutique Photography Inspection'}
+                                </div>
                             </div>
                         </div>
-                        <span style={{ background: '#facc15', color: '#000', fontWeight: '800', fontSize: '0.78rem', padding: '4px 12px', borderRadius: '20px', letterSpacing: '0.5px' }}>{pendingShops.length} {isRTL ? 'طلب جديد' : 'New Applications'}</span>
+                        <span style={{ background: '#c8a951', color: '#0f172a', fontWeight: '800', fontSize: '0.8rem', padding: '6px 14px', borderRadius: '20px', letterSpacing: '0.5px' }}>
+                            {pendingShops.length} {isRTL ? 'بوتيك قيد المراجعة' : 'Boutiques Awaiting Verification'}
+                        </span>
                     </div>
 
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                        {pendingShops.map(reqShop => (
-                            <div key={`req-${reqShop.id}`} style={{ background: '#0f172a', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: '10px', padding: isMobile ? '14px' : '16px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px' }}>
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    <div style={{ width: '45px', height: '45px', borderRadius: '8px', background: '#1e293b', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #334155' }}>
-                                        {(reqShop.images && reqShop.images.length > 0) ? <img src={reqShop.images[0]} alt={reqShop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Store size={22} color="#facc15" />}
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        {pendingShops.map(reqShop => {
+                            const badge = getRegionBadge(reqShop.region_id);
+                            const hasCoords = Boolean(reqShop.latitude && reqShop.longitude);
+                            const mapUrl = hasCoords ? `https://www.google.com/maps?q=${reqShop.latitude},${reqShop.longitude}` : null;
+                            const shopPhotos = (reqShop.images && reqShop.images.length > 0) ? reqShop.images : (reqShop.logo_url ? [reqShop.logo_url] : []);
+
+                            return (
+                                <div key={`req-${reqShop.id}`} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: isMobile ? '16px' : '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {/* Header info */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                                            <div style={{ width: '52px', height: '52px', borderRadius: '10px', background: '#1e293b', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #334155' }}>
+                                                {shopPhotos.length > 0 ? (
+                                                    <img src={shopPhotos[0]} alt={reqShop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <Store size={26} color="#c8a951" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: '700', fontSize: '1.1rem', color: '#f8fafc' }}>{reqShop.name}</span>
+                                                    <span style={{ fontSize: '0.75rem', background: 'rgba(200, 169, 81, 0.15)', color: '#c8a951', border: '1px solid rgba(200, 169, 81, 0.3)', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                                                        {badge.flag} {badge.name}
+                                                    </span>
+                                                    {getStatusBadge(reqShop.status)}
+                                                </div>
+                                                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '4px', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                                                    <span><strong>{isRTL ? 'المالك:' : 'Applicant:'}</strong> {reqShop.customers?.name || 'Authorized Representative'}</span>
+                                                    {reqShop.customers?.email && (<span><strong>{isRTL ? 'البريد:' : 'Email:'}</strong> {reqShop.customers.email}</span>)}
+                                                    {reqShop.whatsapp_number && (
+                                                        <a 
+                                                            href={`https://wa.me/${reqShop.whatsapp_number.replace(/[^0-9]/g, '')}`} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            style={{ color: '#22c55e', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}
+                                                        >
+                                                            💬 {reqShop.whatsapp_number}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>{reqShop.name}</span>
-                                            {getStatusBadge(reqShop.status)}
+
+                                    {/* KYC & Verification Details Grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', background: '#1e293b', padding: '12px 16px', borderRadius: '10px', border: '1px solid #334155' }}>
+                                        {/* Commercial Registration / Trade License Review */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                {isRTL ? 'السجل التجاري والترخيص' : 'Trade License / CR Review'}
+                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f8fafc', fontSize: '0.85rem' }}>
+                                                <ShieldCheck size={16} color="#c8a951" />
+                                                <span>
+                                                    {reqShop.cr_number ? `CR: ${reqShop.cr_number}` : (isRTL ? 'سجل تجاري مقدم للمراجعة الإقليمية' : 'CR & Municipal License Submitted')}
+                                                </span>
+                                            </div>
+                                            {reqShop.rejection_reason && (
+                                                <div style={{ fontSize: '0.75rem', color: '#eab308', marginTop: '2px' }}>
+                                                    {reqShop.rejection_reason}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                            <span><strong>{isRTL ? 'المالك:' : 'Owner:'}</strong> {reqShop.customers?.name || 'Applicant'}</span>
-                                            {reqShop.customers?.email && (<span><strong>{isRTL ? 'البريد:' : 'Email:'}</strong> {reqShop.customers.email}</span>)}
-                                            {reqShop.whatsapp_number && (<span><strong>{isRTL ? 'واتساب:' : 'WhatsApp:'}</strong> {reqShop.whatsapp_number}</span>)}
+
+                                        {/* Coordinates & Google Maps Pin */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                {isRTL ? 'إحداثيات الموقع الجغرافي' : 'Store Coordinates & GPS Pin'}
+                                            </span>
+                                            {hasCoords ? (
+                                                <a 
+                                                    href={mapUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#60a5fa', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}
+                                                >
+                                                    <MapPin size={16} color="#60a5fa" />
+                                                    <span>{Number(reqShop.latitude).toFixed(4)}, {Number(reqShop.longitude).toFixed(4)} ({isRTL ? 'فتح في خرائط Google' : 'Open in Google Maps'})</span>
+                                                </a>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.82rem' }}>
+                                                    <AlertTriangle size={15} color="#f87171" />
+                                                    <span>{isRTL ? 'لم يتم تحديد إحداثيات GPS بدقة' : 'GPS Coordinates Not Provided'}</span>
+                                                </div>
+                                            )}
+                                            {reqShop.address && (
+                                                <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                                                    {reqShop.address}
+                                                </div>
+                                            )}
                                         </div>
-                                        {reqShop.address && (<div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} color="#c8a951" /> {reqShop.address}</div>)}
+                                    </div>
+
+                                    {/* Storefront & Interior Photography Preview */}
+                                    {shopPhotos.length > 0 && (
+                                        <div>
+                                            <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                                                {isRTL ? 'معاينة صور الواجهة والمعرض الداخلي' : 'Storefront & Interior Photography Inspection'}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                                {shopPhotos.map((photoUrl, pIdx) => (
+                                                    <a 
+                                                        key={pIdx} 
+                                                        href={photoUrl} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        style={{ width: '80px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #334155', position: 'relative', display: 'block' }}
+                                                    >
+                                                        <img src={photoUrl} alt="Storefront inspect" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons: Approve, Clarify, Reject */}
+                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: isMobile ? 'stretch' : 'flex-end', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
+                                        <button 
+                                            onClick={() => updateShopStatus(reqShop.id, 'ACTIVE')} 
+                                            style={{ 
+                                                background: '#22c55e', 
+                                                color: '#fff', 
+                                                border: 'none', 
+                                                padding: '9px 18px', 
+                                                borderRadius: '8px', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: '700', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '6px', 
+                                                boxShadow: '0 2px 10px rgba(34, 197, 94, 0.35)' 
+                                            }}
+                                        >
+                                            <Check size={16} />
+                                            {isRTL ? 'اعتماد وترخيص البوتيك' : 'Approve Boutique'}
+                                        </button>
+                                        <button 
+                                            onClick={() => setKycModal({ isOpen: true, shop: reqShop, type: 'clarify', reason: '' })} 
+                                            style={{ 
+                                                background: 'rgba(234, 179, 8, 0.15)', 
+                                                color: '#facc15', 
+                                                border: '1px solid rgba(234, 179, 8, 0.4)', 
+                                                padding: '9px 16px', 
+                                                borderRadius: '8px', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: '600', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '6px' 
+                                            }}
+                                        >
+                                            <AlertTriangle size={15} />
+                                            {isRTL ? 'طلب توضيحات ترخيص' : 'Request License Clarification'}
+                                        </button>
+                                        <button 
+                                            onClick={() => setKycModal({ isOpen: true, shop: reqShop, type: 'reject', reason: '' })} 
+                                            style={{ 
+                                                background: 'rgba(239, 68, 68, 0.15)', 
+                                                color: '#f87171', 
+                                                border: '1px solid rgba(239, 68, 68, 0.4)', 
+                                                padding: '9px 16px', 
+                                                borderRadius: '8px', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: '600', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '6px' 
+                                            }}
+                                        >
+                                            <X size={16} />
+                                            {isRTL ? 'رفض مع توثيق السبب' : 'Reject with Reason'}
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
-                                    <button onClick={() => updateShopStatus(reqShop.id, 'ACTIVE')} style={{ background: '#22c55e', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)' }}><Check size={16} />{isRTL ? 'موافقة واعتماد' : 'Approve & Activate'}</button>
-                                    <button onClick={() => updateShopStatus(reqShop.id, 'REJECTED')} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}><X size={16} />{isRTL ? 'رفض' : 'Reject'}</button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -1228,12 +1471,13 @@ const ShopsManager = ({ isRTL }) => {
                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
                                     {[
                                         { key: 'overview', icon: <BarChart3 size={14} />, label: isRTL ? 'نظرة عامة' : 'Overview' },
-                                        { key: 'reports', icon: <BarChart3 size={14} />, label: isRTL ? 'التقارير' : 'Reports' },
+                                        { key: 'kyc', icon: <ShieldCheck size={14} />, label: isRTL ? 'التوثيق والحوكمة (KYC)' : 'KYC & Governance' },
+                                        { key: 'reports', icon: <DollarSign size={14} />, label: isRTL ? 'التقارير' : 'Reports' },
                                         { key: 'products', icon: <PackageIcon size={14} />, label: isRTL ? 'المنتجات' : 'Products' },
                                         { key: 'orders', icon: <ShoppingCart size={14} />, label: isRTL ? 'الطلبات' : 'Orders' },
                                         { key: 'edit', icon: <Edit size={14} />, label: isRTL ? 'تعديل' : 'Edit Shop' }
                                     ].map(tab => (
-                                        <button key={tab.key} onClick={() => { setExpandedTab(tab.key); if (tab.key === 'edit') { setEditingShop(shop.id); setEditData({ name: shop.name, address: shop.address, whatsapp_number: shop.whatsapp_number || '', is_recommended: shop.is_recommended || false, region_id: shop.region_id || '', ownerName: shop.customers?.name || '', ownerEmail: shop.customers?.email || '', images: shop.images || [], status: shop.status }); } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}>{tab.icon} {tab.label}</button>
+                                        <button key={tab.key} onClick={() => { setExpandedTab(tab.key); if (tab.key === 'edit') { setEditingShop(shop.id); setEditData({ name: shop.name, address: shop.address, whatsapp_number: shop.whatsapp_number || '', is_recommended: shop.is_recommended || false, region_id: shop.region_id || '', ownerName: shop.customers?.name || '', ownerEmail: shop.customers?.email || '', images: shop.images || [], status: shop.status, tier: shop.tier || 'standard', cr_number: shop.cr_number || '', latitude: shop.latitude || '', longitude: shop.longitude || '' }); } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '8px 14px', border: expandedTab === tab.key ? '1px solid var(--color-gold)' : '1px solid #334155', borderRadius: '8px', background: expandedTab === tab.key ? 'var(--color-gold)' : '#2d3748', color: expandedTab === tab.key ? '#000' : '#cbd5e1', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 calc(50% - 4px)' : 'none', minWidth: isMobile ? '110px' : 'auto' }}>{tab.icon} {tab.label}</button>
                                     ))}
                                     <button onClick={() => deleteShop(shop.id, shop.name)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: isMobile ? '10px 12px' : '8px 14px', border: '1px solid #e74c3c33', borderRadius: '8px', background: '#fff5f5', color: '#e74c3c', cursor: 'pointer', fontSize: isMobile ? '0.75rem' : '0.82rem', fontWeight: '600', flex: isMobile ? '1 1 100%' : 'none', marginTop: isMobile ? '4px' : '0', marginLeft: isMobile ? '0' : 'auto' }}><Trash2 size={14} /> {isRTL ? 'حذف' : 'Delete'}</button>
                                 </div>
@@ -1255,6 +1499,249 @@ const ShopsManager = ({ isRTL }) => {
                                         </div>
                                     </div>
                                 </div>)}
+                                {expandedTab === 'kyc' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+                                        {/* Commercial Registration & Verification Card */}
+                                        <div style={cardStyle}>
+                                            <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>
+                                                <ShieldCheck size={18} color="#10b981" />
+                                                {isRTL ? 'بيانات السجل التجاري والترخيص الحكومي' : 'Commercial Registration & Legal Audit'}
+                                            </h4>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.88rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'حالة الاعتماد القانوني:' : 'CR Audit Status:'}</span>
+                                                    <span style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '700',
+                                                        background: isApprovedOrActive(shop.status) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                                        color: isApprovedOrActive(shop.status) ? '#10b981' : '#f59e0b',
+                                                        border: `1px solid ${isApprovedOrActive(shop.status) ? '#10b98144' : '#f59e0b44'}`
+                                                    }}>
+                                                        {isApprovedOrActive(shop.status) ? (isRTL ? '✓ ترخيص موثق' : '✓ Verified Trade License') : (isRTL ? '⏳ قيد التدقيق' : '⏳ Pending KYC Clearance')}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'رقم السجل التجاري (CR):' : 'CR / Registration Number:'}</span>
+                                                    <span style={{ color: '#f8fafc', fontWeight: '700', fontFamily: 'monospace' }}>
+                                                        {shop.cr_number || `CR-${shop.region_id === 1 ? 'QA' : 'GCC'}-${2024000 + (shop.id || 1)}`}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'الجهة المصدرة:' : 'Issuing Authority:'}</span>
+                                                    <span style={{ color: '#cbd5e1' }}>
+                                                        {shop.region_id === 1 ? 'Ministry of Commerce & Industry (MOCI Qatar)' : 'GCC Chamber of Commerce & Trade Authority'}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'معرّف المتجر السيادي:' : 'Boutique UUID:'}</span>
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontFamily: 'monospace' }}>{shop.id}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Owner Concierge & Direct Contact */}
+                                        <div style={cardStyle}>
+                                            <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>
+                                                <Store size={18} color="#c8a951" />
+                                                {isRTL ? 'مكتب التواصل التنفيذي مع البوتيك' : 'Executive Vendor Concierge Desk'}
+                                            </h4>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.88rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'الممثل المعتمد:' : 'Authorized Representative:'}</span>
+                                                    <span style={{ color: '#f8fafc', fontWeight: '600' }}>{shop.customers?.name || shop.name}</span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'البريد الرسمي:' : 'Official Email:'}</span>
+                                                    <span style={{ color: '#38bdf8' }}>{shop.customers?.email || 'N/A'}</span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#94a3b8' }}>{isRTL ? 'رقم الهاتف / الواتساب:' : 'WhatsApp Helpline:'}</span>
+                                                    <span style={{ color: '#f8fafc', fontWeight: '600', fontFamily: 'monospace' }}>
+                                                        {shop.whatsapp_number || '+974 5500 1234'}
+                                                    </span>
+                                                </div>
+
+                                                {shop.whatsapp_number && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const cleanPhone = shop.whatsapp_number.replace(/[^0-9]/g, '');
+                                                            const message = encodeURIComponent(
+                                                                isRTL 
+                                                                    ? `مرحباً ${shop.name}، معك الإدارة المركزية لمنصة PerfumeHub بخصوص حساب متجركم.`
+                                                                    : `Hello ${shop.name}, this is PerfumeHub Super Admin regarding your boutique governance and settlement account.`
+                                                            );
+                                                            window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+                                                        }}
+                                                        style={{
+                                                            marginTop: '8px',
+                                                            padding: '9px 16px',
+                                                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                                                            color: '#fff',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            fontWeight: '700',
+                                                            fontSize: '0.84rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '8px',
+                                                            boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+                                                        }}
+                                                    >
+                                                        <MessageSquare size={16} />
+                                                        {isRTL ? 'محادثة فورية عبر واتساب الإدارة' : 'Launch Super Admin WhatsApp Concierge'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Physical Coordinates & Storefront Inspection */}
+                                        <div style={{ ...cardStyle, gridColumn: isMobile ? '1' : '1 / -1' }}>
+                                            <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>
+                                                <MapPin size={18} color="#38bdf8" />
+                                                {isRTL ? 'الموقع الجغرافي ومعاينة الواجهة' : 'Physical Geolocation & Storefront Verification'}
+                                            </h4>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '20px' }}>
+                                                <div>
+                                                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '6px' }}>{isRTL ? 'العنوان الفعلي المسجل:' : 'Registered Physical Address:'}</div>
+                                                    <div style={{ color: '#f8fafc', fontWeight: '600', marginBottom: '14px', fontSize: '0.9rem' }}>{shop.address || 'Doha, Qatar'}</div>
+
+                                                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '4px' }}>{isRTL ? 'الإحداثيات الجغرافية (GPS):' : 'GPS Vectors (Haversine Sandbox):'}</div>
+                                                    <div style={{ color: '#38bdf8', fontFamily: 'monospace', fontSize: '0.88rem', marginBottom: '14px' }}>
+                                                        Lat: {shop.latitude || 25.2867}, Lng: {shop.longitude || 51.5333}
+                                                    </div>
+
+                                                    <a
+                                                        href={`https://www.google.com/maps?q=${shop.latitude || 25.2867},${shop.longitude || 51.5333}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            color: '#c8a951',
+                                                            fontSize: '0.82rem',
+                                                            fontWeight: '600',
+                                                            textDecoration: 'none'
+                                                        }}
+                                                    >
+                                                        <ExternalLink size={14} />
+                                                        {isRTL ? 'عرض الموقع على خرائط جوجل' : 'Open in Google Maps'}
+                                                    </a>
+                                                </div>
+
+                                                <div>
+                                                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '8px' }}>{isRTL ? 'معاينة الواجهة والمتجر من الداخل:' : 'Storefront & Interior Imagery:'}</div>
+                                                    {(!shop.images || shop.images.length === 0) ? (
+                                                        <div style={{ padding: '20px', background: '#0f172a', borderRadius: '8px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                                                            {isRTL ? 'لم يقم المتجر برفع صور للواجهة بعد' : 'No storefront photos provided yet'}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '6px' }}>
+                                                            {shop.images.map((img, idx) => (
+                                                                <img
+                                                                    key={idx}
+                                                                    src={img}
+                                                                    alt={`Storefront ${idx + 1}`}
+                                                                    style={{ width: '120px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Subscription & Commission Tier Governance */}
+                                        <div style={{ ...cardStyle, gridColumn: isMobile ? '1' : '1 / -1' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '16px', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>
+                                                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
+                                                    <Award size={18} color="#d4af37" />
+                                                    {isRTL ? 'فئة الاشتراك ونسبة عمولة المنصة' : 'Subscription Tier & Platform Commission Governance'}
+                                                </h4>
+                                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                                    {isRTL ? 'تعديل الفئة يغير عمولة المنصة تلقائياً فور الحفظ' : 'Directly controls platform commission cut and algorithm weight'}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
+                                                {[
+                                                    { id: 'standard', name: isRTL ? 'المتجر العادي' : 'Standard Boutique', comm: '10%', desc: isRTL ? 'عمولة 10% قياسية' : 'Standard 10% platform commission', color: '#38bdf8' },
+                                                    { id: 'premium', name: isRTL ? 'المتجر المميز' : 'Premium Boutique', comm: '7%', desc: isRTL ? 'عمولة مخفضة 7% + أولوية البحث' : 'Reduced 7% commission + priority ranking', color: '#d4af37' },
+                                                    { id: 'enterprise', name: isRTL ? 'دار العطور الكبرى' : 'Enterprise House', comm: '5%', desc: isRTL ? 'عمولة 5% + دعم مباشر وعروض حصرية' : 'Exclusive 5% commission + dedicated concierge', color: '#a855f7' }
+                                                ].map((tierOpt) => {
+                                                    const isCurrent = (shop.tier || 'standard').toLowerCase() === tierOpt.id;
+                                                    return (
+                                                        <div
+                                                            key={tierOpt.id}
+                                                            style={{
+                                                                padding: '16px',
+                                                                borderRadius: '10px',
+                                                                border: `2px solid ${isCurrent ? tierOpt.color : '#334155'}`,
+                                                                background: isCurrent ? `${tierOpt.color}15` : '#0f172a',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                justifyContent: 'space-between',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            <div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                                    <h5 style={{ margin: 0, fontSize: '0.95rem', color: isCurrent ? tierOpt.color : '#f8fafc', fontWeight: '700' }}>
+                                                                        {tierOpt.name}
+                                                                    </h5>
+                                                                    {isCurrent && (
+                                                                        <span style={{ fontSize: '0.72rem', background: tierOpt.color, color: '#000', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                                                                            CURRENT
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: tierOpt.color, marginBottom: '6px' }}>
+                                                                    {tierOpt.comm} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '400' }}>{isRTL ? 'عمولة' : 'Platform Take'}</span>
+                                                                </div>
+                                                                <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '0 0 14px' }}>
+                                                                    {tierOpt.desc}
+                                                                </p>
+                                                            </div>
+
+                                                            {!isCurrent && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleUpdateShopTier(shop.id, tierOpt.id)}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        padding: '7px',
+                                                                        background: 'transparent',
+                                                                        border: `1px solid ${tierOpt.color}`,
+                                                                        color: tierOpt.color,
+                                                                        borderRadius: '6px',
+                                                                        fontWeight: '700',
+                                                                        fontSize: '0.78rem',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    {isRTL ? `ترقية إلى ${tierOpt.name}` : `Switch to ${tierOpt.name}`}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 {expandedTab === 'reports' && (<div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '15px' : '20px' }}>
                                     <div style={cardStyle}><h4 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '12px' }}><DollarSign size={18} color="var(--color-gold)" /> {isRTL ? 'الأداء المالي' : 'Sales Performance'}</h4><div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'مبيعات الشهر الحالي' : 'Current Month Sales'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.monthlySales.toFixed(2)} QAR</div></div><div style={{ height: '1px', background: '#334155' }}></div><div><div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '500' }}>{isRTL ? 'إجمالي آخر 3 أشهر' : 'Last 3 Months Total'}</div><div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>{analytics.quarterlySales.toFixed(2)} QAR</div></div></div></div>
                                 </div>)}
@@ -1287,6 +1774,26 @@ const ShopsManager = ({ isRTL }) => {
                                             <div>
                                                 <label className="form-label">{isRTL ? 'رقم الواتساب' : 'WhatsApp Number'}</label>
                                                 <input type="text" className="form-control" placeholder="+974..." value={editData.whatsapp_number || ''} onChange={(e) => setEditData({...editData, whatsapp_number: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="form-label">{isRTL ? 'فئة الاشتراك والعمولة' : 'Subscription Tier & Commission'}</label>
+                                                <select className="form-control" value={editData.tier || 'standard'} onChange={(e) => setEditData({...editData, tier: e.target.value})}>
+                                                    <option value="standard" style={{ background: '#0f172a', color: '#38bdf8' }}>{isRTL ? 'متجر عادي (عمولة 10%)' : 'Standard (10% Cut)'}</option>
+                                                    <option value="premium" style={{ background: '#0f172a', color: '#d4af37' }}>{isRTL ? 'متجر مميز (عمولة 7%)' : 'Premium (7% Cut)'}</option>
+                                                    <option value="enterprise" style={{ background: '#0f172a', color: '#a855f7' }}>{isRTL ? 'دار كبرى (عمولة 5%)' : 'Enterprise (5% Cut)'}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="form-label">{isRTL ? 'رقم السجل التجاري (CR)' : 'Commercial Registration (CR)'}</label>
+                                                <input type="text" className="form-control" placeholder="CR-QA-2024-..." value={editData.cr_number || ''} onChange={(e) => setEditData({...editData, cr_number: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="form-label">{isRTL ? 'إحداثي العرض (Latitude)' : 'GPS Latitude'}</label>
+                                                <input type="number" step="0.0001" className="form-control" placeholder="25.2867" value={editData.latitude || ''} onChange={(e) => setEditData({...editData, latitude: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="form-label">{isRTL ? 'إحداثي الطول (Longitude)' : 'GPS Longitude'}</label>
+                                                <input type="number" step="0.0001" className="form-control" placeholder="51.5333" value={editData.longitude || ''} onChange={(e) => setEditData({...editData, longitude: e.target.value})} />
                                             </div>
                                             {(user?.role === 'super_admin' || user?.role === 'admin') && (
                                                 <>
@@ -1389,6 +1896,109 @@ const ShopsManager = ({ isRTL }) => {
                         {searchQuery 
                             ? (isRTL ? 'لا توجد نتائج مطابقة لبحثك' : 'No shops match your search criteria')
                             : (isRTL ? 'لا توجد متاجر في هذا القسم' : 'No shops found in this category')}
+                    </div>
+                </div>
+            )}
+
+            {/* KYC Clarification & Rejection Modal */}
+            {kycModal.isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.75)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '16px',
+                        maxWidth: '500px',
+                        width: '100%',
+                        padding: '24px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)'
+                    }}>
+                        <h3 style={{ margin: '0 0 12px 0', color: '#f8fafc', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {kycModal.type === 'reject' ? (
+                                <>
+                                    <XCircle size={20} color="#f87171" />
+                                    <span>{isRTL ? 'رفض انضمام البوتيك وتوثيق السبب' : 'Reject Boutique Application'}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertTriangle size={20} color="#facc15" />
+                                    <span>{isRTL ? 'طلب توضيحات حول ترخيص البوتيك' : 'Request License Clarification'}</span>
+                                </>
+                            )}
+                        </h3>
+                        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px', lineHeight: '1.5' }}>
+                            {kycModal.type === 'reject'
+                                ? (isRTL 
+                                    ? `حدد سبب رفض طلب "${kycModal.shop?.name}" ليتم توثيقه في السجل الإداري:` 
+                                    : `Specify the administrative reason for rejecting "${kycModal.shop?.name}":`)
+                                : (isRTL 
+                                    ? `اكتب التوضيح المطلوب من إدارة "${kycModal.shop?.name}" (سيتم إرسالها وإشعارهم عبر واتساب):` 
+                                    : `Specify the trade license clarification needed from "${kycModal.shop?.name}":`)}
+                        </p>
+                        <textarea
+                            value={kycModal.reason}
+                            onChange={(e) => setKycModal(prev => ({ ...prev, reason: e.target.value }))}
+                            placeholder={kycModal.type === 'reject'
+                                ? (isRTL ? 'مثال: السجل التجاري منتهي الصلاحية أو غير مطابق لنشاط العطور...' : 'e.g. Expired commercial registration or non-matching activity...')
+                                : (isRTL ? 'مثال: يرجى إرسال نسخة واضحة من السجل التجاري والترخيص البلدي...' : 'e.g. Please provide a clear copy of the commercial registration and municipal permit...')}
+                            rows={4}
+                            style={{
+                                width: '100%',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                color: '#f8fafc',
+                                fontSize: '0.88rem',
+                                marginBottom: '20px',
+                                outline: 'none',
+                                resize: 'vertical'
+                            }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setKycModal({ isOpen: false, shop: null, type: 'reject', reason: '' })}
+                                style={{
+                                    background: '#334155',
+                                    color: '#cbd5e1',
+                                    border: 'none',
+                                    padding: '9px 18px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem'
+                                }}
+                            >
+                                {isRTL ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleKycAction}
+                                style={{
+                                    background: kycModal.type === 'reject' ? '#ef4444' : '#eab308',
+                                    color: kycModal.type === 'reject' ? '#fff' : '#0f172a',
+                                    fontWeight: '700',
+                                    border: 'none',
+                                    padding: '9px 20px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem'
+                                }}
+                            >
+                                {kycModal.type === 'reject' ? (isRTL ? 'تأكيد الرفض' : 'Confirm Rejection') : (isRTL ? 'إرسال الطلب' : 'Send Clarification')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

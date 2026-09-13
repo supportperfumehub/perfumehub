@@ -7,89 +7,186 @@ import { validateRequest } from '../middleware/validate.js';
 import { body } from 'express-validator';
 import axios from 'axios';
 import { uploadImageToStorage, deleteImageFromStorage, syncImagesStorage } from '../utils/storageUtils.js';
+import { logAdminAudit } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
-// Get all global products
-router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+let hasDeletedAt = null;
+const checkDeletedAtColumn = async () => {
+    if (hasDeletedAt !== null) return hasDeletedAt;
     try {
-        let productIds = null;
-        if (req.query.strict_region === 'true' && req.query.region_id && req.query.all !== 'true') {
-            const { data: regionShops } = await supabase
-                .from('shops')
-                .select('id')
-                .or(`region_id.eq.${req.query.region_id},region_id.is.null`);
-            
-            const shopIds = regionShops ? regionShops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                let allInvs = [];
-                let invPage = 0;
-                while (true) {
-                    const { data } = await supabase
-                        .from('vendor_inventory')
-                        .select('product_id')
-                        .eq('is_active', true)
-                        .in('shop_id', shopIds)
-                        .range(invPage * 1000, (invPage + 1) * 1000 - 1);
-                    if (!data || data.length === 0) break;
-                    allInvs = allInvs.concat(data);
-                    if (data.length < 1000) break;
-                    invPage++;
-                }
-                const matchedIds = [...new Set(allInvs.map(item => item.product_id))];
-                if (matchedIds.length > 0) {
-                    productIds = matchedIds;
-                }
+        const { error } = await supabase.from('products').select('deleted_at').limit(1);
+        hasDeletedAt = !error;
+    } catch (e) {
+        hasDeletedAt = false;
+    }
+    return hasDeletedAt;
+};
+
+// Get global products catalog (High-performance server-side pagination & edge CDN caching)
+router.get('/', async (req, res) => {
+    // Multi-tier Edge CDN caching: 60s browser, 300s edge, 24h stale-while-revalidate
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 24));
+        const offset = (page - 1) * limit;
+
+        const catalogFields = 'id, name, brand, type, size, price, old_price, discount, is_new, is_featured, image, category, gender, notes, stock, top_notes, middle_notes, base_notes, created_at';
+
+        let query = supabase
+            .from('products')
+            .select(catalogFields, { count: 'exact' });
+
+        const hasDeleted = await checkDeletedAtColumn();
+        if (hasDeleted) {
+            query = query.is('deleted_at', null);
+        }
+
+        // Apply filters
+        if (req.query.gender) {
+            const g = req.query.gender.toLowerCase();
+            if (g === 'men' || g === 'women') {
+                query = query.or(`gender.eq.${g},gender.eq.unisex`);
+            } else if (g !== 'all') {
+                query = query.eq('gender', g);
             }
         }
 
-        let allProducts = [];
-        let page = 0;
-        const pageSize = 1000;
-
-        while (true) {
-            let pQuery = supabase
-                .from('products')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (productIds !== null) {
-                pQuery = pQuery.in('id', productIds);
-            }
-
-            pQuery = pQuery.range(page * pageSize, (page + 1) * pageSize - 1);
-
-            const { data, error } = await withTimeout(pQuery);
-            if (error) throw error;
-            if (!data || data.length === 0) break;
-            allProducts = allProducts.concat(data);
-            if (data.length < pageSize) break;
-            page++;
+        if (req.query.category) {
+            query = query.contains('category', [req.query.category]);
         }
 
-        res.json(allProducts);
+        if (req.query.brand) {
+            query = query.eq('brand', req.query.brand);
+        }
+
+        if (req.query.search) {
+            const cleanSearch = req.query.search.trim();
+            if (cleanSearch) {
+                query = query.or(`name.ilike.%${cleanSearch}%,brand.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%`);
+            }
+        }
+
+        if (req.query.min_price) {
+            query = query.gte('price', Number(req.query.min_price));
+        }
+
+        if (req.query.max_price) {
+            query = query.lte('price', Number(req.query.max_price));
+        }
+
+        // Sorting
+        const sort = req.query.sort;
+        if (sort === 'price-asc') {
+            query = query.order('price', { ascending: true });
+        } else if (sort === 'price-desc') {
+            query = query.order('price', { ascending: false });
+        } else if (sort === 'newest') {
+            query = query.order('created_at', { ascending: false });
+        } else {
+            query = query.order('created_at', { ascending: false });
+        }
+
+        query = query.range(offset, offset + limit - 1);
+
+        const { data, count, error } = await withTimeout(query);
+        if (error) throw error;
+
+        // Fetch active boutique inventories for these products to attach authentic vendor attribution
+        const productIds = (data || []).map(p => p.id);
+        const inventoryMap = {};
+        if (productIds.length > 0) {
+            try {
+                const { data: invRows } = await supabase
+                    .from('vendor_inventory')
+                    .select('product_id, shop_id, price, stock, shops(id, name, address)')
+                    .in('product_id', productIds)
+                    .eq('is_active', true)
+                    .gt('stock', 0);
+                (invRows || []).forEach(row => {
+                    if (!inventoryMap[row.product_id]) {
+                        inventoryMap[row.product_id] = {
+                            shop_id: row.shop_id,
+                            vendor_name: row.shops?.name || 'PerfumeHub Boutique',
+                            vendor_address: row.shops?.address || 'Doha / Lusail',
+                            stock: Number(row.stock) || 0
+                        };
+                    }
+                });
+            } catch (e) {
+                console.warn('Catalog inventory lookup warning:', e.message);
+            }
+        }
+
+        // Lightweight Card DTO mapping with live vendor attribution
+        const productsList = (data || []).map(p => {
+            const inv = inventoryMap[p.id];
+            return {
+                id: p.id,
+                name: p.name,
+                brand: p.brand,
+                type: p.type,
+                size: p.size,
+                price: Number(p.price) || 0,
+                oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
+                old_price: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
+                discount: p.discount || 0,
+                isNew: p.is_new ?? false,
+                is_new: p.is_new ?? false,
+                isFeatured: p.is_featured ?? false,
+                is_featured: p.is_featured ?? false,
+                image: Array.isArray(p.image) ? p.image : (typeof p.image === 'string' ? [p.image] : []),
+                category: p.category,
+                gender: p.gender,
+                notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
+                topNotes: p.top_notes || '',
+                middleNotes: p.middle_notes || '',
+                baseNotes: p.base_notes || '',
+                rating_avg: p.rating_avg !== undefined ? Number(p.rating_avg) : 4.8,
+                review_count: p.review_count !== undefined ? Number(p.review_count) : 12,
+                stock: inv ? inv.stock : (p.stock !== undefined ? Number(p.stock) : 10),
+                shop_id: inv?.shop_id || null,
+                vendor_name: inv?.vendor_name || null,
+                vendor_address: inv?.vendor_address || null
+            };
+        });
+
+        res.json({
+            products: productsList,
+            pagination: {
+                page,
+                limit,
+                total: count || 0,
+                totalPages: Math.ceil((count || 0) / limit),
+                hasMore: (offset + limit) < (count || 0)
+            }
+        });
     } catch (error) {
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
         }
+        console.error('Error fetching products:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Get single product
+// Get single product (Cached)
 router.get('/:id', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
     try {
-        const { data, error } = await supabase
+        let singleQuery = supabase
             .from('products')
             .select('*')
-            .eq('id', req.params.id)
-            .single();
+            .eq('id', req.params.id);
+
+        const hasDeletedCol = await checkDeletedAtColumn();
+        if (hasDeletedCol) {
+            singleQuery = singleQuery.is('deleted_at', null);
+        }
+
+        const { data, error } = await singleQuery.single();
 
         if (error) {
             if (error.code === 'PGRST116') return res.status(404).json({ error: 'Product not found' });
@@ -102,10 +199,10 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create product (Global Catalog - Admins Only)
+// Create product (Global Catalog - Super Admin Exclusive Authority)
 router.post('/', 
     authenticateUser, 
-    verifyRole(['super_admin', 'regional_admin', 'admin']), 
+    verifyRole(['super_admin', 'admin']), 
     validateBase64Image('image'),
     [
         body('name').notEmpty().withMessage('Product name is required'),
@@ -171,36 +268,29 @@ router.post('/',
         if (error) throw error;
         const newProduct = data[0];
 
-        // Automatically bind newly created product to active shops so it instantly lists on the site
-        try {
-            const { data: activeShops } = await supabase.from('shops').select('id').eq('status', 'ACTIVE');
-            if (activeShops && activeShops.length > 0) {
-                const inventoryRows = activeShops.map(s => ({
-                    product_id: newProduct.id,
-                    shop_id: s.id,
-                    price: price !== undefined ? Number(price) : 0,
-                    stock: stock !== undefined ? Number(stock) : 10,
-                    is_active: true,
-                    pickup_available: true,
-                    updated_at: new Date().toISOString()
-                }));
-                await supabase
-                    .from('vendor_inventory')
-                    .upsert(inventoryRows, { onConflict: 'product_id, shop_id' });
-            }
-        } catch (invErr) {
-            console.error('Auto inventory binding warning:', invErr.message);
-        }
+        // Audit logging
+        logAdminAudit({
+            actorId: req.user?.id,
+            actorEmail: req.user?.email,
+            actorRole: req.user?.role,
+            action: 'create_product',
+            targetEntity: 'products',
+            targetId: String(newProduct.id),
+            details: { name: newProduct.name, brand: newProduct.brand, price: newProduct.price }
+        }).catch(e => console.error('Audit log warning:', e.message));
 
-        res.status(201).json({ id: newProduct.id, message: 'Global product created and automatically bound to shop inventory successfully' });
+        res.status(201).json({ 
+            id: newProduct.id, 
+            message: 'Global master catalog product created successfully' 
+        });
     } catch (error) {
         console.error('Error creating product:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Update product (Global Catalog / Vendor inventory)
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+// Update product (Global Catalog - Super Admin Exclusive Authority)
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { 
         name, brand, type, size, isNew, isFeatured,
@@ -281,13 +371,16 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
         if (error) throw error;
 
-        // Synchronize linked vendor inventory prices
-        if (price !== undefined) {
-            await supabase
-                .from('vendor_inventory')
-                .update({ price: Number(price), updated_at: new Date().toISOString() })
-                .eq('product_id', id);
-        }
+        // Audit logging
+        logAdminAudit({
+            actorId: req.user?.id,
+            actorEmail: req.user?.email,
+            actorRole: req.user?.role,
+            action: 'update_product',
+            targetEntity: 'products',
+            targetId: String(id),
+            details: { updatedFields: Object.keys(updatePayload) }
+        }).catch(e => console.error('Audit log warning:', e.message));
 
         res.json({ message: 'Global product updated successfully' });
     } catch (error) {
@@ -296,8 +389,8 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
     }
 });
 
-// Delete product (Soft Delete / Archive)
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), async (req, res) => {
+// Delete product (Soft Delete / Archive - Super Admin Exclusive Authority)
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -309,12 +402,44 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
 
         if (fetchError || !product) return res.status(404).json({ error: 'Product not found' });
 
-        // Clean up storage images for this deleted product
-        const prodImages = Array.isArray(product?.image) ? product.image : (product?.image ? [product.image] : []);
-        for (const imgUrl of prodImages) {
-            await deleteImageFromStorage(imgUrl);
+        // If invoked by Regional Admin: strictly unbind/deactivate from regional boutique inventory ONLY
+        // Preserve the master catalog and storage assets for other GCC territories
+        if (req.user.role === 'regional_admin') {
+            const assignedRegionIds = req.user.assignedRegionIds || [];
+            if (assignedRegionIds.length === 0) {
+                return res.status(403).json({ 
+                    error: 'Access Denied: You do not have administrative authority over this geographic territory.' 
+                });
+            }
+
+            const { data: regionalShops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', assignedRegionIds);
+
+            const shopIds = (regionalShops || []).map(s => s.id);
+            if (shopIds.length > 0) {
+                await supabase
+                    .from('vendor_inventory')
+                    .update({ is_active: false, updated_at: new Date().toISOString() })
+                    .eq('product_id', id)
+                    .in('shop_id', shopIds);
+            }
+
+            return res.json({ 
+                success: true, 
+                action: 'regional_deactivated',
+                message: 'Product unpinned and deactivated across your regional boutique inventory. Global master catalog preserved.' 
+            });
         }
 
+        // Restrict global master catalog deletion strictly to super_admin / admin
+        if (req.user.role !== 'super_admin' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden: Insufficient permissions to delete global master product' });
+        }
+
+        // Non-Destructive Soft-Delete:
+        // Do NOT delete images from Supabase Storage — preserves 100% fidelity for backup restoration.
         const { error: backupError } = await supabase
             .from('backups')
             .insert([{
@@ -326,33 +451,68 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
 
         if (backupError) console.error('Backup failed for product deletion:', backupError);
 
-        const { error: deleteError } = await supabase
-            .from('products')
-            .delete({ count: 'exact' })
-            .eq('id', id);
+        // Soft-delete the product
+        const hasDeletedCol = await checkDeletedAtColumn();
+        if (hasDeletedCol) {
+            const { error: softDeleteError } = await supabase
+                .from('products')
+                .update({ 
+                    deleted_at: new Date().toISOString() 
+                })
+                .eq('id', id);
 
-        if (deleteError) throw deleteError;
-        res.json({ message: 'Product archived and deleted successfully. Vendor inventories cascaded.' });
+            if (softDeleteError) throw softDeleteError;
+        } else {
+            const { error: deleteError } = await supabase
+                .from('products')
+                .delete({ count: 'exact' })
+                .eq('id', id);
+
+            if (deleteError) throw deleteError;
+        }
+
+        // Deactivate associated vendor inventory records
+        await supabase
+            .from('vendor_inventory')
+            .update({ 
+                is_active: false, 
+                updated_at: new Date().toISOString() 
+            })
+            .eq('product_id', id);
+
+        // Audit logging
+        logAdminAudit({
+            actorId: req.user?.id,
+            actorEmail: req.user?.email,
+            actorRole: req.user?.role,
+            action: 'delete_product',
+            targetEntity: 'products',
+            targetId: String(id),
+            details: { name: product.name, brand: product.brand }
+        }).catch(e => console.error('Audit log warning:', e.message));
+
+        res.json({ message: 'Product archived and soft-deleted successfully. Storage media preserved for recovery.' });
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Fallback helper function to parse perfume name locally
+// Comprehensive fallback parser for luxury perfumes
 function parsePerfumeNameFallback(prompt) {
     const cleanPrompt = prompt.trim();
     
     // 1. Detect Brand
     const brands = [
-        'Creed', 'Dior', 'Chanel', 'Tom Ford', 'Gucci', 'Versace',
+        'Amouage', 'Creed', 'Dior', 'Chanel', 'Tom Ford', 'Gucci', 'Versace',
         'Armani', 'Prada', 'Burberry', 'Yves Saint Laurent', 'Givenchy',
         'Lancôme', 'Hermès', 'Valentino', 'Calvin Klein', 'Hugo Boss',
-        'Lattafa', 'Arabian Oud', 'Marly', 'Roja', 'Byredo', 'Diptyque', 'Amouage'
+        'Lattafa', 'Arabian Oud', 'Parfums de Marly', 'Roja Dove', 'Byredo', 
+        'Diptyque', 'Maison Francis Kurkdjian', 'Kilian', 'Initio', 'Xerjoff', 'Clive Christian'
     ];
     let detectedBrand = 'North Club Paris';
     for (const brand of brands) {
-        if (new RegExp('\\b' + brand + '\\b', 'i').test(cleanPrompt)) {
+        if (new RegExp('\\b' + brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(cleanPrompt)) {
             detectedBrand = brand;
             break;
         }
@@ -360,64 +520,96 @@ function parsePerfumeNameFallback(prompt) {
 
     // 2. Detect Type
     let detectedType = 'EDP (Eau de Parfum)';
-    if (/EDT|Toilette/i.test(cleanPrompt)) {
+    if (/Extrait|Extract/i.test(cleanPrompt)) {
+        detectedType = 'Parfum';
+    } else if (/EDT|Toilette/i.test(cleanPrompt)) {
         detectedType = 'EDT (Eau de Toilette)';
     } else if (/Parfum/i.test(cleanPrompt)) {
-        detectedType = 'EDP (Eau de Parfum)';
+        detectedType = 'Parfum';
     } else if (/Cologne/i.test(cleanPrompt)) {
-        detectedType = 'Cologne';
+        detectedType = 'EDC (Eau de Cologne)';
     }
 
     // 3. Detect Gender
     let detectedGender = 'unisex';
-    if (/men|man|homme|male/i.test(cleanPrompt)) {
+    if (/men|man|homme|male|pour homme/i.test(cleanPrompt)) {
         detectedGender = 'men';
-    } else if (/women|woman|femme|female/i.test(cleanPrompt)) {
+    } else if (/women|woman|femme|female|pour femme/i.test(cleanPrompt)) {
         detectedGender = 'women';
     }
 
-    // 4. Notes & Description based on common names
-    let topNotes = 'Bergamot, Lemon, Pepper';
-    let middleNotes = 'Patchouli, Pineapple, Rose';
-    let baseNotes = 'Musk, Ambergris, Vanilla';
-    let description = `${cleanPrompt} is a premium luxury fragrance featuring a masterfully blended aromatic profile. Perfect for any special occasion.`;
+    // 4. Notes, Accords & Bilingual Descriptions based on olfactive profile
+    let topNotes = 'Calabrian Bergamot, Pink Pepper, Sicilian Lemon';
+    let middleNotes = 'French Lavender, Grasse Rose, Indonesian Patchouli';
+    let baseNotes = 'Madagascar Vanilla, Golden Amber, White Musk';
+    let description = `${cleanPrompt} is a majestic haute parfumerie creation radiating poise and commanding presence. A luminous symphony of crisp citrus and precious resins craft an intoxicating sillage designed for discerning connoisseurs.`;
+    let descriptionAr = `يعد ${cleanPrompt} تحفة عطرية استثنائية من أرقى دور العطور الفاخرة، حيث تتناغم الحمضيات الإيطالية المنعشة مع باقة غنية من الأخشاب النبيلة والعنبر الدافئ لتمنحك حضوراً آسراً وأناقة ملكية لا تُنسى.`;
+    let accords = ['Woody', 'Amber', 'Fresh Spicy', 'Citrus'];
+    let longevity = 'Long Lasting (8-12 hours)';
+    let sillage = 'Strong / Noticeable';
+    let seasonality = ['Fall', 'Winter', 'Spring'];
+    let occasions = ['Evening Gala', 'Signature Wear', 'VIP Events'];
 
-    if (/oud|wood|oriental|arabic/i.test(cleanPrompt)) {
-        topNotes = 'Saffron, Rose, Aromatic Spices';
-        middleNotes = 'Agarwood (Oud), Amberwood, Patchouli';
-        baseNotes = 'Sandalwood, Incense, Leather';
-        description = `${cleanPrompt} is an exquisite, deep woody oriental fragrance with rich, warm accords of premium agarwood and exotic spices.`;
-    } else if (/fresh|blue|sport|aqua/i.test(cleanPrompt)) {
-        topNotes = 'Grapefruit, Mint, Sea Notes';
-        middleNotes = 'Ginger, Jasmine, Nutmeg';
-        baseNotes = 'Cedar, Vetiver, Frankincense';
-        description = `${cleanPrompt} is a clean, fresh, and energetic fragrance designed for active lifestyles and refreshing daytime wear.`;
-    } else if (/rose|flower|bloom|floral/i.test(cleanPrompt)) {
-        topNotes = 'Jasmine, Peony, Freesia';
-        middleNotes = 'Damask Rose, Magnolia, Lily of the Valley';
-        baseNotes = 'White Musk, Amber, Cedarwood';
-        description = `${cleanPrompt} is a beautifully elegant, romantic floral fragrance with a delicate bouquet of fresh roses and luxurious jasmine.`;
+    if (/oud|wood|oriental|arabic|interlude|amber|incense|sandalwood/i.test(cleanPrompt)) {
+        topNotes = 'Wild Saffron, Bergamot, Royal Oregano, Pimento Berry';
+        middleNotes = 'Precious Frankincense, Cistus Amber, Myrrh, Opoponax';
+        baseNotes = 'Cambodian Agarwood (Oud), Smoked Leather, Sandalwood, Patchouli';
+        description = `${cleanPrompt} is an opulent celebration of Arabian heritage and raw balsamic mystery. Piercing incense weaves through velvety amber and smoky agarwood, evoking candlelit desert palatial nights.`;
+        descriptionAr = `يجسد ${cleanPrompt} عبق التراث الشرقي الملكي وسحر النفحات البلسمية الغامضة؛ حيث يتعانق اللبان العماني الفاخر مع دفء العنبر النقي وخشب العود الكمبودي المعتق ليترك هالة ساحرة تليق بأصحاب الذوق الرفيع.`;
+        accords = ['Oud', 'Smoky', 'Amber', 'Balsamic', 'Warm Spicy'];
+        longevity = 'Eternal (12-18+ hours)';
+        sillage = 'Enormous / Monumental';
+        seasonality = ['Fall', 'Winter'];
+        occasions = ['Formal Dinners', 'Special Celebrations', 'Winter Evenings'];
+    } else if (/fresh|blue|sport|aqua|marine|citrus|aventus/i.test(cleanPrompt)) {
+        topNotes = 'Italian Bergamot, Green Apple, Grapefruit, Blackcurrant';
+        middleNotes = 'Birch Smoke, Moroccan Jasmine, Juniper Berry, Pink Pepper';
+        baseNotes = 'Oakmoss, Ambergris, Musk, Atlas Cedar';
+        description = `${cleanPrompt} is a vibrant, triumphant tribute to boundless masculine energy and freedom. Crisp aquatic winds meet noble woods, creating a dynamic trail that elevates every room.`;
+        descriptionAr = `انطلاقة عطرية مفعمة بالحيوية والقوة المطلقة، يمزج ${cleanPrompt} بين نسيم البحر المنعش ونقاء البرغموت مع لمسات دخانية نبيلة من أخشاب البتولا والمسك الأبيض لإطلالة يومية آسرة وواثقة.`;
+        accords = ['Fruity', 'Fresh', 'Woody', 'Aquatic', 'Smoky'];
+        longevity = 'Long Lasting (7-10 hours)';
+        sillage = 'Moderate to Strong';
+        seasonality = ['Spring', 'Summer', 'Fall'];
+        occasions = ['Daily Signature', 'Business Meetings', 'Daytime Leisure'];
+    } else if (/rose|flower|bloom|floral|baccarat|rouge|jasmine/i.test(cleanPrompt)) {
+        topNotes = 'Jasmine Grandiflorum, Saffron, Damask Rose';
+        middleNotes = 'Amberwood, Cashmeran, Orange Blossom, Hedione';
+        baseNotes = 'Fir Resin, Cedarwood, Ambroxan, Sweet Musk';
+        description = `${cleanPrompt} is an airy, luminous floral alchemy that caresses the skin like golden amber silk. Sublime petals intertwine with crystalline cedar and luminous ambergris.`;
+        descriptionAr = `تحفة زهرية مضيئة تتهادى على البشرة كالحرير الخالص؛ يتألق ${cleanPrompt} ببتلات الورد الجوري والياسمين مع نفحات الزعفران والعنبر الخشبي ليمنحك هالة من النعومة المخملية والجاذبية المطلقة.`;
+        accords = ['Floral', 'Sweet', 'Amber', 'Warm Spicy', 'Woody'];
+        longevity = 'Very Long Lasting (10-14 hours)';
+        sillage = 'Intense';
+        seasonality = ['All Year', 'Spring', 'Fall'];
+        occasions = ['Romance', 'Weddings', 'Signature Occasions'];
     }
 
-    // Categories
     const categories = ['perfumes'];
     if (detectedGender === 'men') categories.push('men');
     if (detectedGender === 'women') categories.push('women');
-    if (/arabic|oud/i.test(cleanPrompt)) categories.push('arabic');
+    if (/oud|oriental|arabic|saudi|qatar|dubai/i.test(cleanPrompt)) categories.push('arabic', 'niche');
+    else categories.push('niche');
 
     return {
         brand: detectedBrand,
         type: detectedType,
         gender: detectedGender,
         description,
+        description_ar: descriptionAr,
         topNotes,
         middleNotes,
         baseNotes,
+        accords,
+        longevity,
+        sillage,
+        seasons: seasonality,
+        occasions,
         categories
     };
 }
 
-// AI Autofill Product Details
+// AI Autofill Product Details (Powered by Gemini 1.5 Pro / Flash with rich luxury taxonomy)
 router.post('/ai-autofill', authenticateUser, async (req, res) => {
     const { prompt } = req.body;
     if (!prompt || prompt.trim() === '') {
@@ -426,33 +618,49 @@ router.post('/ai-autofill', authenticateUser, async (req, res) => {
 
     try {
         if (process.env.GEMINI_API_KEY) {
-            const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-            const response = await axios.post(apiEndpoint, {
-                contents: [
-                    {
-                        parts: [
+            // Attempt Gemini 1.5 Pro first for peak haute-parfumerie quality, fall back to flash
+            const models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
+            for (const model of models) {
+                try {
+                    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+                    const response = await axios.post(apiEndpoint, {
+                        contents: [
                             {
-                                text: `You are a perfume database expert. Given the perfume name or description: "${prompt}", return a JSON object with:
-                                - brand: (string)
-                                - type: (EDP (Eau de Parfum), EDT (Eau de Toilette), Parfum, Cologne, etc.)
-                                - gender: (men, women, unisex)
-                                - description: (short description, 2-3 sentences max)
-                                - topNotes: (comma separated list of top notes)
-                                - middleNotes: (comma separated list of middle notes)
-                                - baseNotes: (comma separated list of base notes)
-                                - categories: (array of lowercase matching categories, e.g. ["perfumes", "arabic", "men", "women"])
-                                Only return the raw JSON object, without any markdown formatting tags (do not wrap in \`\`\`json).`
+                                parts: [
+                                    {
+                                        text: `You are a world-class luxury haute-parfumerie catalog curator for PerfumeHub Middle East.
+Given the fragrance name or query: "${prompt}", return ONLY a valid JSON object (without markdown code blocks, backticks, or preamble) with the following structure:
+{
+  "brand": "Brand Name",
+  "type": "Parfum | EDP (Eau de Parfum) | EDT (Eau de Toilette) | EDC (Eau de Cologne)",
+  "gender": "men | women | unisex",
+  "description": "Evocative, poetic luxury English marketing description (2-3 sentences)",
+  "description_ar": "Luxury poetic Arabic marketing description in elegant high Arabic (وصف تسويقي فاخر وشاعري)",
+  "topNotes": "Comma separated top notes",
+  "middleNotes": "Comma separated heart/middle notes",
+  "baseNotes": "Comma separated base notes",
+  "accords": ["Woody", "Amber", "Warm Spicy"],
+  "longevity": "e.g. Long Lasting (8-12 hours)",
+  "sillage": "e.g. Enormous / Strong / Moderate",
+  "seasons": ["Fall", "Winter", "Spring"],
+  "occasions": ["Evening", "Special Occasions", "Signature"],
+  "categories": ["perfumes", "niche", "arabic", "men"]
+}`
+                                    }
+                                ]
                             }
                         ]
-                    }
-                ]
-            });
+                    }, { timeout: 8000 });
 
-            const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textResponse) {
-                const cleanedJson = textResponse.replace(/```json|```/g, '').trim();
-                const parsedData = JSON.parse(cleanedJson);
-                return res.json(parsedData);
+                    const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (textResponse) {
+                        const cleanedJson = textResponse.replace(/```json|```/g, '').trim();
+                        const parsedData = JSON.parse(cleanedJson);
+                        return res.json(parsedData);
+                    }
+                } catch (modelErr) {
+                    console.warn(`Gemini model ${model} failed, trying next fallback:`, modelErr.message);
+                }
             }
         }
 

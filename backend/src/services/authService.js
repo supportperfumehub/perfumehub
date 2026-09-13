@@ -7,6 +7,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { supabase } from '../config/supabaseClient.js';
+import { emailService } from './emailService.js';
 
 dotenv.config();
 
@@ -277,11 +278,9 @@ export class AuthService {
             reset_token_expires: expires.toISOString()
         });
 
-        // Simulation: Log reset link
+        // Real luxury branded password reset email dispatch via Nodemailer
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${token}`;
-        console.log(`\n[PASSWORD RESET SIMULATION]`);
-        console.log(`User: ${email}`);
-        console.log(`Link: ${resetUrl}\n`);
+        await emailService.sendPasswordResetEmail(email, token, resetUrl);
 
         return { success: true, message: 'If an account exists, a reset link has been sent.' };
     }

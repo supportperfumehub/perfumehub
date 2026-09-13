@@ -39,103 +39,98 @@ export const ShopProvider = ({ children }) => {
         { id: 3, code: 'SUPER90', discountType: 'percentage', discountValue: 90, expiryDate: '2027-12-31', isActive: true, usageCount: 0, usageLimit: 10 }
     ]);
 
+    // Server-side pagination metadata
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 24,
+        total: 0,
+        totalPages: 1,
+        hasMore: false
+    });
+
     // Toast state
     const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
 
-    // Fetch products from database
-    const fetchProducts = async () => {
+    // Fetch products from database (Supports server-side pagination & Edge CDN caching)
+    const fetchProducts = async (options = {}) => {
         try {
             setLoading(true);
-            const cacheBuster = Date.now();
-            let url = `/products?_t=${cacheBuster}`;
-            let params = {};
 
-            const isInsideAdmin = typeof window !== 'undefined' && (
-                window.location.pathname.startsWith('/admin') ||
-                window.location.pathname.startsWith('/vendor')
-            );
+            const {
+                page = 1,
+                limit = 24,
+                gender,
+                category,
+                brand,
+                search,
+                min_price,
+                max_price,
+                sort,
+                append = false
+            } = options;
 
-            if (isVendor && user?.shop_id) {
-                params.shop_id = user.shop_id;
-            }
+            const params = { page, limit };
+            if (gender && gender !== 'all') params.gender = gender;
+            if (category && category !== 'all') params.category = category;
+            if (brand) params.brand = brand;
+            if (search) params.search = search;
+            if (min_price) params.min_price = min_price;
+            if (max_price) params.max_price = max_price;
+            if (sort && sort !== 'default') params.sort = sort;
 
-            const invUrl = (!isAdmin && !isInsideAdmin && activeRegion)
-                ? `/inventory?region_id=${activeRegion.id}&_t=${cacheBuster}` 
-                : `/inventory?all=true&_t=${cacheBuster}`;
+            const response = await api.get('/products', { params });
+            const rawData = response.data;
+            const rawProducts = Array.isArray(rawData) ? rawData : (rawData?.products || []);
+            const pageMeta = rawData?.pagination || {
+                page,
+                limit,
+                total: rawProducts.length,
+                totalPages: Math.ceil(rawProducts.length / limit) || 1,
+                hasMore: rawProducts.length >= limit
+            };
 
-            // Parallel fetch to gather products and inventory with explicit cache-busting
-            const [productsRes, invRes] = await Promise.all([
-                api.get(url, { params, headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
-                api.get(invUrl, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
-            ]);
-            
-            let data = productsRes.data;
-            let invData = invRes.data;
-
-            // Graceful fallback: If region-filtered products return empty, fetch global catalog so storefront is never blank
-            if ((!Array.isArray(data) || data.length === 0) && params.region_id) {
-                try {
-                    const fallbackRes = await api.get(`/products?_t=${Date.now()}`);
-                    if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
-                        data = fallbackRes.data;
-                    }
-                } catch (fbErr) {
-                    console.error('Fallback product fetch error:', fbErr);
+            const mappedProducts = rawProducts.map(p => {
+                let images = [];
+                if (Array.isArray(p.image)) {
+                    images = p.image.map(img => typeof img === 'string' ? img.trim() : img).filter(Boolean);
+                } else if (typeof p.image === 'string' && p.image) {
+                    images = [p.image.trim()];
                 }
-            }
 
-            // Group inventory by product_id (string key for safety)
-            const inventoryByProduct = {};
-            if (Array.isArray(invData)) {
-                invData.forEach(inv => {
-                    const pidKey = String(inv.product_id);
-                    if (!inventoryByProduct[pidKey]) inventoryByProduct[pidKey] = [];
-                    inventoryByProduct[pidKey].push(inv);
+                return {
+                    ...p,
+                    image: images,
+                    price: Number(p.price) || 0,
+                    stock: p.stock !== undefined ? Number(p.stock) : 10,
+                    oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : (p.oldPrice ? Number(p.oldPrice) : null),
+                    type: p.type,
+                    isNew: p.is_new ?? p.isNew ?? false,
+                    isFeatured: p.is_featured ?? p.isFeatured ?? false,
+                    notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
+                    vibes: typeof p.vibes === 'string' ? JSON.parse(p.vibes || '[]') : (p.vibes || []),
+                    occasions: typeof p.occasions === 'string' ? JSON.parse(p.occasions || '[]') : (p.occasions || []),
+                    seasons: typeof p.seasons === 'string' ? JSON.parse(p.seasons || '[]') : (p.seasons || []),
+                    topNotes: p.topNotes || p.top_notes || '',
+                    middleNotes: p.middleNotes || p.middle_notes || '',
+                    baseNotes: p.baseNotes || p.base_notes || '',
+                    attributes: typeof p.attributes === 'string' ? JSON.parse(p.attributes || '{}') : (p.attributes || {})
+                };
+            });
+
+            if (append) {
+                setProducts(prev => {
+                    const existingIds = new Set(prev.map(i => i.id));
+                    const filteredNew = mappedProducts.filter(i => !existingIds.has(i.id));
+                    const combined = [...prev, ...filteredNew];
+                    localStorage.setItem('perfumehub_products', JSON.stringify(combined));
+                    return combined;
                 });
+            } else {
+                setProducts(mappedProducts);
+                localStorage.setItem('perfumehub_products', JSON.stringify(mappedProducts));
             }
 
-            if (Array.isArray(data)) {
-                // Map snake_case to camelCase and handle JSON fields
-                const mappedProducts = data.map(p => {
-                    let images = [];
-                    if (Array.isArray(p.image)) {
-                        images = p.image.map(img => typeof img === 'string' ? img.trim() : img).filter(img => img);
-                    } else if (typeof p.image === 'string') {
-                        images = [p.image.trim()];
-                    }
-                    
-                    // Master price and stock from product catalog row
-                    const productInventories = inventoryByProduct[String(p.id)] || [];
-                    const activeInventories = productInventories.filter(i => i.is_active !== false);
-                    const calculatedMasterStock = activeInventories.length > 0
-                        ? activeInventories.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
-                        : (p.stock !== undefined ? Number(p.stock) : 0);
-
-                    return {
-                        ...p,
-                        image: images,
-                        price: p.price !== undefined ? Number(p.price) : 0,
-                        stock: calculatedMasterStock,
-                        inventories: activeInventories,
-                        oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
-                        type: p.type,
-                        isNew: p.is_new,
-                        isFeatured: p.is_featured,
-                        notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
-                        vibes: typeof p.vibes === 'string' ? JSON.parse(p.vibes || '[]') : (p.vibes || []),
-                        occasions: typeof p.occasions === 'string' ? JSON.parse(p.occasions || '[]') : (p.occasions || []),
-                        seasons: typeof p.seasons === 'string' ? JSON.parse(p.seasons || '[]') : (p.seasons || []),
-                        topNotes: p.top_notes,
-                        middleNotes: p.middle_notes,
-                        baseNotes: p.base_notes,
-                        attributes: typeof p.attributes === 'string' ? JSON.parse(p.attributes || '{}') : (p.attributes || {})
-                    };
-                });
-
-                const sortedProducts = mappedProducts.sort((a, b) => (b.id || 0) - (a.id || 0));
-                setProducts(sortedProducts);
-                localStorage.setItem('perfumehub_products', JSON.stringify(sortedProducts));
-            }
+            setPagination(pageMeta);
         } catch (error) {
             console.error('Error fetching products:', error);
         } finally {
@@ -192,12 +187,12 @@ export const ShopProvider = ({ children }) => {
 
     const fetchShops = async () => {
         try {
-            const url = activeRegion?.id ? `/shops?region_id=${activeRegion.id}&_t=${Date.now()}` : `/shops?_t=${Date.now()}`;
-            const response = await api.get(url, { headers: { 'Cache-Control': 'no-cache' } });
+            const url = activeRegion?.id ? `/shops?region_id=${activeRegion.id}` : '/shops';
+            const response = await api.get(url);
             let shopList = response.data;
             if ((!Array.isArray(shopList) || shopList.length === 0) && activeRegion?.id) {
                 try {
-                    const fallbackRes = await api.get(`/shops?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                    const fallbackRes = await api.get('/shops');
                     if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
                         shopList = fallbackRes.data;
                     }
@@ -215,12 +210,12 @@ export const ShopProvider = ({ children }) => {
 
     const fetchDiscoverCampaigns = async () => {
         try {
-            const regionParam = activeRegion?.id ? `&region_id=${activeRegion.id}` : '';
-            const response = await api.get(`/discover?_t=${Date.now()}${regionParam}`, { headers: { 'Cache-Control': 'no-cache' } });
+            const regionParam = activeRegion?.id ? `?region_id=${activeRegion.id}` : '';
+            const response = await api.get(`/discover${regionParam}`);
             let list = response.data;
             if ((!Array.isArray(list) || list.length === 0) && activeRegion?.id) {
                 try {
-                    const fallbackRes = await api.get(`/discover?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                    const fallbackRes = await api.get('/discover');
                     if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
                         list = fallbackRes.data;
                     }
@@ -336,9 +331,9 @@ export const ShopProvider = ({ children }) => {
 
         try {
             const product = products.find(p => p.id === id);
-            const targetShopId = (isVendor && user?.shop_id) 
-                ? user.shop_id 
-                : (updatedProduct.shop_id && updatedProduct.shop_id !== 'core' && updatedProduct.shop_id !== 'all' && updatedProduct.shop_id !== 'own' ? updatedProduct.shop_id : null);
+            const targetShopId = (updatedProduct.shop_id && updatedProduct.shop_id !== 'core' && updatedProduct.shop_id !== 'all' && updatedProduct.shop_id !== 'own') 
+                ? updatedProduct.shop_id 
+                : (isVendor && user?.shop_id ? user.shop_id : null);
             
             const targetInventory = targetShopId 
                 ? product?.inventories?.find(inv => String(inv.shop_id) === String(targetShopId)) 
@@ -514,12 +509,15 @@ export const ShopProvider = ({ children }) => {
     });
 
     // Order Functions
-    const updateOrderStatus = async (orderId, status) => {
+    const updateOrderStatus = async (orderId, status, extra = {}) => {
         setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status } : o));
 
         try {
             const numericId = typeof orderId === 'string' && orderId.startsWith('ORD-') ? orderId.replace('ORD-', '') : orderId;
-            await api.put(`/orders/${numericId}/status`, { status });
+            const res = await api.put(`/orders/${numericId}/status`, { status, ...extra });
+            if (res.data?.evaluated_master_status) {
+                setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status: res.data.evaluated_master_status } : o));
+            }
         } catch (error) {
             console.error('Error updating order status:', error);
         }
@@ -681,6 +679,8 @@ export const ShopProvider = ({ children }) => {
 
     const value = {
         products,
+        pagination,
+        fetchProducts,
         loading,
         featuredProducts,
         newArrivals,

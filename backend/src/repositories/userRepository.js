@@ -247,16 +247,34 @@ export class UserRepository {
     }
 
     /**
-     * Find specialized ID with shop join
+     * Find specialized ID with shop join based on shops.owner_id as single source of truth
      */
     async findByIdWithShops(id) {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*, shops:shop_id(*)')
-            .eq('id', id)
-            .single();
-        
-        if (error) throw error;
-        return data;
+        try {
+            const { data: user, error: userErr } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (userErr) throw userErr;
+
+            // Fetch shops where owner_id = customer id (Single Source of Truth)
+            const { data: ownedShops, error: shopErr } = await supabase
+                .from('shops')
+                .select('*')
+                .eq('owner_id', id)
+                .is('deleted_at', null);
+
+            if (shopErr) throw shopErr;
+
+            return {
+                ...user,
+                shops: ownedShops || [],
+                owned_shops: ownedShops || []
+            };
+        } catch (error) {
+            throw error;
+        }
     }
 }

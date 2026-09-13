@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
+import { LuxurySkeletonCard } from '../../components/UI/LuxurySkeletonGrid';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
@@ -27,7 +28,7 @@ const Shop = () => {
     const shopIdFilter = searchParams.get('shop_id');
     const genderQuery = searchParams.get('gender');
     const categoryQuery = searchParams.get('category');
-    const { products: mockProducts } = useContext(ShopContext);
+    const { products: mockProducts, loading, pagination, fetchProducts } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
 
     const [products, setProducts] = useState(mockProducts);
@@ -46,7 +47,8 @@ const Shop = () => {
     });
     const [brandSearch, setBrandSearch] = useState('');
     const [showResetModal, setShowResetModal] = useState(false);
-    const [visibleCount, setVisibleCount] = useState(20);
+    const [visibleCount, setVisibleCount] = useState(24);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [activeSubcategory, setActiveSubcategory] = useState('all');
 
@@ -64,10 +66,19 @@ const Shop = () => {
 
     // Dynamically compute brands from mockProducts based on category
     const categoryBrands = React.useMemo(() => {
-        let items = [...mockProducts];
+        let items = mockProducts || [];
         if (type) {
             const normalizedType = type.toLowerCase().replace('-', '');
-            if (normalizedType === 'fashion') {
+            if (normalizedType === 'lifestyle') {
+                items = items.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => FASHION_TAGS.includes(c)) || 
+                           cats.some(c => JEWELLERY_TAGS.includes(c)) || 
+                           cats.some(c => GIFTBOX_TAGS.includes(c)) || 
+                           p.gender === 'fashion' ||
+                           (p.name && p.name.toLowerCase().includes('abaya'));
+                });
+            } else if (normalizedType === 'fashion') {
                 items = items.filter(p => {
                     const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
                     return cats.some(c => FASHION_TAGS.includes(c)) || p.gender === 'fashion';
@@ -144,10 +155,18 @@ const Shop = () => {
     useEffect(() => {
         let result = [...mockProducts];
 
-        // Filter by category param
         if (type) {
             const normalizedType = type.toLowerCase().replace('-', '');
-            if (normalizedType === 'fashion') {
+            if (normalizedType === 'lifestyle') {
+                result = result.filter(p => {
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    return cats.some(c => FASHION_TAGS.includes(c)) || 
+                           cats.some(c => JEWELLERY_TAGS.includes(c)) || 
+                           cats.some(c => GIFTBOX_TAGS.includes(c)) || 
+                           p.gender === 'fashion' ||
+                           (p.name && p.name.toLowerCase().includes('abaya'));
+                });
+            } else if (normalizedType === 'fashion') {
                 result = result.filter(p => {
                     const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
                     return cats.some(c => FASHION_TAGS.includes(c)) || p.gender === 'fashion';
@@ -220,6 +239,26 @@ const Shop = () => {
                 if (activeSubcategory === 'earrings') return cats.includes('earrings') || cats.includes('earring');
                 if (activeSubcategory === 'watches') return cats.includes('watches') || cats.includes('watch');
                 return cats.includes(activeSubcategory);
+            });
+        }
+
+        // Subcategory Filter (Lifestyle)
+        if (type === 'lifestyle' && activeSubcategory !== 'all') {
+            result = result.filter(p => {
+                const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                if (activeSubcategory === 'abaya') {
+                    return cats.includes('abaya') || (p.name && p.name.toLowerCase().includes('abaya'));
+                }
+                if (activeSubcategory === 'fashion') {
+                    return cats.some(c => FASHION_TAGS.includes(c)) || p.gender === 'fashion';
+                }
+                if (activeSubcategory === 'jewellery') {
+                    return cats.some(c => JEWELLERY_TAGS.includes(c));
+                }
+                if (activeSubcategory === 'giftbox') {
+                    return cats.some(c => GIFTBOX_TAGS.includes(c));
+                }
+                return true;
             });
         }
 
@@ -343,15 +382,46 @@ const Shop = () => {
         }
     };
 
+    const handleLoadMore = async () => {
+        if (visibleCount < products.length) {
+            setVisibleCount(prev => prev + 24);
+            return;
+        }
+        if (pagination?.hasMore && fetchProducts) {
+            setIsLoadingMore(true);
+            try {
+                await fetchProducts({
+                    page: (pagination.page || 1) + 1,
+                    limit: 24,
+                    gender: activeGender !== 'all' ? activeGender : (type === 'men' || type === 'women' ? type : undefined),
+                    category: categoryQuery || (type && !['men', 'women'].includes(type) ? type : undefined),
+                    search: searchQuery.trim() || undefined,
+                    min_price: minPrice || undefined,
+                    max_price: maxPrice || undefined,
+                    sort: sortType !== 'default' ? sortType : undefined,
+                    append: true
+                });
+                setVisibleCount(prev => prev + 24);
+            } catch (err) {
+                console.error('Failed to load more products:', err);
+            } finally {
+                setIsLoadingMore(false);
+            }
+        }
+    };
+
     const getPageTitle = () => {
         if (genderQuery === 'men' || type === 'men') {
-            return isRTL ? 'عطور رجالية فاخرة' : "Men's Luxury Fragrances";
+            return isRTL ? 'أفخم العطور الرجالية' : "Haute Parfumerie for Men";
         }
         if (genderQuery === 'women' || type === 'women') {
-            return isRTL ? 'عطور نسائية راقية' : "Women's Luxury Fragrances";
+            return isRTL ? 'أفخم العطور النسائية' : "Haute Parfumerie for Women";
         }
         if (categoryQuery === 'arabic' || type === 'arabic') {
-            return isRTL ? 'عطور شرقية وعود ملكي' : 'Arabic & Oriental Fragrances';
+            return isRTL ? 'خيرة العطور الشرقية والعود' : 'Royal Arabian Blends & Rare Ouds';
+        }
+        if (type === 'lifestyle') {
+            return isRTL ? 'أسلوب الحياة والإكسسوارات الفاخرة' : 'Lifestyle & Luxury Accessories';
         }
         if (type === 'fashion') {
             return isRTL ? 'مجموعة الأزياء الفاخرة' : 'Luxury Fashion Collection';
@@ -371,18 +441,23 @@ const Shop = () => {
     const getPageSubtitle = () => {
         if (genderQuery === 'men' || type === 'men') {
             return isRTL 
-                ? 'اكتشف أرقى العطور الرجالية الجريئة والأنيقة مع توصيل فوري داخل قطر.' 
-                : 'Explore bold, refined masculine scents curated for discerning gentlemen in Qatar.';
+                ? 'تشكيلة مختارة من العطور الخشبية والمنعشة والجلدية والتوابل لأصحاب الذوق الرفيع.' 
+                : 'Curated Men\'s Fragrances: Woody, Fresh, Leather, Spice for discerning connoisseurs.';
         }
         if (genderQuery === 'women' || type === 'women') {
             return isRTL 
-                ? 'تألقي بأرقى النفحات الأنثوية الزهرية والساحرة من أشهر الدور العالمية.' 
-                : 'Indulge in radiant feminine accords, delicate florals, and captivating luxury elixirs.';
+                ? 'أرقى التوليفات الزهرية والشرقية والفاكهية والمسك من أعرق دور العطور العالمية.' 
+                : 'Curated Women\'s Fragrances: Floral, Gourmand, Fruity, Amber elixirs of elegance.';
         }
         if (categoryQuery === 'arabic' || type === 'arabic') {
             return isRTL 
-                ? 'أصالة العود والمسك والعنبر بتوليفات خليجية ملكية أصيلة.' 
-                : 'Precious oud, rich amber, and traditional Gulf oriental accords crafted for royalty.';
+                ? 'أصالة العود المعتق، دهن العود، البخور، والمسك الملكي بتوليفات خليجية نادرة.' 
+                : 'Authentic Oud, Dehn El Oud, Bakhoor, Musk & Amber crafted for Gulf royalty.';
+        }
+        if (type === 'lifestyle') {
+            return isRTL 
+                ? 'اكتشف أرقى العبايات الحصرية، المجوهرات والساعات، الأزياء الراقية، وصناديق الهدايا الفاخرة.' 
+                : 'Discover bespoke designer abayas, fine jewellery, couture fashion, and luxury gift boxes.';
         }
         if (type === 'fashion') {
             return isRTL ? 'تصفح مجموعتنا الحصرية من الملابس والأزياء الفاخرة.' : 'Browse our exclusive collection of luxury apparel and fashion.';
@@ -414,17 +489,13 @@ const Shop = () => {
     };
 
     const getHeaderBanner = () => {
-        const key = type || categoryQuery || genderQuery;
-        const banners = {
-            'men': menBanner,
-            'fashion': menBanner,
-            'women': womenBanner,
-            'jewellery': womenBanner,
-            'arabic': arabicBanner,
-            'gift-box': arabicBanner,
-            'abaya': womenBanner,
-        };
-        return banners[key] || allBanner;
+        if (genderQuery === 'men' || type === 'men') return menBanner;
+        if (genderQuery === 'women' || type === 'women') return womenBanner;
+        if (categoryQuery === 'arabic' || type === 'arabic') return arabicBanner;
+        if (type === 'fashion' || type === 'lifestyle') return menBanner;
+        if (type === 'jewellery' || type === 'jewelry' || type === 'abaya') return womenBanner;
+        if (type === 'gift-box' || type === 'giftbox') return arabicBanner;
+        return allBanner;
     };
 
     const regionName = 'Qatar';
@@ -880,6 +951,63 @@ const Shop = () => {
                         </div>
                     )}
 
+                    {/* Render subcategory pills for Lifestyle */}
+                    {type === 'lifestyle' && (
+                        <div className="subcategories-pills animate-fade-in" style={{
+                            display: 'flex',
+                            gap: '10px',
+                            flexWrap: 'wrap',
+                            marginBottom: '25px',
+                            borderBottom: '1px solid #e2e8f0',
+                            paddingBottom: '15px'
+                        }}>
+                            {[
+                                { id: 'all', label: isRTL ? 'الكل' : 'All Lifestyle' },
+                                { id: 'abaya', label: isRTL ? 'عبايات راقية' : 'Designer Abayas' },
+                                { id: 'fashion', label: isRTL ? 'أزياء فاخرة' : 'Luxury Fashion' },
+                                { id: 'jewellery', label: isRTL ? 'مجوهرات وساعات' : 'Jewellery & Watches' },
+                                { id: 'giftbox', label: isRTL ? 'صناديق هدايا' : 'Gift Boxes' }
+                            ].map(pill => {
+                                const isActive = activeSubcategory === pill.id;
+                                return (
+                                    <button
+                                        key={pill.id}
+                                        type="button"
+                                        className={`subcategory-pill-btn ${isActive ? 'active' : ''}`}
+                                        onClick={() => setActiveSubcategory(pill.id)}
+                                        style={{
+                                            padding: '8px 20px',
+                                            fontSize: '0.85rem',
+                                            borderRadius: '30px',
+                                            border: isActive ? '1.5px solid var(--color-gold)' : '1.5px solid #cbd5e1',
+                                            backgroundColor: isActive ? 'var(--color-gold)' : '#ffffff',
+                                            color: isActive ? '#000000' : '#1e293b',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.5px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            boxShadow: isActive ? '0 4px 12px rgba(200, 169, 81, 0.35)' : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = 'var(--color-gold)';
+                                                e.currentTarget.style.color = 'var(--color-gold)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                e.currentTarget.style.color = '#1e293b';
+                                            }
+                                        }}
+                                    >
+                                        {pill.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     <div className="shop-controls">
                         <span>
                             {isRTL
@@ -895,7 +1023,11 @@ const Shop = () => {
                     </div>
 
                     <div className="products-grid">
-                        {products.length > 0 ? (
+                        {loading && products.length === 0 ? (
+                            [...Array(8)].map((_, i) => (
+                                <LuxurySkeletonCard key={i} />
+                            ))
+                        ) : products.length > 0 ? (
                             products.slice(0, visibleCount).map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))
@@ -906,14 +1038,20 @@ const Shop = () => {
                         )}
                     </div>
 
-                    {visibleCount < products.length && (
-                        <div className="load-more-container animate-fade-in">
+                    {(visibleCount < products.length || pagination?.hasMore) && (
+                        <div className="load-more-container animate-fade-in" style={{ textAlign: 'center', marginTop: '40px', marginBottom: '30px' }}>
                             <button 
                                 className="load-more-btn" 
-                                onClick={() => setVisibleCount(prev => prev + 20)}
+                                onClick={handleLoadMore}
+                                disabled={isLoadingMore}
+                                style={{ minWidth: '240px', padding: '12px 30px', borderRadius: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                             >
-                                <span>{isRTL ? 'عرض المزيد' : 'Load More'}</span>
-                                <RotateCcw size={18} className="load-more-icon" />
+                                <span>
+                                    {isLoadingMore 
+                                        ? (isRTL ? 'جاري تحميل العطور...' : 'Loading Fragrances...') 
+                                        : (isRTL ? 'عرض المزيد من العطور الفاخرة' : 'Load More Fragrances')}
+                                </span>
+                                <RotateCcw size={18} className={`load-more-icon ${isLoadingMore ? 'animate-spin' : ''}`} />
                             </button>
                         </div>
                     )}

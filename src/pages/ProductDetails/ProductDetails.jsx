@@ -10,6 +10,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { ShoppingBag, Zap, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin, Star, CheckCircle2, X, MessageSquare, AlertCircle, Sparkles, ThumbsUp, Lock } from 'lucide-react';
 import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
 import { getLocationWithFallback } from '../../utils/geolocation';
+import TrustBadges from '../../components/TrustBadges/TrustBadges';
+import api from '../../utils/api_v1_0_2';
 import './ProductDetails.css';
 
 // Haversine formula to calculate distance between two lat/lng pairs in km
@@ -214,21 +216,70 @@ const ProductDetails = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        const foundProduct = mockProducts.find(p => String(p.id) === String(id));
-        if (foundProduct) {
-            setProduct(foundProduct);
+        let isMounted = true;
+
+        const loadProductAndInventory = async () => {
+            let currentProduct = mockProducts.find(p => String(p.id) === String(id));
+
+            if (!currentProduct && id) {
+                try {
+                    const res = await api.get(`/products/${id}`);
+                    if (res.data) {
+                        currentProduct = {
+                            ...res.data,
+                            oldPrice: res.data.old_price !== null && res.data.old_price !== undefined ? Number(res.data.old_price) : null,
+                            price: Number(res.data.price) || 0,
+                            stock: res.data.stock !== undefined ? Number(res.data.stock) : 10,
+                            isNew: res.data.is_new,
+                            isFeatured: res.data.is_featured,
+                            notes: typeof res.data.notes === 'string' ? JSON.parse(res.data.notes || '[]') : (res.data.notes || []),
+                            topNotes: res.data.top_notes || '',
+                            middleNotes: res.data.middle_notes || '',
+                            baseNotes: res.data.base_notes || '',
+                            attributes: typeof res.data.attributes === 'string' ? JSON.parse(res.data.attributes || '{}') : (res.data.attributes || {})
+                        };
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch product details directly:', err);
+                }
+            }
+
+            // Query inventory solely for that specific product_id (Returns in-stock boutique shops)
+            if (id) {
+                try {
+                    const invRes = await api.get(`/inventory?product_id=${id}`);
+                    const invList = Array.isArray(invRes.data) ? invRes.data : [];
+                    if (currentProduct) {
+                        currentProduct = {
+                            ...currentProduct,
+                            inventories: invList
+                        };
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch product scoped inventory:', err);
+                }
+            }
+
+            if (!isMounted || !currentProduct) return;
+
+            setProduct(currentProduct);
+
             // Default to the first variant if available
-            const defaultSize = Array.isArray(foundProduct.size) && foundProduct.size.length > 0 
-                ? (typeof foundProduct.size[0] === 'object' ? foundProduct.size[0].name : foundProduct.size[0])
-                : foundProduct.size;
+            const defaultSize = Array.isArray(currentProduct.size) && currentProduct.size.length > 0 
+                ? (typeof currentProduct.size[0] === 'object' ? currentProduct.size[0].name : currentProduct.size[0])
+                : currentProduct.size;
             setSelectedSize(defaultSize);
 
             // Default to cheapest active inventory
-            if (foundProduct.inventories && foundProduct.inventories.length > 0) {
-                const cheapest = [...foundProduct.inventories].sort((a,b)=>a.price-b.price)[0];
-                setSelectedInventoryId(cheapest.id);
+            if (currentProduct.inventories && currentProduct.inventories.length > 0) {
+                const cheapest = [...currentProduct.inventories].sort((a,b) => a.price - b.price)[0];
+                if (cheapest) setSelectedInventoryId(cheapest.id);
             }
-        }
+        };
+
+        loadProductAndInventory();
+
+        return () => { isMounted = false; };
     }, [id, mockProducts]);
 
     if (!product) return <div className="container section text-center" style={{ paddingTop: '150px' }}>Loading...</div>;
@@ -269,7 +320,7 @@ const ProductDetails = () => {
         const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
         const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
         const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
 
         addToCart({
             ...product, 
@@ -287,7 +338,7 @@ const ProductDetails = () => {
         const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
         const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
         const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
 
         navigate('/checkout', { 
             state: { 
@@ -312,7 +363,7 @@ const ProductDetails = () => {
         const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
         const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
         const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
 
         navigate('/checkout', { 
             state: { 
@@ -547,33 +598,146 @@ const ProductDetails = () => {
                     )}
 
 
-                    {/* Specifications or Olfactory Pyramid */}
+                    {/* Interactive Olfactory Pyramid & Sensory Performance */}
                     {product && (!product.category?.includes('fashion') && !product.category?.includes('jewellery') && !product.category?.includes('giftbox') && !product.category?.includes('gift-box')) ? (
-                        (product.topNotes || product.middleNotes || product.baseNotes) && (
-                            <div className="olfactory-pyramid">
-                                <h3 className="notes-title">{isRTL ? 'مكونات العطر:' : 'Fragrance Notes:'}</h3>
-                                <div className="notes-container">
-                                    {product.topNotes && (
-                                        <div className="note-item">
-                                            <span className="note-label">{isRTL ? 'إفتتاحية العطر:' : 'TOP NOTES:'}</span>
-                                            <span className="note-value">{product.topNotes}</span>
+                        (product.topNotes || product.middleNotes || product.baseNotes) && (() => {
+                            const parseNotes = (notesVal) => {
+                                if (!notesVal) return [];
+                                if (Array.isArray(notesVal)) return notesVal;
+                                return String(notesVal).split(/[,/•|\n]+/).map(s => s.trim()).filter(Boolean);
+                            };
+                            const isArabicScent = product.category?.includes('arabic') || product.category?.includes('oriental');
+                            const longevityVal = product.attributes?.longevity || (
+                                isArabicScent 
+                                    ? (isRTL ? '10 - 14 ساعة (تركيز استثنائي)' : '10 – 14 Hours (Imperial Extrait)') 
+                                    : (isRTL ? '8 - 12 ساعة (ثبات طويل)' : '8 – 12 Hours (Eau de Parfum)')
+                            );
+                            const longevityPct = isArabicScent ? 92 : 82;
+                            const sillageVal = product.attributes?.sillage || (
+                                isArabicScent
+                                    ? (isRTL ? 'فواح جداً (أثر عطري طاغي)' : 'Enveloping & Majestic')
+                                    : (isRTL ? 'قوي وملفت (حضور راقي)' : 'Strong & Radiant Aura')
+                            );
+                            const sillagePct = isArabicScent ? 88 : 78;
+                            const activeSeasons = Array.isArray(product.seasons) && product.seasons.length > 0
+                                ? product.seasons.map(s => String(s).toLowerCase())
+                                : ['winter', 'autumn', 'spring'];
+
+                            return (
+                                <div className="olfactory-pyramid-card">
+                                    <div className="pyramid-header">
+                                        <Sparkles size={16} className="pyramid-header-icon" />
+                                        <h3 className="pyramid-title">{isRTL ? 'الهرم العطري والنوتات' : 'Olfactive Notes Pyramid'}</h3>
+                                        <span className="pyramid-subtitle">{isRTL ? 'انقر لاكتشاف عطور مماثلة' : 'Click note to explore related scents'}</span>
+                                    </div>
+
+                                    <div className="pyramid-tiers">
+                                        {product.topNotes && (
+                                            <div className="pyramid-tier top-tier">
+                                                <div className="tier-badge">
+                                                    <span className="tier-timing">{isRTL ? 'أول 15 دقيقة' : 'First 15 Mins'}</span>
+                                                    <span className="tier-name">{isRTL ? 'إفتتاحية العطر (Top Notes)' : 'Top Notes'}</span>
+                                                </div>
+                                                <div className="tier-chips">
+                                                    {parseNotes(product.topNotes).map((n, i) => (
+                                                        <Link 
+                                                            key={i} 
+                                                            to={`/shop?search=${encodeURIComponent(n)}`}
+                                                            className="pyramid-chip"
+                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                        >
+                                                            {n}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {product.middleNotes && (
+                                            <div className="pyramid-tier heart-tier">
+                                                <div className="tier-badge">
+                                                    <span className="tier-timing">{isRTL ? '2 - 4 ساعات' : '2 – 4 Hours'}</span>
+                                                    <span className="tier-name">{isRTL ? 'قلب العطر (Heart Notes)' : 'Heart Notes'}</span>
+                                                </div>
+                                                <div className="tier-chips">
+                                                    {parseNotes(product.middleNotes).map((n, i) => (
+                                                        <Link 
+                                                            key={i} 
+                                                            to={`/shop?search=${encodeURIComponent(n)}`}
+                                                            className="pyramid-chip"
+                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                        >
+                                                            {n}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {product.baseNotes && (
+                                            <div className="pyramid-tier base-tier">
+                                                <div className="tier-badge">
+                                                    <span className="tier-timing">{isRTL ? '6 - 12+ ساعة' : '6 – 12+ Hours'}</span>
+                                                    <span className="tier-name">{isRTL ? 'قاعدة العطر (Base Notes)' : 'Base Notes'}</span>
+                                                </div>
+                                                <div className="tier-chips">
+                                                    {parseNotes(product.baseNotes).map((n, i) => (
+                                                        <Link 
+                                                            key={i} 
+                                                            to={`/shop?search=${encodeURIComponent(n)}`}
+                                                            className="pyramid-chip"
+                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                        >
+                                                            {n}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="sensory-meters-section">
+                                        <div className="sensory-meter-row">
+                                            <div className="sensory-label-row">
+                                                <span className="meter-label">{isRTL ? 'ثبات العطر' : 'Longevity'}</span>
+                                                <span className="meter-val">{longevityVal}</span>
+                                            </div>
+                                            <div className="luxury-progress-track">
+                                                <div className="luxury-progress-fill" style={{ width: `${longevityPct}%` }}></div>
+                                            </div>
                                         </div>
-                                    )}
-                                    {product.middleNotes && (
-                                        <div className="note-item">
-                                            <span className="note-label">{isRTL ? 'قلب العطر:' : 'MIDDLE NOTES:'}</span>
-                                            <span className="note-value">{product.middleNotes}</span>
+
+                                        <div className="sensory-meter-row">
+                                            <div className="sensory-label-row">
+                                                <span className="meter-label">{isRTL ? 'فوحان العطر' : 'Sillage & Aura'}</span>
+                                                <span className="meter-val">{sillageVal}</span>
+                                            </div>
+                                            <div className="luxury-progress-track">
+                                                <div className="luxury-progress-fill" style={{ width: `${sillagePct}%` }}></div>
+                                            </div>
                                         </div>
-                                    )}
-                                    {product.baseNotes && (
-                                        <div className="note-item">
-                                            <span className="note-label">{isRTL ? 'قاعدة العطر:' : 'BASE NOTES:'}</span>
-                                            <span className="note-value">{product.baseNotes}</span>
+
+                                        <div className="sensory-seasons-row">
+                                            <span className="meter-label">{isRTL ? 'المواسم المثالية:' : 'Best Seasons:'}</span>
+                                            <div className="season-pills-list">
+                                                <span className={`season-pill ${activeSeasons.includes('winter') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                    ❄️ {isRTL ? 'الشتاء' : 'Winter'}
+                                                </span>
+                                                <span className={`season-pill ${activeSeasons.includes('autumn') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                    🍂 {isRTL ? 'الخريف' : 'Autumn'}
+                                                </span>
+                                                <span className={`season-pill ${activeSeasons.includes('spring') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                    🌸 {isRTL ? 'الربيع' : 'Spring'}
+                                                </span>
+                                                <span className={`season-pill ${activeSeasons.includes('summer') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                    ☀️ {isRTL ? 'الصيف' : 'Summer'}
+                                                </span>
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-                        )
+                            );
+                        })()
                     ) : (
                         product && product.attributes && Object.keys(product.attributes).length > 0 && (
                             <div className="product-specifications" style={{ marginBottom: '25px', padding: '15px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', backgroundColor: '#fff' }}>
@@ -815,28 +979,8 @@ const ProductDetails = () => {
                             )}
                         </div>
 
-                        <div className="trust-badges-grid-right animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                            <div className="trust-item">
-                                <ShieldCheck size={20} className="trust-icon" />
-                                <div className="trust-content">
-                                    <strong>{t('product.authentic')}</strong>
-                                    <span>{t('product.authentic_desc')}</span>
-                                </div>
-                            </div>
-                            <div className="trust-item">
-                                <Truck size={20} className="trust-icon" />
-                                <div className="trust-content">
-                                    <strong>{t('product.fast_shipping')}</strong>
-                                    <span>{t('product.fast_shipping_desc')}</span>
-                                </div>
-                            </div>
-                            <div className="trust-item">
-                                <RotateCcw size={20} className="trust-icon" />
-                                <div className="trust-content">
-                                    <strong>{t('product.easy_returns')}</strong>
-                                    <span>{t('product.easy_returns_desc')}</span>
-                                </div>
-                            </div>
+                        <div className="product-trust-badges-container animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                            <TrustBadges variant="horizontal" isRTL={isRTL} />
                         </div>
                     </div>
                 </div>
@@ -1030,7 +1174,7 @@ const ProductDetails = () => {
                                     <button 
                                         className="btn btn-gold gate-action-btn"
                                         onClick={() => {
-                                            addToCart(product, quantity, selectedSize, isGiftWrapped);
+                                            addToCart(product, quantity, isGiftWrapped, selectedSize);
                                             setIsReviewModalOpen(false);
                                         }}
                                     >

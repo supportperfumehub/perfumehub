@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Get live currency exchange rates
 router.get('/rates', async (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400');
     try {
         const { data, error } = await supabase
             .from('currency_exchange_rates')
@@ -59,47 +59,40 @@ router.get('/rates', async (req, res) => {
     }
 });
 
-// Get all regions
+// Get all regions (Public customer endpoint - returns all active GCC regions without admin lockout)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'private, max-age=60');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400');
     try {
-        let query = supabase.from('regions').select('*').order('name');
-        
-        let reqUser = null;
-        const token = extractTokenFromHeader(req);
-        if (token) {
-            const decoded = verifyAccessToken(token);
-            if (decoded) {
-                const { data: user } = await supabase
-                    .from('customers')
-                    .select('*')
-                    .eq('id', decoded.id)
-                    .single();
-                if (user) {
-                    if (user.role === 'regional_admin') {
-                        const { data: mappings } = await supabase
-                            .from('admin_region_mapping')
-                            .select('region_id')
-                            .eq('admin_id', user.id);
-                        user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
-                    }
-                    reqUser = user;
-                }
-            }
-        }
-
-        // Scoping for regional admins
-        if (reqUser && reqUser.role === 'regional_admin') {
-            if (reqUser.assignedRegionIds && reqUser.assignedRegionIds.length > 0) {
-                query = query.in('id', reqUser.assignedRegionIds);
-            } else {
-                return res.json([]);
-            }
-        }
-
-        const { data, error } = await query;
+        const { data, error } = await supabase.from('regions').select('*').order('name');
         if (error) throw error;
-        res.json(data);
+        res.json(data || []);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Dedicated administrative endpoint for logged-in Regional Admin assigned territories
+router.get('/my-regions', authenticateUser, async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, private');
+    try {
+        const user = req.user;
+        if (!user) return res.status(401).json({ error: 'Authentication required' });
+
+        if (user.role === 'super_admin' || user.role === 'admin') {
+            const { data, error } = await supabase.from('regions').select('*').order('name');
+            if (error) throw error;
+            return res.json(data || []);
+        }
+
+        if (user.role === 'regional_admin') {
+            const assigned = user.assignedRegionIds || [];
+            if (assigned.length === 0) return res.json([]);
+            const { data, error } = await supabase.from('regions').select('*').in('id', assigned).order('name');
+            if (error) throw error;
+            return res.json(data || []);
+        }
+
+        return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }

@@ -6,10 +6,12 @@ import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Newsletter from '../../components/Newsletter/Newsletter';
 import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
+import TrustBadges from '../../components/TrustBadges/TrustBadges';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
+import aiAdvisorBg from '../../assets/ai_advisor_banner_bg_1773366093433.webp';
 import './Home.css';
 
 // Curated 4 preview reviews to display until original trusted reviews arrive
@@ -188,11 +190,26 @@ const Home = () => {
     }, []);
 
     // Determine what powers the Hero Banners 
-    const heroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
+    const baseHeroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
         ? discoverCampaigns 
         : shuffledFeatured;
         
     const isShopCampaign = discoverCampaigns && discoverCampaigns.length > 0;
+
+    const scentGenieHeroSlide = {
+        id: 'scent-genie-hero-slide',
+        isScentGenie: true,
+        tagline: isRTL ? 'مستشارك العطري الذكي • AI CONCIERGE' : 'ROYAL AI FRAGRANCE CONCIERGE',
+        title: isRTL ? 'جني العطور الذكي • Scent Genie' : 'Scent Genie AI Advisor',
+        description: isRTL 
+            ? 'لست متأكداً من اختيارك؟ دع خوارزمية الذكاء الاصطناعي تحلل ذوقك وترشح لك العطر النيش الأنسب لشخصيتك وأمسيات الدوحة.' 
+            : 'Unsure which fragrance fits your essence? Let our bespoke AI engine analyze your preferences and match you to rare niche perfumes in Qatar.',
+        image: aiAdvisorBg
+    };
+
+    const heroItems = baseHeroItems.length > 0 
+        ? [scentGenieHeroSlide, ...baseHeroItems] 
+        : [scentGenieHeroSlide];
 
     useEffect(() => {
         if (featuredProducts && featuredProducts.length > 0) {
@@ -387,6 +404,44 @@ const Home = () => {
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
                             {heroItems.map((item) => {
+                                if (item.isScentGenie) {
+                                    return (
+                                        <div key={item.id} className="featured-slide scent-genie-hero-slide">
+                                            <div 
+                                                className="featured-slide-dynamic-bg" 
+                                                style={{ backgroundImage: `url(${item.image})`, opacity: 0.75 }}
+                                            ></div>
+                                            <div className="featured-slide-img-container">
+                                                <img 
+                                                    src={item.image} 
+                                                    alt="Scent Genie AI Fragrance Advisor" 
+                                                    className="featured-slide-img" 
+                                                    loading="eager"
+                                                    decoding="async"
+                                                    style={{ objectFit: 'cover', borderRadius: '16px', boxShadow: '0 12px 36px rgba(0,0,0,0.6)' }}
+                                                />
+                                            </div>
+                                            <div className="featured-slide-content">
+                                                <span className="featured-slide-brand" style={{ color: '#d4af37', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Sparkles size={16} color="#d4af37" />
+                                                    {item.tagline}
+                                                </span>
+                                                <h3 className="featured-slide-title" style={{ color: '#ffffff' }}>{item.title}</h3>
+                                                <span className="featured-slide-type" style={{ color: '#d4af37' }}>
+                                                    {isRTL ? 'خوارزمية ذكاء اصطناعي فاخرة' : 'Bespoke Olfactory Matching'}
+                                                </span>
+                                                <p className="featured-slide-desc" dir="auto">{item.description}</p>
+                                                <div className="featured-slide-actions">
+                                                    <Link to="/scent-genie" className="btn btn-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontWeight: '800' }}>
+                                                        <Sparkles size={16} />
+                                                        <span>{isRTL ? 'اكتشف عطرك بالذكاء الاصطناعي' : 'Launch Scent Genie AI'}</span>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
                                 const targetProdId = item.product_id || item.product?.id || (isShopCampaign ? null : item.id);
                                 const liveProd = targetProdId ? products?.find(p => String(p.id) === String(targetProdId)) : null;
                                 const activeProd = liveProd ? { ...item.product, ...liveProd } : (item.product || item);
@@ -744,28 +799,9 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Luxury Minimalist Trust Strip */}
-            <section className="luxury-trust-strip">
-                <div className="container">
-                    <div className="trust-strip-grid">
-                        <div className="trust-strip-item">
-                            <ShieldCheck size={20} className="trust-strip-icon" />
-                            <span className="trust-strip-label">{isRTL ? 'أصلي 100٪' : '100% Authentic'}</span>
-                        </div>
-                        <div className="trust-strip-item">
-                            <Truck size={20} className="trust-strip-icon" />
-                            <span className="trust-strip-label">{isRTL ? 'توصيل سريع في قطر' : 'Express Delivery in Qatar'}</span>
-                        </div>
-                        <div className="trust-strip-item">
-                            <Sparkles size={20} className="trust-strip-icon" />
-                            <span className="trust-strip-label">{isRTL ? 'عطور نادرة وعود' : 'Rare Niche & Oud'}</span>
-                        </div>
-                        <div className="trust-strip-item">
-                            <CreditCard size={20} className="trust-strip-icon" />
-                            <span className="trust-strip-label">{isRTL ? 'الدفع عند الاستلام وبطاقات الريال' : 'Cash on Delivery & Cards'}</span>
-                        </div>
-                    </div>
-                </div>
+            {/* Luxury Trust Badges & Guarantees */}
+            <section className="luxury-trust-section container reveal">
+                <TrustBadges isRTL={isRTL} variant="grid" />
             </section>
 
             {/* Brand Story Snippet */}

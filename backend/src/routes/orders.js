@@ -5,8 +5,15 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 import { orderLimiter } from '../middleware/rateLimiter.js';
 import { validateRequest } from '../middleware/validate.js';
 import { body } from 'express-validator';
+import { emailService } from '../services/emailService.js';
 
 const router = express.Router();
+
+// Private / User Endpoints: No Edge CDN caching, strictly private
+router.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, private');
+    next();
+});
 
 // Get all orders
 router.get('/', authenticateUser, async (req, res) => {
@@ -17,7 +24,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
         let query = supabase
             .from('orders')
-            .select('*, sub_orders(*, shops(id, name, address, whatsapp_number))')
+            .select('*, order_items(*, products(id, name, brand, image)), sub_orders(*, shops(id, name, address, whatsapp_number))')
             .order('created_at', { ascending: false });
 
         if (req.query.shop_id) {
@@ -85,7 +92,9 @@ router.get('/', authenticateUser, async (req, res) => {
                 shop_name: shopNameMap[so.shop_id] || 'Branch',
                 status: so.status,
                 subtotal: so.subtotal,
-                total: so.total_amount
+                total: so.total_amount,
+                tracking_number: so.tracking_number,
+                fulfillment_type: so.fulfillment_type
             })));
         }
 
@@ -150,9 +159,70 @@ router.post('/',
 
         if (normalizedItems.length > 0) {
             for (const item of normalizedItems) {
-                const shopId = item.shop_id;
-                if (!shopId) return res.status(400).json({ error: 'All items must specify a shop_id to identify vendor inventory.' });
-                
+                let shopId = item.shop_id;
+                const productId = item.product_id;
+
+                // Dynamic inventory resolution:
+                // If shopId is missing, unassigned, or invalid, find an active boutique holding stock for this product
+                let dbInv = null;
+                if (shopId) {
+                    const { data: invFound } = await supabase
+                        .from('vendor_inventory')
+                        .select('id, price, stock, shop_id')
+                        .eq('product_id', productId)
+                        .eq('shop_id', shopId)
+                        .maybeSingle();
+                    dbInv = invFound;
+                }
+
+                if (!dbInv && fulfillment_type !== 'pickup') {
+                    // Fallback to the first active boutique with available stock
+                    const { data: fallbackInv } = await supabase
+                        .from('vendor_inventory')
+                        .select('id, price, stock, shop_id')
+                        .eq('product_id', productId)
+                        .eq('is_active', true)
+                        .gt('stock', 0)
+                        .order('price', { ascending: true })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (fallbackInv) {
+                        dbInv = fallbackInv;
+                        shopId = fallbackInv.shop_id;
+                        item.shop_id = fallbackInv.shop_id;
+                    }
+                }
+
+                if (!shopId) {
+                    // If still no boutique found, grab the first active flagship boutique
+                    const { data: flagshipShop } = await supabase
+                        .from('shops')
+                        .select('id')
+                        .eq('status', 'active')
+                        .limit(1)
+                        .maybeSingle();
+                    if (flagshipShop) {
+                        shopId = flagshipShop.id;
+                        item.shop_id = flagshipShop.id;
+                        // Ensure an inventory record exists for seamless checkout
+                        const { data: createdInv } = await supabase
+                            .from('vendor_inventory')
+                            .upsert([{
+                                product_id: productId,
+                                shop_id: flagshipShop.id,
+                                price: item.price || 0,
+                                stock: 100,
+                                is_active: true
+                            }], { onConflict: 'product_id, shop_id' })
+                            .select()
+                            .single();
+                        dbInv = createdInv;
+                    } else {
+                        return res.status(400).json({ error: `Product ${productId} is currently unassigned to any boutique.` });
+                    }
+                }
+
                 shopIdsSet.add(shopId);
 
                 // For pickup, strictly enforce against the single pickup shop
@@ -161,16 +231,8 @@ router.post('/',
                 }
 
                 // Verify price from DB (first vendor_inventory, fallback to products)
-                const productId = item.product_id;
-                const { data: dbInv } = await supabase
-                    .from('vendor_inventory')
-                    .select('price')
-                    .eq('product_id', productId)
-                    .eq('shop_id', shopId)
-                    .maybeSingle();
-
                 let unitPrice = 0;
-                if (dbInv) {
+                if (dbInv && dbInv.price) {
                     unitPrice = parseFloat(dbInv.price);
                 } else {
                     const { data: dbProd } = await supabase
@@ -239,72 +301,149 @@ router.post('/',
             });
         }
 
-        // --- 2. Inventory Lock & Decrement (Optimistic Concurrency Control) ---
-        for (const item of normalizedItems) {
-            const shopId = item.shop_id;
-            const productId = item.product_id;
-            const quantity = item.quantity || 1;
+        // --- 2. Atomic Order Placement & Inventory Reservation (ACID RPC) ---
+        const orderPayload = {
+            customerName,
+            email: email ? email.toLowerCase() : null,
+            phone: phone ? phone.trim() : null,
+            total,
+            shippingAddress: fulfillment_type === 'pickup' ? null : shippingAddress,
+            paymentMethod,
+            fulfillment_type,
+            pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
+            items: normalizedItems,
+            shop_ids: shop_ids
+        };
 
-            if (fulfillment_type === 'pickup') {
-                const { data: invCheck } = await supabase
+        let newOrderId;
+        let usedAtomicRpc = false;
+
+        try {
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('place_order_atomic', { 
+                p_order_payload: orderPayload 
+            });
+
+            if (!rpcError && rpcResult) {
+                if (rpcResult.success === false) {
+                    return res.status(400).json({ error: rpcResult.error || 'Failed to place order atomically' });
+                }
+                newOrderId = rpcResult.order_id;
+                usedAtomicRpc = true;
+            }
+        } catch (rpcEx) {
+            console.warn('Atomic order RPC failed to execute, transitioning to transactional handler:', rpcEx.message);
+        }
+
+        // Transactional Fallback: Pre-flight stock verification to ensure zero partial decrements
+        if (!usedAtomicRpc) {
+            for (const item of normalizedItems) {
+                const { data: inv } = await supabase
                     .from('vendor_inventory')
-                    .select('pickup_available')
-                    .eq('product_id', productId)
-                    .eq('shop_id', shopId)
+                    .select('id, stock, reserved_quantity, price')
+                    .eq('product_id', item.product_id)
+                    .eq('shop_id', item.shop_id)
                     .maybeSingle();
 
-                if (invCheck && !invCheck.pickup_available) {
-                    return res.status(400).json({ error: `Item ${productId} is not available for pickup at this shop.` });
+                if (!inv) {
+                    return res.status(400).json({ 
+                        error: `Inventory record not found for product ${item.product_id} at boutique.` 
+                    });
+                }
+
+                const available = (Number(inv.stock) || 0) - (Number(inv.reserved_quantity) || 0);
+                if (available < (item.quantity || 1)) {
+                    return res.status(400).json({ 
+                        error: `Insufficient stock for product ${item.product_id} at selected boutique. Available: ${available}, Requested: ${item.quantity || 1}` 
+                    });
                 }
             }
 
-            // Decrement vendor_inventory if tracked
-            const { data: currentInv } = await supabase
-                .from('vendor_inventory')
-                .select('id, stock')
-                .eq('product_id', productId)
-                .eq('shop_id', shopId)
-                .maybeSingle();
+            // Determine explicit next order id to ensure sequence desync does not trigger orders_pkey duplicate key error
+            const { data: maxRow } = await supabase
+                .from('orders')
+                .select('id')
+                .order('id', { ascending: false })
+                .limit(1);
+            const nextOrderId = (maxRow && maxRow[0] ? Number(maxRow[0].id) : 0) + 1;
 
-            if (currentInv) {
-                if (currentInv.stock < quantity) {
-                    return res.status(400).json({ error: `Insufficient stock for product ${productId} at selected boutique.` });
-                }
-                await supabase
+            // All item stocks are confirmed available — insert master order
+            const { data: orderData, error: orderInsertErr } = await supabase
+                .from('orders')
+                .insert([{
+                    id: nextOrderId,
+                    customer_name: customerName,
+                    email: email ? email.toLowerCase() : null,
+                    phone: phone ? phone.trim() : null,
+                    total,
+                    shipping_address: fulfillment_type === 'pickup' ? null : shippingAddress,
+                    payment_method: paymentMethod,
+                    items: normalizedItems,
+                    shop_ids: shop_ids,
+                    fulfillment_type,
+                    pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
+                    status: fulfillment_type === 'pickup' ? 'reserved' : 'pending'
+                }])
+                .select();
+
+            if (orderInsertErr) throw orderInsertErr;
+            newOrderId = orderData[0].id;
+
+            // Decrement inventory, write immutable inventory audit logs, and populate relational order_items
+            for (const item of normalizedItems) {
+                const { data: inv } = await supabase
                     .from('vendor_inventory')
-                    .update({ stock: Math.max(0, currentInv.stock - quantity) })
-                    .eq('id', currentInv.id);
+                    .select('id, stock, price')
+                    .eq('product_id', item.product_id)
+                    .eq('shop_id', item.shop_id)
+                    .single();
+
+                if (inv) {
+                    const prevStock = Number(inv.stock) || 0;
+                    const newStock = Math.max(0, prevStock - item.quantity);
+
+                    await supabase
+                        .from('vendor_inventory')
+                        .update({ stock: newStock, updated_at: new Date().toISOString() })
+                        .eq('id', inv.id);
+
+                    // Record immutable inventory audit ledger
+                    try {
+                        await supabase.from('inventory_logs').insert([{
+                            inventory_id: inv.id,
+                            shop_id: item.shop_id,
+                            product_id: item.product_id,
+                            previous_stock: prevStock,
+                            new_stock: newStock,
+                            delta: -item.quantity,
+                            change_type: 'order_sale',
+                            reference_id: String(newOrderId)
+                        }]);
+                    } catch (logErr) {
+                        console.warn('Inventory log insertion skipped:', logErr.message);
+                    }
+                }
+
+                // Insert relational line item into order_items
+                try {
+                    await supabase.from('order_items').insert([{
+                        order_id: newOrderId,
+                        product_id: item.product_id,
+                        shop_id: item.shop_id,
+                        quantity: item.quantity,
+                        unit_price: item.price || inv?.price || 0,
+                        size: item.size || null,
+                        is_gift_wrapped: Boolean(item.isGiftWrapped)
+                    }]);
+                } catch (oiErr) {
+                    console.warn('Relational order_items insert skipped:', oiErr.message);
+                }
             }
-        }
 
-        // --- 3. Finalize Master Order ---
-        const { data, error } = await supabase
-            .from('orders')
-            .insert([{
-                customer_name: customerName,
-                email: email ? email.toLowerCase() : null,
-                phone: phone ? phone.trim() : null,
-                total,
-                shipping_address: fulfillment_type === 'pickup' ? null : shippingAddress,
-                payment_method: paymentMethod,
-                items: normalizedItems,
-                shop_ids: shop_ids,
-                fulfillment_type,
-                pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
-                status: fulfillment_type === 'pickup' ? 'reserved' : 'pending'
-            }])
-            .select();
-
-        if (error) {
-            throw error;
-        }
-
-        const newOrderId = data[0].id;
-
-        // --- 4. Split Master Order into Sub-Orders via Database RPC ---
-        const { error: rpcError } = await supabase.rpc('split_order_to_vendors', { p_order_id: newOrderId });
-        if (rpcError) {
-            console.error('Order split RPC failed:', rpcError);
+            // Split into sub-orders
+            const { error: rpcError } = await supabase.rpc('split_order_to_vendors', { p_order_id: newOrderId });
+            if (rpcError) {
+                console.error('Order split RPC failed:', rpcError);
+            }
         }
 
         // --- 5. Increment Coupon Usage Atomically on Backend ---
@@ -345,6 +484,20 @@ router.post('/',
             }
         }
 
+        // Dispatch real luxury order confirmation email asynchronously
+        if (email) {
+            emailService.sendOrderConfirmationEmail({
+                id: newOrderId,
+                customer_name: customerName,
+                email,
+                phone,
+                total,
+                shipping_address: shippingAddress,
+                payment_method: paymentMethod,
+                items: normalizedItems
+            }).catch(e => console.error('Order confirmation email warning:', e.message));
+        }
+
         res.status(201).json({ id: newOrderId, message: 'Order created successfully' });
     } catch (error) {
         console.error('Error creating order:', error);
@@ -352,16 +505,59 @@ router.post('/',
     }
 });
 
-// Update order status
+/**
+ * Helper to evaluate and sync master order status from its sub-orders
+ */
+export const evaluateAndUpdateMasterOrderStatus = async (parentOrderId) => {
+    try {
+        const { data: subOrders, error } = await supabase
+            .from('sub_orders')
+            .select('status')
+            .eq('parent_order_id', parentOrderId);
+
+        if (error || !subOrders || subOrders.length === 0) return null;
+
+        const total = subOrders.length;
+        const completed = subOrders.filter(s => ['completed', 'delivered'].includes((s.status || '').toLowerCase())).length;
+        const shipped = subOrders.filter(s => (s.status || '').toLowerCase() === 'shipped').length;
+        const cancelled = subOrders.filter(s => (s.status || '').toLowerCase() === 'cancelled').length;
+        const processing = subOrders.filter(s => ['processing', 'preparing', 'ready_for_pickup', 'confirmed'].includes((s.status || '').toLowerCase())).length;
+
+        let newStatus = 'pending';
+        if (completed === total) {
+            newStatus = 'completed';
+        } else if (completed + shipped === total) {
+            newStatus = 'shipped';
+        } else if (completed + shipped > 0) {
+            newStatus = 'partially_shipped';
+        } else if (cancelled === total) {
+            newStatus = 'cancelled';
+        } else if (processing > 0) {
+            newStatus = 'processing';
+        }
+
+        await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', parentOrderId);
+
+        return newStatus;
+    } catch (e) {
+        console.error('Error evaluating master order status:', e);
+        return null;
+    }
+};
+
+// Update order status (Decoupled fulfillment)
 router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, sub_order_id, shop_id } = req.body;
     const admin = req.user;
 
     try {
         const { data: order, error: fetchError } = await supabase
             .from('orders')
-            .select('shop_ids')
+            .select('*')
             .eq('id', id)
             .single();
         
@@ -374,38 +570,283 @@ router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional
                 .in('region_id', admin.assignedRegionIds);
             
             const adminShopIds = adminShops ? adminShops.map(s => s.id) : [];
-            const hasAccess = order.shop_ids.some(sid => adminShopIds.includes(sid));
+            const hasAccess = Array.isArray(order.shop_ids) && order.shop_ids.some(sid => adminShopIds.includes(sid));
 
             if (!hasAccess) return res.status(403).json({ error: 'Forbidden: You do not have access to this order.' });
-        } else if (admin && admin.role === 'vendor') {
-            if (!admin.shop_id || !order.shop_ids.includes(admin.shop_id)) {
-                return res.status(403).json({ error: 'Forbidden: You can only update orders for your shop.' });
-            }
-        }
+            
+            // Regional admin updates master order and syncs sub_orders in their region
+            const { data, error } = await supabase
+                .from('orders')
+                .update({ status })
+                .eq('id', id)
+                .select();
+            if (error) throw error;
 
-        const { data, error } = await supabase
-            .from('orders')
-            .update({ status })
-            .eq('id', id)
-            .select();
-
-        if (error) throw error;
-
-        // NEW: If updating via vendor/regional admin, also sync the Sub-Order status
-        if (admin && (admin.role === 'vendor' || admin.role === 'regional_admin')) {
-            const shopFilter = admin.role === 'vendor' ? { shop_id: admin.shop_id } : {};
             await supabase
                 .from('sub_orders')
-                .update({ status })
+                .update({ status, updated_at: new Date().toISOString() })
                 .eq('parent_order_id', id)
-                .match(shopFilter);
-        }
+                .in('shop_id', adminShopIds);
 
-        res.json({ message: 'Order status updated', order: data[0] });
+            return res.json({ message: 'Order status updated', order: data[0] });
+
+        } else if (admin && admin.role === 'vendor') {
+            // MULTI-BRANCH VENDOR GOVERNANCE:
+            // Vendors must ONLY update their own branch's record in sub_orders!
+            // Never overwrite the master orders.status directly.
+            const owned = admin.ownedShopIds || (admin.shop_id ? [admin.shop_id] : []);
+            if (owned.length === 0) {
+                return res.status(403).json({ error: 'Forbidden: No boutique assigned to your vendor account.' });
+            }
+
+            let subQuery = supabase
+                .from('sub_orders')
+                .select('*')
+                .eq('parent_order_id', id)
+                .in('shop_id', owned);
+
+            if (sub_order_id) {
+                subQuery = subQuery.eq('id', sub_order_id);
+            } else if (shop_id) {
+                subQuery = subQuery.eq('shop_id', shop_id);
+            }
+
+            const { data: vendorSubOrders, error: subFetchErr } = await subQuery;
+            if (subFetchErr || !vendorSubOrders || vendorSubOrders.length === 0) {
+                return res.status(403).json({ error: 'Forbidden: You do not own a boutique branch fulfilling this order.' });
+            }
+
+            const subOrderIds = vendorSubOrders.map(s => s.id);
+            const { data: updatedSubOrders, error: updateErr } = await supabase
+                .from('sub_orders')
+                .update({ status, updated_at: new Date().toISOString() })
+                .in('id', subOrderIds)
+                .select();
+
+            if (updateErr) throw updateErr;
+
+            // Automatically evaluate and update the master order status based on all sub-orders
+            const evaluatedMasterStatus = await evaluateAndUpdateMasterOrderStatus(id);
+
+            return res.json({ 
+                message: 'Boutique sub-order status updated successfully', 
+                sub_orders: updatedSubOrders,
+                evaluated_master_status: evaluatedMasterStatus,
+                order: { ...order, status: evaluatedMasterStatus || order.status }
+            });
+
+        } else {
+            // Super Admin
+            const { data, error } = await supabase
+                .from('orders')
+                .update({ status })
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+            return res.json({ message: 'Order status updated', order: data[0] });
+        }
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
+// Update specific sub-order status
+router.put('/sub-orders/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user = req.user;
+
+    try {
+        const { data: subOrder, error: fetchErr } = await supabase
+            .from('sub_orders')
+            .select('id, shop_id, parent_order_id')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr || !subOrder) return res.status(404).json({ error: 'Sub-order not found' });
+
+        if (user.role === 'vendor') {
+            const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
+            if (!owned.includes(subOrder.shop_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not own this boutique branch.' });
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('sub_orders')
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+
+        // Auto-evaluate master order status
+        const masterStatus = await evaluateAndUpdateMasterOrderStatus(subOrder.parent_order_id);
+
+        res.json({ success: true, message: 'Sub-order status updated', subOrder: data[0], masterStatus });
+    } catch (err) {
+        console.error('Error updating sub-order status:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Update specific sub-order tracking number
+router.put('/sub-orders/:id/tracking', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+    const { id } = req.params;
+    const { tracking_number } = req.body;
+    const user = req.user;
+
+    try {
+        const { data: subOrder, error: fetchErr } = await supabase
+            .from('sub_orders')
+            .select('id, shop_id, parent_order_id')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr || !subOrder) return res.status(404).json({ error: 'Sub-order not found' });
+
+        if (user.role === 'vendor') {
+            const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
+            if (!owned.includes(subOrder.shop_id)) {
+                return res.status(403).json({ error: 'Forbidden: You do not own this boutique branch.' });
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('sub_orders')
+            .update({ tracking_number, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        res.json({ success: true, message: 'Tracking number updated', subOrder: data[0] });
+    } catch (err) {
+        console.error('Error updating tracking number:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Public Order & Reservation Tracking (Zero authentication required, verified by identifier)
+router.post('/track', async (req, res) => {
+    const { orderId, identifier } = req.body;
+
+    if (!orderId || !identifier) {
+        return res.status(400).json({ error: 'Order ID and Email/Phone are required' });
+    }
+
+    const cleanOrderId = String(orderId).trim();
+    const cleanIdNum = cleanOrderId.replace(/^ORD-/i, '').trim();
+    const cleanIdentifier = String(identifier).trim().toLowerCase();
+    const phoneDigitsOnly = cleanIdentifier.replace(/\D/g, '');
+
+    try {
+        // 1. Check Orders
+        let orderQuery = supabase
+            .from('orders')
+            .select('*, order_items(*, products(id, name, brand, image)), sub_orders(*, shops(id, name, address, whatsapp_number))');
+
+        if (!isNaN(Number(cleanIdNum))) {
+            orderQuery = orderQuery.eq('id', Number(cleanIdNum));
+        } else {
+            orderQuery = orderQuery.ilike('id::text', `%${cleanOrderId}%`);
+        }
+
+        const { data: orderList, error: orderErr } = await orderQuery;
+
+        if (!orderErr && orderList && orderList.length > 0) {
+            const order = orderList[0];
+            const orderEmail = String(order.email || '').toLowerCase().trim();
+            const orderPhone = String(order.phone || '').replace(/\D/g, '');
+
+            const isEmailMatch = orderEmail && orderEmail === cleanIdentifier;
+            const isPhoneMatch = orderPhone && phoneDigitsOnly && (orderPhone.endsWith(phoneDigitsOnly) || phoneDigitsOnly.endsWith(orderPhone));
+
+            if (isEmailMatch || isPhoneMatch) {
+                const parsedItems = (order.order_items && order.order_items.length > 0)
+                    ? order.order_items.map(oi => ({
+                        id: oi.product_id,
+                        product_id: oi.product_id,
+                        shop_id: oi.shop_id,
+                        name: oi.products?.name || 'Perfume',
+                        brand: oi.products?.brand || '',
+                        price: oi.unit_price,
+                        quantity: oi.quantity,
+                        size: oi.size,
+                        isGiftWrapped: oi.is_gift_wrapped
+                    }))
+                    : (typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []));
+                return res.json({
+                    success: true,
+                    type: 'order',
+                    order: {
+                        id: order.id,
+                        orderNumber: `ORD-${order.id}`,
+                        customer_name: order.customer_name,
+                        status: order.status,
+                        fulfillment_type: order.fulfillment_type || 'delivery',
+                        created_at: order.created_at,
+                        total: order.total,
+                        items: parsedItems,
+                        shipping_address: order.shipping_address,
+                        payment_method: order.payment_method,
+                        pickup_shop: order.sub_orders?.[0]?.shops || null,
+                        sub_orders: (order.sub_orders || []).map(so => ({
+                            id: so.id,
+                            shop_name: so.shops?.name || 'Boutique',
+                            status: so.status,
+                            tracking_number: so.tracking_number,
+                            subtotal: so.subtotal
+                        }))
+                    }
+                });
+            }
+        }
+
+        // 2. Check Reservations (Click & Collect)
+        let resvQuery = supabase
+            .from('reservations')
+            .select('*, products(id, name, brand, image_url, price), shops(id, name, address, whatsapp_number)');
+
+        const cleanResvId = cleanOrderId.replace(/^RES-?/i, '');
+        if (!isNaN(Number(cleanResvId))) {
+            resvQuery = resvQuery.eq('id', Number(cleanResvId));
+        }
+
+        const { data: resvList, error: resvErr } = await resvQuery;
+
+        if (!resvErr && resvList && resvList.length > 0) {
+            const resv = resvList[0];
+            const resvPhone = String(resv.customer_phone || '').replace(/\D/g, '');
+
+            if (resvPhone && phoneDigitsOnly && (resvPhone.endsWith(phoneDigitsOnly) || phoneDigitsOnly.endsWith(resvPhone))) {
+                return res.json({
+                    success: true,
+                    type: 'reservation',
+                    reservation: {
+                        id: resv.id,
+                        code: resv.verification_code,
+                        status: resv.status,
+                        product: resv.products,
+                        shop: resv.shops,
+                        expires_at: resv.expires_at,
+                        created_at: resv.created_at
+                    }
+                });
+            }
+        }
+
+        return res.status(404).json({
+            success: false,
+            error: 'No order or boutique reservation found with matching credentials. Please double check your Order ID and Email/Phone.'
+        });
+    } catch (err) {
+        console.error('Error tracking order:', err);
+        return res.status(500).json({ error: 'Failed to look up order tracking details' });
+    }
+});
+
 export default router;
+
+

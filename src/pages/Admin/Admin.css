@@ -2025,3 +2025,128 @@
         width: 100%;
     }
 }
+
+/* Active Territory Governance Badge & Switcher Styles */
+.active-territory-container {
+    display: flex;
+    align-items: center;
+    margin: 0 16px;
+}
+
+.territory-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 1px solid rgba(200, 169, 81, 0.4);
+    padding: 6px 14px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), 0 0 12px rgba(200, 169, 81, 0.15);
+    transition: all 0.2s ease;
+}
+
+.territory-badge:hover {
+    border-color: rgba(200, 169, 81, 0.7);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 0 16px rgba(200, 169, 81, 0.25);
+}
+
+.territory-pin-icon {
+    color: #c8a951;
+    flex-shrink: 0;
+    animation: pulseGlow 2.5s infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.9; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+.territory-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.territory-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #c8a951;
+}
+
+.territory-select {
+    background: transparent;
+    border: none;
+    color: #f8fafc;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    padding-right: 8px;
+    font-family: inherit;
+}
+
+.territory-select option {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 10px;
+}
+
+.municipality-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    overflow-x: auto;
+}
+
+.admin-dashboard.rtl .municipality-pills-row {
+    margin-left: 0;
+    margin-right: 12px;
+}
+
+.muni-pill {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.muni-pill:hover {
+    border-color: #c8a951;
+    color: #f8fafc;
+    background: rgba(200, 169, 81, 0.1);
+}
+
+.muni-pill.active {
+    background: linear-gradient(135deg, rgba(200, 169, 81, 0.3) 0%, rgba(200, 169, 81, 0.15) 100%);
+    border-color: #c8a951;
+    color: #c8a951;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(200, 169, 81, 0.2);
+}
+
+@media (max-width: 900px) {
+    .admin-topbar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .active-territory-container {
+        margin: 0;
+        width: 100%;
+    }
+    .territory-badge {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .territory-select {
+        flex: 1;
+    }
+}

@@ -1,0 +1,359 @@
+/* ==============================================================================
+   SUPER ADMIN VENDOR PAYOUTS & SETTLEMENT COMMAND CENTER
+   ============================================================================== */
+
+.payouts-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.payouts-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.payouts-alert.success {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.payouts-alert.error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* KPI Summary Cards */
+.payouts-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.payouts-kpi-grid .kpi-card {
+    background: #11141c;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.payouts-kpi-grid .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: #d4af37;
+}
+
+.kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pending-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.disbursed-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.commission-icon {
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+}
+
+.total-icon {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+
+.kpi-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.kpi-subtext {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Toolbar & Filters */
+.payouts-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: #11141c;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.payouts-toolbar .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0b0e14;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-width: 280px;
+    flex: 1;
+}
+
+.payouts-toolbar .search-box input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-size: 0.88rem;
+    width: 100%;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+}
+
+.filter-btn {
+    background: transparent;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    border-color: #d4af37;
+    color: #f8fafc;
+}
+
+.filter-btn.active {
+    background: #d4af37;
+    border-color: #d4af37;
+    color: #0b0e14;
+    font-weight: 600;
+}
+
+/* Table Styling */
+.payouts-table-wrapper {
+    background: #11141c;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.payouts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.payouts-table th {
+    background: #151a24;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1f2937;
+    text-align: left;
+}
+
+.payouts-manager.rtl .payouts-table th {
+    text-align: right;
+}
+
+.payouts-table td {
+    padding: 16px;
+    border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.payouts-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.payouts-table tr.row-pending td {
+    background: rgba(245, 158, 11, 0.03);
+}
+
+.boutique-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.boutique-name {
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.payout-ref {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.bank-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bank-name {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.iban-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.iban-row code {
+    background: #0b0e14;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #1f2937;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #38bdf8;
+}
+
+.copy-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.copy-btn:hover {
+    color: #d4af37;
+}
+
+.swift-tag {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.text-gold {
+    color: #d4af37 !important;
+}
+
+.text-success {
+    color: #10b981 !important;
+}
+
+.status-badge {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.completed,
+.status-badge.approved {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.date-text {
+    font-size: 0.82rem;
+    color: #94a3b8;
+}
+
+.cleared-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: #10b981;
+    font-weight: 600;
+}
+
+.payouts-loading,
+.payouts-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #64748b;
+    gap: 12px;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .payouts-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-group {
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+}

@@ -709,3 +709,185 @@
         font-size: 1.4rem;
     }
 }
+
+/* ─── Luxury Scent DNA Shareable Card ─── */
+.scent-dna-card {
+    background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(10, 10, 10, 0.98));
+    border: 1.5px solid rgba(212, 175, 55, 0.5);
+    border-radius: 24px;
+    padding: 36px 32px;
+    max-width: 680px;
+    margin: 0 auto 50px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(212, 175, 55, 0.15);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.scent-dna-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #d4af37, #f3e5ab, #d4af37, transparent);
+}
+
+.scent-dna-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 999px;
+    color: #f3e5ab;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.scent-dna-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 14px;
+    line-height: 1.25;
+    background: linear-gradient(135deg, #ffffff 0%, #f3e5ab 60%, #d4af37 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.scent-dna-desc {
+    font-size: 1.05rem;
+    color: #cbd5e1;
+    margin-bottom: 28px;
+    line-height: 1.6;
+}
+
+.scent-dna-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 18px 12px;
+}
+
+@media (max-width: 600px) {
+    .scent-dna-metrics {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+.dna-metric-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.dna-metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+}
+
+.dna-metric-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f3e5ab;
+}
+
+.scent-dna-actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-whatsapp-share {
+    background: #25D366;
+    color: #ffffff;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 30px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
+}
+
+.btn-whatsapp-share:hover {
+    background: #1eb954;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.35);
+}
+
+.btn-copy-share {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
+}
+
+.btn-copy-share:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: #d4af37;
+    color: #f3e5ab;
+}
+
+/* In-Stock Boutique Card Extensions */
+.instock-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #4ade80;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+}
+
+.rec-card-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.rec-boutique-tag {
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: #f3e5ab;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}

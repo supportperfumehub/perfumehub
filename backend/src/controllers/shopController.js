@@ -230,4 +230,82 @@ export class ShopController {
             next(error);
         }
     };
+
+    /**
+     * GET /api/shops/:id/settings
+     */
+    getSettings = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const settings = await this.shopService.getSettings(id, req.user);
+            res.status(200).json({ success: true, settings });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * PUT /api/shops/:id/settings
+     */
+    updateSettings = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const settings = await this.shopService.updateSettings(id, req.body, req.user);
+            res.status(200).json({ success: true, settings, message: 'Settings saved successfully' });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * GET /api/shops/:id/financials
+     */
+    getFinancials = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const financials = await this.shopService.getFinancials(id, req.user);
+            res.status(200).json({ success: true, financials });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * GET /api/shops/:id/payout-info
+     */
+    getPayoutInfo = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const payoutInfo = await this.shopService.getPayoutInfo(id, req.user);
+            res.status(200).json({ success: true, payoutInfo });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * PUT /api/shops/:id/payout-info
+     */
+    updatePayoutInfo = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const payoutInfo = await this.shopService.updatePayoutInfo(id, req.body, req.user);
+            res.status(200).json({ success: true, payoutInfo, message: 'Bank details saved successfully' });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/shops/:id/request-payout
+     */
+    requestPayout = async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const result = await this.shopService.requestPayout(id, req.body, req.user);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
 }

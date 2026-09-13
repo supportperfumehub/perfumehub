@@ -14,7 +14,7 @@ import {
     Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, 
     Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone, Clock, 
     Truck, Bell, MessageSquare, Shield, Layers, ChevronDown, TrendingUp, 
-    DollarSign, Building2, Eye, ArrowUpRight
+    DollarSign, Building2, Eye, ArrowUpRight, Download, Wallet, AlertCircle, RefreshCw
 } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
@@ -41,36 +41,206 @@ const VendorPanel = () => {
     const [activeTab, setActiveTab] = useState('overview'); // Default to All-Round Overview
     const [shopData, setShopData] = useState(null);
     const [savingSettings, setSavingSettings] = useState(false);
-    const [vendorPrefs, setVendorPrefs] = useState(() => {
-        try {
-            const saved = localStorage.getItem(`vendor_prefs_${effectiveShopId}`);
-            return saved ? JSON.parse(saved) : {
-                isAcceptingOrders: true,
-                openTime: '09:00',
-                closeTime: '22:00',
-                weekendHours: '04:00 PM - 11:30 PM',
-                allowStorePickup: true,
-                allowHomeDelivery: true,
-                deliveryWindow: 'same_day',
-                whatsappGreeting: '',
-                notifyLowStock: true,
-                notifyNewReservations: true
-            };
-        } catch {
-            return {
-                isAcceptingOrders: true,
-                openTime: '09:00',
-                closeTime: '22:00',
-                weekendHours: '04:00 PM - 11:30 PM',
-                allowStorePickup: true,
-                allowHomeDelivery: true,
-                deliveryWindow: 'same_day',
-                whatsappGreeting: '',
-                notifyLowStock: true,
-                notifyNewReservations: true
-            };
-        }
+    const [lowStockItems, setLowStockItems] = useState([]);
+    const [vendorPrefs, setVendorPrefs] = useState({
+        isAcceptingOrders: true,
+        openTime: '09:00',
+        closeTime: '22:00',
+        weekendHours: '04:00 PM - 11:30 PM',
+        allowStorePickup: true,
+        allowHomeDelivery: true,
+        deliveryWindow: 'same_day',
+        whatsappGreeting: '',
+        notifyLowStock: true,
+        notifyNewReservations: true,
+        low_stock_threshold: 5
     });
+
+    // Database-backed shop settings fetcher (Zero localStorage leakage)
+    const fetchShopSettings = async (targetId) => {
+        if (!targetId) return;
+        try {
+            const res = await api.get(`/shops/${targetId}/settings`);
+            if (res.data?.settings) {
+                setVendorPrefs(prev => ({
+                    ...prev,
+                    ...res.data.settings
+                }));
+            }
+        } catch (err) {
+            console.warn('Could not load shop settings from server:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (effectiveShopId) {
+            fetchShopSettings(effectiveShopId);
+        }
+    }, [effectiveShopId]);
+
+    // Financials & Payouts State
+    const [financials, setFinancials] = useState({
+        gross_sales: 0,
+        commission_rate: 0.10,
+        platform_fee: 0,
+        net_earnings: 0,
+        total_paid_out: 0,
+        available_balance: 0,
+        transactions: []
+    });
+    const [payoutInfo, setPayoutInfo] = useState({
+        bank_name: '',
+        account_name: '',
+        iban: '',
+        swift: ''
+    });
+    const [loadingFinancials, setLoadingFinancials] = useState(false);
+    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+    const [payoutAmount, setPayoutAmount] = useState('');
+    const [payoutNotes, setPayoutNotes] = useState('');
+    const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+    const [savingPayoutInfo, setSavingPayoutInfo] = useState(false);
+
+    const fetchFinancials = async () => {
+        if (!effectiveShopId) return;
+        try {
+            setLoadingFinancials(true);
+            const [finRes, infoRes] = await Promise.all([
+                api.get(`/shops/${effectiveShopId}/financials`).catch(() => ({ data: {} })),
+                api.get(`/shops/${effectiveShopId}/payout-info`).catch(() => ({ data: {} }))
+            ]);
+            if (finRes.data?.financials) {
+                setFinancials(finRes.data.financials);
+            }
+            if (infoRes.data?.payout_info) {
+                setPayoutInfo(infoRes.data.payout_info);
+            }
+        } catch (err) {
+            console.error('Error fetching financials:', err);
+        } finally {
+            setLoadingFinancials(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'financials') {
+            fetchFinancials();
+        }
+    }, [activeTab, effectiveShopId]);
+
+    const handleSavePayoutInfo = async (e) => {
+        if (e) e.preventDefault();
+        if (!effectiveShopId) return;
+        try {
+            setSavingPayoutInfo(true);
+            await api.put(`/shops/${effectiveShopId}/payout-info`, payoutInfo);
+            showToast(isRTL ? 'تم حفظ الحساب البنكي بنجاح' : 'Bank details saved successfully', 'success');
+        } catch (err) {
+            console.error('Failed to save payout info:', err);
+            showToast(isRTL ? 'فشل حفظ الحساب البنكي' : 'Failed to save bank details', 'error');
+        } finally {
+            setSavingPayoutInfo(false);
+        }
+    };
+
+    const handleRequestPayout = async (e) => {
+        if (e) e.preventDefault();
+        const amt = parseFloat(payoutAmount);
+        if (isNaN(amt) || amt <= 0) {
+            alert(isRTL ? 'يرجى إدخال مبلغ صحيح' : 'Please enter a valid amount');
+            return;
+        }
+        if (amt > financials.available_balance) {
+            alert(isRTL ? 'المبلغ المطلوب يتجاوز الرصيد المتاح' : 'Requested amount exceeds available balance');
+            return;
+        }
+        try {
+            setPayoutSubmitting(true);
+            await api.post(`/shops/${effectiveShopId}/request-payout`, {
+                amount: amt,
+                notes: payoutNotes
+            });
+            showToast(isRTL ? 'تم إرسال طلب سحب الأرباح بنجاح!' : 'Payout request submitted successfully!', 'success');
+            setIsPayoutModalOpen(false);
+            setPayoutAmount('');
+            setPayoutNotes('');
+            fetchFinancials();
+        } catch (err) {
+            console.error('Payout request error:', err);
+            showToast(err.response?.data?.error || (isRTL ? 'فشل إرسال طلب السحب' : 'Failed to submit payout request'), 'error');
+        } finally {
+            setPayoutSubmitting(false);
+        }
+    };
+
+    const handleExportCSV = () => {
+        const rows = [
+            ['Transaction ID', 'Date', 'Type', 'Amount (QAR)', 'Platform Fee 10% (QAR)', 'Net (QAR)', 'Status'],
+            ...(financials.transactions || []).map(t => [
+                t.id,
+                t.date || t.created_at || new Date().toISOString(),
+                t.type || 'Order Sale',
+                t.amount,
+                t.fee || (Number(t.amount) * 0.1).toFixed(2),
+                (Number(t.amount) * 0.9).toFixed(2),
+                t.status || 'Completed'
+            ])
+        ];
+        const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `financial_ledger_shop_${effectiveShopId}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Luxury Web Audio Chime Synthesizer
+    const playLuxuryChime = () => {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            const freqs = [880, 1108.73, 1318.51];
+            freqs.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+                gain.gain.setValueAtTime(0, ctx.currentTime + idx * 0.08);
+                gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + idx * 0.08 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.08 + 0.8);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + idx * 0.08);
+                osc.stop(ctx.currentTime + idx * 0.08 + 0.85);
+            });
+        } catch (e) {
+            console.warn('Audio chime error:', e);
+        }
+    };
+
+    // Reservation Polling & Instant Notification
+    const prevResvCount = React.useRef(null);
+    useEffect(() => {
+        if (!effectiveShopId || !vendorPrefs.notifyNewReservations) return;
+        const checkNewReservations = async () => {
+            try {
+                const res = await api.get(`/reservations?shop_id=${effectiveShopId}`);
+                const list = Array.isArray(res.data) ? res.data : [];
+                if (prevResvCount.current !== null && list.length > prevResvCount.current) {
+                    playLuxuryChime();
+                    showToast(isRTL ? '🔔 حجز عطور جديد وصل للفرع!' : '🔔 New Click & Collect reservation received!', 'info');
+                }
+                prevResvCount.current = list.length;
+            } catch (e) {}
+        };
+        checkNewReservations();
+        const interval = setInterval(checkNewReservations, 30000);
+        return () => clearInterval(interval);
+    }, [effectiveShopId, vendorPrefs.notifyNewReservations]);
 
     // Billing & Subscriptions state
     const [mySubscription, setMySubscription] = useState(null);
@@ -109,15 +279,23 @@ const VendorPanel = () => {
         const plan = subConfirmModal.plan;
         if (!plan) return;
         try {
-            const res = await api.post('/subscriptions/subscribe', { planId: plan.id });
-            if (res.status === 201 || res.data.id) {
-                showToast(isRTL ? 'تم الاشتراك بنجاح!' : 'Subscribed successfully!', 'success');
-                setSubConfirmModal({ isOpen: false, plan: null });
-                fetchBillingData();
+            setLoadingBilling(true);
+            const res = await api.post('/subscriptions/create-checkout-session', { 
+                planId: plan.id,
+                shopId: effectiveShopId
+            });
+            if (res.data?.url && res.data.url.startsWith('http')) {
+                window.location.href = res.data.url;
+                return;
             }
+            showToast(isRTL ? 'تم الاشتراك بنجاح وترقية المتجر إلى الباقة المميزة!' : 'Subscribed successfully! Shop elevated to Premium tier.', 'success');
+            setSubConfirmModal({ isOpen: false, plan: null });
+            fetchBillingData();
         } catch (error) {
             console.error(error);
             showToast(error.response?.data?.error || (isRTL ? 'فشل الاشتراك' : 'Subscription failed'), 'error');
+        } finally {
+            setLoadingBilling(false);
         }
     };
 
@@ -169,6 +347,13 @@ const VendorPanel = () => {
             const invList = Array.isArray(invRes.data) ? invRes.data : [];
 
             const totalRev = ordersList.reduce((acc, o) => acc + (Number(o.total) || Number(o.total_amount) || 0), 0);
+
+            const threshold = vendorPrefs.low_stock_threshold || 5;
+            const lowItems = invList.filter(item => {
+                const stockVal = Number(item.stock ?? item.quantity ?? 0);
+                return stockVal <= threshold;
+            });
+            setLowStockItems(lowItems);
 
             setOverviewStats({
                 totalRevenue: totalRev,
@@ -366,6 +551,7 @@ const VendorPanel = () => {
         { id: 'orders', label: isRTL ? 'طلبات المتجر' : 'Shop Orders', icon: <Target size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات' : 'Reservations', icon: <CalendarCheck size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
+        { id: 'financials', label: isRTL ? 'المالية والأرباح' : 'Financials & Payouts', icon: <DollarSign size={20} /> },
         { id: 'settings', label: isRTL ? 'إعدادات الفرع' : 'Shop Settings', icon: <Settings size={20} /> },
         { id: 'billing', label: isRTL ? 'الاشتراكات والفوترة' : 'Billing & Subscription', icon: <CreditCard size={20} /> }
     ];
@@ -594,6 +780,55 @@ const VendorPanel = () => {
                     {/* 1. All-Round Overview Tab */}
                     {activeTab === 'overview' && (
                         <div className="vendor-overview-section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            {/* Low Stock Alert Banner */}
+                            {lowStockItems.length > 0 && (
+                                <div style={{
+                                    background: 'rgba(245, 158, 11, 0.12)',
+                                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                                    borderRadius: '12px',
+                                    padding: '14px 18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <AlertCircle size={22} color="#f59e0b" style={{ flexShrink: 0 }} />
+                                        <div>
+                                            <div style={{ color: '#f59e0b', fontWeight: '700', fontSize: '0.9rem' }}>
+                                                {isRTL ? `تنبيه المخزون: ${lowStockItems.length} عطور قاربت على النفاد` : `Low Stock Alert: ${lowStockItems.length} fragrance products running low`}
+                                            </div>
+                                            <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginTop: '2px' }}>
+                                                {isRTL 
+                                                    ? 'عطور في فروعك تحتوي على 5 قطع أو أقل. يرجى تزويد المخزون لضمان استمرار المبيعات.' 
+                                                    : 'Fragrance items with 5 or fewer units remaining. Restock to prevent order fulfillment disruption.'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('products')}
+                                        style={{
+                                            padding: '7px 14px',
+                                            background: '#f59e0b',
+                                            color: '#000',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontWeight: '700',
+                                            fontSize: '0.82rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <span>{isRTL ? 'إدارة المخزون الآن' : 'Manage Inventory'}</span>
+                                        <ArrowUpRight size={14} />
+                                    </button>
+                                </div>
+                            )}
+
                             {/* KPI Metrics Grid */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(212, 175, 55, 0.25)', display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -846,6 +1081,369 @@ const VendorPanel = () => {
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
                     {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
+
+                    {/* ── Financials & Payouts Tab ── */}
+                    {activeTab === 'financials' && effectiveShopId && (
+                        <div className="admin-section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div className="manager-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: 0 }}>
+                                <div>
+                                    <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.4rem' }}>
+                                        <DollarSign size={26} color="#c8a951" />
+                                        {isRTL ? 'المالية، الأرباح ومسير الحساب' : 'Financials, Payouts & Settlement Ledger'}
+                                    </h2>
+                                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '6px 0 0 0' }}>
+                                        {isRTL ? 'شفافية مالية مطلقة: مبيعات المتجر، استقطاع عمولة المنصة 10%، وإدارة الحوالات البنكية المباشرة.' : 'Complete financial transparency: gross boutique sales, automated 10% commission deductions, and direct IBAN wire settlements.'}
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        onClick={handleExportCSV}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.06)',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                            color: '#f8fafc',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            fontSize: '0.84rem',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <Download size={15} />
+                                        {isRTL ? 'تحميل سجل الحساب (CSV)' : 'Export Ledger (CSV)'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPayoutModalOpen(true)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                            border: 'none',
+                                            color: '#000000',
+                                            padding: '8px 18px',
+                                            borderRadius: '8px',
+                                            fontSize: '0.84rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            boxShadow: '0 4px 12px rgba(200, 169, 81, 0.3)'
+                                        }}
+                                    >
+                                        <Wallet size={15} />
+                                        {isRTL ? 'طلب سحب أرباح' : 'Request Payout'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 4 Luxury KPI Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>{isRTL ? 'إجمالي المبيعات (Gross)' : 'Gross Sales'}</span>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa' }}>
+                                            <TrendingUp size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc' }}>
+                                        {Number(financials.gross_sales || 0).toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>QAR</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+                                        {isRTL ? 'مجموع مبيعات الفروع المعتمدة' : 'Cumulative verified boutique orders'}
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>{isRTL ? 'عمولة المنصة (10%)' : 'Platform Commission (10%)'}</span>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171' }}>
+                                            <Layers size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f87171' }}>
+                                        -{Number(financials.platform_fee || 0).toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#fca5a5' }}>QAR</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+                                        {isRTL ? 'خصم تلقائي 10% للبنية التحتية' : '10% fixed marketplace infrastructure fee'}
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(200, 169, 81, 0.45)', boxShadow: '0 4px 20px rgba(200, 169, 81, 0.1)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#c8a951', fontWeight: '700' }}>{isRTL ? 'الرصيد المتاح للسحب' : 'Available for Payout'}</span>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(200, 169, 81, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a951' }}>
+                                            <Wallet size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#c8a951' }}>
+                                        {Number(financials.available_balance || 0).toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#ebb637' }}>QAR</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#4ade80', marginTop: '6px', fontWeight: '600' }}>
+                                        ✓ {isRTL ? 'صافي أرباح جاهز للتحويل البنكي' : 'Net ready for immediate IBAN transfer'}
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>{isRTL ? 'إجمالي المسحوبات المكتملة' : 'Total Paid Out'}</span>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399' }}>
+                                            <CheckCircle size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc' }}>
+                                        {Number(financials.total_paid_out || 0).toLocaleString()} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>QAR</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+                                        {isRTL ? 'حوالات مصرفية مكتملة وموثقة' : 'Completed bank wire settlements'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bank Details Registration Card */}
+                            <div className="settings-section-card" style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '24px' }}>
+                                <div className="settings-section-header" style={{ marginBottom: '16px' }}>
+                                    <h3 className="settings-section-title" style={{ fontSize: '1.05rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Building2 size={18} color="#c8a951" />
+                                        {isRTL ? 'بيانات الحساب البنكي لتحويل الأرباح (IBAN)' : 'Direct Boutique Settlement Account (IBAN Registration)'}
+                                    </h3>
+                                    <p className="settings-section-desc" style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                                        {isRTL ? 'سجل بيانات حسابك البنكي المعتمد في دولة قطر لإيداع الأرباح الدورية' : 'Register your verified bank account in Qatar for automated bi-weekly earnings settlements'}
+                                    </p>
+                                </div>
+
+                                <form onSubmit={handleSavePayoutInfo}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                {isRTL ? 'اسم البنك' : 'Bank Name'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control"
+                                                placeholder="Qatar National Bank (QNB) / Masraf Al Rayan"
+                                                value={payoutInfo.bank_name || ''}
+                                                onChange={(e) => setPayoutInfo(prev => ({ ...prev, bank_name: e.target.value }))}
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                {isRTL ? 'اسم صاحب الحساب (مطابق للرخصة)' : 'Account Beneficiary Name'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control"
+                                                placeholder="Perfume Boutique W.L.L"
+                                                value={payoutInfo.account_name || ''}
+                                                onChange={(e) => setPayoutInfo(prev => ({ ...prev, account_name: e.target.value }))}
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                {isRTL ? 'رقم الآيبان (IBAN)' : 'IBAN Number'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control"
+                                                placeholder="QA00QNBA000000000000000000000"
+                                                value={payoutInfo.iban || ''}
+                                                onChange={(e) => setPayoutInfo(prev => ({ ...prev, iban: e.target.value }))}
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                {isRTL ? 'رمز السويفت (SWIFT / BIC)' : 'SWIFT / BIC Code'}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control"
+                                                placeholder="QNBAQAQA"
+                                                value={payoutInfo.swift || ''}
+                                                onChange={(e) => setPayoutInfo(prev => ({ ...prev, swift: e.target.value }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: isRTL ? 'flex-start' : 'flex-end' }}>
+                                        <button
+                                            type="submit"
+                                            disabled={savingPayoutInfo}
+                                            style={{
+                                                background: '#c8a951',
+                                                color: '#000',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '8px 20px',
+                                                fontWeight: '700',
+                                                fontSize: '0.84rem',
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <Save size={14} />
+                                            {savingPayoutInfo ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ الحساب البنكي' : 'Save Bank Details')}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Financial Transactions Ledger Table */}
+                            <div style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '24px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Layers size={18} color="#c8a951" />
+                                        {isRTL ? 'مسير العمليات المالية (Ledger)' : 'Boutique Settlement Journal'}
+                                    </h3>
+                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                                        {(financials.transactions || []).length} {isRTL ? 'معاملة مسجلة' : 'Recorded Transactions'}
+                                    </span>
+                                </div>
+
+                                <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                                    <table className="admin-table" style={{ width: '100%', margin: 0 }}>
+                                        <thead>
+                                            <tr>
+                                                <th>{isRTL ? 'المعاملة' : 'Transaction Ref'}</th>
+                                                <th>{isRTL ? 'التاريخ' : 'Date'}</th>
+                                                <th>{isRTL ? 'النوع' : 'Type'}</th>
+                                                <th style={{ textAlign: 'right' }}>{isRTL ? 'المبلغ الإجمالي' : 'Gross (QAR)'}</th>
+                                                <th style={{ textAlign: 'right' }}>{isRTL ? 'عمولة المنصة 10%' : 'Fee 10%'}</th>
+                                                <th style={{ textAlign: 'right' }}>{isRTL ? 'الصافي' : 'Net Available'}</th>
+                                                <th style={{ textAlign: 'center' }}>{isRTL ? 'الحالة' : 'Status'}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(financials.transactions || []).length > 0 ? (
+                                                financials.transactions.map((t, idx) => (
+                                                    <tr key={t.id || idx}>
+                                                        <td style={{ fontFamily: 'monospace', fontWeight: '700', color: '#c8a951' }}>
+                                                            #{String(t.id).slice(0, 8)}
+                                                        </td>
+                                                        <td style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                                                            {new Date(t.date || t.created_at).toLocaleDateString()}
+                                                        </td>
+                                                        <td style={{ fontSize: '0.82rem' }}>
+                                                            {t.type || 'Order Sale'}
+                                                        </td>
+                                                        <td style={{ textAlign: 'right', fontWeight: '700', color: '#f8fafc' }}>
+                                                            {Number(t.amount || 0).toFixed(2)}
+                                                        </td>
+                                                        <td style={{ textAlign: 'right', color: '#f87171' }}>
+                                                            -{Number(t.fee || (t.amount * 0.1)).toFixed(2)}
+                                                        </td>
+                                                        <td style={{ textAlign: 'right', fontWeight: '800', color: '#4ade80' }}>
+                                                            +{Number(t.net || (t.amount * 0.9)).toFixed(2)}
+                                                        </td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: '700' }}>
+                                                                {t.status || 'Settled'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                                                        {isRTL ? 'لا توجد معاملات مالية مسجلة بعد' : 'No financial transactions recorded yet for this branch.'}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Request Payout Modal */}
+                            {isPayoutModalOpen && (
+                                <div style={{
+                                    position: 'fixed',
+                                    inset: 0,
+                                    background: 'rgba(0,0,0,0.8)',
+                                    backdropFilter: 'blur(5px)',
+                                    zIndex: 99999,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '20px'
+                                }}>
+                                    <div style={{ background: '#1e293b', border: '1px solid #c8a951', borderRadius: '14px', width: '100%', maxWidth: '440px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                            <h3 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem' }}>
+                                                <Wallet size={18} color="#c8a951" />
+                                                {isRTL ? 'طلب سحب الأرباح' : 'Request Earnings Payout'}
+                                            </h3>
+                                            <button type="button" onClick={() => setIsPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={18} /></button>
+                                        </div>
+
+                                        <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'الرصيد المتاح للسحب حالياً:' : 'Available Balance:'}</div>
+                                            <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#c8a951', marginTop: '2px' }}>
+                                                {Number(financials.available_balance || 0).toLocaleString()} QAR
+                                            </div>
+                                        </div>
+
+                                        <form onSubmit={handleRequestPayout}>
+                                            <div className="form-group" style={{ marginBottom: '14px' }}>
+                                                <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                    {isRTL ? 'المبلغ المطلوب سحبه (ر.ق)' : 'Requested Amount (QAR)'}
+                                                </label>
+                                                <input 
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="1"
+                                                    max={financials.available_balance}
+                                                    required
+                                                    className="form-control"
+                                                    placeholder="0.00"
+                                                    value={payoutAmount}
+                                                    onChange={(e) => setPayoutAmount(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label" style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                                                    {isRTL ? 'ملاحظات لقسم المالية (اختياري)' : 'Notes for Settlement Team (Optional)'}
+                                                </label>
+                                                <textarea 
+                                                    className="form-control"
+                                                    rows="2"
+                                                    placeholder={isRTL ? 'مثال: أرباح منتصف الشهر' : 'e.g. Mid-month fragrance sales disbursement'}
+                                                    value={payoutNotes}
+                                                    onChange={(e) => setPayoutNotes(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsPayoutModalOpen(false)}
+                                                    style={{ background: 'transparent', border: '1px solid #475569', color: '#94a3b8', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer' }}
+                                                >
+                                                    {isRTL ? 'إلغاء' : 'Cancel'}
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={payoutSubmitting}
+                                                    style={{ background: '#c8a951', color: '#000', border: 'none', borderRadius: '8px', padding: '8px 18px', fontWeight: '800', cursor: 'pointer' }}
+                                                >
+                                                    {payoutSubmitting ? (isRTL ? 'جاري الإرسال...' : 'Submitting...') : (isRTL ? 'تأكيد السحب' : 'Confirm Payout')}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'settings' && effectiveShopId && (
                         <div className="admin-section">
                             <div className="manager-header" style={{ marginBottom: '24px' }}>
@@ -863,19 +1461,19 @@ const VendorPanel = () => {
                                     e.preventDefault();
                                     setSavingSettings(true);
                                     try {
-                                        const res = await api.put(`/shops/${effectiveShopId}`, {
-                                            name: shopData.name,
-                                            logo_url: shopData.logo_url,
-                                            whatsapp_number: shopData.whatsapp_number,
-                                            address: shopData.address,
-                                            images: shopData.images
-                                        });
+                                        const [res, settingsRes] = await Promise.all([
+                                            api.put(`/shops/${effectiveShopId}`, {
+                                                name: shopData.name,
+                                                logo_url: shopData.logo_url,
+                                                whatsapp_number: shopData.whatsapp_number,
+                                                address: shopData.address,
+                                                images: shopData.images
+                                            }),
+                                            api.put(`/shops/${effectiveShopId}/settings`, vendorPrefs)
+                                        ]);
 
-                                        // Persist operational preferences locally
-                                        localStorage.setItem(`vendor_prefs_${effectiveShopId}`, JSON.stringify(vendorPrefs));
-
-                                        if (res.status === 200 || res.data.success) {
-                                            showToast(isRTL ? 'تم حفظ جميع إعدادات المتجر بنجاح!' : 'All shop settings saved successfully!', 'success');
+                                        if (res.status === 200 || res.data.success || settingsRes.status === 200) {
+                                            showToast(isRTL ? 'تم حفظ جميع إعدادات المتجر في قاعدة البيانات بنجاح!' : 'All shop settings saved to database successfully!', 'success');
                                             if (res.data.shop) {
                                                 setShopData(res.data.shop);
                                             }

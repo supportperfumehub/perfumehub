@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { Facebook, Instagram, Twitter, MessageCircle } from 'lucide-react';
 import logo from '../../assets/logo_transparent.webp';
 import './Footer.css';
 
@@ -24,15 +24,16 @@ const Footer = () => {
                         </p>
                     </div>
                     <div className="social-links">
-                        <a href="https://www.instagram.com/perfumehub__qa?igsh=MXZkNnNjeGwyNzE2Mg==" aria-label="Instagram"><Instagram size={20} /></a>
-                        <a href="#" aria-label="Facebook"><Facebook size={20} /></a>
-                        <a href="#" aria-label="Twitter"><Twitter size={20} /></a>
+                        <a href="https://www.instagram.com/perfumehub__qa?igsh=MXZkNnNjeGwyNzE2Mg==" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Instagram size={20} /></a>
+                        <a href="https://wa.me/97430301901" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Concierge"><MessageCircle size={20} /></a>
+                        <a href="https://facebook.com/perfumehubqa" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><Facebook size={20} /></a>
                     </div>
                 </div>
 
                 <div className="footer-links">
                     <h3>{t('footer.quick_links')}</h3>
                     <ul>
+                        <li><Link to="/track-order">{t('footer.track_order', 'Track Order & Reservations')}</Link></li>
                         <li><Link to="/about">{t('footer.about_us')}</Link></li>
                         <li><Link to="/contact">{t('footer.contact_us_link')}</Link></li>
                         <li><Link to="/faq">{t('footer.faq')}</Link></li>
@@ -54,7 +55,10 @@ const Footer = () => {
                     <h3>{t('footer.shopping')}</h3>
                     <ul>
                         <li><Link to="/shop">{t('footer.all_perfumes')}</Link></li>
-                        <li><Link to="/category/gift-box">{t('footer.arabic_perfumes')}</Link></li>
+                        <li><Link to="/shop?category=arabic">{t('footer.arabic_perfumes')}</Link></li>
+                        <li><Link to="/shop?gender=men">{t('navbar.men')}</Link></li>
+                        <li><Link to="/shop?gender=women">{t('navbar.women')}</Link></li>
+                        <li><Link to="/category/lifestyle">{t('navbar.lifestyle')}</Link></li>
                     </ul>
                 </div>
 

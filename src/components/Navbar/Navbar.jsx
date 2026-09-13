@@ -75,10 +75,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         { name: t('navbar.women'), path: '/shop?gender=women' },
         { name: t('navbar.arabic'), path: '/shop?category=arabic' },
         { 
-            name: isRTL ? 'أسلوب الحياة' : 'Lifestyle', 
-            path: '/category/fashion',
+            name: t('navbar.lifestyle', isRTL ? 'أسلوب الحياة والإكسسوارات' : 'Lifestyle & Accessories'), 
+            path: '/category/lifestyle',
             hasDropdown: true,
             dropdownItems: [
+                { name: isRTL ? 'جميع منتجات أسلوب الحياة' : 'All Lifestyle & Accessories', path: '/category/lifestyle' },
                 { name: isRTL ? 'الأزياء الفاخرة' : 'Luxury Fashion', path: '/category/fashion' },
                 { name: isRTL ? 'العبايات الراقية' : 'Designer Abayas', path: '/category/abaya' },
                 { name: isRTL ? 'المجوهرات والساعات' : 'Jewellery & Watches', path: '/category/jewellery' },

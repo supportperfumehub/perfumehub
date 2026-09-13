@@ -23,9 +23,19 @@ import {
     ChevronDown, 
     ShieldCheck, 
     Award, 
-    Navigation 
+    Navigation,
+    Globe 
 } from 'lucide-react';
 import './Checkout.css';
+
+const GCC_COUNTRIES = [
+    { code: 'QA', nameEn: 'Qatar', nameAr: 'قطر', flag: '🇶🇦', phoneCode: '+974', currency: 'QAR' },
+    { code: 'SA', nameEn: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية', flag: '🇸🇦', phoneCode: '+966', currency: 'SAR' },
+    { code: 'AE', nameEn: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة', flag: '🇦🇪', phoneCode: '+971', currency: 'AED' },
+    { code: 'KW', nameEn: 'Kuwait', nameAr: 'الكويت', flag: '🇰🇼', phoneCode: '+965', currency: 'KWD' },
+    { code: 'BH', nameEn: 'Bahrain', nameAr: 'مملكة البحرين', flag: '🇧🇭', phoneCode: '+973', currency: 'BHD' },
+    { code: 'OM', nameEn: 'Oman', nameAr: 'سلطنة عُمان', flag: '🇴🇲', phoneCode: '+968', currency: 'OMR' }
+];
 
 const Checkout = () => {
     const { t } = useTranslation();
@@ -43,11 +53,16 @@ const Checkout = () => {
         fullName: user?.name || '',
         email: user?.email || '',
         phone: user?.phone || '',
+        country: 'QA',
         zone: '',
         street: '',
         building: '',
         unit: '', // Kahramaa / Blue Plate / Apartment
         city: 'Doha',
+        gccCity: '',
+        district: '',
+        landmark: '',
+        postalCode: '',
         notes: ''
     });
 
@@ -178,6 +193,9 @@ const Checkout = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'country' && value !== 'QA' && fulfillmentType === 'pickup') {
+            setFulfillmentType('delivery');
+        }
     };
 
     /* ── Submit Consolidated Order ── */
@@ -219,19 +237,27 @@ const Checkout = () => {
             return;
         }
 
-        // Validate Qatar Delivery Details
+        // Validate Delivery Details
         if (fulfillmentType === 'delivery') {
             if (!formData.fullName.trim()) {
                 setError(isRTL ? 'يرجى إدخال الاسم بالكامل' : 'Please enter your full name');
                 return;
             }
             if (!formData.phone.trim()) {
-                setError(isRTL ? 'يرجى إدخال رقم هاتف قطري للتوصيل' : 'Please enter your contact phone number');
+                setError(isRTL ? 'يرجى إدخال رقم الهاتف للتواصل والتوصيل' : 'Please enter your contact phone number');
                 return;
             }
-            if (!formData.zone.trim() || !formData.street.trim() || !formData.building.trim()) {
-                setError(isRTL ? 'يرجى إدخال بيانات العنوان الوطني (المنطقة، الشارع، المبنى)' : 'Please complete the Qatar National Address (Zone, Street, Building)');
-                return;
+            if (formData.country === 'QA') {
+                if (!formData.zone.trim() || !formData.street.trim() || !formData.building.trim()) {
+                    setError(isRTL ? 'يرجى إدخال بيانات العنوان الوطني (المنطقة، الشارع، المبنى)' : 'Please complete the Qatar National Address (Zone, Street, Building)');
+                    return;
+                }
+            } else {
+                const cityName = formData.gccCity?.trim() || formData.city?.trim();
+                if (!cityName || !formData.district?.trim() || !formData.street?.trim()) {
+                    setError(isRTL ? 'يرجى إدخال المدينة، الحي، والشارع/المبنى' : 'Please enter City, District/Area, and Street/Building');
+                    return;
+                }
             }
         } else {
             if (!formData.fullName.trim() || !formData.phone.trim() || !pickupShopId) {
@@ -242,10 +268,21 @@ const Checkout = () => {
 
         setIsSubmitting(true);
 
-        // Build Qatar National Shipping Address
-        const shippingAddress = fulfillmentType === 'delivery' 
-            ? `${isRTL ? 'منطقة' : 'Zone'} ${formData.zone.trim()}, ${isRTL ? 'شارع' : 'Street'} ${formData.street.trim()}, ${isRTL ? 'مبنى' : 'Building'} ${formData.building.trim()}${formData.unit ? `, (${formData.unit.trim()})` : ''}, ${formData.city.trim()}, Qatar`
-            : `Store Pickup: ${shops.find(s => String(s.id) === String(pickupShopId))?.name || 'Selected Boutique'}`;
+        // Build Flexible Shipping Address
+        let shippingAddress = '';
+        if (fulfillmentType === 'pickup') {
+            shippingAddress = `Store Pickup: ${shops.find(s => String(s.id) === String(pickupShopId))?.name || 'Selected Boutique'}`;
+        } else if (formData.country === 'QA') {
+            shippingAddress = `${isRTL ? 'منطقة' : 'Zone'} ${formData.zone.trim()}, ${isRTL ? 'شارع' : 'Street'} ${formData.street.trim()}, ${isRTL ? 'مبنى' : 'Building'} ${formData.building.trim()}${formData.unit ? `, (${formData.unit.trim()})` : ''}, ${formData.city.trim()}, Qatar`;
+        } else {
+            const countryObj = GCC_COUNTRIES.find(c => c.code === formData.country);
+            const countryName = isRTL ? (countryObj?.nameAr || formData.country) : (countryObj?.nameEn || formData.country);
+            const cityPart = formData.gccCity?.trim() || formData.city?.trim() || '';
+            const districtPart = formData.district?.trim() ? `${formData.district.trim()}, ` : '';
+            const landmarkPart = formData.landmark?.trim() ? ` [${isRTL ? 'أقرب معلم:' : 'Landmark:'} ${formData.landmark.trim()}]` : '';
+            const postalPart = formData.postalCode?.trim() ? ` (Postal: ${formData.postalCode.trim()})` : '';
+            shippingAddress = `${formData.street.trim()}, ${districtPart}${cityPart}, ${countryName}${postalPart}${landmarkPart}`;
+        }
 
         // Construct normalized item objects
         const itemsPayload = isCartMode ? cartItems.map(item => ({
@@ -409,18 +446,56 @@ const Checkout = () => {
                         {/* Customer & Address Details */}
                         <div className="checkout-section">
                             {fulfillmentType === 'delivery' ? (
-                                <h3><Truck size={20} /> {isRTL ? 'العنوان الوطني والتوصيل (قطر)' : 'Qatar National Address & Delivery'}</h3>
+                                <h3><Truck size={20} /> {isRTL ? 'بيانات التوصيل والعنوان' : 'Delivery & Destination Address'}</h3>
                             ) : (
                                 <h3><User size={20} /> {isRTL ? 'معلومات العميل واختيار البوتيك' : 'Customer & Boutique Details'}</h3>
                             )}
 
-                            {fulfillmentType === 'delivery' && (
+                            {/* Country Selector for Delivery */}
+                            {fulfillmentType === 'delivery' && !orderData.isReservation && (
+                                <div className="form-group" style={{ marginBottom: '18px' }}>
+                                    <label><Globe size={15} /> {isRTL ? 'دولة التوصيل (الخليج العربي)' : 'Destination Country (GCC)'}</label>
+                                    <select 
+                                        name="country" 
+                                        value={formData.country} 
+                                        onChange={handleInputChange}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '12px 14px', 
+                                            borderRadius: '10px', 
+                                            border: '1px solid #d4af37', 
+                                            backgroundColor: '#fefdfb', 
+                                            fontWeight: '600', 
+                                            fontSize: '0.95rem' 
+                                        }}
+                                    >
+                                        {GCC_COUNTRIES.map(c => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.flag} {isRTL ? c.nameAr : c.nameEn} ({c.phoneCode})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {fulfillmentType === 'delivery' && formData.country === 'QA' && (
                                 <div className="qatar-address-hint">
                                     <Navigation size={16} />
                                     <span>
                                         {isRTL 
                                             ? 'العنوان الوطني القطري: رقم المنطقة، رقم الشارع، ورقم المبنى (اللوحة الزرقاء) لضمان سرعة الوصول.' 
                                             : 'Qatar National Addressing: Zone, Street, and Building Number (Blue Plate) ensure rapid doorstep delivery.'}
+                                    </span>
+                                </div>
+                            )}
+
+                            {fulfillmentType === 'delivery' && formData.country !== 'QA' && (
+                                <div className="qatar-address-hint" style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
+                                    <ShieldCheck size={16} color="#d4af37" />
+                                    <span>
+                                        {isRTL 
+                                            ? `الشحن المباشر إلى ${GCC_COUNTRIES.find(c => c.code === formData.country)?.nameAr || 'الخليج'}: شحن جوي مبرد ومحمي لضمان سلامة العطور الفاخرة.`
+                                            : `Direct GCC Express Shipping to ${GCC_COUNTRIES.find(c => c.code === formData.country)?.nameEn || 'GCC'}: Climate-controlled air courier delivery to your doorstep.`}
                                     </span>
                                 </div>
                             )}
@@ -432,7 +507,7 @@ const Checkout = () => {
                                     name="fullName" 
                                     value={formData.fullName} 
                                     onChange={handleInputChange} 
-                                    placeholder={isRTL ? 'مثال: محمد بن ناصر الكواري' : 'e.g. Mohammed Al-Kuwari'}
+                                    placeholder={isRTL ? 'مثال: محمد بن ناصر' : 'e.g. Mohammed Al-Kuwari'}
                                     required 
                                 />
                             </div>
@@ -445,23 +520,25 @@ const Checkout = () => {
                                         name="email" 
                                         value={formData.email} 
                                         onChange={handleInputChange} 
-                                        placeholder="customer@example.qa"
+                                        placeholder="customer@example.com"
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label><Phone size={15} /> {t('checkout.phone')} (Qatar +974)</label>
+                                    <label>
+                                        <Phone size={15} /> {t('checkout.phone')} ({GCC_COUNTRIES.find(c => c.code === formData.country)?.phoneCode || '+974'})
+                                    </label>
                                     <input 
                                         type="tel" 
                                         name="phone" 
                                         value={formData.phone} 
                                         onChange={handleInputChange} 
-                                        placeholder="+974 5500 0000"
+                                        placeholder={`${GCC_COUNTRIES.find(c => c.code === formData.country)?.phoneCode || '+974'} 5500 0000`}
                                         required 
                                     />
                                 </div>
                             </div>
 
-                            {/* Boutique Selection for Pickup */}
+                            {/* Boutique Selection for Pickup (Qatar Only) */}
                             {(fulfillmentType === 'pickup' || orderData.isReservation) && (
                                 <div className="shop-select-group">
                                     <label className="form-group-label">
@@ -515,8 +592,8 @@ const Checkout = () => {
                                 </div>
                             )}
 
-                            {/* Qatar Address Fields */}
-                            {fulfillmentType === 'delivery' && !orderData.isReservation && (
+                            {/* Qatar National Address Fields */}
+                            {fulfillmentType === 'delivery' && !orderData.isReservation && formData.country === 'QA' && (
                                 <>
                                     <div className="form-row">
                                         <div className="form-group">
@@ -585,6 +662,132 @@ const Checkout = () => {
                                             value={formData.unit} 
                                             onChange={handleInputChange} 
                                             placeholder={isRTL ? 'مثال: شقة 402 أو رقم لوحة كهرماء' : 'e.g. Apt 402 or Blue Plate ID'} 
+                                        />
+                                    </div>
+
+                                    {/* Qatar National Address Live Blue Plate Preview */}
+                                    <div className="qatar-blue-plate-wrapper">
+                                        <div className="blue-plate-badge-header">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Navigation size={15} color="#0a3366" />
+                                                <span>{isRTL ? 'معاينة اللوحة الزرقاء للعنوان الوطني' : 'Qatar National Address Plate Preview'}</span>
+                                            </div>
+                                            <span className="blue-plate-live-tag">
+                                                <Sparkles size={12} /> {isRTL ? 'تحديث فوري' : 'Live Formatted'}
+                                            </span>
+                                        </div>
+
+                                        <div className="qatar-blue-plate-card">
+                                            <div className="blue-plate-header-strip">
+                                                <span>{isRTL ? 'دولة قطر' : 'STATE OF QATAR'}</span>
+                                                <span style={{ fontWeight: '800', letterSpacing: '0.5px' }}>
+                                                    {isRTL ? 'العنوان الوطني' : 'NATIONAL ADDRESS'}
+                                                </span>
+                                                <span>{formData.city || 'DOHA'}</span>
+                                            </div>
+
+                                            <div className="blue-plate-grid">
+                                                <div className="blue-plate-col">
+                                                    <span className="blue-plate-label-ar">مبنى</span>
+                                                    <span className={`blue-plate-val ${!formData.building ? 'placeholder' : ''}`}>
+                                                        {formData.building || '—'}
+                                                    </span>
+                                                    <span className="blue-plate-label-en">BUILDING</span>
+                                                </div>
+
+                                                <div className="blue-plate-col">
+                                                    <span className="blue-plate-label-ar">شارع</span>
+                                                    <span className={`blue-plate-val ${!formData.street ? 'placeholder' : ''}`}>
+                                                        {formData.street || '—'}
+                                                    </span>
+                                                    <span className="blue-plate-label-en">STREET</span>
+                                                </div>
+
+                                                <div className="blue-plate-col">
+                                                    <span className="blue-plate-label-ar">منطقة</span>
+                                                    <span className={`blue-plate-val ${!formData.zone ? 'placeholder' : ''}`}>
+                                                        {formData.zone || '—'}
+                                                    </span>
+                                                    <span className="blue-plate-label-en">ZONE</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="blue-plate-footer">
+                                                <span>
+                                                    {formData.unit 
+                                                        ? (isRTL ? `الوحدة / كهرماء: ${formData.unit}` : `Unit / Kahramaa: ${formData.unit}`) 
+                                                        : (isRTL ? 'توصيل مبرد VIP حتى باب منزلك' : 'VIP Climate-Controlled Doorstep Delivery')}
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <ShieldCheck size={14} color="#d4af37" />
+                                                    <span>{isRTL ? 'عنوان موثق' : 'Verified Format'}</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* GCC Flexible Address Fields */}
+                            {fulfillmentType === 'delivery' && !orderData.isReservation && formData.country !== 'QA' && (
+                                <>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'المدينة' : 'City'}</label>
+                                            <input 
+                                                type="text" 
+                                                name="gccCity" 
+                                                value={formData.gccCity} 
+                                                onChange={handleInputChange} 
+                                                placeholder={isRTL ? 'مثال: الرياض / دبي / الكويت' : 'e.g. Riyadh, Dubai, Kuwait City'} 
+                                                required 
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'الحي / المنطقة' : 'District / Area'}</label>
+                                            <input 
+                                                type="text" 
+                                                name="district" 
+                                                value={formData.district} 
+                                                onChange={handleInputChange} 
+                                                placeholder={isRTL ? 'مثال: حي العليا / مارينا' : 'e.g. Al Olaya / Marina'} 
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'اسم الشارع ورقم المبنى / الفيلا' : 'Street & Building / Villa'}</label>
+                                            <input 
+                                                type="text" 
+                                                name="street" 
+                                                value={formData.street} 
+                                                onChange={handleInputChange} 
+                                                placeholder={isRTL ? 'مثال: شارع التحلية، فيلا 24' : 'e.g. Tahlia St, Villa 24'} 
+                                                required 
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'أقرب معلم بارز (اختياري)' : 'Nearest Landmark (Optional)'}</label>
+                                            <input 
+                                                type="text" 
+                                                name="landmark" 
+                                                value={formData.landmark} 
+                                                onChange={handleInputChange} 
+                                                placeholder={isRTL ? 'مثال: بجوار مول المملكة' : 'e.g. Near Kingdom Mall'} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'الرمز البريدي (اختياري)' : 'Postal / Zip Code (Optional)'}</label>
+                                        <input 
+                                            type="text" 
+                                            name="postalCode" 
+                                            value={formData.postalCode} 
+                                            onChange={handleInputChange} 
+                                            placeholder={isRTL ? 'مثال: 12214' : 'e.g. 12214'} 
                                         />
                                     </div>
                                 </>

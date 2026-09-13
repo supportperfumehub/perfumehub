@@ -5,14 +5,29 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get active discover campaigns (Public)
+// Get active discover campaigns (Zero N+1 Query Architecture, Edge CDN Cached)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    try {
-        const regionId = req.query.region_id ? parseInt(req.query.region_id) : null;
+    // Edge CDN Caching: 30s browser, 120s edge, 10m stale-while-revalidate
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
 
+    try {
+        const regionId = req.query.region_id ? parseInt(req.query.region_id, 10) : null;
+
+        // 1. Primary Strategy: Single optimized PostgreSQL RPC query
+        try {
+            const { data: rpcSlides, error: rpcError } = await withTimeout(
+                supabase.rpc('get_active_discovery_slides', { p_region_id: regionId })
+            );
+
+            if (!rpcError && Array.isArray(rpcSlides) && rpcSlides.length > 0) {
+                return res.json(rpcSlides);
+            }
+        } catch (rpcErr) {
+            // If RPC is not defined in DB, proceed to single-batch fallback
+        }
+
+        // 2. High-Performance Single-Batch Fallback (Zero N+1 Queries)
+        const nowIso = new Date().toISOString();
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')
             .select(`
@@ -25,44 +40,63 @@ router.get('/', async (req, res) => {
                 )
             `)
             .eq('active', true)
-            .gte('end_date', new Date().toISOString())
-            .lte('start_date', new Date().toISOString())
+            .gte('end_date', nowIso)
+            .lte('start_date', nowIso)
             .order('created_at', { ascending: false }));
 
         if (error) throw error;
 
-        const slides = [];
-        for (const c of (campaigns || [])) {
-            // Region filtering: If region_id is provided, only include campaigns for that region
-            if (regionId) {
-                const shopRegion = c.shop?.region_id ? Number(c.shop.region_id) : null;
-                const campaignRegion = c.region_id ? Number(c.region_id) : null;
-                
-                // If shop has region and it doesn't match, skip
-                if (shopRegion && shopRegion !== Number(regionId)) {
-                    continue;
-                }
-                // If campaign has explicit region and it doesn't match, skip
-                if (campaignRegion && campaignRegion !== Number(regionId)) {
-                    continue;
-                }
-            }
+        const validCampaigns = (campaigns || []).filter(c => {
+            if (!regionId) return true;
+            const shopRegion = c.shop?.region_id ? Number(c.shop.region_id) : null;
+            const campaignRegion = c.region_id ? Number(c.region_id) : null;
+            if (shopRegion && shopRegion !== Number(regionId)) return false;
+            if (campaignRegion && campaignRegion !== Number(regionId)) return false;
+            return true;
+        });
 
+        if (validCampaigns.length === 0) {
+            return res.json([]);
+        }
+
+        // Extract shop IDs for single batch inventory lookup
+        const shopIds = [...new Set(validCampaigns.map(c => c.shop_id).filter(Boolean))];
+        let inventoryLookup = {};
+        let shopInventoryMap = {};
+
+        if (shopIds.length > 0) {
+            const { data: invRows } = await withTimeout(supabase
+                .from('vendor_inventory')
+                .select('shop_id, product_id, price, products (*)')
+                .in('shop_id', shopIds)
+                .eq('is_active', true));
+
+            (invRows || []).forEach(row => {
+                const key = `${row.shop_id}:${row.product_id}`;
+                inventoryLookup[key] = row.price;
+
+                if (!shopInventoryMap[row.shop_id]) {
+                    shopInventoryMap[row.shop_id] = [];
+                }
+                if (shopInventoryMap[row.shop_id].length < 15 && row.products) {
+                    shopInventoryMap[row.shop_id].push({
+                        price: row.price,
+                        product: row.products
+                    });
+                }
+            });
+        }
+
+        const slides = [];
+        for (const c of validCampaigns) {
             if (c.product_id && c.product) {
                 let prodData = { ...c.product };
                 if (c.shop_id) {
-                    const { data: invRow } = await supabase
-                        .from('vendor_inventory')
-                        .select('price')
-                        .eq('product_id', c.product.id)
-                        .eq('shop_id', c.shop_id)
-                        .eq('is_active', true)
-                        .maybeSingle();
-                    if (invRow && invRow.price) {
-                        prodData.price = invRow.price;
+                    const priceKey = `${c.shop_id}:${c.product.id}`;
+                    if (inventoryLookup[priceKey] !== undefined) {
+                        prodData.price = inventoryLookup[priceKey];
                     }
                 }
-                // Single product campaign
                 slides.push({
                     id: `product-${c.product.id}-${c.id}`,
                     campaign_id: c.id,
@@ -74,37 +108,21 @@ router.get('/', async (req, res) => {
                     shop: c.shop
                 });
             } else if (c.shop_id && c.shop) {
-                // Pull active products for the shop (limited to 15 items to maintain performance)
-                const { data: shopInventory, error: invErr } = await supabase
-                    .from('vendor_inventory')
-                    .select(`
-                        price,
-                        products!inner (
-                            *
-                        )
-                    `)
-                    .eq('shop_id', c.shop_id)
-                    .eq('is_active', true)
-                    .limit(15);
-                
-                if (!invErr && shopInventory) {
-                    for (const item of shopInventory) {
-                        if (item.products) {
-                            slides.push({
-                                id: `shop-product-${item.products.id}-${c.id}`,
-                                campaign_id: c.id,
-                                product_id: item.products.id,
-                                type: 'product',
-                                placement_slot: c.placement_slot,
-                                region_id: c.shop?.region_id || c.region_id || null,
-                                product: {
-                                    ...item.products,
-                                    price: item.price // override with vendor price
-                                },
-                                shop: c.shop
-                            });
-                        }
-                    }
+                const shopItems = shopInventoryMap[c.shop_id] || [];
+                for (const item of shopItems) {
+                    slides.push({
+                        id: `shop-product-${item.product.id}-${c.id}`,
+                        campaign_id: c.id,
+                        product_id: item.product.id,
+                        type: 'product',
+                        placement_slot: c.placement_slot,
+                        region_id: c.shop?.region_id || c.region_id || null,
+                        product: {
+                            ...item.product,
+                            price: item.price
+                        },
+                        shop: c.shop
+                    });
                 }
             }
         }

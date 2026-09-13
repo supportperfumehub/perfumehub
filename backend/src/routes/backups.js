@@ -36,11 +36,25 @@ router.post('/:id/restore', adminOnly, async (req, res) => {
 
         const { table_name, data: recordData } = backup;
 
+        const restoredRecord = { ...recordData };
+        if ('deleted_at' in recordData && recordData.deleted_at !== undefined) {
+            restoredRecord.deleted_at = null;
+        } else {
+            delete restoredRecord.deleted_at;
+        }
+
         const { error: restoreError } = await supabase
             .from(table_name)
-            .upsert([recordData]);
+            .upsert([restoredRecord]);
 
         if (restoreError) throw restoreError;
+
+        if (table_name === 'products' && restoredRecord.id) {
+            await supabase
+                .from('vendor_inventory')
+                .update({ is_active: true, updated_at: new Date().toISOString() })
+                .eq('product_id', restoredRecord.id);
+        }
 
         const { error: deleteBackupError } = await supabase
             .from('backups')

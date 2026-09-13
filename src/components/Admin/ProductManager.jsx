@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package } from 'lucide-react';
+import { AuthContext } from '../../context/AuthContext';
+import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package, AlertTriangle, ShieldCheck, Upload, FileSpreadsheet, Download, CheckCircle, GripVertical } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import api from '../../utils/api_v1_0_2';
 
@@ -12,13 +13,37 @@ const typeCodes = {
     'Eau Fraîche': 'EF'
 };
 
-const ProductManager = ({ isRTL, shopId, hideHeader }) => {
+const luxuryAccords = [
+    { en: 'Woody', ar: 'خشبي' },
+    { en: 'Amber', ar: 'عنبري' },
+    { en: 'Floral', ar: 'زهري' },
+    { en: 'Citrus', ar: 'حمضيات' },
+    { en: 'Fresh Spicy', ar: 'توابل منعشة' },
+    { en: 'Oriental', ar: 'شرقي' },
+    { en: 'Gourmand', ar: 'حلو / جورماند' },
+    { en: 'Aquatic', ar: 'مائي / بحري' },
+    { en: 'Leathery', ar: 'جلدي' },
+    { en: 'Musky', ar: 'مسكي' },
+    { en: 'Fruity', ar: 'فاكهي' },
+    { en: 'Smoky', ar: 'دخاني / بخور' }
+];
+
+const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions }) => {
     const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
+    const { user } = useContext(AuthContext);
+    const isRegionalAdmin = user?.role === 'regional_admin';
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isBindingCatalog, setIsBindingCatalog] = useState(false);
     const [selectedCatalogProduct, setSelectedCatalogProduct] = useState(null);
     const [showAddChoiceModal, setShowAddChoiceModal] = useState(false);
+    const [showCsvModal, setShowCsvModal] = useState(false);
+    const [csvParsedProducts, setCsvParsedProducts] = useState([]);
+    const [csvParseErrors, setCsvParseErrors] = useState([]);
+    const [isCsvImporting, setIsCsvImporting] = useState(false);
+    const [csvImportProgress, setCsvImportProgress] = useState(0);
+    const [csvImportSuccessCount, setCsvImportSuccessCount] = useState(null);
+    const [draggedImageIdx, setDraggedImageIdx] = useState(null);
     const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
     const [globalCatalog, setGlobalCatalog] = useState([]);
     const [loadingCatalog, setLoadingCatalog] = useState(false);
@@ -27,9 +52,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         if (isBindingCatalog) {
             const fetchGlobalCatalog = async () => {
                 try {
-                    setLoadingCatalog(true);
-                    const response = await api.get(`/products?all=true&_t=${Date.now()}`);
-                    setGlobalCatalog(Array.isArray(response.data) ? response.data : []);
+                    const response = await api.get('/products?limit=100');
+                    const prods = Array.isArray(response.data) ? response.data : (response.data?.products || []);
+                    setGlobalCatalog(prods);
                 } catch (error) {
                     console.error("Failed to fetch global catalog:", error);
                 } finally {
@@ -322,6 +347,176 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         }
     };
 
+    const moveImageTo = (fromIndex, toIndex) => {
+        if (fromIndex === null || toIndex === null || fromIndex === toIndex) return;
+        const updatedImages = [...formData.images];
+        const [movedItem] = updatedImages.splice(fromIndex, 1);
+        updatedImages.splice(toIndex, 0, movedItem);
+        setFormData({ ...formData, images: updatedImages });
+    };
+
+    const parseCsvLine = (text) => {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(cur.trim());
+                cur = '';
+            } else {
+                cur += char;
+            }
+        }
+        result.push(cur.trim());
+        return result;
+    };
+
+    const downloadCsvTemplate = () => {
+        const headers = 'name,brand,type,price,old_price,stock,gender,top_notes,middle_notes,base_notes,description,description_ar,categories\n';
+        const sampleRows = [
+            '"Royal Oud Imperial","North Club Paris","EDP (Eau de Parfum)",750,950,25,"unisex","Calabrian Bergamot, Pink Pepper","Cambodian Agarwood, Bulgarian Rose","Smoky Amber, Mysore Sandalwood","An exquisite blend of aged Cambodian oud and velvety damascena rose.","مزيج ساحر من العود الكمبودي المعتق والورد الدمشقي المخملي مع لمسات عنبرية فاخرة.","perfume,luxury,arabic,woody"',
+            '"Velvet Amber Silk","North Club Paris","Parfum",880,1100,18,"women","Sicilian Mandarin, Neroli","Amber Resin, Jasmine Sambac","Madagascar Vanilla, White Musk","Sumptuous golden amber infused with radiant white florals.","عنبر ذهبي ساحر مع نفحات الياسمين الملكي والفانيليا الفاخرة.","perfume,luxury,oriental,sweet"'
+        ].join('\n');
+        
+        const blob = new Blob(['\uFEFF' + headers + sampleRows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'perfumehub_products_catalog_template.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleCsvFileUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const content = evt.target.result;
+                const lines = content.split(/\r?\n/).filter(line => line.trim().length > 0);
+                if (lines.length < 2) {
+                    alert(isRTL ? 'ملف CSV فارغ أو لا يحتوي على صفوف بيانات' : 'CSV file is empty or missing data rows');
+                    return;
+                }
+                const headerLine = lines[0];
+                const headers = parseCsvLine(headerLine).map(h => h.toLowerCase().replace(/[\s_-]+/g, ''));
+                
+                const nameIdx = headers.indexOf('name');
+                const brandIdx = headers.indexOf('brand');
+                const typeIdx = headers.indexOf('type');
+                const priceIdx = headers.indexOf('price');
+                const oldPriceIdx = headers.indexOf('oldprice');
+                const stockIdx = headers.indexOf('stock');
+                const genderIdx = headers.indexOf('gender');
+                const topNotesIdx = headers.indexOf('topnotes');
+                const midNotesIdx = headers.indexOf('middlenotes');
+                const baseNotesIdx = headers.indexOf('basenotes');
+                const descIdx = headers.indexOf('description');
+                const descArIdx = headers.indexOf('descriptionar');
+                const catsIdx = headers.indexOf('categories');
+
+                if (nameIdx === -1 || brandIdx === -1 || priceIdx === -1) {
+                    alert(isRTL ? 'الملف يفتقر للأعمدة الإلزامية: name, brand, price' : 'CSV missing mandatory columns: name, brand, price');
+                    return;
+                }
+
+                const parsed = [];
+                const errors = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = parseCsvLine(lines[i]);
+                    if (cols.length === 0 || cols.every(c => !c)) continue;
+
+                    const name = cols[nameIdx] || '';
+                    const brand = cols[brandIdx] || '';
+                    const price = parseFloat(cols[priceIdx]);
+                    const oldPrice = oldPriceIdx !== -1 && cols[oldPriceIdx] ? parseFloat(cols[oldPriceIdx]) : null;
+                    const stock = stockIdx !== -1 && cols[stockIdx] ? parseInt(cols[stockIdx], 10) : 10;
+                    const type = (typeIdx !== -1 && cols[typeIdx]) || 'EDP (Eau de Parfum)';
+                    const gender = (genderIdx !== -1 && cols[genderIdx]) || 'unisex';
+                    const topNotes = topNotesIdx !== -1 ? cols[topNotesIdx] : '';
+                    const middleNotes = midNotesIdx !== -1 ? cols[midNotesIdx] : '';
+                    const baseNotes = baseNotesIdx !== -1 ? cols[baseNotesIdx] : '';
+                    const description = descIdx !== -1 ? cols[descIdx] : '';
+                    const description_ar = descArIdx !== -1 ? cols[descArIdx] : '';
+                    const rawCats = catsIdx !== -1 && cols[catsIdx] ? cols[catsIdx].split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : ['perfume'];
+
+                    const cleanBrand = brand.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 2) || 'PH';
+                    const cleanName = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 2) || 'PR';
+                    const typeCode = typeCodes[type] || 'EP';
+                    const autoSku = `${cleanBrand}-${cleanName}-${typeCode}`;
+
+                    const rowErrors = [];
+                    if (!name) rowErrors.push('Missing Name');
+                    if (!brand) rowErrors.push('Missing Brand');
+                    if (isNaN(price) || price <= 0) rowErrors.push('Invalid Price');
+
+                    if (rowErrors.length > 0) {
+                        errors.push({ row: i + 1, name: name || 'Unnamed', errors: rowErrors });
+                    } else {
+                        parsed.push({
+                            name,
+                            brand,
+                            type,
+                            price,
+                            oldPrice: (!isNaN(oldPrice) && oldPrice > price) ? oldPrice : null,
+                            discount: (!isNaN(oldPrice) && oldPrice > price) ? Math.round((1 - price / oldPrice) * 100) : 0,
+                            stock: isNaN(stock) ? 10 : stock,
+                            gender,
+                            topNotes,
+                            middleNotes,
+                            baseNotes,
+                            description,
+                            sku: autoSku,
+                            category: rawCats,
+                            images: [''],
+                            attributes: {
+                                description_ar
+                            }
+                        });
+                    }
+                }
+
+                setCsvParsedProducts(parsed);
+                setCsvParseErrors(errors);
+                setCsvImportSuccessCount(null);
+            } catch (err) {
+                console.error("CSV parse error:", err);
+                alert(isRTL ? 'خطأ أثناء قراءة ملف CSV' : 'Error reading CSV file');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const executeCsvBatchImport = async () => {
+        if (csvParsedProducts.length === 0) return;
+        setIsCsvImporting(true);
+        setCsvImportProgress(0);
+        let successCount = 0;
+
+        for (let i = 0; i < csvParsedProducts.length; i++) {
+            const prod = csvParsedProducts[i];
+            try {
+                await addProduct({
+                    ...prod,
+                    shop_id: shopId || 'core'
+                });
+                successCount++;
+            } catch (err) {
+                console.error(`Failed to import product row ${i + 1}:`, err);
+            }
+            setCsvImportProgress(Math.round(((i + 1) / csvParsedProducts.length) * 100));
+        }
+
+        setIsCsvImporting(false);
+        setCsvImportSuccessCount(successCount);
+    };
+
     const handleImageUpload = (index, e) => {
         try {
             const fileInput = e.target;
@@ -403,9 +598,18 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     topNotes: data.topNotes || prev.topNotes,
                     middleNotes: data.middleNotes || prev.middleNotes,
                     baseNotes: data.baseNotes || prev.baseNotes,
-                    category: Array.isArray(data.categories) ? data.categories : prev.category
+                    notes: Array.isArray(data.accords) ? data.accords : (Array.isArray(data.notes) ? data.notes : prev.notes),
+                    category: Array.isArray(data.categories) ? data.categories : prev.category,
+                    attributes: {
+                        ...(prev.attributes || {}),
+                        description_ar: data.description_ar || prev.attributes?.description_ar || '',
+                        longevity: data.longevity || prev.attributes?.longevity || '',
+                        sillage: data.sillage || prev.attributes?.sillage || '',
+                        seasons: data.seasons || prev.attributes?.seasons || [],
+                        occasions: data.occasions || prev.attributes?.occasions || []
+                    }
                 }));
-                alert(isRTL ? 'تم ملء بيانات المنتج بنجاح!' : 'Product metadata autofilled successfully!');
+                alert(isRTL ? '✨ تم استكمال كافة البيانات العطرية والأهرام الشمية بنجاح!' : '✨ Luxury olfactive pyramid & bilingual metadata autofilled!');
             }
         } catch (error) {
             console.error("AI Autofill failed:", error);
@@ -632,6 +836,69 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     placeholder={isRTL ? 'مثال: قوي وجذاب' : 'e.g. Strong / Enormous'}
                                 />
                             </div>
+                        </div>
+
+                        {/* Luxury Olfactive Accords */}
+                        <div className="form-group" style={{ marginTop: '15px' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--color-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ✨ {isRTL ? 'الطبقات والسمات الشمية الفاخرة (Accords):' : 'Luxury Fragrance Accords (Click to select):'}
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                                {luxuryAccords.map(accord => {
+                                    const currentAccords = Array.isArray(formData.notes) 
+                                        ? formData.notes 
+                                        : (Array.isArray(attributes.accords) ? attributes.accords : []);
+                                    const isSelected = currentAccords.includes(accord.en);
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={accord.en}
+                                            onClick={() => {
+                                                const updated = isSelected 
+                                                    ? currentAccords.filter(a => a !== accord.en)
+                                                    : [...currentAccords, accord.en];
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    notes: updated,
+                                                    attributes: {
+                                                        ...(prev.attributes || {}),
+                                                        accords: updated
+                                                    }
+                                                }));
+                                            }}
+                                            style={{
+                                                padding: '5px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.8rem',
+                                                cursor: 'pointer',
+                                                border: isSelected ? '1px solid var(--color-gold)' : '1px solid rgba(255,255,255,0.1)',
+                                                background: isSelected ? 'rgba(200, 169, 81, 0.25)' : 'rgba(255,255,255,0.02)',
+                                                color: isSelected ? 'var(--color-gold)' : '#cbd5e1',
+                                                fontWeight: isSelected ? '600' : '400',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {isRTL ? accord.ar : accord.en}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Bilingual Poetic Arabic Description */}
+                        <div className="form-group" style={{ marginTop: '15px' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--color-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                🖋️ {isRTL ? 'الوصف الأدبي الفاخر بالعربية (Bilingual Luxury Description):' : 'Bilingual Luxury Arabic Description:'}
+                            </label>
+                            <textarea
+                                name="description_ar"
+                                className="form-control"
+                                dir="rtl"
+                                rows="2"
+                                value={attributes.description_ar || ''}
+                                onChange={(e) => handleAttributeChange('description_ar', e.target.value)}
+                                placeholder="الوصف الشعري للعبير والأثر العطري باللغة العربية..."
+                            />
                         </div>
                     </>
                 )}
@@ -870,7 +1137,21 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             shop_id: activeShopId !== null ? activeShopId : (formData.shop_id && formData.shop_id !== 'core' ? formData.shop_id : null),
             attributes: formData.attributes || {}
         };
-        delete productData.images;
+        // Pre-submission check: Prevent reducing total stock below currently active reserved quantity
+        if (editingId && activeShopId) {
+            const existingProduct = products.find(p => p.id === editingId);
+            const existingShopInv = existingProduct?.inventories?.find(inv => String(inv.shop_id) === String(activeShopId));
+            const currentReserved = Number(existingShopInv?.reserved_quantity || 0);
+            const requestedStock = formData.stock !== undefined ? Number(formData.stock) : 0;
+
+            if (currentReserved > 0 && requestedStock < currentReserved) {
+                alert(isRTL 
+                    ? `لا يمكن تقليل المخزون إلى أقل من الكمية المحجوزة حالياً (${currentReserved} قطعة محجوزة للاستلام).`
+                    : `Cannot reduce total stock below the active reserved quantity (${currentReserved} units currently locked for Click & Collect pickup).`
+                );
+                return;
+            }
+        }
 
         if (editingId) {
             await updateProduct(editingId, productData);
@@ -895,6 +1176,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
         const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
         const initialPrice = shopInventory ? shopInventory.price : product.price;
         const initialStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
+        const initialReserved = Number(shopInventory?.reserved_quantity || 0);
         const initialPickup = shopInventory 
             ? shopInventory.pickup_available !== false 
             : product.pickup_available !== false;
@@ -903,6 +1185,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
             ...product,
             price: initialPrice,
             stock: initialStock,
+            reservedStock: initialReserved,
             size: sanitizedSizes,
             images: imageArray,
             isFeatured: product.isFeatured || false,
@@ -1007,6 +1290,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
     };
     const safeProducts = Array.isArray(products) ? products : [];
     const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
+
+    const relevantShops = React.useMemo(() => {
+        if (activeTerritoryId && activeTerritoryId !== 'all') {
+            return shopsData.filter(s => String(s.region_id) === String(activeTerritoryId));
+        }
+        return shopsData;
+    }, [shopsData, activeTerritoryId]);
+
     const shopFilteredProducts = safeProducts.filter(product => {
         if (activeShopId) {
             const isOwned = String(product.shop_id) === String(activeShopId);
@@ -1106,29 +1397,58 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                         </div>
                     )}
                     {!showForm && !isBindingCatalog && (
-                        <div className="add-product-wrapper" style={{ position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <button 
                                 type="button" 
-                                className="btn btn-gold" 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowAddChoiceModal(!showAddChoiceModal);
+                                className="btn" 
+                                onClick={() => {
+                                    setShowCsvModal(true);
+                                    setCsvParsedProducts([]);
+                                    setCsvParseErrors([]);
+                                    setCsvImportSuccessCount(null);
                                 }}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
-                                    padding: '10px 20px',
+                                    padding: '10px 18px',
                                     borderRadius: '10px',
-                                    fontWeight: '700',
-                                    boxShadow: '0 4px 12px rgba(200, 169, 81, 0.25)',
-                                    cursor: 'pointer'
+                                    fontWeight: '600',
+                                    background: 'rgba(56, 189, 248, 0.12)',
+                                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                                    color: '#38bdf8',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
                                 }}
+                                title={isRTL ? 'استيراد كتالوج المنتجات عبر ملف CSV' : 'Import bulk products via CSV template'}
                             >
-                                <Plus size={18} />
-                                {isRTL ? 'إضافة منتج' : 'Add Product'}
-                                <ChevronDown size={16} style={{ transform: showAddChoiceModal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                                <FileSpreadsheet size={18} />
+                                <span>{isRTL ? 'استيراد CSV' : 'Batch CSV'}</span>
                             </button>
+
+                            <div className="add-product-wrapper" style={{ position: 'relative' }}>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-gold" 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowAddChoiceModal(!showAddChoiceModal);
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '10px 20px',
+                                        borderRadius: '10px',
+                                        fontWeight: '700',
+                                        boxShadow: '0 4px 12px rgba(200, 169, 81, 0.25)',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <Plus size={18} />
+                                    {isRTL ? 'إضافة منتج' : 'Add Product'}
+                                    <ChevronDown size={16} style={{ transform: showAddChoiceModal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                                </button>
 
                             {showAddChoiceModal && (
                                 <>
@@ -1465,6 +1785,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     </div>
                                 </>
                             )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1836,7 +2157,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     </div>
                                     <div className="form-group">
                                         <label>{isRTL ? 'الكمية المتوفرة' : 'Available Stock'}</label>
-                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
+                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min={Number(formData.reservedStock || 0)} />
+                                        {Number(formData.reservedStock || 0) > 0 && (
+                                            <small style={{ color: '#f59e0b', display: 'block', marginTop: '4px', fontSize: '0.75rem' }}>
+                                                🔒 {isRTL 
+                                                    ? `محجوز حالياً: ${formData.reservedStock} قطعة. الحد الأدنى للمخزون هو ${formData.reservedStock}.` 
+                                                    : `Active Reserved: ${formData.reservedStock} units. Minimum stock allowed: ${formData.reservedStock}.`}
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="premium-marking-section" style={{ marginTop: '15px', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '10px 15px' }}>
@@ -1878,7 +2206,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     </div>
                                     <div className="form-group">
                                         <label>{isRTL ? 'المخزون' : 'Stock'}</label>
-                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min="0" />
+                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min={Number(formData.reservedStock || 0)} />
+                                        {Number(formData.reservedStock || 0) > 0 && (
+                                            <small style={{ color: '#f59e0b', display: 'block', marginTop: '4px', fontSize: '0.75rem' }}>
+                                                🔒 {isRTL 
+                                                    ? `محجوز حالياً: ${formData.reservedStock} قطعة. الحد الأدنى للمخزون هو ${formData.reservedStock}.` 
+                                                    : `Active Reserved: ${formData.reservedStock} units. Minimum stock allowed: ${formData.reservedStock}.`}
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -2112,7 +2447,37 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
 
                         <div className="image-manage-grid">
                             {formData.images.map((url, idx) => (
-                                <div key={idx} className="image-input-row">
+                                <div 
+                                    key={idx} 
+                                    className="image-input-row"
+                                    draggable
+                                    onDragStart={(e) => {
+                                        setDraggedImageIdx(idx);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.dataTransfer.dropEffect = 'move';
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        if (draggedImageIdx !== null && draggedImageIdx !== idx) {
+                                            moveImageTo(draggedImageIdx, idx);
+                                            setDraggedImageIdx(null);
+                                        }
+                                    }}
+                                    style={{
+                                        opacity: draggedImageIdx === idx ? 0.4 : 1,
+                                        cursor: 'grab',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <div 
+                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'grab', padding: '0 4px' }}
+                                        title={isRTL ? 'اسحب لإعادة الترتيب' : 'Drag to reorder'}
+                                    >
+                                        <GripVertical size={16} />
+                                    </div>
                                     <label 
                                         className="image-preview-box"
                                         htmlFor={`file-upload-${idx}`}
@@ -2256,8 +2621,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             <th style={{ minWidth: '55px', width: '55px' }}>{isRTL ? 'الصورة' : 'Image'}</th>
                             <th style={{ minWidth: '150px' }}>{isRTL ? 'المنتج' : 'Product'}</th>
                             <th style={{ minWidth: '100px' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
-                            <th style={{ whiteSpace: 'nowrap', minWidth: '90px' }}>{isRTL ? 'السعر' : 'Price'}</th>
-                            <th style={{ whiteSpace: 'nowrap', minWidth: '65px' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '130px' }}>
+                                {isRegionalAdmin ? (isRTL ? 'السعر الإقليمي / MSRP' : 'Regional Price / MSRP') : (isRTL ? 'السعر' : 'Price')}
+                            </th>
+                            <th style={{ whiteSpace: 'nowrap', minWidth: '130px' }}>
+                                {isRegionalAdmin ? (isRTL ? 'مخزون الإقليم' : 'Territory Stock') : (isRTL ? 'المخزون (المتوفر / المحجوز / المتاح)' : 'Stock (On-Hand / Reserved / Available)')}
+                            </th>
                             <th style={{ whiteSpace: 'nowrap', textAlign: 'center', minWidth: '75px' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
                             <th style={{ textAlign: 'center', minWidth: '85px' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
                         </tr>
@@ -2293,8 +2662,10 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                     }
                                 }
 
-                                return product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                       product.brand.toLowerCase().includes(searchTerm.toLowerCase());
+                                return (product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                       (product.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                       (product.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                       String(product.id) === searchTerm.trim();
                             })
                             .sort((a, b) => {
                                 if (sortBy === 'newest') return b.originalIndex - a.originalIndex;
@@ -2308,10 +2679,34 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                             })
                             .map(product => {
                                 const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
+
+                                // Territory-scoped inventory calculations
+                                const territoryInvs = (product.inventories || []).filter(inv => 
+                                    relevantShops.some(s => String(s.id) === String(inv.shop_id)) && inv.is_active !== false
+                                );
+
+                                const regionalPrice = territoryInvs.length > 0 ? territoryInvs[0].price : (shopInventory ? shopInventory.price : product.price);
+                                const masterMsrp = product.price;
+                                const territoryStock = territoryInvs.length > 0 
+                                    ? territoryInvs.reduce((sum, inv) => sum + (Number(inv.stock) || 0), 0)
+                                    : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
+
                                 const displayPrice = shopInventory ? shopInventory.price : product.price;
                                 const displayOldPrice = shopInventory ? null : product.oldPrice;
                                 const displayDiscount = shopInventory ? 0 : product.discount;
-                                const displayStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
+                                const displayStock = isRegionalAdmin ? territoryStock : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
+
+                                // Price anomaly benchmark comparison for regional governance
+                                let priceAnomaly = null;
+                                if (isRegionalAdmin && masterMsrp > 0 && regionalPrice > 0) {
+                                    const diffPct = Math.round(((regionalPrice - masterMsrp) / masterMsrp) * 100);
+                                    if (diffPct > 20) {
+                                        priceAnomaly = { type: 'high', label: `+${diffPct}% vs MSRP`, color: '#f59e0b' };
+                                    } else if (diffPct < -25) {
+                                        priceAnomaly = { type: 'low', label: `${diffPct}% vs MSRP`, color: '#ef4444' };
+                                    }
+                                }
+                                const isLowStockInTerritory = isRegionalAdmin && territoryStock < 5;
 
                                 return (
                                     <tr key={product.id}>
@@ -2346,19 +2741,61 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                         </span>
                                                     ) : (
                                                         <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                             {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
-                                                         </span>
+                                                              {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
+                                                          </span>
                                                     )}
                                                 </div>
                                             )}
                                         </td>
                                         <td>{product.brand}</td>
                                         <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
-                                            <div className="price-display-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '100px' }}>
-                                                <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.1rem' }}>
-                                                    {displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                            <div className="price-display-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: '700', color: '#f8fafc', fontSize: '1.05rem' }}>
+                                                        {isRegionalAdmin ? regionalPrice : displayPrice} {isRTL ? 'ر.ق' : 'QAR'}
+                                                    </span>
+                                                    {isRegionalAdmin ? (
+                                                        <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(200, 169, 81, 0.2)', color: '#c8a951', fontWeight: '700' }}>
+                                                            {isRTL ? 'إقليمي' : 'Regional'}
+                                                        </span>
+                                                    ) : (!shopId && (
+                                                        <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(200, 169, 81, 0.2)', color: '#c8a951', fontWeight: '700' }}>
+                                                            MSRP
+                                                        </span>
+                                                    ))}
                                                 </div>
-                                                {displayOldPrice && (
+                                                {isRegionalAdmin && (
+                                                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                                                        MSRP: <span style={{ color: '#cbd5e1', fontWeight: '600' }}>{masterMsrp} QAR</span>
+                                                    </div>
+                                                )}
+                                                {!isRegionalAdmin && !shopId && (
+                                                    (() => {
+                                                        const bPrices = (product.inventories || [])
+                                                            .filter(inv => inv.is_active !== false && Number(inv.price) > 0)
+                                                            .map(inv => Number(inv.price));
+                                                        if (bPrices.length === 0) {
+                                                            return (
+                                                                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                                                    {isRTL ? 'لا توجد عروض متاجر' : 'No boutique listings'}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        const minP = Math.min(...bPrices);
+                                                        const maxP = Math.max(...bPrices);
+                                                        return (
+                                                            <div style={{ fontSize: '0.73rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(56, 189, 248, 0.08)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>
+                                                                <Store size={11} />
+                                                                <span>
+                                                                    {isRTL ? 'المتاجر: ' : 'Boutiques: '}
+                                                                    <strong>{minP === maxP ? `${minP} QAR` : `${minP} - ${maxP} QAR`}</strong>
+                                                                    <span style={{ color: '#94a3b8', fontSize: '0.68rem' }}> ({bPrices.length})</span>
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })()
+                                                )}
+                                                {!isRegionalAdmin && displayOldPrice && (
                                                     <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.85rem' }}>
                                                         {displayOldPrice} {isRTL ? 'ر.ق' : 'QAR'}
                                                     </div>
@@ -2379,16 +2816,72 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                                                         {displayDiscount}% OFF
                                                     </span>
                                                 )}
+                                                {priceAnomaly && (
+                                                    <span style={{ 
+                                                        fontSize: '0.7rem', 
+                                                        fontWeight: '700', 
+                                                        color: priceAnomaly.color, 
+                                                        background: 'rgba(0,0,0,0.4)', 
+                                                        padding: '2px 6px', 
+                                                        borderRadius: '4px', 
+                                                        border: `1px solid ${priceAnomaly.color}`,
+                                                        width: 'fit-content'
+                                                    }}>
+                                                        ⚠️ {priceAnomaly.label}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
-                                            <span style={{ 
-                                                fontWeight: '700', 
-                                                color: displayStock > 10 ? '#22c55e' : (displayStock > 0 ? '#f59e0b' : '#ef4444'),
-                                                fontSize: '1.1rem'
-                                            }}>
-                                                {displayStock}
-                                            </span>
+                                            {(() => {
+                                                const totalOnHand = isRegionalAdmin ? territoryStock : (shopInventory ? Number(shopInventory.stock || 0) : (product.stock !== undefined ? Number(product.stock) : 10));
+                                                const reservedCount = shopInventory ? Number(shopInventory.reserved_quantity || 0) : 0;
+                                                const availableToSell = Math.max(0, totalOnHand - reservedCount);
+
+                                                return (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '130px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isRTL ? 'في المتجر:' : 'On-Hand:'}</span>
+                                                            <strong style={{ color: totalOnHand > 0 ? '#f8fafc' : '#ef4444', fontSize: '0.92rem' }}>{totalOnHand}</strong>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>{isRTL ? 'محجوز:' : 'Reserved:'}</span>
+                                                            <span style={{ 
+                                                                fontSize: '0.75rem', 
+                                                                fontWeight: '700', 
+                                                                color: reservedCount > 0 ? '#f59e0b' : '#64748b',
+                                                                background: reservedCount > 0 ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                                                                padding: '1px 5px',
+                                                                borderRadius: '4px'
+                                                            }}>
+                                                                🔒 {reservedCount}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '2px' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: '600' }}>{isRTL ? 'متاح للبيع:' : 'Available:'}</span>
+                                                            <strong style={{ color: availableToSell > 5 ? '#22c55e' : (availableToSell > 0 ? '#f59e0b' : '#ef4444'), fontSize: '0.92rem' }}>
+                                                                {availableToSell}
+                                                            </strong>
+                                                        </div>
+                                                        {isLowStockInTerritory && (
+                                                            <span style={{ 
+                                                                fontSize: '0.68rem', 
+                                                                fontWeight: '700', 
+                                                                color: '#ef4444', 
+                                                                background: 'rgba(239, 68, 68, 0.15)', 
+                                                                padding: '2px 5px', 
+                                                                borderRadius: '4px', 
+                                                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                                                                width: 'fit-content',
+                                                                whiteSpace: 'nowrap',
+                                                                marginTop: '2px'
+                                                            }}>
+                                                                ⚠️ {isRTL ? 'مخزون منخفض' : 'Low Stock'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td style={{ verticalAlign: 'top', paddingTop: '16px', textAlign: 'center' }}>
                                             {(() => {
@@ -2469,15 +2962,278 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                 </table>
             </div>
 
+            {/* Batch CSV Catalog Import Modal */}
+            {showCsvModal && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(6px)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}
+                    onClick={() => !isCsvImporting && setShowCsvModal(false)}
+                >
+                    <div 
+                        className="animate-scale-up"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#0f172a',
+                            border: '1px solid rgba(200, 169, 81, 0.35)',
+                            borderRadius: '16px',
+                            maxWidth: '780px',
+                            width: '100%',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(200, 169, 81, 0.15)',
+                            padding: '28px',
+                            color: '#f8fafc'
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FileSpreadsheet size={22} color="#38bdf8" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#f8fafc' }}>
+                                        {isRTL ? 'استيراد كتالوج المنتجات دفعة واحدة (CSV)' : 'Batch Product Catalog CSV Import'}
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                        {isRTL ? 'تحميل نموذج وتعبئة المنتجات وإدراجها بضغطة واحدة' : 'Download template, fill in products, and import in bulk'}
+                                    </p>
+                                </div>
+                            </div>
+                            {!isCsvImporting && (
+                                <button 
+                                    onClick={() => setShowCsvModal(false)}
+                                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px' }}
+                                >
+                                    <X size={22} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Step 1: Download Template */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                                <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#f8fafc' }}>
+                                    1. {isRTL ? 'تحميل نموذج الكتالوج القياسي' : 'Download Master CSV Template'}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                                    {isRTL ? 'يتضمن أعمدة: الاسم، الماركة، السعر، المخزون، النوتات، والوصف الثنائي' : 'Includes Name, Brand, MSRP Price, Stock, Olfactive Notes & Bilingual Descriptions'}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={downloadCsvTemplate}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: 'rgba(200, 169, 81, 0.15)',
+                                    border: '1px solid rgba(200, 169, 81, 0.4)',
+                                    color: 'var(--color-gold)',
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Download size={16} />
+                                <span>{isRTL ? 'تحميل القالب (.CSV)' : 'Download Template (.CSV)'}</span>
+                            </button>
+                        </div>
+
+                        {/* Step 2: Upload CSV */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', fontSize: '0.95rem' }}>
+                                2. {isRTL ? 'رفع ملف CSV المعبأ' : 'Upload Completed CSV File'}
+                            </label>
+                            <label 
+                                style={{
+                                    border: '2px dashed rgba(56, 189, 248, 0.4)',
+                                    borderRadius: '12px',
+                                    padding: '24px',
+                                    textAlign: 'center',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    cursor: isCsvImporting ? 'not-allowed' : 'pointer',
+                                    background: 'rgba(56, 189, 248, 0.03)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Upload size={32} color="#38bdf8" />
+                                <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                    {isRTL ? 'انقر لاختيار ملف CSV أو قم بسحبه إلى هنا' : 'Click to select or drag and drop a .csv file here'}
+                                </span>
+                                <input 
+                                    type="file" 
+                                    accept=".csv,text/csv" 
+                                    style={{ display: 'none' }} 
+                                    onChange={handleCsvFileUpload}
+                                    disabled={isCsvImporting}
+                                />
+                            </label>
+                        </div>
+
+                        {/* Errors summary */}
+                        {csvParseErrors.length > 0 && (
+                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+                                <div style={{ color: '#ef4444', fontWeight: '600', fontSize: '0.85rem', marginBottom: '6px' }}>
+                                    ⚠️ {isRTL ? `تم العثور على أخطاء في ${csvParseErrors.length} صفوف:` : `Validation errors found in ${csvParseErrors.length} rows:`}
+                                </div>
+                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.78rem', color: '#fca5a5' }}>
+                                    {csvParseErrors.slice(0, 5).map((err, idx) => (
+                                        <li key={idx}>
+                                            {isRTL ? `صف ${err.row} (${err.name}): ${err.errors.join('، ')}` : `Row ${err.row} (${err.name}): ${err.errors.join(', ')}`}
+                                        </li>
+                                    ))}
+                                    {csvParseErrors.length > 5 && (
+                                        <li>{isRTL ? `... و ${csvParseErrors.length - 5} صفوف أخرى` : `... and ${csvParseErrors.length - 5} more rows`}</li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Parsed Preview Table */}
+                        {csvParsedProducts.length > 0 && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#22c55e' }}>
+                                        ✓ {isRTL ? `${csvParsedProducts.length} منتج جاهز للاستيراد:` : `${csvParsedProducts.length} valid products ready for import:`}
+                                    </span>
+                                </div>
+                                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
+                                    <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', textAlign: isRTL ? 'right' : 'left' }}>
+                                        <thead style={{ background: '#1e293b', position: 'sticky', top: 0 }}>
+                                            <tr>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>#</th>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>{isRTL ? 'الاسم' : 'Name'}</th>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>SKU</th>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>{isRTL ? 'السعر' : 'Price'}</th>
+                                                <th style={{ padding: '8px 10px', color: '#94a3b8' }}>{isRTL ? 'المخزون' : 'Stock'}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {csvParsedProducts.map((p, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                                    <td style={{ padding: '6px 10px', color: '#64748b' }}>{idx + 1}</td>
+                                                    <td style={{ padding: '6px 10px', color: '#f8fafc', fontWeight: '600' }}>{p.name}</td>
+                                                    <td style={{ padding: '6px 10px', color: '#c8a951' }}>{p.brand}</td>
+                                                    <td style={{ padding: '6px 10px', color: '#94a3b8', fontFamily: 'monospace' }}>{p.sku}</td>
+                                                    <td style={{ padding: '6px 10px', color: '#38bdf8' }}>{p.price} QAR</td>
+                                                    <td style={{ padding: '6px 10px', color: '#cbd5e1' }}>{p.stock}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Progress bar */}
+                        {isCsvImporting && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
+                                    <span style={{ color: '#38bdf8' }}>{isRTL ? 'جاري الاستيراد والتسجيل بالقاعدة...' : 'Importing products to master database...'}</span>
+                                    <span>{csvImportProgress}%</span>
+                                </div>
+                                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${csvImportProgress}%`, height: '100%', background: '#38bdf8', transition: 'width 0.2s ease' }}></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Success Notice */}
+                        {csvImportSuccessCount !== null && (
+                            <div style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.4)', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <CheckCircle size={24} color="#22c55e" />
+                                <div>
+                                    <div style={{ color: '#22c55e', fontWeight: '700', fontSize: '0.92rem' }}>
+                                        {isRTL ? `تم استيراد ${csvImportSuccessCount} منتج بنجاح إلى الكتالوج الرئيسي!` : `Successfully imported ${csvImportSuccessCount} products into master catalog!`}
+                                    </div>
+                                    <div style={{ fontSize: '0.78rem', color: '#86efac', marginTop: '2px' }}>
+                                        {isRTL ? 'تم تحديث الكتالوج وتوليد رموز SKU بنجاح' : 'Products and SKUs are now live in the global catalog'}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={() => setShowCsvModal(false)}
+                                disabled={isCsvImporting}
+                                style={{ background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                                {isRTL ? 'إغلاق' : 'Close'}
+                            </button>
+                            {csvParsedProducts.length > 0 && csvImportSuccessCount === null && (
+                                <button
+                                    type="button"
+                                    className="btn btn-gold"
+                                    onClick={executeCsvBatchImport}
+                                    disabled={isCsvImporting}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '10px 24px',
+                                        borderRadius: '8px',
+                                        fontWeight: '700',
+                                        cursor: isCsvImporting ? 'wait' : 'pointer'
+                                    }}
+                                >
+                                    <Plus size={18} />
+                                    <span>
+                                        {isCsvImporting 
+                                            ? (isRTL ? 'جاري الاستيراد...' : 'Importing...') 
+                                            : (isRTL ? `بدء استيراد ${csvParsedProducts.length} منتج` : `Execute Import (${csvParsedProducts.length} Products)`)}
+                                    </span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false })}
                 onConfirm={confirmDelete}
-                title={confirmModal.isLinkedItem 
-                    ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
-                    : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT')}
+                title={isRegionalAdmin 
+                    ? (isRTL ? 'إلغاء تفعيل المنتج بالإقليم' : 'DEACTIVATE REGIONAL INVENTORY')
+                    : (confirmModal.isLinkedItem 
+                        ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
+                        : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT'))}
                 message={
-                    confirmModal.isLinkedItem ? (
+                    isRegionalAdmin ? (
+                        <span>
+                            {isRTL 
+                                ? 'هل أنت متأكد من إلغاء تفعيل وفك ارتباط ' 
+                                : 'Are you sure you want to deactivate and unbind '}
+                            <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                                {confirmModal.productName}
+                            </strong>
+                            {isRTL 
+                                ? ' في كافة متاجر إقليمك الموكل؟ سيتم الحفاظ على الكتالوج الرئيسي ومتاجر الدول الأخرى دون تغيير.' 
+                                : ' across all boutiques in your assigned territory? The global master catalog and other GCC territories will remain preserved.'}
+                        </span>
+                    ) : (confirmModal.isLinkedItem ? (
                         <span>
                             {isRTL ? 'هل أنت متأكد من إزالة ' : 'Are you sure you want to remove '}
                             <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
@@ -2488,16 +3244,18 @@ const ProductManager = ({ isRTL, shopId, hideHeader }) => {
                     ) : (
                         <span>
                             {isRTL ? 'هل أنت متأكد من حذف المنتج ' : 'Are you sure you want to delete '}
-                            <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                            <strong style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-block', margin: '0 4px' }}>
                                 {confirmModal.productName}
                             </strong>
-                            {isRTL ? '؟' : '?'}
+                            {isRTL ? '؟ سيتم إزالته من كافة المتاجر وقواعد البيانات.' : '? This will permanently delete it across the entire platform.'}
                         </span>
-                    )
+                    ))
                 }
-                confirmText={confirmModal.isLinkedItem 
-                    ? (isRTL ? 'إزالة' : 'REMOVE') 
-                    : (isRTL ? 'حذف' : 'DELETE')}
+                confirmText={isRegionalAdmin 
+                    ? (isRTL ? 'إلغاء التفعيل بالإقليم' : 'DEACTIVATE IN REGION')
+                    : (confirmModal.isLinkedItem 
+                        ? (isRTL ? 'إزالة' : 'REMOVE') 
+                        : (isRTL ? 'حذف' : 'DELETE'))}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"

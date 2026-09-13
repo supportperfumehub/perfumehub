@@ -15,6 +15,7 @@ import shopsRoutes from './shops.js';
 import subscriptionsRoutes from './subscriptions.js';
 import usersRoutes from './users.js';
 import reviewsRoutes from './reviews.js';
+import storageRoutes from './storage.js';
 
 const apiRouter = express.Router();
 
@@ -39,5 +40,6 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/subscriptions', subscriptionsRoutes);
 apiRouter.use('/banners', bannersRoutes);
 apiRouter.use('/reviews', reviewsRoutes);
+apiRouter.use('/storage', storageRoutes);
 
 export default apiRouter;

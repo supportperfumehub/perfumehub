@@ -5,21 +5,44 @@ import { authenticateUser, verifyRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get inventory for a shop (or all accessible shops for admins)
+// Get inventory (Scoped by product_id or shop_id, default limit 50, zero unbounded table dumps)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    // Multi-tier Edge CDN caching: 60s browser, 300s edge, 24h stale-while-revalidate
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+
     try {
         const admin = req.user;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+        const offset = (page - 1) * limit;
+
+        const { product_id, shop_id, region_id } = req.query;
+
+        // When shoppers visit a product page, query inventory solely for that specific product_id
+        if (product_id) {
+            let pInvQuery = supabase
+                .from('vendor_inventory')
+                .select(`
+                    id, product_id, shop_id, price, stock, reserved_quantity, is_active, pickup_available, updated_at,
+                    shops (id, name, address, latitude, longitude, logo_url, trust_score, tier, status, region_id)
+                `)
+                .eq('product_id', product_id)
+                .eq('is_active', true)
+                .range(offset, offset + limit - 1);
+
+            const { data, error } = await withTimeout(pInvQuery);
+            if (error) throw error;
+            return res.json(data || []);
+        }
+
         let shopIds = null;
 
-        // Filter by region if requested and not global/all fetch
-        if (req.query.region_id && req.query.all !== 'true') {
+        // Filter by region if requested
+        if (region_id && req.query.all !== 'true') {
             const { data: regionShops } = await supabase
                 .from('shops')
                 .select('id')
-                .eq('region_id', req.query.region_id);
+                .eq('region_id', region_id);
             shopIds = regionShops ? regionShops.map(s => s.id) : [];
         }
 
@@ -37,9 +60,9 @@ router.get('/', async (req, res) => {
 
             if (ownedShopIds.length === 0) return res.json([]);
 
-            if (req.query.shop_id && req.query.shop_id !== 'all') {
-                if (ownedShopIds.includes(req.query.shop_id)) {
-                    shopIds = [req.query.shop_id];
+            if (shop_id && shop_id !== 'all') {
+                if (ownedShopIds.includes(shop_id)) {
+                    shopIds = [shop_id];
                 } else {
                     return res.status(403).json({ error: 'Forbidden: You do not own this shop.' });
                 }
@@ -55,38 +78,28 @@ router.get('/', async (req, res) => {
             const rShopIds = shops ? shops.map(s => s.id) : [];
             if (rShopIds.length > 0) {
                 shopIds = rShopIds;
-            } else if (!req.query.shop_id) {
+            } else if (!shop_id) {
                 return res.json([]);
             }
         }
 
-        let allData = [];
-        let page = 0;
-        const pageSize = 1000;
+        let query = supabase
+            .from('vendor_inventory')
+            .select('*');
 
-        while (true) {
-            let query = supabase
-                .from('vendor_inventory')
-                .select('*');
-
-            if (shopIds !== null) {
-                query = query.in('shop_id', shopIds);
-            }
-            if (req.query.shop_id) {
-                query = query.eq('shop_id', req.query.shop_id);
-            }
-
-            query = query.range(page * pageSize, (page + 1) * pageSize - 1);
-
-            const { data, error } = await withTimeout(query);
-            if (error) throw error;
-            if (!data || data.length === 0) break;
-            allData = allData.concat(data);
-            if (data.length < pageSize) break;
-            page++;
+        if (shopIds !== null) {
+            query = query.in('shop_id', shopIds);
         }
+        if (shop_id && shop_id !== 'all') {
+            query = query.eq('shop_id', shop_id);
+        }
+
+        query = query.range(offset, offset + limit - 1);
+
+        const { data, error } = await withTimeout(query);
+        if (error) throw error;
         
-        res.json(allData);
+        res.json(data || []);
     } catch (error) {
         if (error.message === 'Database query timed out') {
             return res.status(504).json({ error: 'Database timeout' });
@@ -106,9 +119,13 @@ router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 
 
         // Validate permissions
         if (admin.role === 'vendor') {
-            if (!admin.shop_id) return res.status(403).json({ error: 'Forbidden: No shop assigned to your vendor account.' });
-            if (shop_id && shop_id !== admin.shop_id) return res.status(403).json({ error: 'Forbidden: Cannot create inventory for another shop.' });
-            targetShopId = admin.shop_id;
+            const owned = admin.ownedShopIds || (admin.shop_id ? [admin.shop_id] : []);
+            if (owned.length === 0) return res.status(403).json({ error: 'Forbidden: No boutique assigned to your vendor account.' });
+            if (!targetShopId) {
+                targetShopId = owned[0];
+            } else if (!owned.includes(targetShopId)) {
+                return res.status(403).json({ error: 'Forbidden: You do not own this boutique branch.' });
+            }
         } else if (admin.role === 'regional_admin') {
             if (!targetShopId) return res.status(400).json({ error: 'Regional admins must specify a shop_id' });
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', targetShopId).single();
@@ -166,21 +183,31 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
     const admin = req.user;
 
     try {
-        const { data: existingInv } = await supabase.from('vendor_inventory').select('shop_id, product_id').eq('id', id).single();
+        const { data: existingInv } = await supabase.from('vendor_inventory').select('shop_id, product_id, reserved_quantity, stock').eq('id', id).single();
         if (!existingInv) return res.status(404).json({ error: 'Inventory record not found' });
 
         if (admin.role === 'vendor') {
-            if (existingInv.shop_id !== admin.shop_id) return res.status(403).json({ error: 'Forbidden: Cannot edit another shop inventory.' });
+            const owned = admin.ownedShopIds || (admin.shop_id ? [admin.shop_id] : []);
+            if (!owned.includes(existingInv.shop_id)) return res.status(403).json({ error: 'Forbidden: You do not own this boutique branch.' });
         } else if (admin.role === 'regional_admin') {
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingInv.shop_id).single();
             if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: Cannot edit this region inventory.' });
+                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
             }
         }
 
         const updateInvPayload = { updated_at: new Date().toISOString() };
         if (price !== undefined) updateInvPayload.price = Number(price);
-        if (stock !== undefined) updateInvPayload.stock = Number(stock);
+        if (stock !== undefined) {
+            const numStock = Number(stock);
+            const activeReserved = Number(existingInv.reserved_quantity || 0);
+            if (numStock < activeReserved) {
+                return res.status(400).json({ 
+                    error: `Cannot reduce stock below the currently reserved quantity (${activeReserved} units reserved for click & collect).` 
+                });
+            }
+            updateInvPayload.stock = numStock;
+        }
         if (is_active !== undefined) updateInvPayload.is_active = is_active;
         if (pickup_available !== undefined) updateInvPayload.pickup_available = pickup_available;
 
@@ -197,7 +224,32 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
             throw error;
         }
 
-        // Recalculate total master stock (sum of all active shop inventories) and sync price/discount
+        // Record immutable stock movement into inventory_logs
+        if (stock !== undefined && existingInv && data[0]) {
+            const prevStock = Number(existingInv.stock) || 0;
+            const newStock = Number(data[0].stock) || 0;
+            const delta = newStock - prevStock;
+            if (delta !== 0) {
+                try {
+                    await supabase.from('inventory_logs').insert([{
+                        inventory_id: id,
+                        shop_id: existingInv.shop_id,
+                        product_id: existingInv.product_id,
+                        previous_stock: prevStock,
+                        new_stock: newStock,
+                        delta: delta,
+                        change_type: delta > 0 ? 'vendor_restock' : 'manual_adjustment',
+                        performed_by: admin?.id || null
+                    }]);
+                } catch (logErr) {
+                    console.warn('Inventory log insertion error:', logErr.message);
+                }
+            }
+        }
+
+        // Recalculate total master stock (sum of all active shop inventories)
+        // CRITICAL: NEVER overwrite products.price or products.old_price! 
+        // products.price is the master benchmark (MSRP). Regional selling prices live strictly in vendor_inventory.price.
         if (data[0]?.product_id) {
             try {
                 const productId = data[0].product_id;
@@ -209,35 +261,9 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin'
 
                 const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
 
-                const prodUpdatePayload = { stock: totalMasterStock };
-
-                if (price !== undefined) {
-                    const newPrice = Number(price);
-                    const { data: prod } = await supabase.from('products').select('old_price, size').eq('id', productId).single();
-                    const oldP = prod?.old_price ? Number(prod.old_price) : null;
-                    const autoDiscount = (oldP && oldP > newPrice) ? Math.round((1 - newPrice / oldP) * 100) : 0;
-                    
-                    let updatedSizes = prod?.size;
-                    if (Array.isArray(updatedSizes) && updatedSizes.length > 0) {
-                        updatedSizes = updatedSizes.map((sz, idx) => {
-                            if (idx === 0 || updatedSizes.length === 1) {
-                                return typeof sz === 'object'
-                                    ? { ...sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount }
-                                    : { name: sz, price: newPrice, oldPrice: (oldP && oldP > newPrice) ? oldP : null, discount: autoDiscount };
-                            }
-                            return sz;
-                        });
-                    }
-
-                    prodUpdatePayload.price = newPrice;
-                    prodUpdatePayload.old_price = (oldP && oldP > newPrice) ? oldP : null;
-                    prodUpdatePayload.discount = autoDiscount;
-                    prodUpdatePayload.size = updatedSizes;
-                }
-
                 await supabase
                     .from('products')
-                    .update(prodUpdatePayload)
+                    .update({ stock: totalMasterStock })
                     .eq('id', productId);
             } catch (syncErr) {
                 console.error('Inventory auto-sync error:', syncErr.message);
@@ -262,11 +288,12 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
         if (!existingInv) return res.status(404).json({ error: 'Inventory record not found' });
 
         if (admin.role === 'vendor') {
-            if (existingInv.shop_id !== admin.shop_id) return res.status(403).json({ error: 'Forbidden: Cannot delete another shop inventory.' });
+            const owned = admin.ownedShopIds || (admin.shop_id ? [admin.shop_id] : []);
+            if (!owned.includes(existingInv.shop_id)) return res.status(403).json({ error: 'Forbidden: You do not own this boutique branch.' });
         } else if (admin.role === 'regional_admin') {
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', existingInv.shop_id).single();
             if (!shop || !admin.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: Cannot delete this region inventory.' });
+                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
             }
         }
 

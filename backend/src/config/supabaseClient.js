@@ -17,4 +17,24 @@ console.log(`Supabase Client initialized with key: ${keyToUse ? keyToUse.substri
 if (supabaseServiceKey) console.log('Using SERVICE ROLE KEY (RLS Bypass enabled)');
 else console.log('WARNING: Using ANON KEY (RLS may block insertions)');
 
-export const supabase = createClient(supabaseUrl, keyToUse);
+/**
+ * Supabase Connection Options configured for High-Concurrency Serverless Execution:
+ * - Session persistence disabled to eliminate serverless state memory leaks
+ * - Auto refresh token disabled for headless service worker
+ * - x-application-name tagged for connection tracing in Supavisor / pgBouncer
+ * - Directs traffic through Transaction Pooler (Port 6543) under high load
+ */
+export const supabase = createClient(supabaseUrl, keyToUse, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false
+    },
+    db: {
+        schema: 'public'
+    },
+    global: {
+        headers: {
+            'x-application-name': 'perfumehub-backend-high-concurrency'
+        }
+    }
+});

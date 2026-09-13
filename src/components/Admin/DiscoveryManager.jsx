@@ -180,8 +180,86 @@ const SearchableProductSelect = ({ products, value, onChange, isRTL, placeholder
     );
 };
 
-const DiscoveryManager = ({ isRTL }) => {
+const CULTURAL_EVENTS = [
+    {
+        name: 'اليوم الوطني القطري (18 ديسمبر)',
+        nameEn: 'Qatar National Day (Dec 18)',
+        badge: '🇶🇦 Qatar',
+        startDate: '2026-12-10',
+        endDate: '2026-12-20',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'يوم التأسيس السعودي (22 فبراير)',
+        nameEn: 'Saudi Founding Day (Feb 22)',
+        badge: '🇸🇦 KSA',
+        startDate: '2026-02-18',
+        endDate: '2026-02-25',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'اليوم الوطني السعودي (23 سبتمبر)',
+        nameEn: 'Saudi National Day (Sep 23)',
+        badge: '🇸🇦 KSA',
+        startDate: '2026-09-18',
+        endDate: '2026-09-25',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'عيد الاتحاد الإماراتي (2 ديسمبر)',
+        nameEn: 'UAE Union Day (Dec 2)',
+        badge: '🇦🇪 UAE',
+        startDate: '2026-11-28',
+        endDate: '2026-12-05',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'موسم عيد الفطر المبارك',
+        nameEn: 'Eid Al-Fitr Festive',
+        badge: '🌙 Eid Al-Fitr',
+        startDate: '2026-03-20',
+        endDate: '2026-03-31',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'موسم العود وعيد الأضحى',
+        nameEn: 'Eid Al-Adha Royal Oud Season',
+        badge: '👑 Royal Oud',
+        startDate: '2026-05-25',
+        endDate: '2026-06-05',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'اليوم الوطني الكويتي (25 فبراير)',
+        nameEn: 'Kuwait National Day (Feb 25)',
+        badge: '🇰🇼 Kuwait',
+        startDate: '2026-02-20',
+        endDate: '2026-02-28',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'اليوم الوطني العُماني (18 نوفمبر)',
+        nameEn: 'Oman National Day (Nov 18)',
+        badge: '🇴🇲 Oman',
+        startDate: '2026-11-12',
+        endDate: '2026-11-20',
+        placementSlot: 'homepage_featured'
+    },
+    {
+        name: 'اليوم الوطني البحريني (16 ديسمبر)',
+        nameEn: 'Bahrain National Day (Dec 16)',
+        badge: '🇧🇭 Bahrain',
+        startDate: '2026-12-12',
+        endDate: '2026-12-18',
+        placementSlot: 'homepage_featured'
+    }
+];
+
+const DiscoveryManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
     const { user } = useContext(AuthContext);
+    const isRegionalAdmin = user?.role === 'regional_admin';
+    const adminRegionIds = user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
+
     const [shops, setShops] = useState([]);
     const [campaigns, setCampaigns] = useState([]);
     const [products, setProducts] = useState([]);
@@ -443,20 +521,27 @@ const DiscoveryManager = ({ isRTL }) => {
     const clearAllCampaigns = async () => {
         setConfirmModal({
             isOpen: true,
-            title: isRTL ? 'مسح كافة حملات الاكتشاف' : 'CLEAR ALL DISCOVERY CAMPAIGNS',
+            title: isRegionalAdmin 
+                ? (isRTL ? 'مسح حملات إقليمك المعتمد' : 'CLEAR TERRITORY CAMPAIGNS')
+                : (isRTL ? 'مسح كافة حملات الاكتشاف' : 'CLEAR ALL DISCOVERY CAMPAIGNS'),
             message: (
                 <span>
-                    {isRTL 
-                        ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف؟' 
-                        : 'Are you sure you want to clear ALL discovery campaigns?'}
+                    {isRegionalAdmin 
+                        ? (isRTL 
+                            ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف التابعة لمتاجر إقليمك فقط؟ الحملات في الأقاليم الأخرى ستبقى كما هي.' 
+                            : 'Are you sure you want to clear discover campaigns in your assigned territory? Other GCC territories will remain unaffected.')
+                        : (isRTL 
+                            ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف على مستوى المنصة بالكامل؟' 
+                            : 'Are you sure you want to clear ALL discovery campaigns platform-wide?')}
                 </span>
             ),
-            confirmText: isRTL ? 'مسح الكل' : 'CLEAR ALL',
+            confirmText: isRegionalAdmin ? (isRTL ? 'مسح حملات الإقليم' : 'CLEAR REGIONAL') : (isRTL ? 'مسح الكل' : 'CLEAR ALL'),
             cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
-                    await api.delete('/admin/discover-campaigns/clear-all');
-                    setCampaigns([]);
+                    const endpoint = isRegionalAdmin ? '/admin/discover-campaigns/clear-regional' : '/admin/discover-campaigns/clear-all';
+                    await api.delete(endpoint);
+                    fetchData();
                     window.dispatchEvent(new Event('discover-campaigns-updated'));
                 } catch (err) {
                     setAlertModal({
@@ -469,18 +554,50 @@ const DiscoveryManager = ({ isRTL }) => {
         });
     };
 
+    const effectiveRegion = (activeTerritoryId && activeTerritoryId !== 'all') 
+        ? activeTerritoryId 
+        : selectedRegion;
+
+    const availableShops = shops.filter(shop => {
+        if (isRegionalAdmin) {
+            if (activeTerritoryId && activeTerritoryId !== 'all') {
+                return String(shop.region_id) === String(activeTerritoryId);
+            }
+            return adminRegionIds.map(String).includes(String(shop.region_id));
+        }
+        if (activeTerritoryId && activeTerritoryId !== 'all') {
+            return String(shop.region_id) === String(activeTerritoryId);
+        }
+        return true;
+    });
+
     const filteredCampaigns = campaigns.filter(c => {
-        if (selectedRegion === 'all') return true;
-        return Number(c.shop_region_id) === Number(selectedRegion) || Number(c.region_id) === Number(selectedRegion);
+        const shopReg = c.shop_region_id || c.region_id;
+        if (isRegionalAdmin) {
+            if (activeTerritoryId && activeTerritoryId !== 'all') {
+                return Number(shopReg) === Number(activeTerritoryId);
+            }
+            return adminRegionIds.map(Number).includes(Number(shopReg));
+        }
+        if (effectiveRegion === 'all') return true;
+        return Number(shopReg) === Number(effectiveRegion);
     });
 
     const filteredShops = shops.filter(s => {
-        if (selectedRegion !== 'all' && Number(s.region_id) !== Number(selectedRegion)) return false;
+        if (isRegionalAdmin) {
+            if (activeTerritoryId && activeTerritoryId !== 'all') {
+                if (Number(s.region_id) !== Number(activeTerritoryId)) return false;
+            } else if (!adminRegionIds.map(Number).includes(Number(s.region_id))) {
+                return false;
+            }
+        } else if (effectiveRegion !== 'all' && Number(s.region_id) !== Number(effectiveRegion)) {
+            return false;
+        }
         if (filter === 'featured' && !s.is_featured) return false;
         if (filter === 'regular' && s.is_featured) return false;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            return (s.name && s.name.toLowerCase().includes(q)) || (s.id && s.id.toLowerCase().includes(q));
+            return (s.name && s.name.toLowerCase().includes(q)) || (s.id && String(s.id).toLowerCase().includes(q));
         }
         return true;
     });
@@ -1282,7 +1399,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                     required
                                 >
                                     <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
-                                    {shops.map(shop => {
+                                    {availableShops.map(shop => {
                                         const badge = getRegionBadge(shop.region_id);
                                         return (
                                             <option key={shop.id} value={shop.id}>
@@ -1304,6 +1421,56 @@ const DiscoveryManager = ({ isRTL }) => {
                                     isRTL={isRTL}
                                     placeholder={isRTL ? '-- اختر منتجاً (للإعلان عن منتج معين) --' : '-- Select a Product (Optional) --'}
                                 />
+                            </div>
+
+                            {/* Cultural Event & Holiday Quick-Apply Presets */}
+                            <div style={{
+                                background: 'rgba(200, 169, 81, 0.08)',
+                                border: '1px solid rgba(200, 169, 81, 0.25)',
+                                borderRadius: '10px',
+                                padding: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c8a951', fontSize: '0.82rem', fontWeight: '600' }}>
+                                    <Sparkles size={15} />
+                                    <span>{isRTL ? 'إعدادات مسبقة للفعاليات والمواسم الثقافية' : 'Cultural Event & Festive Presets'}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {CULTURAL_EVENTS.map((event, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                setNewCampaign(prev => ({
+                                                    ...prev,
+                                                    placement_slot: event.placementSlot,
+                                                    start_date: event.startDate,
+                                                    end_date: event.endDate
+                                                }));
+                                            }}
+                                            style={{
+                                                background: '#0f172a',
+                                                border: '1px solid #334155',
+                                                color: '#e2e8f0',
+                                                fontSize: '0.74rem',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                transition: 'all 0.15s'
+                                            }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c8a951'; e.currentTarget.style.color = '#c8a951'; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#e2e8f0'; }}
+                                        >
+                                            <span>{event.badge}</span>
+                                            <span>{isRTL ? event.name : event.nameEn}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1447,7 +1614,7 @@ const DiscoveryManager = ({ isRTL }) => {
                                     required
                                 >
                                     <option value="">{isRTL ? '-- اختر متجراً --' : '-- Select a Shop --'}</option>
-                                    {shops.map(shop => {
+                                    {availableShops.map(shop => {
                                         const badge = getRegionBadge(shop.region_id);
                                         return (
                                             <option key={shop.id} value={shop.id}>

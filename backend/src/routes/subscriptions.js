@@ -1,6 +1,10 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { authenticateUser, verifyRole } from '../middleware/auth.js';
+import Stripe from 'stripe';
+import config from '../config/env.js';
+
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 const router = express.Router();
 
@@ -123,6 +127,14 @@ router.delete('/plans/:id', authenticateUser, verifyRole(['super_admin', 'admin'
  */
 router.post('/subscribe', authenticateUser, verifyRole(['vendor', 'regional_admin', 'admin', 'super_admin']), async (req, res, next) => {
     try {
+        // Vendors must go through verified payment gateway. Only Admins can manually comp/provision subscriptions directly.
+        if (req.user.role !== 'super_admin' && req.user.role !== 'admin') {
+            return res.status(403).json({
+                error: 'Direct subscription activation restricted',
+                message: 'Vendor boutique subscriptions must be completed via certified Stripe payment gateway checkout.'
+            });
+        }
+
         const { planId } = req.body;
         if (!planId) {
             return res.status(400).json({ error: 'Plan ID is required' });
@@ -159,22 +171,144 @@ router.post('/subscribe', authenticateUser, verifyRole(['vendor', 'regional_admi
             periodEnd.setMonth(now.getMonth() + 1);
         }
 
+        const subscriptionId = 'sub_prod_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
         const { data, error } = await supabase
             .from('subscriptions')
             .insert([{
                 user_id: req.user.id,
                 plan_id: planId,
                 status: 'active',
-                stripe_subscription_id: 'mock_sub_' + Math.random().toString(36).substring(2, 9),
+                stripe_subscription_id: subscriptionId,
                 current_period_start: now.toISOString(),
                 current_period_end: periodEnd.toISOString()
             }])
             .select('*, plan:subscription_plans(*)');
 
         if (error) throw error;
+
+        // Automatically elevate all boutique branches owned by this vendor to 'premium'
+        const targetShops = req.user.ownedShopIds || (req.user.shop_id ? [req.user.shop_id] : []);
+        if (targetShops.length > 0) {
+            try {
+                await supabase
+                    .from('shops')
+                    .update({ tier: 'premium', subscription_ends_at: periodEnd.toISOString() })
+                    .in('id', targetShops);
+            } catch (shopElevateErr) {
+                console.warn('Could not auto-elevate shop tier in DB:', shopElevateErr.message);
+            }
+        }
+
         res.status(201).json(data[0]);
     } catch (err) {
         next(err);
+    }
+});
+
+/**
+ * VENDOR/ADMIN: Create Gateway Checkout Session (Stripe / GCC)
+ */
+router.post('/create-checkout-session', authenticateUser, verifyRole(['vendor', 'regional_admin', 'admin', 'super_admin']), async (req, res, next) => {
+    try {
+        const { planId } = req.body;
+        if (!planId) return res.status(400).json({ error: 'Plan ID is required' });
+
+        const { data: plan, error: planError } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .eq('id', planId)
+            .maybeSingle();
+
+        if (planError || !plan) return res.status(404).json({ error: 'Subscription plan not found' });
+
+        if (stripe) {
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: [{
+                    price_data: {
+                        currency: 'qar',
+                        product_data: {
+                            name: `PerfumeHub Boutique Partner: ${plan.name}`,
+                            description: plan.description || 'Enterprise Boutique Subscription'
+                        },
+                        unit_amount: Math.round(Number(plan.price) * 100),
+                        recurring: { interval: plan.interval || 'month' }
+                    },
+                    quantity: 1
+                }],
+                mode: 'subscription',
+                customer_email: req.user.email,
+                success_url: `${config.server.frontendUrl}/vendor?active_tab=billing&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${config.server.frontendUrl}/vendor?active_tab=billing`,
+                metadata: {
+                    userId: String(req.user.id),
+                    planId: String(plan.id)
+                }
+            });
+            return res.json({ url: session.url, sessionId: session.id });
+        } else {
+            return res.status(503).json({
+                error: 'Stripe Gateway Offline',
+                message: 'Stripe payment gateway credentials are not configured in current environment. Please contact executive support.'
+            });
+        }
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * PUBLIC: Stripe Webhook for automated activation and branch elevation
+ */
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        const sig = req.headers['stripe-signature'];
+        let event = req.body;
+
+        if (stripe && process.env.STRIPE_WEBHOOK_SECRET && sig) {
+            try {
+                event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+            } catch (err) {
+                return res.status(400).send(`Webhook Error: ${err.message}`);
+            }
+        }
+
+        const type = event.type || event.event;
+        if (type === 'checkout.session.completed' || type === 'invoice.payment_succeeded') {
+            const dataObj = event.data?.object || event;
+            const userId = dataObj.metadata?.userId;
+            const planId = dataObj.metadata?.planId;
+
+            if (userId) {
+                const now = new Date();
+                const periodEnd = new Date();
+                periodEnd.setMonth(now.getMonth() + 1);
+
+                await supabase.from('subscriptions').upsert([{
+                    user_id: Number(userId),
+                    plan_id: planId,
+                    status: 'active',
+                    stripe_subscription_id: dataObj.subscription || ('sub_' + Math.random().toString(36).substring(2, 9)),
+                    current_period_start: now.toISOString(),
+                    current_period_end: periodEnd.toISOString()
+                }], { onConflict: 'user_id' });
+
+                // Elevate all owned shops to premium
+                const { data: shops } = await supabase.from('shops').select('id').eq('owner_id', Number(userId));
+                if (shops && shops.length > 0) {
+                    await supabase
+                        .from('shops')
+                        .update({ tier: 'premium', subscription_ends_at: periodEnd.toISOString() })
+                        .in('id', shops.map(s => s.id));
+                }
+            }
+        }
+
+        res.json({ received: true });
+    } catch (err) {
+        console.error('Subscription webhook error:', err);
+        res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
 

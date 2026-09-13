@@ -49,6 +49,17 @@ export const authenticateUser = async (req, res, next) => {
             req.user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
         }
 
+        // Vendor Multi-Branch Scoping (Single Source of Truth: shops.owner_id)
+        if (user.role === 'vendor') {
+            const { data: ownedShops } = await supabase
+                .from('shops')
+                .select('id, name')
+                .eq('owner_id', user.id)
+                .is('deleted_at', null);
+            req.user.ownedShopIds = ownedShops ? ownedShops.map(s => s.id) : [];
+            req.user.shop_id = req.user.ownedShopIds[0] || user.shop_id || null;
+        }
+
         next();
     } catch (err) {
         console.error('Auth Middleware Error:', err);

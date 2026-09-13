@@ -1,12 +1,14 @@
 import express from 'express';
 import { supabase } from '../config/supabaseClient.js';
 import { authenticateUser, verifyRole } from '../middleware/auth.js';
+import { emailService } from '../services/emailService.js';
 
 const router = express.Router();
 
 const checkVendorShopAccess = async (user, shopId) => {
     if (!user || !shopId) return false;
-    if (user.shop_id && user.shop_id === shopId) return true;
+    const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
+    if (owned.includes(shopId)) return true;
     const { data: shop } = await supabase.from('shops').select('owner_id').eq('id', shopId).single();
     return shop && shop.owner_id === user.id;
 };
@@ -50,9 +52,30 @@ router.get('/', authenticateUser, async (req, res) => {
             } else {
                 query = query.in('shop_id', ownedShopIds);
             }
-        } else if (user.role === 'regional_admin' || user.role === 'super_admin') {
-            // Admins can filter by shop
-            if (req.query.shop_id) {
+        } else if (user.role === 'regional_admin') {
+            const assigned = user.assignedRegionIds || [];
+            if (assigned.length === 0) return res.json([]);
+            
+            const { data: regionalShops } = await supabase
+                .from('shops')
+                .select('id')
+                .in('region_id', assigned);
+
+            const shopIds = (regionalShops || []).map(s => s.id);
+            if (shopIds.length === 0) return res.json([]);
+
+            if (req.query.shop_id && req.query.shop_id !== 'all') {
+                if (shopIds.includes(req.query.shop_id)) {
+                    query = query.eq('shop_id', req.query.shop_id);
+                } else {
+                    return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
+                }
+            } else {
+                query = query.in('shop_id', shopIds);
+            }
+        } else if (user.role === 'super_admin' || user.role === 'admin') {
+            // Super Admins can filter by any shop
+            if (req.query.shop_id && req.query.shop_id !== 'all') {
                 query = query.eq('shop_id', req.query.shop_id);
             }
         }
@@ -94,6 +117,29 @@ router.post('/', authenticateUser, async (req, res) => {
             throw error;
         }
 
+        // Dispatch VIP pickup pass email asynchronously
+        try {
+            const { data: resvDetails } = await supabase
+                .from('reservations')
+                .select('*, shops(name, address, whatsapp_number), products(name)')
+                .eq('id', reservationId)
+                .maybeSingle();
+
+            if (resvDetails) {
+                emailService.sendClickAndCollectVIPPassEmail({
+                    id: reservationId,
+                    customer_name: user.name || 'VIP Client',
+                    customer_email: user.email,
+                    verification_pin: resvDetails.verification_pin || resvDetails.pin,
+                    shop_name: resvDetails.shops?.name,
+                    shop_address: resvDetails.shops?.address,
+                    whatsapp_number: resvDetails.shops?.whatsapp_number
+                }).catch(e => console.error('VIP Pass email warning:', e.message));
+            }
+        } catch (vipErr) {
+            console.error('Failed to fetch reservation details for VIP email:', vipErr.message);
+        }
+
         res.status(201).json({ 
             message: 'Reservation created successfully', 
             reservation_id: reservationId 
@@ -123,7 +169,7 @@ router.post('/:id/confirm', authenticateUser, verifyRole(['vendor', 'super_admin
             
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
             if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
             }
         }
 
@@ -162,7 +208,7 @@ router.post('/:id/complete', authenticateUser, verifyRole(['vendor', 'super_admi
             
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
             if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
             }
         }
 
@@ -197,7 +243,7 @@ router.post('/:id/cancel', authenticateUser, async (req, res) => {
         if (user.role === 'regional_admin') {
             const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
             if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Forbidden: You do not have access to this region.' });
+                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
             }
         }
 
@@ -234,9 +280,14 @@ router.post('/verify', authenticateUser, verifyRole(['vendor', 'super_admin', 'r
             .in('status', ['pending', 'confirmed'])
             .maybeSingle();
 
-        // If vendor, restrict to their shop
+        // If vendor, restrict to their owned shops
         if (user.role === 'vendor') {
-            query = query.eq('shop_id', user.shop_id);
+            const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
+            if (owned.length > 0) {
+                query = query.in('shop_id', owned);
+            } else {
+                return res.status(403).json({ error: 'Forbidden: You have no registered boutique branches.' });
+            }
         } else if (user.role === 'regional_admin') {
             const { data: shops } = await supabase
                 .from('shops')

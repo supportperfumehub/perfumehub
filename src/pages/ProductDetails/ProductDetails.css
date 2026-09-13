@@ -1286,4 +1286,216 @@
         padding-left: 0;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Interactive Olfactive Notes Pyramid & Sensory Performance
+══════════════════════════════════════════════════════════════ */
+.olfactory-pyramid-card {
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 18px;
+    padding: 22px;
+    margin: 25px 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.olfactory-pyramid-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #d4af37, #f3e5ab, #d4af37, transparent);
+}
+
+.pyramid-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.pyramid-header-icon {
+    color: #d4af37;
+    flex-shrink: 0;
+}
+
+.pyramid-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    letter-spacing: 0.5px;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+}
+
+.pyramid-subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    margin-left: auto;
+}
+
+[dir="rtl"] .pyramid-subtitle {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.pyramid-tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.pyramid-tier {
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #faf8f5;
+    border: 1px solid rgba(212, 175, 55, 0.16);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.pyramid-tier:hover {
+    border-color: rgba(212, 175, 55, 0.5);
+    background: #fdfbf7;
+}
+
+.tier-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.tier-timing {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8f6e14;
+    font-weight: 700;
+    background: rgba(212, 175, 55, 0.12);
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.tier-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #2c2c2c;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tier-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pyramid-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #222222;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+}
+
+.pyramid-chip:hover {
+    background: #d4af37;
+    color: #ffffff;
+    border-color: #d4af37;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(212, 175, 55, 0.35);
+}
+
+/* Sensory Meters */
+.sensory-meters-section {
+    padding-top: 18px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sensory-meter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sensory-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.meter-label {
+    color: #555;
+    font-weight: 600;
+}
+
+.meter-val {
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.luxury-progress-track {
+    width: 100%;
+    height: 7px;
+    background: #ece8df;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.luxury-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #c89d2c, #e5c365);
+    border-radius: 999px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sensory-seasons-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.season-pills-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.season-pill {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #f1f1f1;
+    color: #888;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.season-pill.active {
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #8f6e14;
+    font-weight: 700;
+}
 

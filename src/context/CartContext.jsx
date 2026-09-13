@@ -16,9 +16,9 @@ export const CartProvider = ({ children }) => {
         setCartItems(prevItems => {
             const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
             const priceToUse = selectedPrice !== null && selectedPrice !== undefined ? selectedPrice : product.price;
-            const finalShopId = shopId || product.shop_id || (product.inventories && product.inventories[0]?.shop_id) || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+            const finalShopId = shopId || product.shop_id || (product.inventories && product.inventories[0]?.shop_id) || null;
             const finalInventoryId = inventoryId || product.inventory_id || (product.inventories && product.inventories[0]?.id) || null;
-            const finalVendorName = vendorName || product.vendor_name || product.shop_name || 'PerfumeHub Flagship Boutique';
+            const finalVendorName = vendorName || product.vendor_name || product.shop_name || 'PerfumeHub Luxury Boutique';
             const finalVendorAddress = vendorAddress || product.vendor_address || product.shop_address || 'Doha / Lusail';
 
             const existingItemIndex = prevItems.findIndex(
@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
                         item.isGiftWrapped === isGiftWrapped && 
                         item.selectedSize === sizeToUse && 
                         item.selectedPrice === priceToUse &&
-                        item.shop_id === finalShopId
+                        (finalShopId ? item.shop_id === finalShopId : true)
             );
 
             if (existingItemIndex >= 0) {
@@ -48,6 +48,26 @@ export const CartProvider = ({ children }) => {
                     vendor_address: finalVendorAddress
                 }];
             }
+        });
+    };
+
+    const mergeUserCart = (incomingItems) => {
+        if (!Array.isArray(incomingItems) || incomingItems.length === 0) return;
+        setCartItems(prevItems => {
+            const merged = [...prevItems];
+            incomingItems.forEach(incoming => {
+                const idx = merged.findIndex(item => 
+                    item.product?.id === incoming.product?.id &&
+                    item.selectedSize === incoming.selectedSize &&
+                    item.isGiftWrapped === incoming.isGiftWrapped
+                );
+                if (idx >= 0) {
+                    merged[idx].quantity = Math.max(merged[idx].quantity, incoming.quantity || 1);
+                } else {
+                    merged.push(incoming);
+                }
+            });
+            return merged;
         });
     };
 
@@ -96,7 +116,8 @@ export const CartProvider = ({ children }) => {
             updateQuantity,
             clearCart,
             getCartTotal,
-            getCartCount
+            getCartCount,
+            mergeUserCart
         }}>
             {children}
         </CartContext.Provider>

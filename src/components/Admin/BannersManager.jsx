@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { 
     Megaphone, Plus, Edit, Trash2, Check, X, Eye, EyeOff, 
     Sparkles, Tag, ExternalLink, RefreshCw, Layers, ShieldCheck, 
-    Sliders, ArrowUpRight, Copy, CheckCircle2 
+    Sliders, ArrowUpRight, Copy, CheckCircle2, Clock 
 } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import { AuthContext } from '../../context/AuthContext';
@@ -32,7 +32,8 @@ const BannersManager = ({ isRTL }) => {
         discount_code: '',
         link_url: '',
         is_active: true,
-        display_order: 1
+        display_order: 1,
+        countdown_end: ''
     });
 
     // Delete Modal State
@@ -52,10 +53,7 @@ const BannersManager = ({ isRTL }) => {
 
     const fetchBanners = async () => {
         try {
-            setLoading(true);
-            const res = await api.get(`/banners?_t=${Date.now()}`, {
-                headers: { 'Cache-Control': 'no-cache' }
-            });
+            const res = await api.get('/banners');
             setBanners(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Error fetching banners:', err);
@@ -101,7 +99,8 @@ const BannersManager = ({ isRTL }) => {
             discount_code: '',
             link_url: '',
             is_active: true,
-            display_order: filteredBanners.length + 1
+            display_order: filteredBanners.length + 1,
+            countdown_end: ''
         });
         setIsFormOpen(true);
         setError(null);
@@ -118,7 +117,8 @@ const BannersManager = ({ isRTL }) => {
             discount_code: banner.discount_code || '',
             link_url: banner.link_url || '',
             is_active: banner.is_active !== false,
-            display_order: banner.display_order || 1
+            display_order: banner.display_order || 1,
+            countdown_end: banner.countdown_end ? new Date(banner.countdown_end).toISOString().slice(0, 16) : ''
         });
         setIsFormOpen(true);
         setError(null);
@@ -402,6 +402,24 @@ const BannersManager = ({ isRTL }) => {
                                                     <ArrowUpRight size={12} /> {banner.link_url}
                                                 </span>
                                             )}
+                                            {banner.countdown_end && (
+                                                <span style={{
+                                                    fontSize: '0.72rem',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '12px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    background: new Date(banner.countdown_end) > new Date() ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                    color: new Date(banner.countdown_end) > new Date() ? '#f59e0b' : '#ef4444',
+                                                    border: `1px solid ${new Date(banner.countdown_end) > new Date() ? '#f59e0b44' : '#ef444444'}`
+                                                }}>
+                                                    <Clock size={11} />
+                                                    {new Date(banner.countdown_end) > new Date() 
+                                                        ? `${isRTL ? 'ينتهي:' : 'Ends:'} ${new Date(banner.countdown_end).toLocaleDateString()} ${new Date(banner.countdown_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                        : (isRTL ? 'انتهى العرض' : 'Offer Expired')}
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem', marginBottom: '2px' }}>
@@ -612,6 +630,23 @@ const BannersManager = ({ isRTL }) => {
                                         style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', outline: 'none' }}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Flash Sale Countdown Expiry */}
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.82rem', color: '#cbd5e1', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Clock size={14} color="#c8a951" />
+                                    {isRTL ? 'تاريخ ووقت انتهاء العرض (عد تنازلي اختياري)' : 'Flash Sale Expiry / Countdown End (Optional)'}
+                                </label>
+                                <input 
+                                    type="datetime-local"
+                                    value={formData.countdown_end || ''}
+                                    onChange={(e) => setFormData({ ...formData, countdown_end: e.target.value })}
+                                    style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '10px 14px', borderRadius: '8px', outline: 'none' }}
+                                />
+                                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '2px 0 0' }}>
+                                    {isRTL ? 'في حال التحديد، سيظهر مؤقت عد تنازلي حي للمشترين حتى انتهاء الحملة الترويجية.' : 'When specified, visitors will see a dynamic countdown clock until the promotion closes.'}
+                                </p>
                             </div>
 
                             {/* Active Checkbox */}

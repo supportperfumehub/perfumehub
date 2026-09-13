@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShoppingCart, Heart, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Heart, Check, ChevronLeft, ChevronRight, MapPin, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
+import QuickViewModal from './QuickViewModal';
 import './ProductCard.css';
 
 /* ─── Mini Image Swiper ─── */
@@ -87,6 +88,7 @@ const ProductCard = ({ product, isRTL }) => {
     const { addToCart } = useContext(CartContext);
     const { toggleWishlist, isInWishlist } = useContext(WishlistContext);
     const [addedToCart, setAddedToCart] = useState(false);
+    const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
     const handleToggleWishlist = (e) => {
         e.preventDefault();
@@ -110,11 +112,27 @@ const ProductCard = ({ product, isRTL }) => {
                 <ImageSwiper images={product.image} name={product.name} />
 
                 <button
+                    type="button"
                     className={`wishlist-btn ${isInWishlist(product.id) ? 'active' : ''}`}
                     onClick={handleToggleWishlist}
                     aria-label="Wishlist"
                 >
                     <Heart size={18} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} color="currentColor" />
+                </button>
+
+                {/* Floating Quick View Eye Button */}
+                <button
+                    type="button"
+                    className="quick-view-floating-btn"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsQuickViewOpen(true);
+                    }}
+                    title={isRTL ? "نظرة سريعة" : "Quick View"}
+                    aria-label="Quick View"
+                >
+                    <Eye size={16} />
                 </button>
 
                 {product.isNew && (product.discount === 0 || !product.discount) ? (
@@ -135,6 +153,20 @@ const ProductCard = ({ product, isRTL }) => {
 
                 <div className="product-overlay">
                     <button
+                        type="button"
+                        className="btn quick-inspect-btn"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsQuickViewOpen(true);
+                        }}
+                        title={isRTL ? "نظرة سريعة" : "Quick View"}
+                    >
+                        <Eye size={16} />
+                        <span>{isRTL ? 'نظرة سريعة' : 'Quick View'}</span>
+                    </button>
+                    <button
+                        type="button"
                         className={`btn ${addedToCart ? 'btn-success' : 'btn-primary'} quick-add ${product.stock === 0 ? 'out-of-stock' : ''}`}
                         onClick={handleAddToCart}
                         disabled={product.stock === 0}
@@ -147,11 +179,23 @@ const ProductCard = ({ product, isRTL }) => {
             </Link>
 
             <div className="product-info">
-                <p className="product-brand">{product.brand}</p>
+                <div className="product-brand-row">
+                    <p className="product-brand">{product.brand}</p>
+                    {(Number(product.stock) > 0 || (Array.isArray(product.inventories) && product.inventories.some(inv => Number(inv.stock) > 0))) && (
+                        <span className="card-proximity-pill" title="Ready for 1-hour collection at Souq Al Jabor & Lusail Marina">
+                            <MapPin size={10} /> {isRTL ? 'استلام فوري' : '1-Hr Pickup'}
+                        </span>
+                    )}
+                </div>
                 <h3 className="product-name">
                     <Link to={`/product/${product.id}`}>{product.name}</Link>
                 </h3>
                 <p className="product-type">{product.type} - {Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size}</p>
+                {product.topNotes && (
+                    <div className="card-notes-preview">
+                        <span>{String(product.topNotes).split(/[,/•|\n]+/).slice(0, 2).map(s => s.trim()).filter(Boolean).join(' • ')}</span>
+                    </div>
+                )}
                 <div className={`product-price-row ${product.discount > 0 ? 'has-discount' : ''}`}>
                     <span className={`product-price ${product.discount > 0 ? 'price-sale' : ''}`}>
                         {Math.round(product.price)} {t('common.currency')}
@@ -166,6 +210,14 @@ const ProductCard = ({ product, isRTL }) => {
                     ) : null}
                 </div>
             </div>
+
+            {/* Quick View Modal */}
+            <QuickViewModal 
+                product={product} 
+                isOpen={isQuickViewOpen} 
+                onClose={() => setIsQuickViewOpen(false)} 
+                isRTL={isRTL} 
+            />
         </div>
     );
 };

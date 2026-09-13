@@ -12,8 +12,9 @@ router.get('/', async (req, res) => {
     try {
         const query = supabase
             .from('coupons')
-            .select('id, code, discount_type, discount_value, discount_percentage, expiry_date, is_active, usage_limit, usage_count')
-            .not('code', 'like', '__%');
+            .select('id, code, discount_type, discount_value, discount_percentage, expiry_date, is_active, usage_limit, usage_count, deleted_at')
+            .not('code', 'like', '__%')
+            .is('deleted_at', null);
             
         const { data, error } = await withTimeout(query);
 
@@ -39,6 +40,7 @@ router.post('/validate', async (req, res) => {
             .from('coupons')
             .select('*')
             .eq('code', code.trim().toUpperCase())
+            .is('deleted_at', null)
             .maybeSingle();
 
         if (error || !coupon) {
@@ -186,15 +188,17 @@ router.delete('/:id', adminOnly, async (req, res) => {
 
         if (backupError) console.error('Backup failed for coupon deletion:', backupError);
 
-        const { error: deleteError, count } = await supabase
+        const { error: deleteError } = await supabase
             .from('coupons')
-            .delete({ count: 'exact' })
+            .update({ 
+                is_active: false,
+                deleted_at: new Date().toISOString() 
+            })
             .eq('id', id);
 
         if (deleteError) throw deleteError;
-        if (count === 0) return res.status(404).json({ error: 'Coupon not found' });
         
-        res.json({ message: 'Coupon archived and deleted successfully' });
+        res.json({ message: 'Coupon archived and soft-deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }
