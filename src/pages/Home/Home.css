@@ -1240,49 +1240,48 @@
 }
 
 /* ============================================================
-   Qatar SEO & Marketing Hub Styles
+   Qatar SEO & Marketing Hub Styles (Luxury Light Palette)
    ============================================================ */
 .qatar-seo-section {
-    padding: 80px 0 60px;
-    background: linear-gradient(180deg, #0d0e12 0%, #15161c 50%, #0d0e12 100%);
-    border-top: 1.5px solid rgba(212, 175, 55, 0.35);
-    border-bottom: 1.5px solid rgba(212, 175, 55, 0.35);
-    margin: 40px 0;
+    padding: 75px 0 60px;
+    background: #ffffff;
+    border-top: 1px solid #ebe5d8;
+    border-bottom: 1px solid #ebe5d8;
+    margin: 0;
     position: relative;
-    box-shadow: inset 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 -20px 40px rgba(0, 0, 0, 0.6);
-    color: #ffffff;
+    color: #0f172a;
 }
 
 .qatar-gold-badge {
     display: inline-flex;
     align-items: center;
     padding: 6px 18px;
-    background: rgba(212, 175, 55, 0.15);
-    border: 1px solid rgba(212, 175, 55, 0.45);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(170, 140, 44, 0.35);
     border-radius: 30px;
     font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--color-gold, #d4af37);
+    color: #8f6e14;
     margin-bottom: 16px;
 }
 
 .qatar-seo-title {
+    font-family: var(--font-heading, 'Playfair Display', serif);
     font-size: 2.3rem;
-    font-weight: 800;
-    color: #ffffff !important;
+    font-weight: 700;
+    color: #0f172a !important;
     margin-bottom: 14px;
     line-height: 1.3;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .qatar-seo-subtitle {
     font-size: 1.05rem;
-    color: #cbd5e1 !important;
+    color: #475569 !important;
     max-width: 780px;
     margin: 0 auto 40px;
-    line-height: 1.6;
+    line-height: 1.65;
 }
 
 .qatar-features-grid {
@@ -1293,18 +1292,19 @@
 }
 
 .qatar-feature-card {
-    background: linear-gradient(145deg, rgba(26, 26, 26, 0.9) 0%, rgba(15, 15, 15, 0.95) 100%);
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    background: #ffffff;
+    border: 1px solid #e7e2d6;
     border-radius: 12px;
-    padding: 24px 20px;
+    padding: 26px 20px;
     text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .qatar-feature-card:hover {
     transform: translateY(-4px);
     border-color: var(--color-gold, #d4af37);
-    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15);
+    box-shadow: 0 10px 24px rgba(212, 175, 55, 0.16);
 }
 
 .qatar-feature-icon {
@@ -1313,30 +1313,31 @@
     margin: 0 auto 16px;
     border-radius: 50%;
     background: rgba(212, 175, 55, 0.12);
-    color: var(--color-gold, #d4af37);
+    color: #8f6e14;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(212, 175, 55, 0.25);
+    border: 1px solid rgba(212, 175, 55, 0.28);
 }
 
 .qatar-feature-card h3 {
-    font-size: 1.05rem;
-    color: #fff;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 1.1rem;
+    color: #0f172a;
     margin-bottom: 10px;
     font-weight: 600;
 }
 
 .qatar-feature-card p {
     font-size: 0.88rem;
-    color: #999;
-    line-height: 1.5;
+    color: #64748b;
+    line-height: 1.55;
     margin: 0;
 }
 
 .qatar-cities-bar {
-    background: rgba(20, 20, 20, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #f8f6f0;
+    border: 1px solid #e5dfd2;
     border-radius: 12px;
     padding: 16px 24px;
     display: flex;
@@ -1351,8 +1352,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--color-gold, #d4af37);
-    font-weight: 600;
+    color: #8f6e14;
+    font-weight: 700;
     font-size: 0.9rem;
 }
 
@@ -1364,19 +1365,21 @@
 }
 
 .city-pill {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-    padding: 4px 12px;
+    background: #ffffff;
+    border: 1px solid #dcd5c5;
+    color: #334155;
+    padding: 5px 14px;
     border-radius: 20px;
     font-size: 0.82rem;
+    font-weight: 500;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .city-pill:hover {
-    background: rgba(212, 175, 55, 0.15);
-    border-color: rgba(212, 175, 55, 0.4);
-    color: #fff;
+    background: #d4af37;
+    border-color: #d4af37;
+    color: #ffffff;
 }
 
 .qatar-faq-container {
@@ -1386,14 +1389,16 @@
 }
 
 .qatar-faq-heading {
-    font-size: 1.8rem;
-    color: #fff;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 1.85rem;
+    color: #0f172a;
     margin-bottom: 8px;
+    font-weight: 700;
 }
 
 .qatar-faq-subheading {
     font-size: 0.95rem;
-    color: #888;
+    color: #64748b;
 }
 
 .qatar-faq-list {
@@ -1403,17 +1408,19 @@
 }
 
 .qatar-faq-item {
-    background: #161616;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #e5dfd2;
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .qatar-faq-item:hover,
 .qatar-faq-item.active {
-    border-color: rgba(212, 175, 55, 0.4);
+    border-color: #c49d2b;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.12);
 }
 
 .qatar-faq-question {
@@ -1423,20 +1430,20 @@
     padding: 16px 20px;
     font-weight: 600;
     font-size: 1rem;
-    color: #fff;
+    color: #0f172a;
     gap: 16px;
 }
 
 .qatar-faq-item.active .qatar-faq-question {
-    color: var(--color-gold, #d4af37);
+    color: #8f6e14;
 }
 
 .qatar-faq-answer {
     padding: 0 20px 18px 20px;
     font-size: 0.92rem;
-    color: #b0b0b0;
+    color: #475569;
     line-height: 1.6;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid #f1ede4;
     padding-top: 12px;
 }
 
