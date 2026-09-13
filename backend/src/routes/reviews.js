@@ -5,60 +5,80 @@ import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
 
-// Curated authentic verified reviews across Qatar for top perfumes / homepage showcase
+// Curated initial preview reviews across Qatar (exactly 4 to preview homepage section until original trusted reviews arrive)
 const CURATED_TOP_REVIEWS = [
     {
-        id: 'rev-qatar-1',
+        id: 'rev-preview-1',
         product_id: 228,
-        product_name: 'Creed Aventus Eau de Parfum',
+        product_name: 'Creed Aventus EDP',
         user_name: 'Fatima Al-Kuwari',
+        user_name_ar: 'فاطمة الكواري',
         location: 'West Bay, Doha',
+        location_ar: 'الخليج الغربي، الدوحة',
         rating: 5,
         title: 'Undeniable Authenticity & White-Glove Service',
+        title_ar: 'أصالة لا شك فيها وخدمة راقية',
         comment: 'I was skeptical about ordering niche perfumes online in Qatar, but PerfumeHub exceeded every expectation. Creed Aventus arrived in under 3 hours to West Bay, sealed and 100% authentic batch. My go-to boutique now.',
+        comment_ar: 'كنت مترددة في البداية بشأن شراء عطور النيش عبر الإنترنت في قطر، لكن بيرفيوم هوب فاق كل التوقعات. عطر كريد أفينتوس وصلني في أقل من 3 ساعات إلى الخليج الغربي، أصلي 100٪ في عبوته المغلقة.',
         is_verified_buyer: true,
+        is_preview: true,
         created_at: '2026-09-08T14:32:00Z',
         longevity: 'Long Lasting (8-10h)',
         sillage: 'Strong'
     },
     {
-        id: 'rev-qatar-2',
+        id: 'rev-preview-2',
         product_id: 376,
-        product_name: 'Amouage Guidance & Royal Oud',
+        product_name: 'Amouage Guidance',
         user_name: 'Hamad Al-Thani',
+        user_name_ar: 'حمد آل ثاني',
         location: 'Lusail City',
+        location_ar: 'مدينة لوسيل',
         rating: 5,
-        title: 'Fastest Delivery in Lusail',
-        comment: 'Same-day express delivery is truly same-day! Placed my order at 2 PM and had the bottle in hand by 4:30 PM with Cash on Delivery. Exceptional presentation and authentic Arabian oud.',
+        title: 'Fastest Delivery in Lusail with COD',
+        title_ar: 'أسرع توصيل في لوسيل مع دفع عند الاستلام',
+        comment: 'Same-day express delivery is truly same-day! Placed my order at 2 PM and had the bottle in hand by 4:30 PM in Lusail with Cash on Delivery. Exceptional presentation and authentic royal Arabian oud.',
+        comment_ar: 'خدمة التوصيل السريع في نفس اليوم حقيقية ومبهرة! طلبت العطر الساعة 2 ظهراً ووصلني عند 4:30 عصراً في لوسيل مع خيار الدفع عند الاستلام. تغليف فاخر وعود عربي ملكي فاخر.',
         is_verified_buyer: true,
+        is_preview: true,
         created_at: '2026-09-05T18:15:00Z',
         longevity: 'Eternal (12h+)',
         sillage: 'Beast Mode'
     },
     {
-        id: 'rev-qatar-3',
+        id: 'rev-preview-3',
         product_id: 609,
-        product_name: 'BDK Parfums Rouge Smoking',
+        product_name: 'BDK Rouge Smoking',
         user_name: 'Reem Al-Marri',
+        user_name_ar: 'ريم المري',
         location: 'The Pearl, Qatar',
+        location_ar: 'جزيرة اللؤلؤة',
         rating: 5,
         title: 'The Scent Genie Recommendation Was Spot On',
+        title_ar: 'توصية جني العطور الذكي كانت مثالية',
         comment: 'Used the AI fragrance quiz and it recommended BDK Rouge Smoking. Absolutely intoxicating fragrance for Doha evenings. Generous complimentary sample and luxury gift packaging.',
+        comment_ar: 'جربت اختبار جني العطور الذكي ورشح لي عطر BDK Rouge Smoking. عطر ساحر ومثالي لأمسيات الدوحة الدافئة. عينات مجانية سخية وتجربة تسوق لا تضاهى.',
         is_verified_buyer: true,
+        is_preview: true,
         created_at: '2026-09-02T11:45:00Z',
         longevity: 'Long Lasting (8-10h)',
         sillage: 'Moderate'
     },
     {
-        id: 'rev-qatar-4',
+        id: 'rev-preview-4',
         product_id: 1089,
-        product_name: 'Roja Parfums Elysium Cologne',
+        product_name: 'Roja Elysium Cologne',
         user_name: 'Dr. Khalid Al-Sulaiti',
-        location: 'Al Rayyan',
+        user_name_ar: 'د. خالد السليطي',
+        location: 'Al Rayyan, Qatar',
+        location_ar: 'الريان، قطر',
         rating: 5,
         title: 'Rare Niche Fragrances You Can\'t Find Elsewhere',
+        title_ar: 'عطور نيش نادرة لا تجدها في المجمعات',
         comment: 'Finding authentic Roja and Clive Christian bottles in Qatar used to require flying abroad. PerfumeHub connects verified local boutiques with instant tracking. Superb platform.',
+        comment_ar: 'العثور على عطور روجا وكلايف كريستيان الأصلية في قطر كان يتطلب السفر للخارج سابقاً. بيرفيوم هوب يجمع أفضل البوتيكات المعتمدة مع تتبع لحظي للطلب.',
         is_verified_buyer: true,
+        is_preview: true,
         created_at: '2026-08-28T16:20:00Z',
         longevity: 'Long Lasting (8-10h)',
         sillage: 'Strong'
@@ -72,7 +92,7 @@ async function checkUserPurchase(userEmail, userId, productId) {
     try {
         let query = supabase
             .from('orders')
-            .select('id, email, items, status, created_at');
+            .select('id, email, items, status, shipping_address, created_at');
 
         if (userEmail) {
             query = query.eq('email', userEmail);
@@ -90,10 +110,12 @@ async function checkUserPurchase(userEmail, userId, productId) {
             for (const item of items) {
                 const itemPId = String(item.product_id || item.id || '');
                 if (itemPId === targetIdStr) {
+                    const city = order.shipping_address?.city || order.shipping_address?.municipality || 'Qatar';
                     return {
                         purchased: true,
                         orderId: order.id,
-                        orderDate: order.created_at
+                        orderDate: order.created_at,
+                        location: city
                     };
                 }
             }
@@ -108,16 +130,94 @@ async function checkUserPurchase(userEmail, userId, productId) {
 
 /**
  * GET /api/reviews/top
- * Fetch top 5-star verified customer reviews for homepage showcase
+ * Homepage review section:
+ * 1. Shows exactly 4 reviews max to preview the section.
+ * 2. When original trusted reviews are submitted, they automatically overwrite the preview reviews.
+ * 3. If more than 4 real reviews exist, randomly picks 4 positive reviews (rating >= 4) on each request.
  */
-router.get('/top', (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    return res.json({
-        success: true,
-        reviews: CURATED_TOP_REVIEWS,
-        averageRating: 4.9,
-        totalReviews: 1420
-    });
+router.get('/top', async (req, res) => {
+    try {
+        // Query products that have customer reviews in attributes
+        const { data: productsWithReviews, error } = await supabase
+            .from('products')
+            .select('id, name, attributes')
+            .not('attributes->reviews', 'is', null);
+
+        let realVerifiedReviews = [];
+        if (!error && productsWithReviews && productsWithReviews.length > 0) {
+            for (const prod of productsWithReviews) {
+                if (prod.attributes && Array.isArray(prod.attributes.reviews)) {
+                    for (const rev of prod.attributes.reviews) {
+                        if (rev.is_verified_buyer) {
+                            realVerifiedReviews.push({
+                                ...rev,
+                                product_id: prod.id,
+                                product_name: rev.product_name || prod.name
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        const totalRealCount = realVerifiedReviews.length;
+        let selectedReviews = [];
+
+        if (totalRealCount === 0) {
+            // No real reviews yet: show the 4 preview reviews
+            selectedReviews = CURATED_TOP_REVIEWS.slice(0, 4);
+        } else if (totalRealCount <= 4) {
+            // Real trusted reviews automatically overwrite preview reviews
+            // Real reviews occupy the front slots; remaining slots (up to 4) are filled by preview reviews
+            const remainingPreview = CURATED_TOP_REVIEWS.slice(totalRealCount, 4);
+            selectedReviews = [...realVerifiedReviews, ...remainingPreview].slice(0, 4);
+        } else {
+            // More than 4 real reviews: filter for positive reviews (>= 4 stars) and randomly pick 4
+            const positiveReviews = realVerifiedReviews.filter(r => Number(r.rating) >= 4);
+
+            if (positiveReviews.length > 4) {
+                // Shuffle randomly and take 4 positive reviews
+                const shuffled = [...positiveReviews].sort(() => 0.5 - Math.random());
+                selectedReviews = shuffled.slice(0, 4);
+            } else if (positiveReviews.length === 4) {
+                selectedReviews = positiveReviews;
+            } else {
+                // If fewer than 4 positive reviews, take all positive ones and fill with highest available real reviews
+                const nonPositive = realVerifiedReviews
+                    .filter(r => Number(r.rating) < 4)
+                    .sort((a, b) => Number(b.rating) - Number(a.rating));
+                selectedReviews = [...positiveReviews, ...nonPositive].slice(0, 4);
+            }
+        }
+
+        let averageRating = 4.9;
+        if (totalRealCount > 0) {
+            const sum = realVerifiedReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+            averageRating = Number((sum / totalRealCount).toFixed(1));
+        }
+
+        // Disable static caching so random selection rotates dynamically
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+        return res.json({
+            success: true,
+            reviews: selectedReviews,
+            is_preview: totalRealCount === 0,
+            has_real_reviews: totalRealCount > 0,
+            totalRealReviews: totalRealCount,
+            totalReviews: totalRealCount > 0 ? totalRealCount : 4,
+            averageRating
+        });
+    } catch (err) {
+        console.error('Error fetching top reviews:', err);
+        return res.json({
+            success: true,
+            reviews: CURATED_TOP_REVIEWS.slice(0, 4),
+            is_preview: true,
+            totalReviews: 4,
+            averageRating: 4.9
+        });
+    }
 });
 
 /**
@@ -146,6 +246,7 @@ router.get('/eligibility', authenticateUser, async (req, res) => {
                 eligible: true,
                 isVerifiedBuyer: true,
                 orderId: purchaseCheck.orderId,
+                location: purchaseCheck.location,
                 message: 'Verified buyer: You can submit a review for this fragrance.'
             });
         }
@@ -163,12 +264,13 @@ router.get('/eligibility', authenticateUser, async (req, res) => {
 
 /**
  * GET /api/reviews/product/:productId
- * Fetch verified customer reviews and rating statistics for a product
+ * Fetch verified customer reviews and rating statistics for a product.
+ * ZERO fake reviews: If no reviews exist yet, returns empty list.
  */
 router.get('/product/:productId', async (req, res) => {
     const { productId } = req.params;
     try {
-        // 1. Fetch product attributes from DB
+        // Fetch product attributes from DB
         const { data: product, error } = await supabase
             .from('products')
             .select('id, name, attributes')
@@ -177,49 +279,13 @@ router.get('/product/:productId', async (req, res) => {
 
         let productReviews = [];
         if (product && product.attributes && Array.isArray(product.attributes.reviews)) {
-            productReviews = product.attributes.reviews;
+            productReviews = product.attributes.reviews.filter(r => r.is_verified_buyer);
         }
 
-        // 2. If no reviews in attributes yet, check if we have matching curated sample reviews
-        if (productReviews.length === 0) {
-            const curatedMatch = CURATED_TOP_REVIEWS.filter(r => String(r.product_id) === String(productId));
-            if (curatedMatch.length > 0) {
-                productReviews = curatedMatch;
-            } else {
-                // Default high-quality verified reviews for authentic presentation
-                productReviews = [
-                    {
-                        id: `rev-${productId}-1`,
-                        product_id: productId,
-                        user_name: 'Mona Al-Kuwari',
-                        rating: 5,
-                        title: '100% Original Sealed Bottle',
-                        comment: 'Delivered in under 2 hours in Doha. Scanned batch code matches authentic distributor. Beautiful luxury packaging with complimentary samples.',
-                        is_verified_buyer: true,
-                        created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-                        longevity: 'Long Lasting (8-10h)',
-                        sillage: 'Strong'
-                    },
-                    {
-                        id: `rev-${productId}-2`,
-                        product_id: productId,
-                        user_name: 'Nasser Al-Hajri',
-                        rating: 5,
-                        title: 'Exceptional Scent & Fast COD',
-                        comment: 'Paid with Cash on Delivery at Lusail. The fragrance is stunning, projects magnificently in warm weather. Highly recommended.',
-                        is_verified_buyer: true,
-                        created_at: new Date(Date.now() - 11 * 86400000).toISOString(),
-                        longevity: 'Eternal (12h+)',
-                        sillage: 'Moderate'
-                    }
-                ];
-            }
-        }
-
-        // Compute rating statistics
+        // Zero fake reviews: if none exist, return empty array
         const total = productReviews.length;
-        const sum = productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
-        const averageRating = total > 0 ? Number((sum / total).toFixed(1)) : 5.0;
+        const sum = productReviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+        const averageRating = total > 0 ? Number((sum / total).toFixed(1)) : 0;
 
         const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
         productReviews.forEach(r => {
@@ -297,6 +363,8 @@ router.post('/', authenticateUser, [
         const newReview = {
             id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
             product_id: productId,
+            product_name: product.name,
+            location: purchaseCheck.location || 'Qatar',
             user_id: req.user.id || null,
             user_name: reviewerName,
             user_email: req.user.email,

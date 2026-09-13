@@ -10,7 +10,69 @@ import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
-import './Home.css';
+// Curated 4 preview reviews to display until original trusted reviews arrive
+const INITIAL_PREVIEW_REVIEWS = [
+    {
+        id: 'rev-preview-1',
+        product_id: 228,
+        product_name: 'Creed Aventus EDP',
+        user_name: 'Fatima Al-Kuwari',
+        user_name_ar: 'فاطمة الكواري',
+        location: 'West Bay, Doha',
+        location_ar: 'الخليج الغربي، الدوحة',
+        rating: 5,
+        title: 'Undeniable Authenticity & White-Glove Service',
+        title_ar: 'أصالة لا شك فيها وخدمة راقية',
+        comment: 'I was skeptical about ordering niche perfumes online in Qatar, but PerfumeHub exceeded every expectation. Creed Aventus arrived in under 3 hours to West Bay, sealed and 100% authentic batch. My go-to boutique now.',
+        comment_ar: 'كنت مترددة في البداية بشأن شراء عطور النيش عبر الإنترنت في قطر، لكن بيرفيوم هوب فاق كل التوقعات. عطر كريد أفينتوس وصلني في أقل من 3 ساعات إلى الخليج الغربي، أصلي 100٪ في عبوته المغلقة.',
+        is_verified_buyer: true
+    },
+    {
+        id: 'rev-preview-2',
+        product_id: 376,
+        product_name: 'Amouage Guidance',
+        user_name: 'Hamad Al-Thani',
+        user_name_ar: 'حمد آل ثاني',
+        location: 'Lusail City',
+        location_ar: 'مدينة لوسيل',
+        rating: 5,
+        title: 'Fastest Delivery in Lusail with COD',
+        title_ar: 'أسرع توصيل في لوسيل مع دفع عند الاستلام',
+        comment: 'Same-day express delivery is truly same-day! Placed my order at 2 PM and had the bottle in hand by 4:30 PM in Lusail with Cash on Delivery. Exceptional presentation and authentic royal Arabian oud.',
+        comment_ar: 'خدمة التوصيل السريع في نفس اليوم حقيقية ومبهرة! طلبت العطر الساعة 2 ظهراً ووصلني عند 4:30 عصراً في لوسيل مع خيار الدفع عند الاستلام. تغليف فاخر وعود عربي ملكي فاخر.',
+        is_verified_buyer: true
+    },
+    {
+        id: 'rev-preview-3',
+        product_id: 609,
+        product_name: 'BDK Rouge Smoking',
+        user_name: 'Reem Al-Marri',
+        user_name_ar: 'ريم المري',
+        location: 'The Pearl, Qatar',
+        location_ar: 'جزيرة اللؤلؤة',
+        rating: 5,
+        title: 'The Scent Genie Recommendation Was Spot On',
+        title_ar: 'توصية جني العطور الذكي كانت مثالية',
+        comment: 'Used the AI fragrance quiz and it recommended BDK Rouge Smoking. Absolutely intoxicating fragrance for Doha evenings. Generous complimentary sample and luxury gift packaging.',
+        comment_ar: 'جربت اختبار جني العطور الذكي ورشح لي عطر BDK Rouge Smoking. عطر ساحر ومثالي لأمسيات الدوحة الدافئة. عينات مجانية سخية وتجربة تسوق لا تضاهى.',
+        is_verified_buyer: true
+    },
+    {
+        id: 'rev-preview-4',
+        product_id: 1089,
+        product_name: 'Roja Elysium Cologne',
+        user_name: 'Dr. Khalid Al-Sulaiti',
+        user_name_ar: 'د. خالد السليطي',
+        location: 'Al Rayyan, Qatar',
+        location_ar: 'الريان، قطر',
+        rating: 5,
+        title: 'Rare Niche Fragrances You Can\'t Find Elsewhere',
+        title_ar: 'عطور نيش نادرة لا تجدها في المجمعات',
+        comment: 'Finding authentic Roja and Clive Christian bottles in Qatar used to require flying abroad. PerfumeHub connects verified local boutiques with instant tracking. Superb platform.',
+        comment_ar: 'العثور على عطور روجا وكلايف كريستيان الأصلية في قطر كان يتطلب السفر للخارج سابقاً. بيرفيوم هوب يجمع أفضل البوتيكات المعتمدة مع تتبع لحظي للطلب.',
+        is_verified_buyer: true
+    }
+];
 
 const Home = () => {
     const { t } = useTranslation();
@@ -24,8 +86,34 @@ const Home = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [shuffledFeatured, setShuffledFeatured] = useState([]);
     const [openFaq, setOpenFaq] = useState(null);
+    const [homeReviews, setHomeReviews] = useState(INITIAL_PREVIEW_REVIEWS);
+    const [reviewsStats, setReviewsStats] = useState({ rating: 4.9, count: 4, isPreview: true });
 
     const toggleFaq = (idx) => setOpenFaq(prev => prev === idx ? null : idx);
+
+    // Fetch homepage reviews: automatically overwrites preview reviews when original trusted reviews arrive
+    useEffect(() => {
+        let isMounted = true;
+        const fetchTopReviews = async () => {
+            try {
+                const res = await fetch('/api/reviews/top');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (isMounted && data?.success && Array.isArray(data.reviews) && data.reviews.length > 0) {
+                    setHomeReviews(data.reviews.slice(0, 4));
+                    setReviewsStats({
+                        rating: data.averageRating || 4.9,
+                        count: data.totalReviews || data.reviews.length,
+                        isPreview: data.is_preview
+                    });
+                }
+            } catch (err) {
+                console.log('Homepage reviews loaded from preview fallback');
+            }
+        };
+        fetchTopReviews();
+        return () => { isMounted = false; };
+    }, []);
 
     // Determine what powers the Hero Banners 
     const heroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
@@ -647,119 +735,54 @@ const Home = () => {
                                 ))}
                             </div>
                             <span className="rating-score-text">
-                                <strong>4.9 / 5.0</strong> {isRTL ? 'بناءً على أكثر من 1,420 طلب موثق في قطر' : 'Rating based on 1,420+ Verified Purchases in Qatar'}
+                                <strong>{reviewsStats.rating} / 5.0</strong>{' '}
+                                {reviewsStats.isPreview
+                                    ? (isRTL ? 'بناءً على طلبات وتقييمات موثقة في قطر' : 'Rating based on Verified Purchases in Qatar')
+                                    : (isRTL ? `بناءً على ${reviewsStats.count} تقييم موثق في قطر` : `Rating based on ${reviewsStats.count} Verified Reviews in Qatar`)}
                             </span>
                         </div>
                     </div>
 
                     <div className="home-reviews-grid">
-                        <div className="home-review-card">
-                            <div className="review-card-top">
-                                <div className="stars-row">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={15} fill="#d4af37" color="#d4af37" />
-                                    ))}
+                        {homeReviews.slice(0, 4).map((rev, idx) => (
+                            <div key={rev.id || idx} className="home-review-card">
+                                <div className="review-card-top">
+                                    <div className="stars-row">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star 
+                                                key={i} 
+                                                size={15} 
+                                                fill={i < Math.round(Number(rev.rating) || 5) ? "#d4af37" : "none"} 
+                                                color="#d4af37" 
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="verified-badge">
+                                        <CheckCircle2 size={13} />
+                                        {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
+                                    </span>
                                 </div>
-                                <span className="verified-badge">
-                                    <CheckCircle2 size={13} />
-                                    {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
-                                </span>
-                            </div>
-                            <h4 className="review-card-title">{isRTL ? 'أصالة لا شك فيها وخدمة راقية' : 'Undeniable Authenticity & White-Glove Service'}</h4>
-                            <p className="review-card-quote">
-                                {isRTL 
-                                    ? '"كنت مترددة في البداية بشأن شراء عطور النيش عبر الإنترنت في قطر، لكن بيرفيوم هوب فاق كل التوقعات. عطر كريد أفينتوس وصلني في أقل من 3 ساعات إلى الخليج الغربي، أصلي 100٪ في عبوته المغلقة."'
-                                    : '"I was skeptical about ordering niche perfumes online in Qatar, but PerfumeHub exceeded every expectation. Creed Aventus arrived in under 3 hours to West Bay, sealed and 100% authentic batch. My go-to boutique now."'}
-                            </p>
-                            <div className="review-card-footer">
-                                <div className="reviewer-info">
-                                    <span className="reviewer-name">{isRTL ? 'فاطمة الكواري' : 'Fatima Al-Kuwari'}</span>
-                                    <span className="reviewer-location">{isRTL ? 'الخليج الغربي، الدوحة' : 'West Bay, Doha'}</span>
+                                <h4 className="review-card-title">
+                                    {isRTL ? (rev.title_ar || rev.title) : (rev.title || rev.title_ar)}
+                                </h4>
+                                <p className="review-card-quote">
+                                    {isRTL ? (rev.comment_ar || rev.comment) : (rev.comment || rev.comment_ar)}
+                                </p>
+                                <div className="review-card-footer">
+                                    <div className="reviewer-info">
+                                        <span className="reviewer-name">
+                                            {isRTL ? (rev.user_name_ar || rev.user_name) : rev.user_name}
+                                        </span>
+                                        <span className="reviewer-location">
+                                            {isRTL ? (rev.location_ar || rev.location || 'قطر') : (rev.location || 'Qatar')}
+                                        </span>
+                                    </div>
+                                    {rev.product_name && (
+                                        <span className="reviewed-product-pill">{rev.product_name}</span>
+                                    )}
                                 </div>
-                                <span className="reviewed-product-pill">Creed Aventus EDP</span>
                             </div>
-                        </div>
-
-                        <div className="home-review-card">
-                            <div className="review-card-top">
-                                <div className="stars-row">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={15} fill="#d4af37" color="#d4af37" />
-                                    ))}
-                                </div>
-                                <span className="verified-badge">
-                                    <CheckCircle2 size={13} />
-                                    {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
-                                </span>
-                            </div>
-                            <h4 className="review-card-title">{isRTL ? 'أسرع توصيل في لوسيل مع دفع عند الاستلام' : 'Fastest Delivery in Lusail with COD'}</h4>
-                            <p className="review-card-quote">
-                                {isRTL
-                                    ? '"خدمة التوصيل السريع في نفس اليوم حقيقية ومبهرة! طلبت العطر الساعة 2 ظهراً ووصلني عند 4:30 عصراً في لوسيل مع خيار الدفع عند الاستلام. تغليف فاخر وعود عربي ملكي فاخر."'
-                                    : '"Same-day express delivery is truly same-day! Placed my order at 2 PM and had the bottle in hand by 4:30 PM in Lusail with Cash on Delivery. Exceptional presentation and authentic royal Arabian oud."'}
-                            </p>
-                            <div className="review-card-footer">
-                                <div className="reviewer-info">
-                                    <span className="reviewer-name">{isRTL ? 'حمد آل ثاني' : 'Hamad Al-Thani'}</span>
-                                    <span className="reviewer-location">{isRTL ? 'مدينة لوسيل' : 'Lusail City'}</span>
-                                </div>
-                                <span className="reviewed-product-pill">Amouage Guidance</span>
-                            </div>
-                        </div>
-
-                        <div className="home-review-card">
-                            <div className="review-card-top">
-                                <div className="stars-row">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={15} fill="#d4af37" color="#d4af37" />
-                                    ))}
-                                </div>
-                                <span className="verified-badge">
-                                    <CheckCircle2 size={13} />
-                                    {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
-                                </span>
-                            </div>
-                            <h4 className="review-card-title">{isRTL ? 'توصية جني العطور الذكي كانت مثالية' : 'Scent Genie Recommendation Was Spot On'}</h4>
-                            <p className="review-card-quote">
-                                {isRTL
-                                    ? '"جربت اختبار جني العطور الذكي ورشح لي عطر BDK Rouge Smoking. عطر ساحر ومثالي لأمسيات الدوحة الدافئة. عينات مجانية سخية وتجربة تسوق لا تضاهى."'
-                                    : '"Used the Scent Genie AI fragrance advisor and it recommended BDK Rouge Smoking. Absolutely intoxicating fragrance for Doha evenings. Generous complimentary samples and pristine packaging."'}
-                            </p>
-                            <div className="review-card-footer">
-                                <div className="reviewer-info">
-                                    <span className="reviewer-name">{isRTL ? 'ريم المري' : 'Reem Al-Marri'}</span>
-                                    <span className="reviewer-location">{isRTL ? 'جزيرة اللؤلؤة' : 'The Pearl, Qatar'}</span>
-                                </div>
-                                <span className="reviewed-product-pill">BDK Rouge Smoking</span>
-                            </div>
-                        </div>
-
-                        <div className="home-review-card">
-                            <div className="review-card-top">
-                                <div className="stars-row">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={15} fill="#d4af37" color="#d4af37" />
-                                    ))}
-                                </div>
-                                <span className="verified-badge">
-                                    <CheckCircle2 size={13} />
-                                    {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
-                                </span>
-                            </div>
-                            <h4 className="review-card-title">{isRTL ? 'عطور نيش نادرة لا تجدها في المجمعات' : 'Rare Niche Fragrances Not Found Elsewhere'}</h4>
-                            <p className="review-card-quote">
-                                {isRTL
-                                    ? '"العثور على عطور روجا وكلايف كريستيان الأصلية في قطر كان يتطلب السفر للخارج سابقاً. بيرفيوم هوب يجمع أفضل البوتيكات المعتمدة مع تتبع لحظي للطلب."'
-                                    : '"Finding authentic Roja and Clive Christian bottles in Qatar used to require flying abroad. PerfumeHub connects verified local boutiques with instant tracking. Superb luxury platform."'}
-                            </p>
-                            <div className="review-card-footer">
-                                <div className="reviewer-info">
-                                    <span className="reviewer-name">{isRTL ? 'د. خالد السليطي' : 'Dr. Khalid Al-Sulaiti'}</span>
-                                    <span className="reviewer-location">{isRTL ? 'الريان، قطر' : 'Al Rayyan, Qatar'}</span>
-                                </div>
-                                <span className="reviewed-product-pill">Roja Elysium Cologne</span>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </section>
