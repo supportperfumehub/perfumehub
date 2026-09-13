@@ -71,17 +71,20 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const navLinks = [
         { name: t('navbar.home'), path: '/' },
         { name: t('navbar.shop'), path: '/shop' },
+        { name: t('navbar.men'), path: '/shop?gender=men' },
+        { name: t('navbar.women'), path: '/shop?gender=women' },
+        { name: t('navbar.arabic'), path: '/shop?category=arabic' },
         { 
-            name: t('navbar.men'), 
+            name: isRTL ? 'أسلوب الحياة' : 'Lifestyle', 
             path: '/category/fashion',
             hasDropdown: true,
             dropdownItems: [
-                { name: t('navbar.all_fashion'), path: '/category/fashion' },
-                { name: t('navbar.abaya'), path: '/category/abaya' }
+                { name: isRTL ? 'الأزياء الفاخرة' : 'Luxury Fashion', path: '/category/fashion' },
+                { name: isRTL ? 'العبايات الراقية' : 'Designer Abayas', path: '/category/abaya' },
+                { name: isRTL ? 'المجوهرات والساعات' : 'Jewellery & Watches', path: '/category/jewellery' },
+                { name: isRTL ? 'صناديق الهدايا' : 'Curated Gift Boxes', path: '/category/gift-box' }
             ]
         },
-        { name: t('navbar.women'), path: '/category/jewellery' },
-        { name: t('navbar.arabic'), path: '/category/gift-box' },
         { name: t('navbar.ai_advisor'), path: '/scent-genie' }
     ];
 

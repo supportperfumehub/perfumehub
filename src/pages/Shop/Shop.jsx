@@ -25,6 +25,8 @@ const Shop = () => {
     const { type } = useParams(); // For category pages
     const [searchParams] = useSearchParams();
     const shopIdFilter = searchParams.get('shop_id');
+    const genderQuery = searchParams.get('gender');
+    const categoryQuery = searchParams.get('category');
     const { products: mockProducts } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
 
@@ -37,12 +39,24 @@ const Shop = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
-    const [activeGender, setActiveGender] = useState('all');
+    const [activeGender, setActiveGender] = useState(() => {
+        if (genderQuery) return genderQuery.toLowerCase();
+        if (type === 'men' || type === 'women') return type;
+        return 'all';
+    });
     const [brandSearch, setBrandSearch] = useState('');
     const [showResetModal, setShowResetModal] = useState(false);
     const [visibleCount, setVisibleCount] = useState(20);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [activeSubcategory, setActiveSubcategory] = useState('all');
+
+    useEffect(() => {
+        if (genderQuery) {
+            setActiveGender(genderQuery.toLowerCase());
+        } else if (!type) {
+            setActiveGender('all');
+        }
+    }, [genderQuery, type]);
 
     const FASHION_TAGS = React.useMemo(() => ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'], []);
     const JEWELLERY_TAGS = React.useMemo(() => ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'], []);
@@ -155,10 +169,21 @@ const Shop = () => {
                 });
             } else {
                 result = result.filter(p => {
-                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                    const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
                     return cats.includes(type) || cats.includes(normalizedType) || p.gender === type;
                 });
             }
+        } else if (categoryQuery === 'arabic') {
+            result = result.filter(p => {
+                const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : (p.category ? [String(p.category).toLowerCase()] : []);
+                const notes = Array.isArray(p.notes) ? p.notes.map(n => String(n).toLowerCase()) : (p.notes ? [String(p.notes).toLowerCase()] : []);
+                const desc = (p.description || '').toLowerCase();
+                const name = (p.name || '').toLowerCase();
+                const ARABIC_KEYWORDS = ['arabic', 'oriental', 'oud', 'amber', 'musk', 'bakhoor', 'bukhoor', 'taif', 'rose'];
+                return cats.some(c => ARABIC_KEYWORDS.some(k => c.includes(k))) ||
+                       notes.some(n => ARABIC_KEYWORDS.some(k => n.includes(k))) ||
+                       ARABIC_KEYWORDS.some(k => name.includes(k) || desc.includes(k));
+            });
         } else {
             result = result.filter(p => {
                 const cats = Array.isArray(p.category) ? p.category.map(c => String(c).toLowerCase()) : [];
@@ -249,7 +274,7 @@ const Shop = () => {
 
         // Gender Filter (Explicit override if not all)
         if (activeGender !== 'all') {
-            result = result.filter(p => p.gender === activeGender);
+            result = result.filter(p => p.gender === activeGender || p.gender === 'unisex');
         }
 
         // Filter by brand
@@ -319,33 +344,59 @@ const Shop = () => {
     };
 
     const getPageTitle = () => {
-        if (!type) return isRTL ? 'جميع العطور' : 'All Perfumes';
-        const titles = {
-            'men': isRTL ? 'مجموعة الأزياء' : 'Fashion Collection',
-            'fashion': isRTL ? 'مجموعة الأزياء' : 'Fashion Collection',
-            'women': isRTL ? 'مجموعة المجوهرات' : 'Jewellery Collection',
-            'jewellery': isRTL ? 'مجموعة المجوهرات' : 'Jewellery Collection',
-            'arabic': isRTL ? 'صناديق الهدايا' : 'Gift Box',
-            'gift-box': isRTL ? 'صناديق الهدايا' : 'Gift Box',
-            'abaya': isRTL ? 'مجموعة العبايات الحصرية' : 'Exclusive Abaya Collection',
-        };
-        return titles[type] || (isRTL ? 'التسوق' : 'Shop');
+        if (genderQuery === 'men' || type === 'men') {
+            return isRTL ? 'عطور رجالية فاخرة' : "Men's Luxury Fragrances";
+        }
+        if (genderQuery === 'women' || type === 'women') {
+            return isRTL ? 'عطور نسائية راقية' : "Women's Luxury Fragrances";
+        }
+        if (categoryQuery === 'arabic' || type === 'arabic') {
+            return isRTL ? 'عطور شرقية وعود ملكي' : 'Arabic & Oriental Fragrances';
+        }
+        if (type === 'fashion') {
+            return isRTL ? 'مجموعة الأزياء الفاخرة' : 'Luxury Fashion Collection';
+        }
+        if (type === 'abaya') {
+            return isRTL ? 'مجموعة العبايات الحصرية' : 'Exclusive Abaya Collection';
+        }
+        if (type === 'jewellery' || type === 'jewelry') {
+            return isRTL ? 'المجوهرات والساعات الراقية' : 'Fine Jewellery & Timepieces';
+        }
+        if (type === 'gift-box' || type === 'giftbox') {
+            return isRTL ? 'صناديق الهدايا الفاخرة' : 'Curated Luxury Gift Boxes';
+        }
+        return isRTL ? 'جميع العطور الفاخرة' : 'All Luxury Perfumes';
     };
 
     const getPageSubtitle = () => {
+        if (genderQuery === 'men' || type === 'men') {
+            return isRTL 
+                ? 'اكتشف أرقى العطور الرجالية الجريئة والأنيقة مع توصيل فوري داخل قطر.' 
+                : 'Explore bold, refined masculine scents curated for discerning gentlemen in Qatar.';
+        }
+        if (genderQuery === 'women' || type === 'women') {
+            return isRTL 
+                ? 'تألقي بأرقى النفحات الأنثوية الزهرية والساحرة من أشهر الدور العالمية.' 
+                : 'Indulge in radiant feminine accords, delicate florals, and captivating luxury elixirs.';
+        }
+        if (categoryQuery === 'arabic' || type === 'arabic') {
+            return isRTL 
+                ? 'أصالة العود والمسك والعنبر بتوليفات خليجية ملكية أصيلة.' 
+                : 'Precious oud, rich amber, and traditional Gulf oriental accords crafted for royalty.';
+        }
         if (type === 'fashion') {
             return isRTL ? 'تصفح مجموعتنا الحصرية من الملابس والأزياء الفاخرة.' : 'Browse our exclusive collection of luxury apparel and fashion.';
         }
         if (type === 'abaya') {
             return isRTL ? 'تصفح مجموعتنا الحصرية من العبايات الفاخرة المصممة بأيدي أشهر المصممين.' : 'Browse our premium hand-crafted luxury Abayas from Qatar\'s top designers.';
         }
-        if (type === 'jewellery') {
+        if (type === 'jewellery' || type === 'jewelry') {
             return isRTL ? 'اكتشف أرقى تصميمات المجوهرات والساعات الفاخرة.' : 'Discover the finest designs of luxury jewellery and watches.';
         }
         if (type === 'gift-box' || type === 'giftbox') {
             return isRTL ? 'صناديق هدايا فاخرة ومخصصة لمختلف المناسبات.' : 'Luxury curated gift boxes tailored for every special occasion.';
         }
-        return isRTL ? 'تصفح مجموعتنا الحصرية من العطور والمنتجات الفاخرة.' : 'Browse our exclusive collection of hand-picked luxury items.';
+        return isRTL ? 'تصفح تشكيلتنا من العطور النيش والأصلية المعتمدة في قطر.' : 'Discover 100% authentic niche and luxury designer perfumes in Qatar.';
     };
 
     const handleResetFilters = () => {
@@ -363,7 +414,7 @@ const Shop = () => {
     };
 
     const getHeaderBanner = () => {
-        if (!type) return allBanner;
+        const key = type || categoryQuery || genderQuery;
         const banners = {
             'men': menBanner,
             'fashion': menBanner,
@@ -373,7 +424,7 @@ const Shop = () => {
             'gift-box': arabicBanner,
             'abaya': womenBanner,
         };
-        return banners[type] || allBanner;
+        return banners[key] || allBanner;
     };
 
     const regionName = 'Qatar';

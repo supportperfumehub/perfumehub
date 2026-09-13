@@ -30,20 +30,14 @@ export const ShopProvider = ({ children }) => {
     });
     const [shops, setShops] = useState([]);
 
-    // Initialize orders from cache to enable instant loading
-    const [orders, setOrders] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_orders');
-        return saved ? JSON.parse(saved) : [];
-    });
+    // In-memory orders for authenticated customer (Zero localStorage leakage of PII)
+    const [orders, setOrders] = useState([]);
 
-    const [coupons, setCoupons] = useState(() => {
-        const savedCoupons = localStorage.getItem('perfumehub_coupons');
-        return savedCoupons ? JSON.parse(savedCoupons) : [
-            { id: 1, code: 'WELCOME10', discountType: 'percentage', discountValue: 10, expiryDate: '2026-12-31', isActive: true, usageCount: 0, usageLimit: 100, usedBy: [] },
-            { id: 2, code: 'FREESHIP', discountType: 'percentage', discountValue: 5, expiryDate: '2026-06-30', isActive: true, usageCount: 0, usageLimit: 50, usedBy: [] },
-            { id: 3, code: 'SUPER90', discountType: 'percentage', discountValue: 90, expiryDate: '2027-12-31', isActive: true, usageCount: 0, usageLimit: 10, usedBy: [] }
-        ];
-    });
+    const [coupons, setCoupons] = useState([
+        { id: 1, code: 'WELCOME10', discountType: 'percentage', discountValue: 10, expiryDate: '2026-12-31', isActive: true, usageCount: 0, usageLimit: 100 },
+        { id: 2, code: 'FREESHIP', discountType: 'percentage', discountValue: 5, expiryDate: '2026-06-30', isActive: true, usageCount: 0, usageLimit: 50 },
+        { id: 3, code: 'SUPER90', discountType: 'percentage', discountValue: 90, expiryDate: '2027-12-31', isActive: true, usageCount: 0, usageLimit: 10 }
+    ]);
 
     // Toast state
     const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
@@ -272,12 +266,12 @@ export const ShopProvider = ({ children }) => {
     }, [products]);
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_orders', JSON.stringify(orders));
-    }, [orders]);
-
-    useEffect(() => {
-        localStorage.setItem('perfumehub_coupons', JSON.stringify(coupons));
-    }, [coupons]);
+        // Zero-trust hygiene: purge any historic client-side order cache from localStorage
+        try {
+            localStorage.removeItem('perfumehub_orders');
+            localStorage.removeItem('perfumehub_coupons');
+        } catch (e) {}
+    }, []);
 
     useEffect(() => {
         localStorage.setItem('perfumehub_discover_campaigns', JSON.stringify(discoverCampaigns));
@@ -569,94 +563,120 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const incrementCouponUsage = async (code, email = null, phone = null, ip = null) => {
-        const coupon = coupons.find(c => c.code.toUpperCase() === code.toUpperCase());
-        if (!coupon) return;
-
-        const updatedCoupon = {
-            ...coupon,
-            usageCount: (coupon.usageCount || 0) + 1,
-            usedBy: email && !coupon.usedBy?.includes(email.toLowerCase()) ? [...(coupon.usedBy || []), email.toLowerCase()] : coupon.usedBy,
-            usedByPhones: phone && !coupon.usedByPhones?.includes(phone.trim()) ? [...(coupon.usedByPhones || []), phone.trim()] : coupon.usedByPhones,
-            usedByIPs: ip && !coupon.usedByIPs?.includes(ip) ? [...(coupon.usedByIPs || []), ip] : coupon.usedByIPs
-        };
-
-        setCoupons(prev => prev.map(c => c.id === coupon.id ? updatedCoupon : c));
-
+    // Dedicated backend-verified coupon validation (Zero PII leakage)
+    const validateCoupon = async (code, subtotal = 0, email = '', phone = '') => {
         try {
-            await api.put(`/coupons/${coupon.id}`, {
-                usage_count: updatedCoupon.usageCount,
-                used_by: updatedCoupon.usedBy,
-                used_by_phones: updatedCoupon.usedByPhones,
-                used_by_ips: updatedCoupon.usedByIPs
+            const res = await api.post('/coupons/validate', {
+                code: (code || '').trim(),
+                subtotal: parseFloat(subtotal) || 0,
+                email: (email || '').trim(),
+                phone: (phone || '').trim()
             });
+            return res.data;
         } catch (error) {
-            console.error('Error incrementing coupon usage:', error);
+            return {
+                valid: false,
+                error: error.response?.data?.error || 'Invalid or expired coupon'
+            };
         }
     };
 
-    const placeOrder = async (product, quantity, customerName = 'Guest Customer', isGiftWrapped = false, shippingAddress = null, paymentMethod = 'Not Specified', email = '', phone = '', selectedSize = null, selectedPrice = null, fulfillmentType = 'delivery', pickupShopId = null) => {
+    // No-op for client-side coupon increment: Backend handles atomic increment in POST /api/orders
+    const incrementCouponUsage = async () => {
+        // Handled atomically on backend inside POST /api/orders
+    };
+
+    // Consolidated Order Placement (Submits one single master order payload to backend)
+    const placeConsolidatedOrder = async ({
+        customerName = 'Guest Customer',
+        email = '',
+        phone = '',
+        shippingAddress = null,
+        paymentMethod = 'Cash on Delivery',
+        items = [],
+        fulfillmentType = 'delivery',
+        pickupShopId = null,
+        couponCode = null,
+        total = 0
+    }) => {
         try {
-            const basePrice = selectedPrice !== null ? parseFloat(selectedPrice) : parseFloat(product.price);
-            const giftWrapCost = isGiftWrapped ? 10 : 0;
-            const itemPrice = basePrice + giftWrapCost;
-            const total = itemPrice * quantity;
-            const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
-            
-            let stockShopId = fulfillmentType === 'pickup' ? pickupShopId : product.shop_id;
-
-            const orderItems = [{
-                productId: product.id,
-                product_id: product.id,
-                shop_id: stockShopId,
-                name: product.name,
-                brand: product.brand,
-                quantity: quantity,
-                price: itemPrice,
-                isGiftWrapped: isGiftWrapped,
-                size: sizeToUse
-            }];
-
             const orderPayload = {
                 customerName,
                 email,
                 phone,
-                total,
-                shippingAddress,
+                total: parseFloat(total),
+                shippingAddress: fulfillmentType === 'pickup' ? null : shippingAddress,
                 paymentMethod,
-                items: orderItems,
+                items,
                 fulfillment_type: fulfillmentType,
                 pickup_shop_id: fulfillmentType === 'pickup' ? pickupShopId : null,
-                shop_id: stockShopId
+                couponCode: couponCode || null
             };
 
             const orderRes = await api.post('/orders', orderPayload);
-
-            if (orderRes.data) {
+            if (orderRes.data && orderRes.data.id) {
                 const generatedOrderId = `ORD-${orderRes.data.id}`;
-                if (fulfillmentType === 'delivery') {
-                     setProducts(products.map(p => p.id === product.id ? { ...p, stock: p.stock - quantity } : p));
-                }
                 const newOrder = {
-                    id: generatedOrderId,
-                    customerName,
+                    id: orderRes.data.id,
+                    order_id: generatedOrderId,
+                    customer_name: customerName,
                     email,
                     phone,
                     date: new Date().toISOString().split('T')[0],
                     total,
-                    status: 'Pending',
-                    items: orderItems,
-                    shippingAddress,
-                    paymentMethod
+                    status: fulfillmentType === 'pickup' ? 'reserved' : 'pending',
+                    items,
+                    shipping_address: shippingAddress,
+                    payment_method: paymentMethod,
+                    fulfillment_type: fulfillmentType,
+                    pickup_shop_id: pickupShopId
                 };
-                setOrders(prevOrders => [...prevOrders, newOrder]);
-                return true;
+                setOrders(prev => [newOrder, ...prev]);
+                return { success: true, orderId: generatedOrderId, id: orderRes.data.id };
             }
-            return false;
+            return { success: false, error: 'Failed to create order' };
         } catch (error) {
-            console.error('Place order failed:', error);
-            return false;
+            console.error('Place consolidated order failed:', error);
+            return { 
+                success: false, 
+                error: error.response?.data?.error || error.message || 'Order placement failed' 
+            };
         }
+    };
+
+    // Backward-compatible single item order placement
+    const placeOrder = async (product, quantity, customerName = 'Guest Customer', isGiftWrapped = false, shippingAddress = null, paymentMethod = 'Not Specified', email = '', phone = '', selectedSize = null, selectedPrice = null, fulfillmentType = 'delivery', pickupShopId = null, couponCode = null) => {
+        const basePrice = selectedPrice !== null ? parseFloat(selectedPrice) : parseFloat(product.price);
+        const giftWrapCost = isGiftWrapped ? 10 : 0;
+        const itemPrice = basePrice + giftWrapCost;
+        const total = itemPrice * quantity;
+        const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
+        const stockShopId = fulfillmentType === 'pickup' ? pickupShopId : (product.shop_id || pickupShopId);
+
+        const res = await placeConsolidatedOrder({
+            customerName,
+            email,
+            phone,
+            shippingAddress,
+            paymentMethod,
+            items: [{
+                id: product.id,
+                product_id: product.id,
+                shop_id: stockShopId,
+                name: product.name,
+                brand: product.brand,
+                quantity,
+                price: itemPrice,
+                selectedPrice: basePrice,
+                isGiftWrapped,
+                size: sizeToUse
+            }],
+            fulfillmentType,
+            pickupShopId,
+            couponCode,
+            total
+        });
+        return res.success;
     };
 
     const value = {
@@ -678,6 +698,8 @@ export const ShopProvider = ({ children }) => {
         orders,
         updateOrderStatus,
         placeOrder,
+        placeConsolidatedOrder,
+        validateCoupon,
         coupons,
         addCoupon,
         updateCoupon,

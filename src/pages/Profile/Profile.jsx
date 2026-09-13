@@ -1,22 +1,25 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
+import { RegionContext } from '../../context/RegionContext';
 import api from '../../utils/api_v1_0_2';
 import { 
     User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, 
     Store, CalendarCheck, XCircle, ShieldCheck, Smartphone, Crown, Sparkles, 
-    ArrowRight, ArrowLeft, KeyRound, QrCode
+    ArrowRight, ArrowLeft, KeyRound, Ticket, ChevronDown, ChevronUp,
+    MessageCircle, ExternalLink, Flame, Droplets, Compass
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import './Profile.css';
 
 const Profile = () => {
     const { t } = useTranslation();
     const { isRTL } = useOutletContext();
-    const { orders } = useContext(ShopContext);
+    const { products } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
+    const { formatPrice, currency } = useContext(RegionContext);
 
     // Profile data from user object
     const profileData = {
@@ -52,8 +55,14 @@ const Profile = () => {
 
     const roleInfo = getRoleBadge(user?.role);
 
-    // Filter orders to only show those for this user based on email
-    const userOrders = orders.filter(o => o.email === user?.email).reverse();
+    // User Orders from Backend
+    const [userOrders, setUserOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
+    const [expandedOrderIds, setExpandedOrderIds] = useState(new Set());
+    const [vipQRCodes, setVipQRCodes] = useState({});
+
+    // Scent DNA
+    const [scentDNA, setScentDNA] = useState(null);
 
     // Fetch user reservations
     const [reservations, setReservations] = useState([]);
@@ -65,6 +74,79 @@ const Profile = () => {
     const [otpVerifyCode, setOtpVerifyCode] = useState('');
     const [is2FALoading, setIs2FALoading] = useState(false);
     const [show2FAForm, setShow2FAForm] = useState(false);
+
+    // Load Scent DNA from localStorage
+    useEffect(() => {
+        try {
+            const savedDNA = localStorage.getItem('perfumehub_scent_dna');
+            if (savedDNA) {
+                setScentDNA(JSON.parse(savedDNA));
+            }
+        } catch (e) {
+            console.error("Failed to parse scent DNA:", e);
+        }
+    }, []);
+
+    // Fetch Authenticated Customer Orders & Sub-Orders
+    useEffect(() => {
+        const fetchOrders = async () => {
+            if (!user) {
+                setOrdersLoading(false);
+                return;
+            }
+            try {
+                const res = await api.get('/orders');
+                const list = Array.isArray(res.data) ? res.data : [];
+                setUserOrders(list);
+
+                // Generate local QR codes for any pickup orders
+                list.forEach(order => {
+                    const isPickup = order.fulfillment_type === 'pickup';
+                    if (isPickup) {
+                        const passCode = (String(order.id).replace(/\D/g, '') || '948271').slice(-6).padStart(6, '0');
+                        QRCode.toDataURL(JSON.stringify({ orderId: order.order_id || `ORD-${order.id}`, passCode }), {
+                            width: 120,
+                            margin: 1,
+                            color: { dark: '#111111', light: '#ffffff' }
+                        }).then(url => {
+                            setVipQRCodes(prev => ({ ...prev, [order.id]: url }));
+                        }).catch(console.error);
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to load customer orders:", err);
+            } finally {
+                setOrdersLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, [user]);
+
+    // Fetch user reservations
+    useEffect(() => {
+        const fetchReservations = async () => {
+            if (!user?.id) return;
+            try {
+                const res = await api.get('/reservations');
+                setReservations(res.data);
+            } catch (e) { console.error(e); }
+            finally { setResvLoading(false); }
+        };
+        fetchReservations();
+    }, [user?.id]);
+
+    const toggleExpandOrder = (orderId) => {
+        setExpandedOrderIds(prev => {
+            const next = new Set(prev);
+            if (next.has(orderId)) {
+                next.delete(orderId);
+            } else {
+                next.add(orderId);
+            }
+            return next;
+        });
+    };
 
     const handleInitiate2FA = async () => {
         setIs2FALoading(true);
@@ -120,18 +202,6 @@ const Profile = () => {
         }
     };
 
-    useEffect(() => {
-        const fetchReservations = async () => {
-            if (!user?.id) return;
-            try {
-                const res = await api.get('/reservations');
-                setReservations(res.data);
-            } catch (e) { console.error(e); }
-            finally { setResvLoading(false); }
-        };
-        fetchReservations();
-    }, [user?.id]);
-
     const cancelReservation = async (id) => {
         if (!user?.id) return;
         if (!window.confirm(isRTL ? 'هل تريد إلغاء هذا الحجز؟' : 'Cancel this reservation?')) return;
@@ -148,6 +218,54 @@ const Profile = () => {
         cancelled: { bg: '#fee2e2', color: '#b91c1c', label: isRTL ? 'ملغى' : 'Cancelled' },
         expired:   { bg: '#f3f4f6', color: '#6b7280', label: isRTL ? 'منتهي' : 'Expired' },
     };
+
+    // 5-Stage Stepper configuration for delivery & pickup
+    const getDeliverySteps = () => [
+        { key: 'placed', label: isRTL ? 'تم تقديم الطلب' : 'Order Placed' },
+        { key: 'confirmed', label: isRTL ? 'تأكيد البوتيك' : 'Boutique Confirmed' },
+        { key: 'prepared', label: isRTL ? 'تجهيز وتغليف العطر' : 'Fragrance Packaged' },
+        { key: 'shipping', label: isRTL ? 'خرج للتوصيل' : 'Out for Delivery' },
+        { key: 'delivered', label: isRTL ? 'تم التوصيل بنجاح' : 'Delivered' }
+    ];
+
+    const getPickupSteps = () => [
+        { key: 'placed', label: isRTL ? 'تم الحجز' : 'Reserved' },
+        { key: 'confirmed', label: isRTL ? 'تأكيد البوتيك' : 'Boutique Confirmed' },
+        { key: 'prepared', label: isRTL ? 'جاهز بالفرع' : 'Ready in Shop' },
+        { key: 'collected', label: isRTL ? 'تم الاستلام' : 'Collected' }
+    ];
+
+    const getOrderActiveStepIndex = (status, isPickup) => {
+        const s = (status || '').toLowerCase();
+        if (s === 'cancelled') return -1;
+        if (isPickup) {
+            if (s === 'delivered' || s === 'completed' || s === 'collected') return 3;
+            if (s === 'ready' || s === 'packaged' || s === 'prepared') return 2;
+            if (s === 'confirmed' || s === 'accepted' || s === 'processing') return 1;
+            return 0;
+        } else {
+            if (s === 'delivered' || s === 'completed') return 4;
+            if (s === 'shipped' || s === 'out_for_delivery') return 3;
+            if (s === 'ready' || s === 'packaged' || s === 'prepared') return 2;
+            if (s === 'confirmed' || s === 'accepted' || s === 'processing') return 1;
+            return 0;
+        }
+    };
+
+    // Filter products matching Scent DNA for "Handpicked For Your Profile" carousel
+    const handpickedProducts = React.useMemo(() => {
+        if (!scentDNA || !Array.isArray(products) || products.length === 0) return [];
+        return products.filter(p => {
+            const family = scentDNA.primaryFamily?.toLowerCase();
+            const cat = Array.isArray(p.category) ? p.category.join(' ').toLowerCase() : String(p.category || '').toLowerCase();
+            const notes = Array.isArray(p.notes) ? p.notes.join(' ').toLowerCase() : String(p.notes || '').toLowerCase();
+            const name = String(p.name || '').toLowerCase();
+
+            const familyMatch = family && (cat.includes(family) || name.includes(family));
+            const noteMatch = scentDNA.keyNotes?.some(k => notes.includes(k.toLowerCase()) || name.includes(k.toLowerCase()));
+            return familyMatch || noteMatch;
+        }).slice(0, 4);
+    }, [scentDNA, products]);
 
     return (
         <div className="profile-page">
@@ -378,15 +496,106 @@ const Profile = () => {
                 </div>
 
                 <div className="profile-content">
-                    {/* My Reservations */}
+                    {/* ═══════════════════════════════════════════════════════════
+                        SCENT GENIE OLFACTIVE DNA HUB
+                        ═══════════════════════════════════════════════════════════ */}
+                    {scentDNA ? (
+                        <div className="scent-dna-container animate-fade-in">
+                            <div className="scent-dna-header">
+                                <div className="scent-dna-title">
+                                    <Sparkles size={22} />
+                                    <h3>{isRTL ? 'بصمتك العطرية الخاصة (Olfactive DNA)' : 'Your Olfactive DNA Signature'}</h3>
+                                </div>
+                                <span className="dna-family-badge">
+                                    {scentDNA.primaryFamily}
+                                </span>
+                            </div>
+
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
+                                {isRTL 
+                                    ? 'تم تحليل ذوقك العطري بناءً على اختياراتك في جني العطور. إليك توزيع النفحات وتوصياتنا الخاصة.' 
+                                    : 'Analyzed by PerfumeHub Scent Genie based on your personal fragrance notes & lifestyle.'}
+                            </p>
+
+                            {/* Breakdown Progress Bars */}
+                            {scentDNA.breakdown && (
+                                <div className="dna-breakdown-grid">
+                                    {Object.entries(scentDNA.breakdown).map(([family, pct]) => (
+                                        <div key={family} className="dna-bar-item">
+                                            <div className="dna-bar-labels">
+                                                <span>{family}</span>
+                                                <span>{pct}%</span>
+                                            </div>
+                                            <div className="dna-progress-track">
+                                                <div className="dna-progress-fill" style={{ width: `${pct}%` }}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Preferred Notes Tags */}
+                            {scentDNA.keyNotes && scentDNA.keyNotes.length > 0 && (
+                                <div className="dna-notes-row">
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>
+                                        {isRTL ? 'النوتات المفضلة:' : 'Dominant Accords:'}
+                                    </span>
+                                    {scentDNA.keyNotes.map(n => (
+                                        <span key={n} className="dna-note-pill">✨ {n}</span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Handpicked For Your Profile Carousel */}
+                            {handpickedProducts.length > 0 && (
+                                <div>
+                                    <div className="handpicked-heading">
+                                        <Flame size={18} />
+                                        <span>{isRTL ? 'مختارات مصممة خصيصاً لذوقك' : 'Handpicked For Your Profile'}</span>
+                                    </div>
+                                    <div className="handpicked-grid">
+                                        {handpickedProducts.map(p => (
+                                            <Link key={p.id} to={`/product/${p.id}`} className="handpicked-item">
+                                                <img src={Array.isArray(p.image) ? p.image[0] : p.image} alt={p.name} />
+                                                <h4>{p.name}</h4>
+                                                <p>{p.brand}</p>
+                                                <div className="handpicked-price">
+                                                    {formatPrice(p.price, currency, isRTL)}
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="scent-dna-invite animate-fade-in">
+                            <div>
+                                <h3>{isRTL ? 'اكتشف بصمتك العطرية (Olfactive DNA)' : 'Unlock Your Olfactive DNA'}</h3>
+                                <p>
+                                    {isRTL 
+                                        ? 'خض تجربة جني العطور التفاعلية لتحليل ذوقك وتوليد خريطة عطرية مخصصة لك مع ترشيحات نادرة.' 
+                                        : 'Take our 60-second Scent Genie quiz to discover your olfactive archetype and get handpicked fragrance matches.'}
+                                </p>
+                            </div>
+                            <Link to="/scent-genie" className="btn-start-dna">
+                                <Sparkles size={16} />
+                                <span>{isRTL ? 'ابدأ الاستكشاف الآن' : 'Start Scent Genie'}</span>
+                            </Link>
+                        </div>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════
+                        MY RESERVATIONS
+                        ═══════════════════════════════════════════════════════════ */}
                     <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <CalendarCheck size={22} style={{ color: 'var(--color-gold)' }} />
-                        {isRTL ? 'حجوزاتي' : 'My Reservations'}
+                        {isRTL ? 'حجوزاتي في البوتيك' : 'Boutique Reservations'}
                     </h2>
 
                     {resvLoading ? (
                         <div className="no-orders text-center" style={{ padding: '30px' }}>
-                            <p>{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+                            <p>{isRTL ? 'جاري التحميل...' : 'Loading reservations...'}</p>
                         </div>
                     ) : reservations.length > 0 ? (
                         <div className="orders-list" style={{ marginBottom: '40px' }}>
@@ -397,7 +606,7 @@ const Profile = () => {
                                         <div className="order-header">
                                             <div className="order-id">
                                                 <Store size={18} className="gold-icon" />
-                                                <span>{resv.shops?.name || (isRTL ? 'متجر' : 'Shop')}</span>
+                                                <span>{resv.shops?.name || (isRTL ? 'بوتيك قطري' : 'Boutique')}</span>
                                             </div>
                                             <span style={{
                                                 padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem',
@@ -431,11 +640,11 @@ const Profile = () => {
                                                 </span>
                                             </div>
 
-                                            {/* NEW: Verification Code for Pickup */}
+                                            {/* Verification Code for Pickup */}
                                             {(resv.status === 'pending' || resv.status === 'confirmed') && resv.verification_code && (
                                                 <div style={{ marginTop: '15px', padding: '12px', background: 'rgba(200, 169, 81, 0.05)', borderRadius: '8px', border: '1px dashed var(--color-gold)', textAlign: 'center' }}>
                                                     <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '4px', textTransform: 'uppercase' }}>
-                                                        {isRTL ? 'رمز الاستلام' : 'Pickup Code'}
+                                                        {isRTL ? 'رمز الاستلام VIP' : 'VIP Pickup Pass Code'}
                                                     </p>
                                                     <div style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '4px', color: 'var(--color-gold)' }}>
                                                         {resv.verification_code}
@@ -453,7 +662,7 @@ const Profile = () => {
                                                         color: '#dc2626', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'
                                                     }}
                                                 >
-                                                    <XCircle size={14} /> {isRTL ? 'إلغاء' : 'Cancel'}
+                                                    <XCircle size={14} /> {isRTL ? 'إلغاء الحجز' : 'Cancel Reservation'}
                                                 </button>
                                             </div>
                                         )}
@@ -464,53 +673,197 @@ const Profile = () => {
                     ) : (
                         <div className="no-orders text-center" style={{ marginBottom: '40px' }}>
                             <CalendarCheck size={40} color="var(--color-gray)" style={{ opacity: 0.4 }} />
-                            <p>{isRTL ? 'لا توجد حجوزات حالياً' : 'No reservations yet'}</p>
+                            <p>{isRTL ? 'لا توجد حجوزات حالياً' : 'No boutique reservations found'}</p>
                         </div>
                     )}
 
-                    {/* Order History */}
-                    <h2 className="section-title">
-                        {t('profile.order_history')}
+                    {/* ═══════════════════════════════════════════════════════════
+                        LIVE ORDER TRACKING & HISTORY (5-STAGE TRACKER)
+                        ═══════════════════════════════════════════════════════════ */}
+                    <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <PackageIcon size={22} style={{ color: 'var(--color-gold)' }} />
+                        {isRTL ? 'طلباتي ومتابعة التوصيل المباشر' : 'My Orders & Live Courier Tracker'}
                     </h2>
 
-                    {userOrders.length > 0 ? (
+                    {ordersLoading ? (
+                        <div className="no-orders text-center">
+                            <p>{isRTL ? 'جاري جلب الطلبات...' : 'Loading your luxury orders...'}</p>
+                        </div>
+                    ) : userOrders.length > 0 ? (
                         <div className="orders-list">
-                            {userOrders.map(order => (
-                                <div key={order.id} className="order-card">
-                                    <div className="order-header">
-                                        <div className="order-id">
-                                            <PackageIcon size={18} className="gold-icon" />
-                                            <span>{order.id}</span>
-                                        </div>
-                                        <div className={`order-status status-${order.status.toLowerCase()}`}>
-                                            {order.status === 'Pending' && <Clock size={16} />}
-                                            {order.status === 'Shipped' && <CheckCircle size={16} />}
-                                            <span>
-                                                {order.status === 'Shipped' ? t('profile.status_shipped') : t('profile.status_pending')}
-                                            </span>
-                                        </div>
-                                    </div>
+                            {userOrders.map(order => {
+                                const isPickup = order.fulfillment_type === 'pickup';
+                                const steps = isPickup ? getPickupSteps() : getDeliverySteps();
+                                const activeIndex = getOrderActiveStepIndex(order.status, isPickup);
+                                const isExpanded = expandedOrderIds.has(order.id);
+                                const passCode = (String(order.id).replace(/\D/g, '') || '948271').slice(-6).padStart(6, '0');
+                                const qrImg = vipQRCodes[order.id];
 
-                                    <div className="order-body">
-                                        <div className="order-date">
-                                            <strong>{t('profile.date')}</strong> {order.date}
+                                return (
+                                    <div key={order.id} className="order-card">
+                                        <div className="order-header">
+                                            <div className="order-id">
+                                                <PackageIcon size={18} className="gold-icon" />
+                                                <span>{order.order_id || `ORD-${order.id}`}</span>
+                                            </div>
+                                            <div className={`order-status status-${(order.status || 'pending').toLowerCase()}`}>
+                                                {order.status === 'delivered' || order.status === 'completed' ? (
+                                                    <CheckCircle size={15} />
+                                                ) : (
+                                                    <Clock size={15} />
+                                                )}
+                                                <span>{order.status || 'Pending'}</span>
+                                            </div>
                                         </div>
-                                        <div className="order-items">
-                                            {order.items.map((item, idx) => (
-                                                <div key={idx} className="order-item-line">
-                                                    <span>{item.quantity}x {item.name}</span>
-                                                    <span>{item.price} {t('common.currency')}</span>
+
+                                        {/* 5-Stage Visual Progress Stepper */}
+                                        <div className="order-stepper-wrapper">
+                                            <div className="order-stepper">
+                                                {/* Connector Background Line */}
+                                                <div className="stepper-connector">
+                                                    <div 
+                                                        className="stepper-connector-fill" 
+                                                        style={{ 
+                                                            width: activeIndex >= 0 
+                                                                ? `${Math.min(100, (activeIndex / (steps.length - 1)) * 100)}%` 
+                                                                : '0%' 
+                                                        }}
+                                                    />
                                                 </div>
-                                            ))}
+
+                                                {/* Step Nodes */}
+                                                {steps.map((step, idx) => {
+                                                    const isCompleted = activeIndex > idx;
+                                                    const isCurrent = activeIndex === idx;
+                                                    return (
+                                                        <div key={step.key} className="stepper-step-item">
+                                                            <div className={`step-node ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
+                                                                {isCompleted ? '✓' : idx + 1}
+                                                            </div>
+                                                            <span className={`step-label ${isCurrent ? 'active' : ''}`}>
+                                                                {step.label}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Click & Collect Digital VIP Pass Preview (If Pickup) */}
+                                        {isPickup && (
+                                            <div className="profile-vip-pass">
+                                                <div className="vip-pass-details">
+                                                    <div className="vip-pass-title">
+                                                        <Ticket size={16} />
+                                                        <span>{isRTL ? 'بطاقة استلام VIP الرقمية' : 'Digital VIP Pickup Pass'}</span>
+                                                    </div>
+                                                    <div className="vip-pass-code">{passCode}</div>
+                                                    <div className="vip-pass-instruction">
+                                                        {isRTL 
+                                                            ? 'أبرز الرمز أو امسح الباركود عند زيارة البوتيك لاستلام عطرك فوراً.' 
+                                                            : 'Present this 6-digit PIN or QR code at the boutique counter.'}
+                                                    </div>
+                                                </div>
+                                                {qrImg && (
+                                                    <div className="vip-pass-qr">
+                                                        <img src={qrImg} alt="VIP Pass QR" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="order-body">
+                                            <div className="order-date">
+                                                <strong>{t('profile.date')}</strong> {order.created_at ? new Date(order.created_at).toLocaleDateString('en-GB') : order.date || 'Recent'}
+                                                {order.shipping_address && (
+                                                    <div style={{ marginTop: '4px', color: '#475569' }}>
+                                                        <strong>{isRTL ? 'العنوان:' : 'Address:'}</strong> {order.shipping_address}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Primary Order Items */}
+                                            <div className="order-items">
+                                                {(order.items || []).map((item, idx) => (
+                                                    <div key={idx} className="order-item-line">
+                                                        <span>
+                                                            {item.quantity}x {item.name || item.product?.name}
+                                                            {item.size ? ` (${typeof item.size === 'object' ? item.size.name : item.size})` : ''}
+                                                        </span>
+                                                        <span>{formatPrice((item.price || item.selectedPrice || 0) * (item.quantity || 1), currency, isRTL)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Multi-Vendor Sub-Orders Breakdown */}
+                                            {order.sub_orders && order.sub_orders.length > 0 && (
+                                                <div className="sub-orders-section">
+                                                    <div 
+                                                        className="sub-orders-header" 
+                                                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                                        onClick={() => toggleExpandOrder(order.id)}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Store size={16} color="#c8a951" />
+                                                            <span>
+                                                                {isRTL ? `المتاجر المنفذة للطلب (${order.sub_orders.length} فروع)` : `Fulfilling Boutiques (${order.sub_orders.length} Shops)`}
+                                                            </span>
+                                                        </div>
+                                                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                    </div>
+
+                                                    {isExpanded && (
+                                                        <div style={{ marginTop: '10px' }}>
+                                                            {order.sub_orders.map(sub => {
+                                                                const shopWa = sub.shops?.whatsapp_number?.replace(/\D/g, '');
+                                                                return (
+                                                                    <div key={sub.id} className="sub-order-card">
+                                                                        <div className="sub-order-top">
+                                                                            <div className="sub-order-shop-info">
+                                                                                <Store size={15} />
+                                                                                <span>{sub.shops?.name || 'PerfumeHub Qatar Boutique'}</span>
+                                                                            </div>
+                                                                            <span className={`order-status status-${(sub.status || 'pending').toLowerCase()}`}>
+                                                                                {sub.status || 'Pending'}
+                                                                            </span>
+                                                                        </div>
+                                                                        {sub.shops?.address && (
+                                                                            <div className="sub-order-shop-addr">
+                                                                                {sub.shops.address}
+                                                                            </div>
+                                                                        )}
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                                                Sub-order Total: <strong>{formatPrice(sub.total_amount, currency, isRTL)}</strong>
+                                                                            </span>
+                                                                            {shopWa && (
+                                                                                <a 
+                                                                                    href={`https://api.whatsapp.com/send?phone=${shopWa}&text=${encodeURIComponent(`Hello ${sub.shops?.name}, regarding my PerfumeHub order ${order.order_id || order.id}`)}`}
+                                                                                    target="_blank" 
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="btn-boutique-wa"
+                                                                                >
+                                                                                    <MessageCircle size={14} />
+                                                                                    <span>{isRTL ? 'مراسلة البوتيك' : 'Chat with Boutique'}</span>
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="order-footer">
+                                            <strong>{t('profile.total')}</strong>
+                                            <span className="order-total">{formatPrice(order.total, currency, isRTL)}</span>
                                         </div>
                                     </div>
-
-                                    <div className="order-footer">
-                                        <strong>{t('profile.total')}</strong>
-                                        <span className="order-total">{order.total} {t('common.currency')}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="no-orders text-center">

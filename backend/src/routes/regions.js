@@ -5,6 +5,60 @@ import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.j
 
 const router = express.Router();
 
+// Get live currency exchange rates
+router.get('/rates', async (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    try {
+        const { data, error } = await supabase
+            .from('currency_exchange_rates')
+            .select('code, rate_to_qar, updated_at');
+        
+        // Comprehensive GCC fallback rates anchored to QAR
+        const fallbackRates = {
+            'QAR': 1.0,
+            'SAR': 0.97,
+            'AED': 0.99,
+            'KWD': 11.90,
+            'BHD': 9.65,
+            'OMR': 9.45,
+            'USD': 3.64,
+            'GBP': 4.60,
+            'EUR': 3.95
+        };
+
+        const ratesMap = { ...fallbackRates };
+        if (data && Array.isArray(data)) {
+            data.forEach(r => {
+                if (r.code && r.rate_to_qar) {
+                    ratesMap[r.code.toUpperCase()] = parseFloat(r.rate_to_qar);
+                }
+            });
+        }
+
+        res.json({
+            base: 'QAR',
+            rates: ratesMap,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error fetching currency exchange rates:', error);
+        res.json({
+            base: 'QAR',
+            rates: {
+                'QAR': 1.0,
+                'SAR': 0.97,
+                'AED': 0.99,
+                'KWD': 11.90,
+                'BHD': 9.65,
+                'OMR': 9.45,
+                'USD': 3.64,
+                'GBP': 4.60
+            },
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Get all regions
 router.get('/', async (req, res) => {
     res.setHeader('Cache-Control', 'private, max-age=60');

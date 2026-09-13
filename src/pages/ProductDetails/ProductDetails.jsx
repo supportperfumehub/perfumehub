@@ -138,24 +138,38 @@ const ProductDetails = () => {
         : product.discount;
 
     const handleAddToCart = () => {
+        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
+        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
+        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+
         addToCart({
             ...product, 
             price: displayPrice,
             inventory_id: selectedInventoryId, 
-            shop_id: selectedInventory?.shop_id 
-        }, quantity, isGiftWrapped, selectedSize, displayPrice);
+            shop_id: shopId,
+            vendor_name: vendorName,
+            vendor_address: vendorAddress
+        }, quantity, isGiftWrapped, selectedSize, displayPrice, shopId, selectedInventoryId, vendorName, vendorAddress);
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2000);
     };
 
     const handleBuyNow = () => {
+        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
+        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
+        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+
         navigate('/checkout', { 
             state: { 
                 product: { 
                     ...product, 
                     price: displayPrice,
                     inventory_id: selectedInventoryId, 
-                    shop_id: selectedInventory?.shop_id 
+                    shop_id: shopId,
+                    vendor_name: vendorName,
+                    vendor_address: vendorAddress
                 }, 
                 quantity, 
                 isGiftWrapped, 
@@ -167,13 +181,20 @@ const ProductDetails = () => {
     };
 
     const handleReserve = () => {
+        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
+        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
+        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
+        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+
         navigate('/checkout', { 
             state: { 
                 product: { 
                     ...product, 
                     price: displayPrice,
                     inventory_id: selectedInventoryId, 
-                    shop_id: selectedInventory?.shop_id 
+                    shop_id: shopId,
+                    vendor_name: vendorName,
+                    vendor_address: vendorAddress
                 }, 
                 quantity, 
                 isGiftWrapped, 

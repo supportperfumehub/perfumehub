@@ -286,6 +286,29 @@ const PerfumeHubAI = () => {
                 setExternalRecs(topExternal);
             }
 
+            // Save Olfactive DNA for Profile & Recommendations Hub
+            try {
+                const scentDNA = {
+                    gender: answers.gender || 'unisex',
+                    primaryFamily: answers.profile || 'arabic',
+                    breakdown: {
+                        woody: answers.profile === 'woody' ? 45 : (answers.note === 'oud' ? 35 : 15),
+                        oriental: answers.profile === 'arabic' ? 50 : (answers.note === 'oud' || answers.note === 'vanilla' ? 30 : 20),
+                        fresh: answers.profile === 'fresh' ? 45 : (answers.note === 'citrus' ? 30 : 15),
+                        floral: answers.profile === 'floral' ? 45 : (answers.note === 'rose' ? 35 : 15),
+                        gourmand: answers.profile === 'gourmand' ? 45 : (answers.note === 'vanilla' ? 25 : 10)
+                    },
+                    keyNotes: [answers.note || 'oud', 'amber', 'bergamot', 'musk'].filter(Boolean),
+                    vibe: answers.vibe || 'elegant',
+                    season: answers.season || 'all',
+                    occasion: answers.occasion || 'daily',
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('perfumehub_scent_dna', JSON.stringify(scentDNA));
+            } catch (e) {
+                console.error("Failed to save scent DNA:", e);
+            }
+
             setStep(11); // Results state
         }, 2000);
     };

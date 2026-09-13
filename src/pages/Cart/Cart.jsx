@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { CartContext } from '../../context/CartContext';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag, Gift } from 'lucide-react';
+import { RegionContext } from '../../context/RegionContext';
+import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag, Gift, Store } from 'lucide-react';
 import './Cart.css';
 
 const Cart = () => {
@@ -12,17 +13,13 @@ const Cart = () => {
     const { isRTL } = useOutletContext();
     const navigate = useNavigate();
     const { cartItems, removeFromCart, updateQuantity, clearCart, getCartTotal } = useContext(CartContext);
-    const { coupons, showToast, fetchCoupons } = useContext(ShopContext);
+    const { showToast, validateCoupon } = useContext(ShopContext);
+    const { formatPrice, currency } = useContext(RegionContext);
     const { user } = useContext(AuthContext);
     const [orderStatus, setOrderStatus] = useState(null);
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
-
-    useEffect(() => {
-        if (fetchCoupons) {
-            fetchCoupons();
-        }
-    }, [fetchCoupons]);
+    const [couponLoading, setCouponLoading] = useState(false);
 
     const handleCheckout = () => {
         if (cartItems.length === 0) return;
@@ -40,43 +37,26 @@ const Cart = () => {
         });
     };
 
-    const applyCoupon = () => {
-        if (!couponCode) return;
+    const applyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponLoading(true);
 
-        const now = new Date();
-        const validCoupon = coupons.find(c =>
-            c.code.toUpperCase() === couponCode.toUpperCase() &&
-            c.isActive &&
-            new Date(c.expiryDate) >= now &&
-            (!c.usageLimit || (c.usageCount || 0) < c.usageLimit) &&
-            (!user || !c.usedBy || !c.usedBy.includes(user.email.toLowerCase()))
-        );
+        const subtotal = getCartTotal();
+        const res = await validateCoupon(couponCode, subtotal, user?.email || '', user?.phone || '');
+        setCouponLoading(false);
 
-        if (validCoupon) {
-            // Handle both percentage and fixed discounts
-            if (validCoupon.discountType === 'percentage') {
-                setDiscount(validCoupon.discountValue);
-                showToast(t('cart.coupon_applied', { value: `${validCoupon.discountValue}%` }), 'success');
+        if (res.valid) {
+            if (res.discountType === 'percentage') {
+                setDiscount(res.discountValue);
+                showToast(t('cart.coupon_applied', { value: `${res.discountValue}%` }), 'success');
             } else {
-                // For fixed discounts, we calculate the equivalent percentage for the current subtotal
-                const subtotal = getCartTotal();
-                const equivalentPercentage = Math.round((validCoupon.discountValue / subtotal) * 100);
+                const equivalentPercentage = Math.min(100, Math.round((res.discountValue / subtotal) * 100));
                 setDiscount(equivalentPercentage);
-                showToast(t('cart.coupon_applied', { value: `${validCoupon.discountValue} ${t('common.currency')}` }), 'success');
+                showToast(t('cart.coupon_applied', { value: `${res.discountValue} QAR` }), 'success');
             }
         } else {
-            const coupon = coupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase());
-            const isLimitReached = coupon && coupon.usageLimit && (coupon.usageCount >= coupon.usageLimit);
-            const isAlreadyUsed = user && coupon && coupon.usedBy && coupon.usedBy.includes(user.email.toLowerCase());
-
             setDiscount(0);
-            if (isAlreadyUsed) {
-                showToast(t('cart.coupon_already_used'), 'error');
-            } else if (isLimitReached) {
-                showToast(t('cart.coupon_limit_reached'), 'error');
-            } else {
-                showToast(t('cart.coupon_invalid'), 'error');
-            }
+            showToast(res.error || t('cart.coupon_invalid'), 'error');
         }
     };
 
@@ -139,6 +119,10 @@ const Cart = () => {
                                             </button>
                                         </div>
                                         <p className="cart-item-brand text-muted">{item.product.brand}</p>
+                                        <div className="cart-item-vendor">
+                                            <Store size={12} />
+                                            <span>{isRTL ? 'تنفيذ من: ' : 'Fulfilled by: '}<strong>{item.vendor_name || 'PerfumeHub Flagship Boutique'}</strong> {isRTL ? '(الدوحة / لوسيل)' : '(Doha / Lusail)'}</span>
+                                        </div>
                                         {item.isGiftWrapped && (
                                             <div className="gift-badge">
                                                 <Gift size={12} className="gift-badge-icon" />
@@ -153,7 +137,9 @@ const Cart = () => {
                                                 <button onClick={() => updateQuantity(item.product.id, item.isGiftWrapped, item.selectedSize, item.quantity + 1)} disabled={item.quantity >= (item.product.stock !== undefined ? item.product.stock : 10)}>+</button>
                                             </div>
                                             <div className="cart-item-price">
-                                                <span className="cart-item-price-current">{(parseFloat(item.product.price) + (item.isGiftWrapped ? 10 : 0)) * item.quantity} {t('common.currency')}</span>
+                                                <span className="cart-item-price-current">
+                                                    {formatPrice((parseFloat(item.selectedPrice || item.product.price) + (item.isGiftWrapped ? 10 : 0)) * item.quantity, currency, isRTL)}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -176,34 +162,36 @@ const Cart = () => {
                                             placeholder={isRTL ? 'أدخل كود الخصم' : 'Enter coupon code'}
                                             value={couponCode}
                                             onChange={(e) => setCouponCode(e.target.value)}
+                                            disabled={couponLoading}
                                         />
                                         <button 
                                             className="coupon-apply-btn" 
                                             type="button" 
                                             onClick={applyCoupon}
+                                            disabled={couponLoading}
                                         >
-                                            {t('cart.apply')}
+                                            {couponLoading ? (isRTL ? 'جاري التحقق...' : 'Checking...') : t('cart.apply')}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="summary-row">
                                     <span>{t('cart.subtotal')}</span>
-                                    <span>{getCartTotal()} {t('common.currency')}</span>
+                                    <span>{formatPrice(getCartTotal(), currency, isRTL)}</span>
                                 </div>
                                 {discount > 0 && (
                                     <div className="summary-row text-success">
                                         <span>{t('cart.discount')} ({discount}%)</span>
-                                        <span>-{(getCartTotal() * (discount / 100)).toFixed(0)} {t('common.currency')}</span>
+                                        <span>-{formatPrice((getCartTotal() * (discount / 100)), currency, isRTL)}</span>
                                     </div>
                                 )}
                                 <div className="summary-row">
                                     <span>{t('cart.shipping')}</span>
-                                    <span>{shippingCost === 0 ? t('cart.free') : `${shippingCost} ${t('common.currency')}`}</span>
+                                    <span>{shippingCost === 0 ? (isRTL ? 'مجاني' : 'FREE') : formatPrice(shippingCost, currency, isRTL)}</span>
                                 </div>
                                 <div className="summary-row total-row">
                                     <span>{t('cart.total')}</span>
-                                    <span>{Math.round(finalTotal)} {t('common.currency')}</span>
+                                    <span>{formatPrice(finalTotal, currency, isRTL)}</span>
                                 </div>
 
                                 <button 

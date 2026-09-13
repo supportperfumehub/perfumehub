@@ -12,38 +12,62 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('perfumehub_cart', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    const addToCart = (product, quantity = 1, isGiftWrapped = false, selectedSize = null, selectedPrice = null) => {
+    const addToCart = (product, quantity = 1, isGiftWrapped = false, selectedSize = null, selectedPrice = null, shopId = null, inventoryId = null, vendorName = null, vendorAddress = null) => {
         setCartItems(prevItems => {
             const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
-            const priceToUse = selectedPrice || product.price;
+            const priceToUse = selectedPrice !== null && selectedPrice !== undefined ? selectedPrice : product.price;
+            const finalShopId = shopId || product.shop_id || (product.inventories && product.inventories[0]?.shop_id) || 'd89b1479-7a54-4fb4-b4a5-9fe8d90479b1';
+            const finalInventoryId = inventoryId || product.inventory_id || (product.inventories && product.inventories[0]?.id) || null;
+            const finalVendorName = vendorName || product.vendor_name || product.shop_name || 'PerfumeHub Flagship Boutique';
+            const finalVendorAddress = vendorAddress || product.vendor_address || product.shop_address || 'Doha / Lusail';
 
             const existingItemIndex = prevItems.findIndex(
-                item => item.product.id === product.id && item.isGiftWrapped === isGiftWrapped && item.selectedSize === sizeToUse && item.selectedPrice === priceToUse
+                item => item.product.id === product.id && 
+                        item.isGiftWrapped === isGiftWrapped && 
+                        item.selectedSize === sizeToUse && 
+                        item.selectedPrice === priceToUse &&
+                        item.shop_id === finalShopId
             );
 
             if (existingItemIndex >= 0) {
-                // Item exists with same gift wrap status, size AND price, increment quantity
+                // Item exists with same shop, gift wrap status, size AND price, increment quantity
                 const updatedItems = [...prevItems];
                 updatedItems[existingItemIndex].quantity += quantity;
                 return updatedItems;
             } else {
-                // New item
-                return [...prevItems, { product, quantity, isGiftWrapped, selectedSize: sizeToUse, selectedPrice: priceToUse }];
+                // New item with explicit vendor attribution
+                return [...prevItems, { 
+                    product, 
+                    quantity, 
+                    isGiftWrapped, 
+                    selectedSize: sizeToUse, 
+                    selectedPrice: priceToUse,
+                    shop_id: finalShopId,
+                    inventory_id: finalInventoryId,
+                    vendor_name: finalVendorName,
+                    vendor_address: finalVendorAddress
+                }];
             }
         });
     };
 
-    const removeFromCart = (productId, isGiftWrapped, selectedSize) => {
+    const removeFromCart = (productId, isGiftWrapped, selectedSize, shopId = null) => {
         setCartItems(prevItems => prevItems.filter(
-            item => !(item.product.id === productId && item.isGiftWrapped === isGiftWrapped && item.selectedSize === selectedSize)
+            item => !(item.product.id === productId && 
+                      item.isGiftWrapped === isGiftWrapped && 
+                      item.selectedSize === selectedSize &&
+                      (shopId ? item.shop_id === shopId : true))
         ));
     };
 
-    const updateQuantity = (productId, isGiftWrapped, selectedSize, newQuantity) => {
+    const updateQuantity = (productId, isGiftWrapped, selectedSize, newQuantity, shopId = null) => {
         if (newQuantity <= 0) return;
         setCartItems(prevItems =>
             prevItems.map(item =>
-                (item.product.id === productId && item.isGiftWrapped === isGiftWrapped && item.selectedSize === selectedSize)
+                (item.product.id === productId && 
+                 item.isGiftWrapped === isGiftWrapped && 
+                 item.selectedSize === selectedSize &&
+                 (shopId ? item.shop_id === shopId : true))
                     ? { ...item, quantity: newQuantity }
                     : item
             )

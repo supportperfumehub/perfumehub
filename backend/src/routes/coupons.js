@@ -7,10 +7,14 @@ const router = express.Router();
 
 const adminOnly = [authenticateUser, verifyRole(['super_admin', 'admin'])];
 
-// Get coupons
+// Get coupons (Sanitized for public/guest clients - Zero PII leakage)
 router.get('/', async (req, res) => {
     try {
-        const query = supabase.from('coupons').select('*').not('code', 'like', '__%');
+        const query = supabase
+            .from('coupons')
+            .select('id, code, discount_type, discount_value, discount_percentage, expiry_date, is_active, usage_limit, usage_count')
+            .not('code', 'like', '__%');
+            
         const { data, error } = await withTimeout(query);
 
         if (error) throw error;
@@ -20,6 +24,84 @@ router.get('/', async (req, res) => {
             return res.status(504).json({ error: 'Database timeout' });
         }
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Validate coupon endpoint (Zero-trust, never returns used_by/PII)
+router.post('/validate', async (req, res) => {
+    const { code, subtotal = 0, email, phone } = req.body;
+    try {
+        if (!code) {
+            return res.status(400).json({ valid: false, error: 'Coupon code is required' });
+        }
+
+        const { data: coupon, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('code', code.trim().toUpperCase())
+            .maybeSingle();
+
+        if (error || !coupon) {
+            return res.status(404).json({ valid: false, error: 'Coupon not found' });
+        }
+
+        if (!coupon.is_active) {
+            return res.status(400).json({ valid: false, error: 'Coupon is inactive' });
+        }
+
+        const now = new Date();
+        if (coupon.expiry_date && new Date(coupon.expiry_date) < now) {
+            return res.status(400).json({ valid: false, error: 'Coupon has expired' });
+        }
+
+        if (coupon.usage_limit && (coupon.usage_count || 0) >= coupon.usage_limit) {
+            return res.status(400).json({ valid: false, error: 'Coupon usage limit reached' });
+        }
+
+        // Single-use verification per customer email, phone, or client IP
+        const clientIP = req.ip || req.headers['x-forwarded-for'] || null;
+        const parseArray = (val) => Array.isArray(val) ? val : (typeof val === 'string' ? JSON.parse(val || '[]') : []);
+        
+        const usedBy = parseArray(coupon.used_by);
+        const usedByPhones = parseArray(coupon.used_by_phones);
+        const usedByIPs = parseArray(coupon.used_by_ips);
+
+        const customerEmail = email ? email.toLowerCase().trim() : null;
+        const customerPhone = phone ? phone.trim() : null;
+
+        if (customerEmail && usedBy.includes(customerEmail)) {
+            return res.status(400).json({ valid: false, error: 'Coupon already used by this email' });
+        }
+        if (customerPhone && usedByPhones.includes(customerPhone)) {
+            return res.status(400).json({ valid: false, error: 'Coupon already used by this phone number' });
+        }
+        if (clientIP && usedByIPs.includes(clientIP)) {
+            return res.status(400).json({ valid: false, error: 'Coupon already used from this device' });
+        }
+
+        // Calculate discount
+        const parsedSubtotal = parseFloat(subtotal) || 0;
+        let calculatedDiscount = 0;
+        const discountType = coupon.discount_type || 'percentage';
+        const discountValue = Number(coupon.discount_value) || Number(coupon.discount_percentage) || 0;
+
+        if (discountType === 'percentage') {
+            calculatedDiscount = (parsedSubtotal * discountValue) / 100;
+        } else {
+            calculatedDiscount = Math.min(parsedSubtotal, discountValue);
+        }
+
+        // Return strictly the sanitized validation and calculation result
+        return res.json({
+            valid: true,
+            code: coupon.code,
+            discountType,
+            discountValue,
+            calculatedDiscount: Math.round(calculatedDiscount * 100) / 100
+        });
+    } catch (err) {
+        console.error('Coupon validation error:', err);
+        return res.status(500).json({ valid: false, error: 'Internal server error during validation' });
     }
 });
 
