@@ -6,7 +6,8 @@ import { ShopContext } from '../../context/ShopContext';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
 import { RegionContext } from '../../context/RegionContext';
-import { ShoppingBag, Zap, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin } from 'lucide-react';
+import { AuthContext } from '../../context/AuthContext';
+import { ShoppingBag, Zap, Heart, Share2, ShieldCheck, Truck, RotateCcw, Gift, Check, Store, MapPin, Star, CheckCircle2, X, MessageSquare, AlertCircle, Sparkles, ThumbsUp, Lock } from 'lucide-react';
 import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
 import { getLocationWithFallback } from '../../utils/geolocation';
 import './ProductDetails.css';
@@ -33,6 +34,7 @@ const ProductDetails = () => {
     const { addToCart } = useContext(CartContext);
     const { toggleWishlist, isInWishlist } = useContext(WishlistContext);
     const { activeRegion } = useContext(RegionContext);
+    const { user } = useContext(AuthContext);
     const [product, setProduct] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [selectedSize, setSelectedSize] = useState(null);
@@ -55,6 +57,132 @@ const ProductDetails = () => {
     const DESCRIPTION_LIMIT = 200;
 
     const [recommendedVendors, setRecommendedVendors] = useState([]);
+
+    // Reviews & Verified Buyer System State
+    const [reviewsData, setReviewsData] = useState({
+        reviews: [],
+        averageRating: 5.0,
+        totalReviews: 0,
+        breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    });
+    const [loadingReviews, setLoadingReviews] = useState(true);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [checkingEligibility, setCheckingEligibility] = useState(false);
+    const [verificationState, setVerificationState] = useState(null); // 'REQUIRES_LOGIN' | 'NOT_PURCHASED' | 'VERIFIED_BUYER'
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewHoverRating, setReviewHoverRating] = useState(0);
+    const [reviewTitle, setReviewTitle] = useState('');
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewLongevity, setReviewLongevity] = useState('Long Lasting (8-10h)');
+    const [reviewSillage, setReviewSillage] = useState('Moderate');
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [reviewSubmitSuccess, setReviewSubmitSuccess] = useState(false);
+    const [reviewError, setReviewError] = useState('');
+
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (!id) return;
+            try {
+                setLoadingReviews(true);
+                const res = await fetch(`/api/reviews/product/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setReviewsData(data);
+                }
+            } catch (err) {
+                console.error('Error fetching reviews:', err);
+            } finally {
+                setLoadingReviews(false);
+            }
+        };
+        fetchReviews();
+    }, [id]);
+
+    const handleWriteReviewClick = async () => {
+        setReviewError('');
+        setReviewSubmitSuccess(false);
+
+        if (!user || !user.email) {
+            setVerificationState('REQUIRES_LOGIN');
+            setIsReviewModalOpen(true);
+            return;
+        }
+
+        try {
+            setCheckingEligibility(true);
+            const token = localStorage.getItem('perfumehub_token');
+            const res = await fetch(`/api/reviews/eligibility?productId=${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await res.json();
+            if (data.eligible && data.isVerifiedBuyer) {
+                setVerificationState('VERIFIED_BUYER');
+            } else {
+                setVerificationState('NOT_PURCHASED');
+            }
+        } catch (err) {
+            console.error('Eligibility check error:', err);
+            setVerificationState('NOT_PURCHASED');
+        } finally {
+            setCheckingEligibility(false);
+            setIsReviewModalOpen(true);
+        }
+    };
+
+    const handleReviewSubmit = async (e) => {
+        e.preventDefault();
+        if (!reviewComment || reviewComment.trim().length < 10) {
+            setReviewError(isRTL ? 'يرجى كتابة تعليق لا يقل عن 10 أحرف.' : 'Please enter a review of at least 10 characters.');
+            return;
+        }
+
+        setSubmittingReview(true);
+        setReviewError('');
+
+        try {
+            const token = localStorage.getItem('perfumehub_token');
+            const res = await fetch('/api/reviews', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    productId: id,
+                    rating: reviewRating,
+                    title: reviewTitle,
+                    comment: reviewComment,
+                    longevity: reviewLongevity,
+                    sillage: reviewSillage
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setReviewSubmitSuccess(true);
+                setReviewsData(prev => ({
+                    ...prev,
+                    totalReviews: (prev.totalReviews || 0) + 1,
+                    reviews: [data.review, ...(prev.reviews || [])]
+                }));
+                setTimeout(() => {
+                    setIsReviewModalOpen(false);
+                    setReviewSubmitSuccess(false);
+                    setReviewComment('');
+                    setReviewTitle('');
+                }, 2000);
+            } else {
+                setReviewError(data.error || 'Failed to submit review.');
+            }
+        } catch (err) {
+            console.error('Submit review error:', err);
+            setReviewError('Failed to connect to server. Please try again.');
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
 
     useEffect(() => {
         const fetchRecommendations = async () => {
@@ -714,6 +842,338 @@ const ProductDetails = () => {
                 </div>
             </div>
 
+            {/* Customer Reviews & Ratings Section */}
+            <section className="product-reviews-section">
+                <div className="container">
+                    <div className="reviews-section-header">
+                        <div className="reviews-title-wrap">
+                            <span className="reviews-sub-tag">
+                                <Sparkles size={14} style={{ display: 'inline', verticalAlign: 'middle', marginInlineEnd: '6px' }} />
+                                {isRTL ? 'تقييمات المشترين الموثقة' : 'Verified Buyer Ratings'}
+                            </span>
+                            <h2 className="reviews-main-title">{isRTL ? 'آراء العملاء وتجاربهم' : 'Customer Reviews & Experiences'}</h2>
+                        </div>
+                        <button 
+                            className="btn btn-gold write-review-btn"
+                            onClick={handleWriteReviewClick}
+                            disabled={checkingEligibility}
+                        >
+                            <MessageSquare size={16} />
+                            {checkingEligibility 
+                                ? (isRTL ? 'جاري التحقق...' : 'Verifying...') 
+                                : (isRTL ? 'اكتب تقييماً موثقاً' : 'Write a Verified Review')}
+                        </button>
+                    </div>
+
+                    {/* Rating Overview Card */}
+                    <div className="reviews-overview-card">
+                        <div className="overview-score-box">
+                            <div className="big-score">{reviewsData.averageRating || '5.0'}</div>
+                            <div className="stars-row">
+                                {[...Array(5)].map((_, i) => (
+                                    <Star 
+                                        key={i} 
+                                        size={20} 
+                                        fill={i < Math.round(reviewsData.averageRating || 5) ? '#d4af37' : '#e2e8f0'} 
+                                        color={i < Math.round(reviewsData.averageRating || 5) ? '#d4af37' : '#cbd5e1'} 
+                                    />
+                                ))}
+                            </div>
+                            <span className="total-count-label">
+                                {isRTL 
+                                    ? `بناءً على ${reviewsData.totalReviews || 0} تقييم موثق من قطر`
+                                    : `Based on ${reviewsData.totalReviews || 0} verified Qatar purchases`}
+                            </span>
+                        </div>
+
+                        <div className="overview-bars-box">
+                            {[5, 4, 3, 2, 1].map((star) => {
+                                const count = reviewsData.breakdown?.[star] || 0;
+                                const percent = reviewsData.totalReviews > 0 
+                                    ? Math.round((count / reviewsData.totalReviews) * 100) 
+                                    : (star === 5 ? 100 : 0);
+                                return (
+                                    <div key={star} className="rating-bar-row">
+                                        <span className="star-bar-label">{star} {isRTL ? 'نجوم' : 'Stars'}</span>
+                                        <div className="bar-track">
+                                            <div className="bar-fill" style={{ width: `${percent}%` }}></div>
+                                        </div>
+                                        <span className="bar-count-label">{count}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="overview-trust-box">
+                            <div className="trust-policy-item">
+                                <ShieldCheck size={22} className="trust-policy-icon" />
+                                <div>
+                                    <strong>{isRTL ? 'حماية الأصالة 100٪' : '100% Verified Purchases Only'}</strong>
+                                    <p>{isRTL ? 'لا يُسمح بكتابة التقييمات إلا للعملاء الذين اشتروا هذا العطر بالفعل من بيرفيوم هوب.' : 'Only customers with verified delivered orders on PerfumeHub Qatar can submit reviews.'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Customer Reviews List */}
+                    <div className="product-reviews-list">
+                        {loadingReviews ? (
+                            <div className="reviews-loading text-center">
+                                <p>{isRTL ? 'جاري تحميل التقييمات...' : 'Loading verified reviews...'}</p>
+                            </div>
+                        ) : (reviewsData.reviews && reviewsData.reviews.length > 0) ? (
+                            reviewsData.reviews.map((rev) => (
+                                <div key={rev.id} className="product-review-card animate-fade-in">
+                                    <div className="review-header">
+                                        <div className="reviewer-meta">
+                                            <div className="reviewer-avatar">
+                                                {(rev.user_name || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="reviewer-name-row">
+                                                    <span className="reviewer-name">{rev.user_name || 'Customer'}</span>
+                                                    {rev.is_verified_buyer && (
+                                                        <span className="verified-badge">
+                                                            <CheckCircle2 size={13} />
+                                                            {isRTL ? 'مشتري موثق' : 'Verified Buyer'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="review-date">
+                                                    {rev.created_at ? new Date(rev.created_at).toLocaleDateString(isRTL ? 'ar-QA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent purchase'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="stars-row">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star 
+                                                    key={i} 
+                                                    size={16} 
+                                                    fill={i < (rev.rating || 5) ? '#d4af37' : '#e2e8f0'} 
+                                                    color={i < (rev.rating || 5) ? '#d4af37' : '#cbd5e1'} 
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {rev.title && <h4 className="product-review-title">{rev.title}</h4>}
+                                    <p className="product-review-comment">{rev.comment}</p>
+
+                                    {(rev.longevity || rev.sillage) && (
+                                        <div className="performance-tags">
+                                            {rev.longevity && (
+                                                <span className="perf-tag">
+                                                    <strong>{isRTL ? 'الثبات:' : 'Longevity:'}</strong> {rev.longevity}
+                                                </span>
+                                            )}
+                                            {rev.sillage && (
+                                                <span className="perf-tag">
+                                                    <strong>{isRTL ? 'الفوحان:' : 'Sillage:'}</strong> {rev.sillage}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-reviews-state text-center">
+                                <MessageSquare size={38} className="no-reviews-icon" />
+                                <h3>{isRTL ? 'كن أول من يكتب تقييماً موثقاً' : 'Be the First Verified Buyer to Review'}</h3>
+                                <p>{isRTL ? 'اشترِ هذا العطر الأصلي وشارك تجربتك الفاخرة مع مجتمع العطور في قطر.' : 'Purchase this authentic fragrance to share your olfactory experience with perfume lovers in Qatar.'}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Verified Buyer Review Modal */}
+            {isReviewModalOpen && (
+                <div className="review-modal-overlay animate-fade-in" onClick={() => setIsReviewModalOpen(false)}>
+                    <div className="review-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-close-btn" onClick={() => setIsReviewModalOpen(false)}>
+                            <X size={20} />
+                        </button>
+
+                        {verificationState === 'REQUIRES_LOGIN' && (
+                            <div className="verification-gate-box text-center">
+                                <div className="gate-icon-wrap warning">
+                                    <Lock size={36} />
+                                </div>
+                                <h3>{isRTL ? 'تسجيل الدخول مطلوب' : 'Customer Sign-In Required'}</h3>
+                                <p>
+                                    {isRTL 
+                                        ? 'لضمان مصداقية التقييمات بنسبة 100٪، يُسمح فقط للمشترين الموثقين بكتابة التقييمات. يرجى تسجيل الدخول بالحساب المستخدم لإتمام طلبك.' 
+                                        : 'To maintain 100% authentic ratings on PerfumeHub Qatar, only verified buyers can review products. Please sign in with the account used for your purchase.'}
+                                </p>
+                                <Link 
+                                    to={`/login?redirect=/product/${id}`} 
+                                    className="btn btn-gold gate-action-btn"
+                                >
+                                    {isRTL ? 'تسجيل الدخول الآن' : 'Sign In with Account'}
+                                </Link>
+                            </div>
+                        )}
+
+                        {verificationState === 'NOT_PURCHASED' && (
+                            <div className="verification-gate-box text-center">
+                                <div className="gate-icon-wrap restriction">
+                                    <ShieldCheck size={36} />
+                                </div>
+                                <h3>{isRTL ? 'يلزم إتمام الشراء أولاً' : 'Verified Purchase Required'}</h3>
+                                <p>
+                                    {isRTL 
+                                        ? 'نظامنا يتحقق تلقائياً من سجل الطلبات لضمان تجارب حقيقية فقط. يمكنك تقييم هذا العطر بمجرد شرائه من بيرفيوم هوب قطر.' 
+                                        : 'Our Zero-Trust system verifies customer orders to maintain strictly authentic reviews. You can review this fragrance once you have purchased it from PerfumeHub Qatar.'}
+                                </p>
+                                <div className="gate-buttons-row">
+                                    <button 
+                                        className="btn btn-gold gate-action-btn"
+                                        onClick={() => {
+                                            addToCart(product, quantity, selectedSize, isGiftWrapped);
+                                            setIsReviewModalOpen(false);
+                                        }}
+                                    >
+                                        <ShoppingBag size={16} />
+                                        {isRTL ? 'شراء هذا العطر الآن' : 'Purchase This Fragrance'}
+                                    </button>
+                                    <button 
+                                        className="btn btn-outline" 
+                                        onClick={() => setIsReviewModalOpen(false)}
+                                    >
+                                        {isRTL ? 'إغلاق' : 'Close'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {verificationState === 'VERIFIED_BUYER' && (
+                            <div className="review-form-wrapper">
+                                <div className="review-form-header">
+                                    <span className="verified-badge">
+                                        <CheckCircle2 size={14} />
+                                        {isRTL ? 'مشتري موثق ومؤهل للتقييم' : 'Verified Buyer • Eligible to Review'}
+                                    </span>
+                                    <h3>{isRTL ? `تقييم ${product?.name}` : `Review ${product?.name}`}</h3>
+                                    <p>{isRTL ? 'شارك رأيك الصادق حول الثبات والفوحان والأصالة لمساعدة العملاء في قطر.' : 'Share your honest feedback on performance, longevity, and presentation in Qatar.'}</p>
+                                </div>
+
+                                {reviewSubmitSuccess ? (
+                                    <div className="review-success-message text-center animate-fade-in">
+                                        <CheckCircle2 size={48} className="success-icon" />
+                                        <h4>{isRTL ? 'تم نشر تقييمك الموثق بنجاح!' : 'Your Verified Review Has Been Published!'}</h4>
+                                        <p>{isRTL ? 'شكراً لمشاركتك رأيك القيّم مع مجتمع بيرفيوم هوب قطر.' : 'Thank you for contributing to the luxury fragrance community in Qatar.'}</p>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleReviewSubmit} className="review-submission-form">
+                                        {reviewError && (
+                                            <div className="review-form-error animate-fade-in">
+                                                <AlertCircle size={16} />
+                                                <span>{reviewError}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Star Rating Picker */}
+                                        <div className="form-group rating-picker-group">
+                                            <label>{isRTL ? 'تقييمك الإجمالي:' : 'Overall Rating:'}</label>
+                                            <div className="interactive-stars">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        type="button"
+                                                        key={star}
+                                                        className="star-btn"
+                                                        onClick={() => setReviewRating(star)}
+                                                        onMouseEnter={() => setReviewHoverRating(star)}
+                                                        onMouseLeave={() => setReviewHoverRating(0)}
+                                                    >
+                                                        <Star 
+                                                            size={28} 
+                                                            fill={star <= (reviewHoverRating || reviewRating) ? '#d4af37' : 'none'} 
+                                                            color={star <= (reviewHoverRating || reviewRating) ? '#d4af37' : '#cbd5e1'} 
+                                                        />
+                                                    </button>
+                                                ))}
+                                                <span className="rating-label-hint">
+                                                    {reviewRating === 5 && (isRTL ? 'استثنائي (5 نجوم)' : 'Exceptional (5 Stars)')}
+                                                    {reviewRating === 4 && (isRTL ? 'ممتاز جداً (4 نجوم)' : 'Very Good (4 Stars)')}
+                                                    {reviewRating === 3 && (isRTL ? 'جيد (3 نجوم)' : 'Average (3 Stars)')}
+                                                    {reviewRating === 2 && (isRTL ? 'دون التوقعات (نجمتان)' : 'Below Average (2 Stars)')}
+                                                    {reviewRating === 1 && (isRTL ? 'غير مُرضٍ (نجمة)' : 'Unsatisfactory (1 Star)')}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Title Input */}
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'عنوان التقييم:' : 'Headline / Review Title:'}</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control"
+                                                placeholder={isRTL ? 'مثال: عطر ملكي فخم وثبات يدوم طويلاً' : 'e.g. Masterpiece scent with majestic longevity'}
+                                                value={reviewTitle}
+                                                onChange={(e) => setReviewTitle(e.target.value)}
+                                                maxLength={150}
+                                            />
+                                        </div>
+
+                                        {/* Comment Textarea */}
+                                        <div className="form-group">
+                                            <label>{isRTL ? 'تفاصيل تجربتك (الأصالة، التغليف، الأداء):' : 'Detailed Review (Authenticity, Packaging, Scent):'}</label>
+                                            <textarea 
+                                                className="form-control"
+                                                rows={4}
+                                                placeholder={isRTL ? 'اكتب تجربتك بالتفصيل لمساعدة عشاق العطور في قطر...' : 'Share details on projection, performance in Doha climate, authenticity of batch...'}
+                                                value={reviewComment}
+                                                onChange={(e) => setReviewComment(e.target.value)}
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        {/* Performance Selectors */}
+                                        <div className="form-row-grid">
+                                            <div className="form-group">
+                                                <label>{isRTL ? 'الثبات:' : 'Longevity:'}</label>
+                                                <select 
+                                                    className="form-control"
+                                                    value={reviewLongevity}
+                                                    onChange={(e) => setReviewLongevity(e.target.value)}
+                                                >
+                                                    <option value="Moderate (4-6h)">{isRTL ? 'متوسط (4-6 ساعات)' : 'Moderate (4-6h)'}</option>
+                                                    <option value="Long Lasting (8-10h)">{isRTL ? 'طويل الأمد (8-10 ساعات)' : 'Long Lasting (8-10h)'}</option>
+                                                    <option value="Eternal (12h+)">{isRTL ? 'ثبات أسطوري (12+ ساعة)' : 'Eternal (12h+)'}</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>{isRTL ? 'الفوحان:' : 'Sillage / Projection:'}</label>
+                                                <select 
+                                                    className="form-control"
+                                                    value={reviewSillage}
+                                                    onChange={(e) => setReviewSillage(e.target.value)}
+                                                >
+                                                    <option value="Intimate">{isRTL ? 'هادئ وقريب' : 'Intimate'}</option>
+                                                    <option value="Moderate">{isRTL ? 'متوسط ومميز' : 'Moderate'}</option>
+                                                    <option value="Strong">{isRTL ? 'قوي وفواح' : 'Strong'}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            type="submit" 
+                                            className="btn btn-gold submit-review-btn"
+                                            disabled={submittingReview}
+                                        >
+                                            {submittingReview 
+                                                ? (isRTL ? 'جاري النشر...' : 'Publishing...') 
+                                                : (isRTL ? 'نشر التقييم الموثق' : 'Publish Verified Review')}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

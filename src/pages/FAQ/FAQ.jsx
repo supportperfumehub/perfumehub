@@ -15,6 +15,41 @@ const FAQ = () => {
 
   const faqData = [
     {
+      category: isRTL ? 'التسوق والتوصيل في قطر' : 'Shopping & Express Delivery in Qatar',
+      questions: [
+        {
+          q: isRTL ? 'أين يمكنني شراء عطور فاخرة أصلية عبر الإنترنت في قطر؟' : 'Where can I buy original luxury perfumes online in Qatar?',
+          a: isRTL
+            ? 'بيرفيوم هوب قطر (perfumehubqa.com) هي وجهتك الموثوقة الأولى في قطر لشراء العطور الفاخرة، والعود العربي الملكي، وعطور النيش الأصلية مع توصيل سريع لجميع بلديات قطر.'
+            : 'PerfumeHub Qatar (perfumehubqa.com) is Qatar\'s trusted online boutique for authentic luxury perfumes, exclusive Arabian oud, and rare niche fragrances with express delivery across Doha and all municipalities.'
+        },
+        {
+          q: isRTL ? 'ما هي سرعة توصيل العطور داخل الدوحة وقطر؟' : 'How fast is perfume delivery in Doha, Qatar?',
+          a: isRTL
+            ? 'نوفر خدمة التوصيل السريع خلال 2 إلى 4 ساعات داخل الدوحة، لوسيل، واللؤلؤة. أما باقي مناطق وبلديات قطر، فيستغرق التوصيل من 24 إلى 48 ساعة فقط.'
+            : 'We offer 2-4 hour express delivery across Doha, Lusail, and The Pearl. Deliveries to all other Qatar municipalities are fulfilled within 24 to 48 hours.'
+        },
+        {
+          q: isRTL ? 'هل العطور المعروضة على بيرفيوم هوب أصلية 100٪ ومضمونة؟' : 'Are perfumes sold on PerfumeHub Qatar 100% authentic?',
+          a: isRTL
+            ? 'نعم بكل تأكيد. جميع العطور والزيوت العطرية ومستحضرات التجميل مضمونة 100% أصلية ومغلقة في عبواتها الأصلية، ومستوردة مباشرة من الموزعين المعتمدين دولياً.'
+            : 'Yes, absolutely. Every fragrance is 100% authentic, sealed, and sourced directly from verified authorized international brand distributors.'
+        },
+        {
+          q: isRTL ? 'هل تتوفر خدمة الدفع عند الاستلام (COD) في قطر؟' : 'Can I pay Cash on Delivery (COD) for perfumes in Qatar?',
+          a: isRTL
+            ? 'نعم! نقبل الدفع نقداً عند الاستلام في كافة أنحاء قطر، بالإضافة إلى الدفع الآمن عبر آبل باي، والبطاقات الائتمانية، وبطاقات الخصم المباشر المحلية بالريال القطري (QAR).'
+            : 'Yes! We accept Cash on Delivery (COD) across all Qatar municipalities, as well as Apple Pay, Credit Cards, and local QAR debit cards.'
+        },
+        {
+          q: isRTL ? 'كيف أختار العطر الأنسب لمناخ قطر وأجوائها؟' : 'How do I choose the best perfume for Qatar\'s climate?',
+          a: isRTL
+            ? 'يمكنك استشارة مستشار العطور الذكي (Scent Genie AI) على موقعنا ليقدم لك توصيات مخصصة تناسب ذوقك وتمنحك ثباتاً وفوحاناً مثالياً في الأجواء الدافئة.'
+            : 'You can use our smart Scent Genie AI advisor to receive bespoke recommendations tailored to your olfactive preferences and designed for optimum longevity in Qatar\'s warm climate.'
+        }
+      ]
+    },
+    {
       category: isRTL ? 'حول المنتجات' : 'Products & Authenticity',
       questions: [
         {

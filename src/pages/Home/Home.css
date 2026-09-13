@@ -1278,111 +1278,185 @@
 }
 
 /* ============================================================
-   Home FAQ Section (Discreet & Understated)
+   VIP Customer Reviews Showcase (Homepage)
    ============================================================ */
-.home-faq-section {
-    padding: 50px 0 45px;
-    background: #ffffff;
-    border-top: 1px solid #f0eae0;
+.home-reviews-section {
+    padding: 70px 0 60px;
+    background: linear-gradient(180deg, #fcfbf9 0%, #ffffff 50%, #fcfbf9 100%);
+    border-top: 1px solid #ebe5d8;
+    border-bottom: 1px solid #ebe5d8;
 }
 
-.home-faq-container {
-    max-width: 800px;
-    margin: 0 auto;
+.reviews-gold-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 16px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(170, 140, 44, 0.35);
+    border-radius: 30px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8f6e14;
+    margin-bottom: 14px;
 }
 
-.home-faq-header {
-    text-align: center;
-    margin-bottom: 24px;
-}
-
-.home-faq-header h3 {
+.reviews-section-title {
     font-family: var(--font-heading, 'Playfair Display', serif);
-    font-size: 1.45rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 6px;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
 }
 
-.home-faq-header p {
-    font-size: 0.85rem;
-    color: #64748b;
-    margin: 0;
+.reviews-rating-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    background: #ffffff;
+    padding: 8px 22px;
+    border-radius: 30px;
+    border: 1px solid #e7e2d6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-.home-faq-list {
+.rating-score-text {
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.rating-score-text strong {
+    color: #0f172a;
+}
+
+.home-reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.home-review-card {
+    background: #ffffff;
+    border: 1px solid #e7e2d6;
+    border-radius: 12px;
+    padding: 24px 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    justify-content: space-between;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.home-faq-item {
-    background: #faf9f7;
-    border: 1px solid #eee8dc;
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.home-faq-item:hover,
-.home-faq-item.active {
+.home-review-card:hover {
+    transform: translateY(-4px);
     border-color: #d4af37;
-    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(212, 175, 55, 0.15);
 }
 
-.home-faq-question {
+.review-card-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 13px 18px;
+    margin-bottom: 14px;
+}
+
+.stars-row {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
     font-weight: 600;
-    font-size: 0.92rem;
-    color: #1e293b;
-    gap: 12px;
+    color: #15803d;
+    background: #f0fdf4;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid #bbf7d0;
 }
 
-.home-faq-item.active .home-faq-question {
-    color: #997416;
+.review-card-title {
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 10px;
+    line-height: 1.4;
 }
 
-.home-faq-answer {
-    padding: 0 18px 14px 18px;
-    font-size: 0.85rem;
+.review-card-quote {
+    font-size: 0.86rem;
     color: #475569;
-    line-height: 1.55;
-    border-top: 1px solid #f2ede4;
-    padding-top: 10px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    flex-grow: 1;
+    font-style: italic;
 }
 
-@media (max-width: 992px) {
-    .trust-strip-grid {
-        gap: 14px 20px;
-    }
-    .trust-strip-label {
-        font-size: 0.85rem;
-    }
+.review-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid #f1ede4;
+    padding-top: 14px;
+    gap: 8px;
 }
 
-@media (max-width: 600px) {
-    .luxury-trust-strip {
-        padding: 14px 0;
-    }
-    .trust-strip-grid {
-        display: grid;
+.reviewer-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.reviewer-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.reviewer-location {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.reviewed-product-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8f6e14;
+    background: #fdfaf2;
+    border: 1px solid #ede4d0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+@media (max-width: 1024px) {
+    .home-reviews-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px 16px;
+        gap: 18px;
     }
-    .trust-strip-item {
-        justify-content: center;
+}
+
+@media (max-width: 640px) {
+    .home-reviews-section {
+        padding: 45px 0 40px;
     }
-    .trust-strip-label {
-        font-size: 0.8rem;
-        white-space: normal;
-        text-align: center;
+    .reviews-section-title {
+        font-size: 1.6rem;
     }
-    .home-faq-header h3 {
-        font-size: 1.25rem;
+    .home-reviews-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .reviews-rating-banner {
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 16px;
     }
 }
 
