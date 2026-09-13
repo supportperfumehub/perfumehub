@@ -584,49 +584,26 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Luxury Minimalist Trust Strip (Low Profile) */}
+            {/* Luxury Minimalist Trust Strip */}
             <section className="luxury-trust-strip">
                 <div className="container">
                     <div className="trust-strip-grid">
                         <div className="trust-strip-item">
-                            <div className="trust-strip-icon-box">
-                                <ShieldCheck size={20} />
-                            </div>
-                            <div className="trust-strip-content">
-                                <h4 className="trust-strip-title">{t('qatar_seo.feature_1_title')}</h4>
-                                <p className="trust-strip-desc">{t('qatar_seo.feature_1_desc')}</p>
-                            </div>
+                            <ShieldCheck size={20} className="trust-strip-icon" />
+                            <span className="trust-strip-label">{isRTL ? 'أصلي 100٪' : '100% Authentic'}</span>
                         </div>
                         <div className="trust-strip-item">
-                            <div className="trust-strip-icon-box">
-                                <Truck size={20} />
-                            </div>
-                            <div className="trust-strip-content">
-                                <h4 className="trust-strip-title">{t('qatar_seo.feature_2_title')}</h4>
-                                <p className="trust-strip-desc">{t('qatar_seo.feature_2_desc')}</p>
-                            </div>
+                            <Truck size={20} className="trust-strip-icon" />
+                            <span className="trust-strip-label">{isRTL ? 'توصيل سريع في قطر' : 'Express Delivery in Qatar'}</span>
                         </div>
                         <div className="trust-strip-item">
-                            <div className="trust-strip-icon-box">
-                                <Sparkles size={20} />
-                            </div>
-                            <div className="trust-strip-content">
-                                <h4 className="trust-strip-title">{t('qatar_seo.feature_3_title')}</h4>
-                                <p className="trust-strip-desc">{t('qatar_seo.feature_3_desc')}</p>
-                            </div>
+                            <Sparkles size={20} className="trust-strip-icon" />
+                            <span className="trust-strip-label">{isRTL ? 'عطور نادرة وعود' : 'Rare Niche & Oud'}</span>
                         </div>
                         <div className="trust-strip-item">
-                            <div className="trust-strip-icon-box">
-                                <CreditCard size={20} />
-                            </div>
-                            <div className="trust-strip-content">
-                                <h4 className="trust-strip-title">{t('qatar_seo.feature_4_title')}</h4>
-                                <p className="trust-strip-desc">{t('qatar_seo.feature_4_desc')}</p>
-                            </div>
+                            <CreditCard size={20} className="trust-strip-icon" />
+                            <span className="trust-strip-label">{isRTL ? 'الدفع عند الاستلام وبطاقات الريال' : 'Cash on Delivery & Cards'}</span>
                         </div>
-                    </div>
-                    <div className="trust-strip-cities-hint">
-                        <span>{t('qatar_seo.cities_label')}</span> {isRTL ? 'الدوحة • لوسيل • اللؤلؤة • الخليج الغربي • الريان • الوكرة • الخور • أم صلال • الشمال • مسيعيد' : 'Doha • Lusail • The Pearl • West Bay • Al Rayyan • Al Wakrah • Al Khor • Umm Salal • Al Shamal • Mesaieed'}
                     </div>
                 </div>
             </section>
