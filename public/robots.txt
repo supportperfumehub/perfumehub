@@ -1,5 +1,32 @@
+# PerfumeHub Qatar Robots Configuration
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /vendor
+Disallow: /vendor/
+Disallow: /vendor-panel
+Disallow: /vendor-panel/
+Disallow: /verify
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkout-success
+Disallow: /profile
+Disallow: /reset-password
+Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /vendor-panel
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /favicon.png
 
 # Sitemaps
 Sitemap: https://perfumehubqa.com/sitemap.xml

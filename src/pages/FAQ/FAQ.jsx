@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Search, MessageCircle, HelpCircle } from 'lucide-react';
 import './FAQ.css';
 
@@ -89,8 +90,31 @@ const FAQ = () => {
     )
   })).filter(cat => cat.questions.length > 0);
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqData.flatMap(cat => 
+      cat.questions.map(q => ({
+        "@type": "Question",
+        "name": q.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": q.a
+        }
+      }))
+    )
+  };
+
   return (
     <div className="faq-page animate-fade-in" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
+      <Helmet>
+        <title>{isRTL ? 'الأسئلة الشائعة | بيرفيوم هوب قطر' : 'Frequently Asked Questions | PerfumeHub Qatar'}</title>
+        <meta name="description" content={isRTL ? 'إجابات على الأسئلة الشائعة حول شراء العطور الأصلية، الشحن داخل الدوحة، والدفع في قطر.' : 'Find answers to frequently asked questions about authentic perfumes, same-day shipping in Doha, and payments in Qatar.'} />
+        <link rel="canonical" href="https://perfumehubqa.com/faq" />
+        <meta property="og:title" content={isRTL ? 'الأسئلة الشائعة | بيرفيوم هوب قطر' : 'Frequently Asked Questions | PerfumeHub Qatar'} />
+        <meta property="og:url" content="https://perfumehubqa.com/faq" />
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+      </Helmet>
       <div className="faq-hero">
         <div className="container text-center">
             <HelpCircle size={48} className="faq-icon-large" />

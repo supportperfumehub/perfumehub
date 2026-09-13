@@ -185,9 +185,10 @@ const ProductDetails = () => {
     };
 
     const regionName = activeRegion?.name || 'Qatar';
-    const dynamicTitle = `${product.name} | ${product.brand} - Buy Online in ${regionName}`;
+    const productCanonical = `https://perfumehubqa.com/product/${product.id}`;
+    const dynamicTitle = `${product.name} by ${product.brand} | Buy Online in Qatar - PerfumeHub`;
     const dynamicDesc = product.description
-        ? `${product.description.substring(0, 140)}... Buy ${product.name} by ${product.brand} in ${regionName} at PerfumeHub.`
+        ? `${product.description.substring(0, 140)}... Buy original ${product.name} by ${product.brand} in Doha, Qatar with fast same-day delivery at PerfumeHub.`
         : t('product.meta_desc', { name: product.name, brand: product.brand });
 
     const jsonLd = {
@@ -195,20 +196,52 @@ const ProductDetails = () => {
         "@type": "Product",
         "name": product.name,
         "image": productImageUrl,
-        "description": metaDescription,
+        "description": metaDescription || dynamicDesc,
         "brand": {
             "@type": "Brand",
             "name": product.brand
         },
-        "sku": productSku,
+        "sku": productSku || `PH-QA-${product.id}`,
+        "category": product.category || "Perfume",
         "offers": {
             "@type": "Offer",
-            "url": window.location.href,
+            "url": productCanonical,
             "priceCurrency": activeRegion?.currency_code || "QAR",
             "price": displayPrice,
+            "priceValidUntil": "2027-12-31",
             "availability": orderStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-            "itemCondition": "https://schema.org/NewCondition"
+            "itemCondition": "https://schema.org/NewCondition",
+            "seller": {
+                "@type": "Organization",
+                "name": "PerfumeHub Qatar",
+                "url": "https://perfumehubqa.com/"
+            }
         }
+    };
+
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://perfumehubqa.com/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Shop",
+                "item": "https://perfumehubqa.com/shop"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": product.name,
+                "item": productCanonical
+            }
+        ]
     };
 
     return (
@@ -216,17 +249,22 @@ const ProductDetails = () => {
             <Helmet>
                 <title>{dynamicTitle}</title>
                 <meta name="description" content={dynamicDesc} />
+                <meta name="keywords" content={`${product.name}, ${product.brand}, buy ${product.name} in qatar, perfume qatar, doha perfume, عطور قطر`} />
                 <meta property="og:title" content={dynamicTitle} />
                 <meta property="og:description" content={dynamicDesc} />
                 <meta property="og:image" content={productImageUrl} />
-                <meta property="og:url" content={window.location.href} />
+                <meta property="og:url" content={productCanonical} />
                 <meta property="og:type" content="product" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={dynamicTitle} />
                 <meta name="twitter:description" content={dynamicDesc} />
                 <meta name="twitter:image" content={productImageUrl} />
+                <link rel="canonical" href={productCanonical} />
                 <script type="application/ld+json">
                     {JSON.stringify(jsonLd)}
+                </script>
+                <script type="application/ld+json">
+                    {JSON.stringify(breadcrumbLd)}
                 </script>
             </Helmet>
 

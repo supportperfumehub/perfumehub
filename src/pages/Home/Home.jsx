@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShieldCheck, Truck, Sparkles, CreditCard, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
@@ -23,6 +23,9 @@ const Home = () => {
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [shuffledFeatured, setShuffledFeatured] = useState([]);
+    const [openFaq, setOpenFaq] = useState(null);
+
+    const toggleFaq = (idx) => setOpenFaq(prev => prev === idx ? null : idx);
 
     // Determine what powers the Hero Banners 
     const heroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
@@ -52,16 +55,21 @@ const Home = () => {
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % heroItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev === 0 ? heroItems.length - 1 : prev - 1));
 
-    const regionName = 'Qatar';
-    const seoTitle = `PerfumeHub | Best Luxury Perfumes & Fashion Marketplace in Qatar`;
-    const seoDescription = `Shop authentic luxury perfumes, fashion, and jewellery in Qatar at PerfumeHub. The premier online marketplace for exclusive fragrances and luxury lifestyle brands with fast delivery.`;
-    const seoKeywords = `perfume, perfumehub, qatar perfume, perfumes qatar, buy perfume online qatar, luxury fragrances qatar, fashion qatar, jewellery qatar, perfume hub qatar`;
-    const seoCanonical = "https://perfumehub.com/";
+    const seoCanonical = "https://perfumehubqa.com/";
+    const seoTitle = isRTL 
+        ? "بيرفيوم هوب قطر | متجر العطور الفاخرة رقم 1 في الدوحة" 
+        : "PerfumeHub Qatar | #1 Luxury Perfumes & Fragrances Store in Doha";
+    const seoDescription = isRTL
+        ? "تسوق عطور أصلية 100% في قطر من بيرفيوم هوب. تشكيلة مميزة من العطور الفرنسية والشرقية، دهن العود، والماركات العالمية مع توصيل سريع في نفس اليوم في الدوحة وكافة أنحاء قطر."
+        : "Buy 100% authentic luxury perfumes in Qatar at PerfumeHub. Discover exclusive French & Arabic fragrances, Oud, Attar, and designer brands with same-day express delivery in Doha, Lusail & across Qatar.";
+    const seoKeywords = "perfume qatar, perfumes in qatar, buy perfume online qatar, perfume shop doha, online perfume store qatar, luxury fragrances qatar, arabic perfumes doha, oud qatar, attar qatar, niche perfumes qatar, french perfumes doha, same day perfume delivery qatar, perfumehub qatar, perfume hub trading, عطور قطر, عطورات الدوحة, متجر عطور قطر, شراء عطور قطر, عطور نيش قطر, عطور أصلية قطر, دهن العود قطر";
 
     const websiteSchema = {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "PerfumeHub",
+        "@id": `${seoCanonical}#website`,
+        "name": "PerfumeHub Qatar",
+        "alternateName": "بيرفيوم هوب قطر",
         "url": seoCanonical,
         "potentialAction": {
             "@type": "SearchAction",
@@ -72,23 +80,117 @@ const Home = () => {
 
     const storeSchema = {
         "@context": "https://schema.org",
-        "@type": "OnlineStore",
-        "name": "PerfumeHub",
+        "@type": ["Store", "OnlineStore"],
+        "@id": `${seoCanonical}#store`,
+        "name": "PerfumeHub Qatar",
+        "alternateName": "بيرفيوم هوب قطر",
         "url": seoCanonical,
         "logo": `${seoCanonical}favicon.png`,
-        "description": seoDescription
+        "image": `${seoCanonical}favicon.png`,
+        "description": seoDescription,
+        "telephone": "+974-3030-1901",
+        "email": "supportperfumehub@gmail.com",
+        "priceRange": "QAR 50 - QAR 2500",
+        "currenciesAccepted": "QAR, USD",
+        "paymentAccepted": "Cash on Delivery, Credit Card, Apple Pay, Debit Card",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Souq Al Jabor",
+            "addressLocality": "Doha",
+            "addressRegion": "Doha",
+            "postalCode": "00000",
+            "addressCountry": "QA"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 25.2854,
+            "longitude": 51.5310
+        },
+        "areaServed": [
+            "Qatar", "Doha", "Lusail", "The Pearl", "Al Rayyan", "Al Wakrah", "Al Khor", "Umm Salal", "Madinat ash Shamal", "Mesaieed"
+        ],
+        "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            "opens": "00:00",
+            "closes": "23:59"
+        },
+        "sameAs": [
+            "https://www.instagram.com/perfumehub__qa",
+            "https://tiktok.com/@perfumehubqa",
+            "https://twitter.com/perfumehubqa",
+            "https://facebook.com/perfumehubqa"
+        ]
+    };
+
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": t('qatar_seo.faq_1_q'),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": t('qatar_seo.faq_1_a')
+                }
+            },
+            {
+                "@type": "Question",
+                "name": t('qatar_seo.faq_2_q'),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": t('qatar_seo.faq_2_a')
+                }
+            },
+            {
+                "@type": "Question",
+                "name": t('qatar_seo.faq_3_q'),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": t('qatar_seo.faq_3_a')
+                }
+            },
+            {
+                "@type": "Question",
+                "name": t('qatar_seo.faq_4_q'),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": t('qatar_seo.faq_4_a')
+                }
+            },
+            {
+                "@type": "Question",
+                "name": t('qatar_seo.faq_5_q'),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": t('qatar_seo.faq_5_a')
+                }
+            }
+        ]
     };
 
     return (
         <div className="home-page">
             <Helmet>
-                <title>{t('home.hero_title')} | Perfume Hub Trading</title>
-                <meta name="description" content="Discover premium luxury perfumes, authentic Middle Eastern fragrances, and niche designer brands at Perfume Hub. Fast delivery across Qatar." />
-                <meta property="og:title" content="Perfume Hub - Luxury Fragrance Marketplace" />
-                <meta property="og:description" content="Explore Qatar's premier curated marketplace for luxury perfumes, authentic attars, and premium designer fragrances." />
+                <title>{seoTitle}</title>
+                <meta name="description" content={seoDescription} />
+                <meta name="keywords" content={seoKeywords} />
+                <meta property="og:title" content={seoTitle} />
+                <meta property="og:description" content={seoDescription} />
+                <meta property="og:url" content={seoCanonical} />
+                <meta property="og:type" content="website" />
+                <meta property="og:image" content={`${seoCanonical}favicon.png`} />
+                <meta name="twitter:title" content={seoTitle} />
+                <meta name="twitter:description" content={seoDescription} />
+                <meta name="twitter:image" content={`${seoCanonical}favicon.png`} />
                 <link rel="canonical" href={seoCanonical} />
+                <link rel="alternate" hreflang="en-QA" href={seoCanonical} />
+                <link rel="alternate" hreflang="ar-QA" href={seoCanonical} />
+                <link rel="alternate" hreflang="x-default" href={seoCanonical} />
                 <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
                 <script type="application/ld+json">{JSON.stringify(storeSchema)}</script>
+                <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
             </Helmet>
             {/* Modern Minimalist Hero */}
             <section className="modern-hero animate-fade-in">
@@ -477,6 +579,102 @@ const Home = () => {
                             <Link to="/scent-genie" className="btn btn-gold ai-advisor-btn">
                                 {t('ai_advisor_banner.button')}
                             </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Qatar SEO & Marketing Hub */}
+            <section className="qatar-seo-section reveal">
+                <div className="container">
+                    <div className="qatar-seo-header text-center">
+                        <span className="qatar-gold-badge">
+                            <Sparkles size={14} style={{ display: 'inline', verticalAlign: 'middle', marginInlineEnd: '6px' }} />
+                            {t('qatar_seo.badge')}
+                        </span>
+                        <h2 className="qatar-seo-title">{t('qatar_seo.title')}</h2>
+                        <p className="qatar-seo-subtitle">{t('qatar_seo.subtitle')}</p>
+                    </div>
+
+                    <div className="qatar-features-grid">
+                        <div className="qatar-feature-card">
+                            <div className="qatar-feature-icon">
+                                <ShieldCheck size={28} />
+                            </div>
+                            <h3>{t('qatar_seo.feature_1_title')}</h3>
+                            <p>{t('qatar_seo.feature_1_desc')}</p>
+                        </div>
+                        <div className="qatar-feature-card">
+                            <div className="qatar-feature-icon">
+                                <Truck size={28} />
+                            </div>
+                            <h3>{t('qatar_seo.feature_2_title')}</h3>
+                            <p>{t('qatar_seo.feature_2_desc')}</p>
+                        </div>
+                        <div className="qatar-feature-card">
+                            <div className="qatar-feature-icon">
+                                <Sparkles size={28} />
+                            </div>
+                            <h3>{t('qatar_seo.feature_3_title')}</h3>
+                            <p>{t('qatar_seo.feature_3_desc')}</p>
+                        </div>
+                        <div className="qatar-feature-card">
+                            <div className="qatar-feature-icon">
+                                <CreditCard size={28} />
+                            </div>
+                            <h3>{t('qatar_seo.feature_4_title')}</h3>
+                            <p>{t('qatar_seo.feature_4_desc')}</p>
+                        </div>
+                    </div>
+
+                    {/* Delivery Municipalities Bar */}
+                    <div className="qatar-cities-bar">
+                        <div className="qatar-cities-label">
+                            <MapPin size={18} />
+                            <span>{t('qatar_seo.cities_label')}</span>
+                        </div>
+                        <div className="qatar-cities-tags">
+                            <span className="city-pill">{isRTL ? 'الدوحة' : 'Doha'}</span>
+                            <span className="city-pill">{isRTL ? 'لوسيل' : 'Lusail'}</span>
+                            <span className="city-pill">{isRTL ? 'اللؤلؤة' : 'The Pearl'}</span>
+                            <span className="city-pill">{isRTL ? 'الخليج الغربي' : 'West Bay'}</span>
+                            <span className="city-pill">{isRTL ? 'الريان' : 'Al Rayyan'}</span>
+                            <span className="city-pill">{isRTL ? 'الوكرة' : 'Al Wakrah'}</span>
+                            <span className="city-pill">{isRTL ? 'الخور' : 'Al Khor'}</span>
+                            <span className="city-pill">{isRTL ? 'أم صلال' : 'Umm Salal'}</span>
+                            <span className="city-pill">{isRTL ? 'الشمال' : 'Al Shamal'}</span>
+                            <span className="city-pill">{isRTL ? 'مسيعيد' : 'Mesaieed'}</span>
+                        </div>
+                    </div>
+
+                    {/* Qatar Perfume FAQ Accordion */}
+                    <div className="qatar-faq-container">
+                        <div className="text-center" style={{ marginBottom: '28px' }}>
+                            <h3 className="qatar-faq-heading">{t('qatar_seo.faq_title')}</h3>
+                            <p className="qatar-faq-subheading">{t('qatar_seo.faq_subtitle')}</p>
+                        </div>
+
+                        <div className="qatar-faq-list">
+                            {[1, 2, 3, 4, 5].map((idx) => {
+                                const isOpen = openFaq === idx;
+                                return (
+                                    <div 
+                                        key={idx} 
+                                        className={`qatar-faq-item ${isOpen ? 'active' : ''}`}
+                                        onClick={() => toggleFaq(idx)}
+                                    >
+                                        <div className="qatar-faq-question">
+                                            <span>{t(`qatar_seo.faq_${idx}_q`)}</span>
+                                            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                        </div>
+                                        {isOpen && (
+                                            <div className="qatar-faq-answer animate-fade-in">
+                                                <p>{t(`qatar_seo.faq_${idx}_a`)}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

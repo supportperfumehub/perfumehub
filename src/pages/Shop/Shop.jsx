@@ -378,19 +378,45 @@ const Shop = () => {
 
     const regionName = 'Qatar';
     const dynamicTitle = isRTL 
-        ? `المتجر | بيرفيوم هوب - عطور وفخامة في قطر`
-        : `Shop | PerfumeHub - Luxury Fragrances & Marketplace Qatar`;
+        ? `تسوق عطور أصلية في قطر | بيرفيوم هوب - أفضل عطور نيش وفرنسية وعربية`
+        : `Shop Luxury Perfumes Online in Qatar | PerfumeHub Doha - 100% Authentic`;
     const dynamicDesc = isRTL
-        ? `تسوق أفضل العطور والساعات والمجوهرات في قطر. وجهتك الأولى للفخامة مع توصيل سريع.`
-        : `Shop the best perfumes, watches, and jewellery in Qatar. Your premier destination for luxury with fast delivery.`;
-    const dynamicCanonical = "https://perfumehub.com/shop";
+        ? `تسوق تشكيلة واسعة من العطور الأصلية الفاخرة، العود، والماركات العالمية في قطر. توصيل سريع لجميع مناطق الدوحة والدفع عند الاستلام بالريال القطري.`
+        : `Shop 500+ authentic luxury perfumes, exclusive Arabian oud, and designer fragrances in Qatar. Fast same-day delivery in Doha and express delivery across all Qatar.`;
+    const dynamicCanonical = "https://perfumehubqa.com/shop";
+
+    const collectionSchema = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": dynamicTitle,
+        "description": dynamicDesc,
+        "url": dynamicCanonical,
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "PerfumeHub Qatar",
+            "url": "https://perfumehubqa.com/"
+        }
+    };
 
     return (
         <div className="shop-page">
             <Helmet>
                 <title>{dynamicTitle}</title>
                 <meta name="description" content={dynamicDesc} />
+                <meta name="keywords" content="buy perfume qatar, perfume shop doha, luxury fragrances qatar, oud perfume doha, authentic perfumes qatar, عطور قطر, شراء عطور قطر, متجر عطور الدوحة" />
+                <meta property="og:title" content={dynamicTitle} />
+                <meta property="og:description" content={dynamicDesc} />
+                <meta property="og:url" content={dynamicCanonical} />
+                <meta property="og:type" content="website" />
+                <meta property="og:image" content="https://perfumehubqa.com/favicon.png" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={dynamicTitle} />
+                <meta name="twitter:description" content={dynamicDesc} />
                 <link rel="canonical" href={dynamicCanonical} />
+                <link rel="alternate" hreflang="en-QA" href={dynamicCanonical} />
+                <link rel="alternate" hreflang="ar-QA" href={dynamicCanonical} />
+                <link rel="alternate" hreflang="x-default" href={dynamicCanonical} />
+                <script type="application/ld+json">{JSON.stringify(collectionSchema)}</script>
             </Helmet>
             <div 
                 className="shop-header" 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import { ShopContext } from '../../context/ShopContext';
 import './Contact.css';
@@ -29,8 +30,36 @@ const Contact = () => {
         setFormData({ name: '', email: '', subject: '', message: '' });
     };
 
+    const contactSchema = {
+        "@context": "https://schema.org",
+        "@type": "ContactPage",
+        "name": isRTL ? "اتصل بـ بيرفيوم هوب قطر" : "Contact PerfumeHub Qatar",
+        "description": "Contact PerfumeHub Qatar customer service for luxury perfume orders, authentic fragrance inquiries, and express delivery in Doha.",
+        "url": "https://perfumehubqa.com/contact",
+        "mainEntity": {
+            "@type": "Store",
+            "name": "PerfumeHub Qatar",
+            "telephone": "+974-3030-1901",
+            "email": "supportperfumehub@gmail.com",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Souq Al Jabor",
+                "addressLocality": "Doha",
+                "addressCountry": "QA"
+            }
+        }
+    };
+
     return (
         <div className="contact-page section container" style={{ paddingTop: '150px', minHeight: '60vh' }}>
+            <Helmet>
+                <title>{isRTL ? "تواصل معنا | بيرفيوم هوب قطر" : "Contact Us | PerfumeHub Qatar - Doha Store"}</title>
+                <meta name="description" content={isRTL ? "تواصل مع فريق خدمة العملاء في بيرفيوم هوب قطر. متواجدون في سوق الجبر، الدوحة. خدمة سريعة واستفسارات العطور." : "Contact PerfumeHub Qatar customer support. Located at Souq Al Jabor, Doha. Fast customer service for perfume orders and fragrance inquiries."} />
+                <link rel="canonical" href="https://perfumehubqa.com/contact" />
+                <meta property="og:title" content={isRTL ? "تواصل معنا | بيرفيوم هوب قطر" : "Contact Us | PerfumeHub Qatar - Doha Store"} />
+                <meta property="og:url" content="https://perfumehubqa.com/contact" />
+                <script type="application/ld+json">{JSON.stringify(contactSchema)}</script>
+            </Helmet>
             <div className="contact-header text-center">
                 <h1 className="contact-title">{isRTL ? 'تواصل معنا' : 'Contact Us'}</h1>
                 <p className="contact-subtitle">

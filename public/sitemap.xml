@@ -1,33 +1,93 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://perfumehubqa.com/</loc>
-    <lastmod>2026-07-08</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-QA" href="https://perfumehubqa.com/" />
+    <xhtml:link rel="alternate" hreflang="ar-QA" href="https://perfumehubqa.com/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perfumehubqa.com/" />
+    <lastmod>2026-09-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://perfumehubqa.com/shop</loc>
-    <lastmod>2026-07-08</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-QA" href="https://perfumehubqa.com/shop" />
+    <xhtml:link rel="alternate" hreflang="ar-QA" href="https://perfumehubqa.com/shop" />
+    <lastmod>2026-09-13</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/scent-genie</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/brands</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/category/gift-box</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/category/fashion</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/category/jewellery</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/about</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
   </url>
   <url>
     <loc>https://perfumehubqa.com/contact</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-09-13</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.70</priority>
   </url>
   <url>
     <loc>https://perfumehubqa.com/faq</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-09-13</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://perfumehubqa.com/login</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://perfumehubqa.com/shipping-policy</loc>
+    <lastmod>2026-09-13</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/refund-policy</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/terms-conditions</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://perfumehubqa.com/privacy-policy</loc>
+    <lastmod>2026-09-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.50</priority>
   </url>
 </urlset>
