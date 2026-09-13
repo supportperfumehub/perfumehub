@@ -584,98 +584,49 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Qatar SEO & Marketing Hub */}
-            <section className="qatar-seo-section reveal">
+            {/* Luxury Minimalist Trust Strip (Low Profile) */}
+            <section className="luxury-trust-strip">
                 <div className="container">
-                    <div className="qatar-seo-header text-center">
-                        <span className="qatar-gold-badge">
-                            <Sparkles size={14} style={{ display: 'inline', verticalAlign: 'middle', marginInlineEnd: '6px' }} />
-                            {t('qatar_seo.badge')}
-                        </span>
-                        <h2 className="qatar-seo-title">{t('qatar_seo.title')}</h2>
-                        <p className="qatar-seo-subtitle">{t('qatar_seo.subtitle')}</p>
-                    </div>
-
-                    <div className="qatar-features-grid">
-                        <div className="qatar-feature-card">
-                            <div className="qatar-feature-icon">
-                                <ShieldCheck size={28} />
+                    <div className="trust-strip-grid">
+                        <div className="trust-strip-item">
+                            <div className="trust-strip-icon-box">
+                                <ShieldCheck size={20} />
                             </div>
-                            <h3>{t('qatar_seo.feature_1_title')}</h3>
-                            <p>{t('qatar_seo.feature_1_desc')}</p>
-                        </div>
-                        <div className="qatar-feature-card">
-                            <div className="qatar-feature-icon">
-                                <Truck size={28} />
+                            <div className="trust-strip-content">
+                                <h4 className="trust-strip-title">{t('qatar_seo.feature_1_title')}</h4>
+                                <p className="trust-strip-desc">{t('qatar_seo.feature_1_desc')}</p>
                             </div>
-                            <h3>{t('qatar_seo.feature_2_title')}</h3>
-                            <p>{t('qatar_seo.feature_2_desc')}</p>
                         </div>
-                        <div className="qatar-feature-card">
-                            <div className="qatar-feature-icon">
-                                <Sparkles size={28} />
+                        <div className="trust-strip-item">
+                            <div className="trust-strip-icon-box">
+                                <Truck size={20} />
                             </div>
-                            <h3>{t('qatar_seo.feature_3_title')}</h3>
-                            <p>{t('qatar_seo.feature_3_desc')}</p>
-                        </div>
-                        <div className="qatar-feature-card">
-                            <div className="qatar-feature-icon">
-                                <CreditCard size={28} />
+                            <div className="trust-strip-content">
+                                <h4 className="trust-strip-title">{t('qatar_seo.feature_2_title')}</h4>
+                                <p className="trust-strip-desc">{t('qatar_seo.feature_2_desc')}</p>
                             </div>
-                            <h3>{t('qatar_seo.feature_4_title')}</h3>
-                            <p>{t('qatar_seo.feature_4_desc')}</p>
                         </div>
-                    </div>
-
-                    {/* Delivery Municipalities Bar */}
-                    <div className="qatar-cities-bar">
-                        <div className="qatar-cities-label">
-                            <MapPin size={18} />
-                            <span>{t('qatar_seo.cities_label')}</span>
+                        <div className="trust-strip-item">
+                            <div className="trust-strip-icon-box">
+                                <Sparkles size={20} />
+                            </div>
+                            <div className="trust-strip-content">
+                                <h4 className="trust-strip-title">{t('qatar_seo.feature_3_title')}</h4>
+                                <p className="trust-strip-desc">{t('qatar_seo.feature_3_desc')}</p>
+                            </div>
                         </div>
-                        <div className="qatar-cities-tags">
-                            <span className="city-pill">{isRTL ? 'الدوحة' : 'Doha'}</span>
-                            <span className="city-pill">{isRTL ? 'لوسيل' : 'Lusail'}</span>
-                            <span className="city-pill">{isRTL ? 'اللؤلؤة' : 'The Pearl'}</span>
-                            <span className="city-pill">{isRTL ? 'الخليج الغربي' : 'West Bay'}</span>
-                            <span className="city-pill">{isRTL ? 'الريان' : 'Al Rayyan'}</span>
-                            <span className="city-pill">{isRTL ? 'الوكرة' : 'Al Wakrah'}</span>
-                            <span className="city-pill">{isRTL ? 'الخور' : 'Al Khor'}</span>
-                            <span className="city-pill">{isRTL ? 'أم صلال' : 'Umm Salal'}</span>
-                            <span className="city-pill">{isRTL ? 'الشمال' : 'Al Shamal'}</span>
-                            <span className="city-pill">{isRTL ? 'مسيعيد' : 'Mesaieed'}</span>
+                        <div className="trust-strip-item">
+                            <div className="trust-strip-icon-box">
+                                <CreditCard size={20} />
+                            </div>
+                            <div className="trust-strip-content">
+                                <h4 className="trust-strip-title">{t('qatar_seo.feature_4_title')}</h4>
+                                <p className="trust-strip-desc">{t('qatar_seo.feature_4_desc')}</p>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Qatar Perfume FAQ Accordion */}
-                    <div className="qatar-faq-container">
-                        <div className="text-center" style={{ marginBottom: '28px' }}>
-                            <h3 className="qatar-faq-heading">{t('qatar_seo.faq_title')}</h3>
-                            <p className="qatar-faq-subheading">{t('qatar_seo.faq_subtitle')}</p>
-                        </div>
-
-                        <div className="qatar-faq-list">
-                            {[1, 2, 3, 4, 5].map((idx) => {
-                                const isOpen = openFaq === idx;
-                                return (
-                                    <div 
-                                        key={idx} 
-                                        className={`qatar-faq-item ${isOpen ? 'active' : ''}`}
-                                        onClick={() => toggleFaq(idx)}
-                                    >
-                                        <div className="qatar-faq-question">
-                                            <span>{t(`qatar_seo.faq_${idx}_q`)}</span>
-                                            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                        </div>
-                                        {isOpen && (
-                                            <div className="qatar-faq-answer animate-fade-in">
-                                                <p>{t(`qatar_seo.faq_${idx}_a`)}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div className="trust-strip-cities-hint">
+                        <span>{t('qatar_seo.cities_label')}</span> {isRTL ? 'الدوحة • لوسيل • اللؤلؤة • الخليج الغربي • الريان • الوكرة • الخور • أم صلال • الشمال • مسيعيد' : 'Doha • Lusail • The Pearl • West Bay • Al Rayyan • Al Wakrah • Al Khor • Umm Salal • Al Shamal • Mesaieed'}
                     </div>
                 </div>
             </section>
@@ -697,6 +648,39 @@ const Home = () => {
                         <Link to="/about" className="btn btn-outline" style={{ marginTop: '20px' }}>
                             {t('brand_story.discover_more')}
                         </Link>
+                    </div>
+                </div>
+            </section>
+
+            {/* Qatar Perfume FAQ Accordion (Discreet & Understated) */}
+            <section className="home-faq-section reveal">
+                <div className="container home-faq-container">
+                    <div className="home-faq-header">
+                        <h3>{t('qatar_seo.faq_title')}</h3>
+                        <p>{t('qatar_seo.faq_subtitle')}</p>
+                    </div>
+
+                    <div className="home-faq-list">
+                        {[1, 2, 3, 4, 5].map((idx) => {
+                            const isOpen = openFaq === idx;
+                            return (
+                                <div 
+                                    key={idx} 
+                                    className={`home-faq-item ${isOpen ? 'active' : ''}`}
+                                    onClick={() => toggleFaq(idx)}
+                                >
+                                    <div className="home-faq-question">
+                                        <span>{t(`qatar_seo.faq_${idx}_q`)}</span>
+                                        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </div>
+                                    {isOpen && (
+                                        <div className="home-faq-answer animate-fade-in">
+                                            <p>{t(`qatar_seo.faq_${idx}_a`)}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>

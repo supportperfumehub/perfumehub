@@ -1240,237 +1240,171 @@
 }
 
 /* ============================================================
-   Qatar SEO & Marketing Hub Styles (Luxury Light Palette)
+   Luxury Minimalist Trust Strip (Low Profile)
    ============================================================ */
-.qatar-seo-section {
-    padding: 75px 0 60px;
-    background: #ffffff;
-    border-top: 1px solid #ebe5d8;
-    border-bottom: 1px solid #ebe5d8;
+.luxury-trust-strip {
+    background: #faf8f5;
+    border-top: 1px solid #ebe6dd;
+    border-bottom: 1px solid #ebe6dd;
+    padding: 24px 0;
     margin: 0;
-    position: relative;
-    color: #0f172a;
 }
 
-.qatar-gold-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 18px;
-    background: rgba(212, 175, 55, 0.12);
-    border: 1px solid rgba(170, 140, 44, 0.35);
-    border-radius: 30px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #8f6e14;
-    margin-bottom: 16px;
-}
-
-.qatar-seo-title {
-    font-family: var(--font-heading, 'Playfair Display', serif);
-    font-size: 2.3rem;
-    font-weight: 700;
-    color: #0f172a !important;
-    margin-bottom: 14px;
-    line-height: 1.3;
-}
-
-.qatar-seo-subtitle {
-    font-size: 1.05rem;
-    color: #475569 !important;
-    max-width: 780px;
-    margin: 0 auto 40px;
-    line-height: 1.65;
-}
-
-.qatar-features-grid {
+.trust-strip-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    margin-bottom: 40px;
+    align-items: center;
 }
 
-.qatar-feature-card {
-    background: #ffffff;
-    border: 1px solid #e7e2d6;
-    border-radius: 12px;
-    padding: 26px 20px;
-    text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+.trust-strip-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.qatar-feature-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--color-gold, #d4af37);
-    box-shadow: 0 10px 24px rgba(212, 175, 55, 0.16);
-}
-
-.qatar-feature-icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 16px;
+.trust-strip-icon-box {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: rgba(212, 175, 55, 0.12);
-    color: #8f6e14;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    color: #997416;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(212, 175, 55, 0.28);
+    flex-shrink: 0;
 }
 
-.qatar-feature-card h3 {
-    font-family: var(--font-heading, 'Playfair Display', serif);
-    font-size: 1.1rem;
-    color: #0f172a;
-    margin-bottom: 10px;
+.trust-strip-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.trust-strip-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 2px 0;
+    line-height: 1.3;
+}
+
+.trust-strip-desc {
+    font-size: 0.76rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.35;
+}
+
+.trust-strip-cities-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #8c8273;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed #e5dfd2;
+}
+
+.trust-strip-cities-hint span {
+    color: #554e42;
     font-weight: 600;
 }
 
-.qatar-feature-card p {
-    font-size: 0.88rem;
+/* ============================================================
+   Home FAQ Section (Discreet & Understated)
+   ============================================================ */
+.home-faq-section {
+    padding: 50px 0 45px;
+    background: #ffffff;
+    border-top: 1px solid #f0eae0;
+}
+
+.home-faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.home-faq-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.home-faq-header h3 {
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 1.45rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+.home-faq-header p {
+    font-size: 0.85rem;
     color: #64748b;
-    line-height: 1.55;
     margin: 0;
 }
 
-.qatar-cities-bar {
-    background: #f8f6f0;
-    border: 1px solid #e5dfd2;
-    border-radius: 12px;
-    padding: 16px 24px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 50px;
-}
-
-.qatar-cities-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #8f6e14;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.qatar-cities-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-}
-
-.city-pill {
-    background: #ffffff;
-    border: 1px solid #dcd5c5;
-    color: #334155;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-}
-
-.city-pill:hover {
-    background: #d4af37;
-    border-color: #d4af37;
-    color: #ffffff;
-}
-
-.qatar-faq-container {
-    max-width: 860px;
-    margin: 0 auto;
-    padding-top: 10px;
-}
-
-.qatar-faq-heading {
-    font-family: var(--font-heading, 'Playfair Display', serif);
-    font-size: 1.85rem;
-    color: #0f172a;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.qatar-faq-subheading {
-    font-size: 0.95rem;
-    color: #64748b;
-}
-
-.qatar-faq-list {
+.home-faq-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
-.qatar-faq-item {
-    background: #ffffff;
-    border: 1px solid #e5dfd2;
-    border-radius: 10px;
+.home-faq-item {
+    background: #faf9f7;
+    border: 1px solid #eee8dc;
+    border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.qatar-faq-item:hover,
-.qatar-faq-item.active {
-    border-color: #c49d2b;
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.12);
+.home-faq-item:hover,
+.home-faq-item.active {
+    border-color: #d4af37;
+    background: #ffffff;
 }
 
-.qatar-faq-question {
+.home-faq-question {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 13px 18px;
     font-weight: 600;
-    font-size: 1rem;
-    color: #0f172a;
-    gap: 16px;
-}
-
-.qatar-faq-item.active .qatar-faq-question {
-    color: #8f6e14;
-}
-
-.qatar-faq-answer {
-    padding: 0 20px 18px 20px;
     font-size: 0.92rem;
+    color: #1e293b;
+    gap: 12px;
+}
+
+.home-faq-item.active .home-faq-question {
+    color: #997416;
+}
+
+.home-faq-answer {
+    padding: 0 18px 14px 18px;
+    font-size: 0.85rem;
     color: #475569;
-    line-height: 1.6;
-    border-top: 1px solid #f1ede4;
-    padding-top: 12px;
+    line-height: 1.55;
+    border-top: 1px solid #f2ede4;
+    padding-top: 10px;
 }
 
 @media (max-width: 992px) {
-    .qatar-features-grid {
+    .trust-strip-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 14px 18px;
     }
 }
 
 @media (max-width: 600px) {
-    .qatar-seo-section {
-        padding: 50px 0 35px;
+    .luxury-trust-strip {
+        padding: 18px 0;
     }
-    .qatar-seo-title {
-        font-size: 1.6rem;
-    }
-    .qatar-features-grid {
+    .trust-strip-grid {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 12px;
     }
-    .qatar-cities-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 14px 16px;
-    }
-    .qatar-faq-heading {
-        font-size: 1.4rem;
+    .home-faq-header h3 {
+        font-size: 1.25rem;
     }
 }
 
