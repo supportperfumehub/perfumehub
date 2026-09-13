@@ -1310,7 +1310,7 @@ const VendorPanel = () => {
                                 </h2>
                             </div>
 
-                            {!shopId && (
+                            {!effectiveShopId && (
                                 <div style={{ marginBottom: '24px', padding: '16px', background: 'rgba(200, 169, 81, 0.1)', border: '1px solid #c8a951', borderRadius: '12px', color: '#fff', fontSize: '0.95rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <ShieldCheck size={20} color="#c8a951" style={{ flexShrink: 0 }} />

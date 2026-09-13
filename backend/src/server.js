@@ -1,11 +1,10 @@
 import app from './app.js';
+import config from './config/env.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.server.port || 4000;
 
 app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-    // Keep-alive interval for debugging
-    setInterval(() => {
-        console.log('Server heartbeat...');
-    }, 10000);
+    console.log(`PerfumeHub API server running at http://localhost:${PORT}`);
+    console.log(`Environment: ${config.server.nodeEnv}`);
 });
+

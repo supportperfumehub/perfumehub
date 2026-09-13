@@ -377,4 +377,20 @@ router.put('/settings', superAdminOnly, async (req, res, next) => {
     }
 });
 
+// POST /api/admin/recover-all-products
+router.post('/recover-all-products', superAdminOnly, async (req, res, next) => {
+    try {
+        const { products } = req.body;
+        if (!products || !Array.isArray(products)) {
+            return res.status(400).json({ error: 'Invalid products data' });
+        }
+        const { data, error } = await supabase.from('products').upsert(products, { onConflict: 'name, brand' }).select();
+        if (error) throw error;
+        res.json({ success: true, count: data.length });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
+
