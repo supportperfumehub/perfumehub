@@ -1,12 +1,13 @@
 {
   "navbar": {
     "home": "Home",
-    "shop": "PERFUMEHUB",
-    "men": "Fashion",
-    "all_fashion": "All Fashion",
-    "abaya": "Exclusive Abayas",
-    "women": "Jewellery",
-    "arabic": "Gift Boxes",
+    "shop": "All Perfumes",
+    "men": "Men",
+    "all_fashion": "Luxury Fashion",
+    "abaya": "Designer Abayas",
+    "women": "Women",
+    "arabic": "Arabic & Oud",
+    "lifestyle": "Lifestyle",
     "ai_advisor": "Scent Genie",
     "login": "Login",
     "logout": "Logout",
@@ -40,11 +41,11 @@
   "categories": {
     "title": "Shop By Categories",
     "subtitle": "Explore our exclusive luxury collections",
-    "men": "Fashion",
-    "women": "Jewellery",
+    "men": "Men's Fragrances",
+    "women": "Women's Fragrances",
     "unisex": "Unisex Collection",
-    "arabic": "Gift Boxes",
-    "all_perfumes": "All Products"
+    "arabic": "Arabic & Oriental",
+    "all_perfumes": "All Luxury Perfumes"
   },
   "featured": {
     "title": "Featured Collection",
