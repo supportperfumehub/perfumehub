@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ShieldCheck, Truck, Sparkles, CreditCard, MapPin, ChevronDown, ChevronUp, Star, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,8 @@ import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
+import './Home.css';
+
 // Curated 4 preview reviews to display until original trusted reviews arrive
 const INITIAL_PREVIEW_REVIEWS = [
     {
@@ -91,6 +93,76 @@ const Home = () => {
 
     const toggleFaq = (idx) => setOpenFaq(prev => prev === idx ? null : idx);
 
+    // Reviews sliding carousel and manual swipe state
+    const reviewsTrackRef = useRef(null);
+    const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+    const [isDraggingReview, setIsDraggingReview] = useState(false);
+    const dragStartXRef = useRef(0);
+    const dragScrollLeftRef = useRef(0);
+
+    const scrollToReview = (idx) => {
+        if (!reviewsTrackRef.current) return;
+        const cards = reviewsTrackRef.current.querySelectorAll('.home-review-card');
+        if (cards[idx]) {
+            cards[idx].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+            setActiveReviewIndex(idx);
+        }
+    };
+
+    const handleReviewScrollNav = (direction) => {
+        if (!reviewsTrackRef.current) return;
+        const total = homeReviews.length;
+        let nextIdx = direction === 'next' ? activeReviewIndex + 1 : activeReviewIndex - 1;
+        if (nextIdx < 0) nextIdx = 0;
+        if (nextIdx >= total) nextIdx = total - 1;
+        scrollToReview(nextIdx);
+    };
+
+    const handleTrackScroll = () => {
+        if (!reviewsTrackRef.current) return;
+        const track = reviewsTrackRef.current;
+        const cards = track.querySelectorAll('.home-review-card');
+        if (!cards.length) return;
+
+        const trackCenter = track.getBoundingClientRect().left + track.offsetWidth / 2;
+        let closestIdx = 0;
+        let closestDist = Infinity;
+
+        cards.forEach((card, idx) => {
+            const rect = card.getBoundingClientRect();
+            const cardCenter = rect.left + rect.width / 2;
+            const dist = Math.abs(trackCenter - cardCenter);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestIdx = idx;
+            }
+        });
+
+        setActiveReviewIndex(closestIdx);
+    };
+
+    const handleReviewMouseDown = (e) => {
+        if (!reviewsTrackRef.current) return;
+        setIsDraggingReview(true);
+        dragStartXRef.current = e.pageX - reviewsTrackRef.current.offsetLeft;
+        dragScrollLeftRef.current = reviewsTrackRef.current.scrollLeft;
+    };
+
+    const handleReviewMouseMove = (e) => {
+        if (!isDraggingReview || !reviewsTrackRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - reviewsTrackRef.current.offsetLeft;
+        const walk = (x - dragStartXRef.current) * 1.5;
+        reviewsTrackRef.current.scrollLeft = dragScrollLeftRef.current - walk;
+    };
+
+    const handleReviewMouseUp = () => setIsDraggingReview(false);
+    const handleReviewMouseLeave = () => setIsDraggingReview(false);
+
     // Fetch homepage reviews: automatically overwrites preview reviews when original trusted reviews arrive
     useEffect(() => {
         let isMounted = true;
@@ -100,7 +172,7 @@ const Home = () => {
                 if (!res.ok) return;
                 const data = await res.json();
                 if (isMounted && data?.success && Array.isArray(data.reviews) && data.reviews.length > 0) {
-                    setHomeReviews(data.reviews.slice(0, 4));
+                    setHomeReviews(data.reviews);
                     setReviewsStats({
                         rating: data.averageRating || 4.9,
                         count: data.totalReviews || data.reviews.length,
@@ -743,46 +815,101 @@ const Home = () => {
                         </div>
                     </div>
 
-                    <div className="home-reviews-grid">
-                        {homeReviews.slice(0, 4).map((rev, idx) => (
-                            <div key={rev.id || idx} className="home-review-card">
-                                <div className="review-card-top">
-                                    <div className="stars-row">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star 
-                                                key={i} 
-                                                size={15} 
-                                                fill={i < Math.round(Number(rev.rating) || 5) ? "#d4af37" : "none"} 
-                                                color="#d4af37" 
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="verified-badge">
-                                        <CheckCircle2 size={13} />
-                                        {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
-                                    </span>
-                                </div>
-                                <h4 className="review-card-title">
-                                    {isRTL ? (rev.title_ar || rev.title) : (rev.title || rev.title_ar)}
-                                </h4>
-                                <p className="review-card-quote">
-                                    {isRTL ? (rev.comment_ar || rev.comment) : (rev.comment || rev.comment_ar)}
-                                </p>
-                                <div className="review-card-footer">
-                                    <div className="reviewer-info">
-                                        <span className="reviewer-name">
-                                            {isRTL ? (rev.user_name_ar || rev.user_name) : rev.user_name}
+                    {/* Sliding Carousel / Manual Swipe Stage */}
+                    <div className="reviews-carousel-stage">
+                        {/* Prev Navigation Arrow */}
+                        <button 
+                            type="button"
+                            className="reviews-nav-btn prev"
+                            onClick={() => handleReviewScrollNav(isRTL ? 'next' : 'prev')}
+                            disabled={isRTL ? activeReviewIndex >= homeReviews.length - 1 : activeReviewIndex === 0}
+                            aria-label={isRTL ? 'التالي' : 'Previous review'}
+                        >
+                            {isRTL ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                        </button>
+
+                        {/* Scrollable & Swipeable Track */}
+                        <div 
+                            ref={reviewsTrackRef}
+                            className={`reviews-carousel-track ${isDraggingReview ? 'is-dragging' : ''}`}
+                            onScroll={handleTrackScroll}
+                            onMouseDown={handleReviewMouseDown}
+                            onMouseMove={handleReviewMouseMove}
+                            onMouseUp={handleReviewMouseUp}
+                            onMouseLeave={handleReviewMouseLeave}
+                        >
+                            {homeReviews.map((rev, idx) => (
+                                <div 
+                                    key={rev.id || idx} 
+                                    className={`home-review-card ${idx === activeReviewIndex ? 'active-slide' : ''}`}
+                                >
+                                    <div className="review-card-top">
+                                        <div className="stars-row">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star 
+                                                    key={i} 
+                                                    size={15} 
+                                                    fill={i < Math.round(Number(rev.rating) || 5) ? "#d4af37" : "none"} 
+                                                    color="#d4af37" 
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="verified-badge">
+                                            <CheckCircle2 size={13} />
+                                            {isRTL ? 'مشتري موثق' : 'Verified Purchase'}
                                         </span>
-                                        <span className="reviewer-location">
-                                            {isRTL ? (rev.location_ar || rev.location || 'قطر') : (rev.location || 'Qatar')}
-                                        </span>
                                     </div>
-                                    {rev.product_name && (
-                                        <span className="reviewed-product-pill">{rev.product_name}</span>
-                                    )}
+                                    <h4 className="review-card-title">
+                                        {isRTL ? (rev.title_ar || rev.title) : (rev.title || rev.title_ar)}
+                                    </h4>
+                                    <p className="review-card-quote">
+                                        {isRTL ? (rev.comment_ar || rev.comment) : (rev.comment || rev.comment_ar)}
+                                    </p>
+                                    <div className="review-card-footer">
+                                        <div className="reviewer-info">
+                                            <span className="reviewer-name">
+                                                {isRTL ? (rev.user_name_ar || rev.user_name) : rev.user_name}
+                                            </span>
+                                            <span className="reviewer-location">
+                                                {isRTL ? (rev.location_ar || rev.location || 'قطر') : (rev.location || 'Qatar')}
+                                            </span>
+                                        </div>
+                                        {rev.product_name && (
+                                            <span className="reviewed-product-pill">{rev.product_name}</span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        {/* Next Navigation Arrow */}
+                        <button 
+                            type="button"
+                            className="reviews-nav-btn next"
+                            onClick={() => handleReviewScrollNav(isRTL ? 'prev' : 'next')}
+                            disabled={isRTL ? activeReviewIndex === 0 : activeReviewIndex >= homeReviews.length - 1}
+                            aria-label={isRTL ? 'السابق' : 'Next review'}
+                        >
+                            {isRTL ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                        </button>
+                    </div>
+
+                    {/* Pagination Dots & Touch Swipe Hint */}
+                    <div className="reviews-carousel-footer">
+                        <div className="reviews-carousel-dots">
+                            {homeReviews.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    className={`review-dot ${idx === activeReviewIndex ? 'active' : ''}`}
+                                    onClick={() => scrollToReview(idx)}
+                                    aria-label={`Go to slide ${idx + 1}`}
+                                />
+                            ))}
+                        </div>
+                        <div className="reviews-swipe-hint">
+                            <span>{isRTL ? '⟵ اسحب باللمس لتصفح المزيد ⟶' : '⟵ Swipe or slide to explore client reviews ⟶'}</span>
+                        </div>
                     </div>
                 </div>
             </section>

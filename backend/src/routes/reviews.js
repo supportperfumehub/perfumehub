@@ -176,17 +176,17 @@ router.get('/top', async (req, res) => {
             const positiveReviews = realVerifiedReviews.filter(r => Number(r.rating) >= 4);
 
             if (positiveReviews.length > 4) {
-                // Shuffle randomly and take 4 positive reviews
+                // Shuffle randomly and provide up to 8 positive reviews for carousel sliding/swiping
                 const shuffled = [...positiveReviews].sort(() => 0.5 - Math.random());
-                selectedReviews = shuffled.slice(0, 4);
-            } else if (positiveReviews.length === 4) {
+                selectedReviews = shuffled.slice(0, 8);
+            } else if (positiveReviews.length > 0) {
                 selectedReviews = positiveReviews;
             } else {
                 // If fewer than 4 positive reviews, take all positive ones and fill with highest available real reviews
                 const nonPositive = realVerifiedReviews
                     .filter(r => Number(r.rating) < 4)
                     .sort((a, b) => Number(b.rating) - Number(a.rating));
-                selectedReviews = [...positiveReviews, ...nonPositive].slice(0, 4);
+                selectedReviews = [...positiveReviews, ...nonPositive].slice(0, 8);
             }
         }
 
