@@ -5,17 +5,55 @@
     color: #1a1a1a;
     width: 100%;
     margin: 0;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 .details-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 60px;
+    grid-template-areas:
+        "media buybox"
+        "olfactory story";
+    column-gap: 50px;
+    row-gap: 30px;
     align-items: start;
-    padding-top: 40px;
+    padding-top: 30px;
     width: 100%;
     margin: 0 auto;
+}
+
+[dir="rtl"] .details-container {
+    direction: rtl;
+}
+
+.product-media-column {
+    grid-area: media;
+    width: 100%;
+}
+
+.product-buybox-panel {
+    grid-area: buybox;
+    width: 100%;
+}
+
+.product-olfactory-panel {
+    grid-area: olfactory;
+    width: 100%;
+}
+
+.product-story-panel {
+    grid-area: story;
+    width: 100%;
+}
+
+/* Luxury Trust Bar Ribbon */
+.product-trust-strip-wrapper {
+    width: 100%;
+    background: #faf8f5;
+    border-top: 1px solid rgba(212, 175, 55, 0.16);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.16);
+    padding: 35px 0;
+    margin: 40px 0 20px 0;
 }
 
 /* Image Gallery Upgrade */
@@ -648,26 +686,49 @@
 /* Responsive Adjustments */
 @media (max-width: 992px) {
     .details-container {
-        display: block; /* Switch to block to prevent grid-width issues */
-        width: 100%;
-        padding-top: 20px;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        padding-top: 15px !important;
+        gap: 20px !important;
     }
     
     .product-media-column {
-        width: 100%;
-        margin-bottom: 30px;
+        order: 1 !important;
+        width: 100% !important;
+        margin-bottom: 0 !important;
     }
 
     .product-gallery {
-        position: static;
-        width: 100%;
-        padding: 0;
+        position: static !important;
+        width: 100% !important;
+        padding: 0 !important;
     }
 
-    .product-info-panel {
-        width: 100%;
-        padding: 0;
-        box-sizing: border-box;
+    .product-buybox-panel {
+        order: 2 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .product-olfactory-panel {
+        order: 3 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .product-story-panel {
+        order: 4 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .product-trust-strip-wrapper {
+        padding: 20px 0 !important;
+        margin: 25px 0 15px 0 !important;
     }
     
     .top-branding-bar {
@@ -684,7 +745,7 @@
         padding-top: 60px; /* Reduced further from 70px to bring content higher */
         font-size: 0.88rem;
         width: 100% !important;
-        overflow-x: hidden;
+        overflow-x: clip;
     }
 
     .product-page-top-accent {
@@ -692,11 +753,13 @@
     }
 
     .details-container {
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 5px 16px 16px !important; /* Extremely tight top padding */
-        box-sizing: border-box;
+        box-sizing: border-box !important;
+        gap: 16px !important;
     }
 
     .main-image-wrapper {
@@ -1295,7 +1358,7 @@
     border: 1px solid rgba(212, 175, 55, 0.28);
     border-radius: 18px;
     padding: 22px;
-    margin: 25px 0;
+    margin: 0 0 25px 0;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     position: relative;
     overflow: hidden;

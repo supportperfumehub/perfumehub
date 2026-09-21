@@ -107,7 +107,8 @@
     "gift_wrap_desc": "+10 QAR for elegant packaging",
     "save": "Save",
     "meta_desc": "Discover the luxurious {{name}} by {{brand}} exclusively at PerfumeHub Qatar.",
-    "default_description": "A luxurious fragrance that embodies timeless elegance. Opening with fresh top notes that evolve into a warm, deep heart, settling on a rich base that lasts all day, making it the perfect choice for special occasions and refined daily wear."
+    "default_description": "A luxurious fragrance that embodies timeless elegance. Opening with fresh top notes that evolve into a warm, deep heart, settling on a rich base that lasts all day, making it the perfect choice for special occasions and refined daily wear.",
+    "no_description": "A luxurious fragrance that embodies timeless elegance. Opening with fresh top notes that evolve into a warm, deep heart, settling on a rich base that lasts all day, making it the perfect choice for special occasions and refined daily wear."
   },
   "promotion": {
     "welcome": "Use code WELCOME10 for 10% off your first luxury scent",
