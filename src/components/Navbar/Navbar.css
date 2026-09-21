@@ -201,6 +201,7 @@
     color: inherit;
     cursor: pointer;
     position: relative;
+    z-index: 1002;
     padding: 6px;
     border-radius: 10px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -223,6 +224,19 @@
 .mobile-toggle.is-breathing svg {
     filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.85));
     animation: menuIconPulse 1.9s ease-in-out infinite;
+}
+
+/* Active Open State for Mobile Toggle (when drawer is open) */
+.mobile-toggle.is-open {
+    color: var(--color-gold, #d4af37) !important;
+    background: rgba(212, 175, 55, 0.15) !important;
+    border: 1.5px solid rgba(212, 175, 55, 0.6) !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+    transform: rotate(90deg);
+}
+
+.mobile-toggle.is-open svg {
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.7));
 }
 
 /* Subtle glowing beacon dot on top-right of the toggle */
@@ -389,21 +403,111 @@
         width: 88%; /* Increased for better label visibility */
         max-width: 320px;
         height: 100vh;
-        background-color: var(--color-black);
-        padding: 80px 24px 40px; /* Reduced side padding from 30px */
+        background: linear-gradient(165deg, #131210 0%, #090909 60%, #15140f 100%);
+        border-right: 1.5px solid rgba(212, 175, 55, 0.45);
+        box-shadow: 18px 0 45px rgba(0, 0, 0, 0.85), 3px 0 25px rgba(212, 175, 55, 0.2);
+        padding: 85px 24px 40px;
         gap: 0;
         z-index: 1001;
-        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        animation: luxuryDrawerSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        will-change: transform, opacity;
+    }
+
+    /* RTL Drawer opens from right */
+    [dir="rtl"] .navbar-links.mobile-open {
+        left: auto;
+        right: 0;
+        border-right: none;
+        border-left: 1.5px solid rgba(212, 175, 55, 0.45);
+        box-shadow: -18px 0 45px rgba(0, 0, 0, 0.85), -3px 0 25px rgba(212, 175, 55, 0.2);
+        animation: luxuryDrawerSlideInRTL 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes luxuryDrawerSlideIn {
+        0% {
+            transform: translateX(-100%);
+            opacity: 0.3;
+        }
+        100% {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes luxuryDrawerSlideInRTL {
+        0% {
+            transform: translateX(100%);
+            opacity: 0.3;
+        }
+        100% {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    /* Staggered Cascading Entrance for Menu Items */
+    .navbar-links.mobile-open > * {
+        animation: luxuryLinkCascade 0.38s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    [dir="rtl"] .navbar-links.mobile-open > * {
+        animation-name: luxuryLinkCascadeRTL;
+    }
+
+    .navbar-links.mobile-open > *:nth-child(1) { animation-delay: 0.05s; }
+    .navbar-links.mobile-open > *:nth-child(2) { animation-delay: 0.09s; }
+    .navbar-links.mobile-open > *:nth-child(3) { animation-delay: 0.13s; }
+    .navbar-links.mobile-open > *:nth-child(4) { animation-delay: 0.17s; }
+    .navbar-links.mobile-open > *:nth-child(5) { animation-delay: 0.21s; }
+    .navbar-links.mobile-open > *:nth-child(6) { animation-delay: 0.25s; }
+    .navbar-links.mobile-open > *:nth-child(7) { animation-delay: 0.29s; }
+    .navbar-links.mobile-open > *:nth-child(8) { animation-delay: 0.33s; }
+    .navbar-links.mobile-open .mobile-only-links { animation-delay: 0.37s; }
+
+    @keyframes luxuryLinkCascade {
+        0% {
+            opacity: 0;
+            transform: translateX(-14px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes luxuryLinkCascadeRTL {
+        0% {
+            opacity: 0;
+            transform: translateX(14px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
     }
 
     .navbar-links.mobile-open a {
         padding: 15px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         font-size: 1rem;
         color: var(--color-white) !important;
         white-space: normal; /* Allow wrapping if needed */
         letter-spacing: 1px;
+        transition: all 0.22s ease;
+    }
+
+    .navbar-links.mobile-open a:hover,
+    .navbar-links.mobile-open a:active {
+        color: var(--color-gold, #d4af37) !important;
+        padding-left: 6px;
+    }
+
+    [dir="rtl"] .navbar-links.mobile-open a:hover,
+    [dir="rtl"] .navbar-links.mobile-open a:active {
+        padding-left: 0;
+        padding-right: 6px;
     }
 
     .mobile-only-links {
@@ -427,37 +531,63 @@
         letter-spacing: 0.5px; /* Reduced more for better readability */
         cursor: pointer;
         text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         white-space: normal; /* Allow text to wrap if it's too long */
         width: 100%;
         line-height: 1.2;
+        transition: all 0.22s ease;
     }
 
     [dir="rtl"] .mobile-nav-link {
         text-align: right;
     }
 
+    .mobile-nav-link:hover,
+    .mobile-nav-link:active {
+        color: var(--color-gold, #d4af37) !important;
+        transform: translateX(4px);
+    }
+
+    [dir="rtl"] .mobile-nav-link:hover,
+    [dir="rtl"] .mobile-nav-link:active {
+        transform: translateX(-4px);
+    }
+
     .mobile-nav-link svg {
         color: var(--color-gold);
         flex-shrink: 0;
+        transition: transform 0.2s ease;
     }
 
-    /* Backdrop Overlay */
+    .mobile-nav-link:hover svg {
+        transform: scale(1.1);
+    }
+
+    /* Backdrop Overlay with Frosted Luxury Blur */
     .navbar-backdrop {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
+        background-color: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         z-index: 1000;
-        animation: fadeIn 0.3s ease;
+        animation: luxuryBackdropFadeIn 0.35s ease forwards;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+    @keyframes luxuryBackdropFadeIn {
+        from {
+            opacity: 0;
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+        }
+        to {
+            opacity: 1;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
     }
 }
 
