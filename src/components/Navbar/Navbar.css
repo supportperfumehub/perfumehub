@@ -197,9 +197,96 @@
 .mobile-toggle {
     display: none;
     background: transparent;
-    border: none;
+    border: 1.5px solid transparent;
     color: inherit;
     cursor: pointer;
+    position: relative;
+    padding: 6px;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Breathing Attention Effect for Mobile 3-Line Menu Button */
+.mobile-toggle.is-breathing {
+    animation: menuBreathingPulse 1.9s ease-in-out infinite;
+    background: rgba(212, 175, 55, 0.14) !important;
+    border: 1.5px solid rgba(212, 175, 55, 0.8) !important;
+    color: #d4af37 !important;
+}
+
+.navbar.light-nav .mobile-toggle.is-breathing {
+    color: #b48a33 !important;
+    background: rgba(212, 175, 55, 0.16) !important;
+    border-color: rgba(212, 175, 55, 0.85) !important;
+}
+
+.mobile-toggle.is-breathing svg {
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.85));
+    animation: menuIconPulse 1.9s ease-in-out infinite;
+}
+
+/* Subtle glowing beacon dot on top-right of the toggle */
+.mobile-toggle.is-breathing::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #eab308;
+    border: 1.5px solid #000;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #facc15;
+    animation: beaconPulse 1.9s ease-in-out infinite;
+    pointer-events: none;
+}
+
+[dir="rtl"] .mobile-toggle.is-breathing::after {
+    right: auto;
+    left: -2px;
+}
+
+@keyframes menuBreathingPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+        border-color: rgba(212, 175, 55, 0.6);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 18px 5px rgba(212, 175, 55, 0.5);
+        border-color: rgba(212, 175, 55, 1);
+        background: rgba(212, 175, 55, 0.24) !important;
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+        border-color: rgba(212, 175, 55, 0.6);
+    }
+}
+
+@keyframes menuIconPulse {
+    0%, 100% {
+        opacity: 0.9;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+        color: #fbbf24;
+    }
+}
+
+@keyframes beaconPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 1;
+        box-shadow: 0 0 12px #facc15;
+    }
 }
 
 .mobile-only-links {

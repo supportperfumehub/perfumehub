@@ -57,6 +57,31 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         }
     }, [isMobileMenuOpen]);
 
+    const [isMenuBreathing, setIsMenuBreathing] = useState(false);
+
+    // Trigger breathing attention effect on mobile hamburger button within 3-8s of landing on Home
+    useEffect(() => {
+        setIsMenuBreathing(false);
+        let timer = null;
+
+        if (isHomePage) {
+            timer = setTimeout(() => {
+                if (!isMobileMenuOpen) {
+                    setIsMenuBreathing(true);
+                }
+            }, 4000); // 4 seconds (within the 3-8s window)
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [location.pathname, isHomePage, isMobileMenuOpen]);
+
+    const handleToggleMobileMenu = () => {
+        setIsMenuBreathing(false);
+        setIsMobileMenuOpen(prev => !prev);
+    };
+
     const handleHomeClick = (e, path) => {
         setIsMobileMenuOpen(false);
         if (path === '/' && location.pathname === '/') {
@@ -65,6 +90,11 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                 top: 0,
                 behavior: 'smooth'
             });
+            // Re-trigger breathing effect when reopening home
+            setIsMenuBreathing(false);
+            setTimeout(() => {
+                setIsMenuBreathing(true);
+            }, 4000);
         }
     };
 
@@ -93,8 +123,13 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         <header className={`navbar ${isScrolled || !isHomePage ? 'scrolled' : ''} ${isHomePage && !isScrolled ? 'light-nav' : ''}`}>
             <div className="container navbar-container">
 
-                {/* Mobile Menu Toggle */}
-                <button className="mobile-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                {/* Mobile Menu Toggle with Breathing Attention Effect */}
+                <button 
+                    className={`mobile-toggle ${isMenuBreathing && !isMobileMenuOpen ? 'is-breathing' : ''}`} 
+                    onClick={handleToggleMobileMenu}
+                    aria-label={isMobileMenuOpen ? (isRTL ? 'إغلاق القائمة' : 'Close Menu') : (isRTL ? 'فتح القائمة الرئيسية' : 'Open Main Navigation Menu')}
+                    title={isRTL ? 'القائمة الرئيسية' : 'Menu'}
+                >
                     {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
 
