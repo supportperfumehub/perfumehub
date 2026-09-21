@@ -193,7 +193,7 @@ function App() {
           PERFUMEHUB
         </h1>
         <p style={{ color: '#94a3b8', fontSize: '0.95rem', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 35px' }}>
-          Haute Parfumerie & Artisanal GCC Concierge
+          Haute Parfumerie & Artisanal Qatar Concierge
         </p>
 
         {/* Notice Card */}

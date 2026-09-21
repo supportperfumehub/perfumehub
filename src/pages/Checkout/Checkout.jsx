@@ -23,19 +23,9 @@ import {
     ChevronDown, 
     ShieldCheck, 
     Award, 
-    Navigation,
-    Globe 
+    Navigation 
 } from 'lucide-react';
 import './Checkout.css';
-
-const GCC_COUNTRIES = [
-    { code: 'QA', nameEn: 'Qatar', nameAr: 'قطر', flag: '🇶🇦', phoneCode: '+974', currency: 'QAR' },
-    { code: 'SA', nameEn: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية', flag: '🇸🇦', phoneCode: '+966', currency: 'SAR' },
-    { code: 'AE', nameEn: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة', flag: '🇦🇪', phoneCode: '+971', currency: 'AED' },
-    { code: 'KW', nameEn: 'Kuwait', nameAr: 'الكويت', flag: '🇰🇼', phoneCode: '+965', currency: 'KWD' },
-    { code: 'BH', nameEn: 'Bahrain', nameAr: 'مملكة البحرين', flag: '🇧🇭', phoneCode: '+973', currency: 'BHD' },
-    { code: 'OM', nameEn: 'Oman', nameAr: 'سلطنة عُمان', flag: '🇴🇲', phoneCode: '+968', currency: 'OMR' }
-];
 
 const Checkout = () => {
     const { t } = useTranslation();
@@ -59,10 +49,7 @@ const Checkout = () => {
         building: '',
         unit: '', // Kahramaa / Blue Plate / Apartment
         city: 'Doha',
-        gccCity: '',
-        district: '',
         landmark: '',
-        postalCode: '',
         notes: ''
     });
 
@@ -237,7 +224,7 @@ const Checkout = () => {
             return;
         }
 
-        // Validate Delivery Details
+        // Validate Delivery Details (Strictly Qatar)
         if (fulfillmentType === 'delivery') {
             if (!formData.fullName.trim()) {
                 setError(isRTL ? 'يرجى إدخال الاسم بالكامل' : 'Please enter your full name');
@@ -247,17 +234,9 @@ const Checkout = () => {
                 setError(isRTL ? 'يرجى إدخال رقم الهاتف للتواصل والتوصيل' : 'Please enter your contact phone number');
                 return;
             }
-            if (formData.country === 'QA') {
-                if (!formData.zone.trim() || !formData.street.trim() || !formData.building.trim()) {
-                    setError(isRTL ? 'يرجى إدخال بيانات العنوان الوطني (المنطقة، الشارع، المبنى)' : 'Please complete the Qatar National Address (Zone, Street, Building)');
-                    return;
-                }
-            } else {
-                const cityName = formData.gccCity?.trim() || formData.city?.trim();
-                if (!cityName || !formData.district?.trim() || !formData.street?.trim()) {
-                    setError(isRTL ? 'يرجى إدخال المدينة، الحي، والشارع/المبنى' : 'Please enter City, District/Area, and Street/Building');
-                    return;
-                }
+            if (!formData.zone.trim() || !formData.street.trim() || !formData.building.trim()) {
+                setError(isRTL ? 'يرجى إدخال بيانات العنوان الوطني القطري (المنطقة، الشارع، المبنى)' : 'Please complete the Qatar National Address (Zone, Street, Building Number)');
+                return;
             }
         } else {
             if (!formData.fullName.trim() || !formData.phone.trim() || !pickupShopId) {
@@ -268,20 +247,14 @@ const Checkout = () => {
 
         setIsSubmitting(true);
 
-        // Build Flexible Shipping Address
+        // Build Qatar Shipping Address
         let shippingAddress = '';
         if (fulfillmentType === 'pickup') {
             shippingAddress = `Store Pickup: ${shops.find(s => String(s.id) === String(pickupShopId))?.name || 'Selected Boutique'}`;
-        } else if (formData.country === 'QA') {
-            shippingAddress = `${isRTL ? 'منطقة' : 'Zone'} ${formData.zone.trim()}, ${isRTL ? 'شارع' : 'Street'} ${formData.street.trim()}, ${isRTL ? 'مبنى' : 'Building'} ${formData.building.trim()}${formData.unit ? `, (${formData.unit.trim()})` : ''}, ${formData.city.trim()}, Qatar`;
         } else {
-            const countryObj = GCC_COUNTRIES.find(c => c.code === formData.country);
-            const countryName = isRTL ? (countryObj?.nameAr || formData.country) : (countryObj?.nameEn || formData.country);
-            const cityPart = formData.gccCity?.trim() || formData.city?.trim() || '';
-            const districtPart = formData.district?.trim() ? `${formData.district.trim()}, ` : '';
+            const unitPart = formData.unit?.trim() ? `, (${formData.unit.trim()})` : '';
             const landmarkPart = formData.landmark?.trim() ? ` [${isRTL ? 'أقرب معلم:' : 'Landmark:'} ${formData.landmark.trim()}]` : '';
-            const postalPart = formData.postalCode?.trim() ? ` (Postal: ${formData.postalCode.trim()})` : '';
-            shippingAddress = `${formData.street.trim()}, ${districtPart}${cityPart}, ${countryName}${postalPart}${landmarkPart}`;
+            shippingAddress = `${isRTL ? 'منطقة' : 'Zone'} ${formData.zone.trim()}, ${isRTL ? 'شارع' : 'Street'} ${formData.street.trim()}, ${isRTL ? 'مبنى' : 'Building'} ${formData.building.trim()}${unitPart}, ${formData.city.trim()}, State of Qatar${landmarkPart}`;
         }
 
         // Construct normalized item objects
@@ -451,51 +424,14 @@ const Checkout = () => {
                                 <h3><User size={20} /> {isRTL ? 'معلومات العميل واختيار البوتيك' : 'Customer & Boutique Details'}</h3>
                             )}
 
-                            {/* Country Selector for Delivery */}
+                            {/* Exclusive Qatar Delivery Confirmation Badge */}
                             {fulfillmentType === 'delivery' && !orderData.isReservation && (
-                                <div className="form-group" style={{ marginBottom: '18px' }}>
-                                    <label><Globe size={15} /> {isRTL ? 'دولة التوصيل (الخليج العربي)' : 'Destination Country (GCC)'}</label>
-                                    <select 
-                                        name="country" 
-                                        value={formData.country} 
-                                        onChange={handleInputChange}
-                                        style={{ 
-                                            width: '100%', 
-                                            padding: '12px 14px', 
-                                            borderRadius: '10px', 
-                                            border: '1px solid #d4af37', 
-                                            backgroundColor: '#fefdfb', 
-                                            fontWeight: '600', 
-                                            fontSize: '0.95rem' 
-                                        }}
-                                    >
-                                        {GCC_COUNTRIES.map(c => (
-                                            <option key={c.code} value={c.code}>
-                                                {c.flag} {isRTL ? c.nameAr : c.nameEn} ({c.phoneCode})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            {fulfillmentType === 'delivery' && formData.country === 'QA' && (
-                                <div className="qatar-address-hint">
+                                <div className="qatar-address-hint" style={{ marginBottom: '18px' }}>
                                     <Navigation size={16} />
                                     <span>
                                         {isRTL 
-                                            ? 'العنوان الوطني القطري: رقم المنطقة، رقم الشارع، ورقم المبنى (اللوحة الزرقاء) لضمان سرعة الوصول.' 
-                                            : 'Qatar National Addressing: Zone, Street, and Building Number (Blue Plate) ensure rapid doorstep delivery.'}
-                                    </span>
-                                </div>
-                            )}
-
-                            {fulfillmentType === 'delivery' && formData.country !== 'QA' && (
-                                <div className="qatar-address-hint" style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
-                                    <ShieldCheck size={16} color="#d4af37" />
-                                    <span>
-                                        {isRTL 
-                                            ? `الشحن المباشر إلى ${GCC_COUNTRIES.find(c => c.code === formData.country)?.nameAr || 'الخليج'}: شحن جوي مبرد ومحمي لضمان سلامة العطور الفاخرة.`
-                                            : `Direct GCC Express Shipping to ${GCC_COUNTRIES.find(c => c.code === formData.country)?.nameEn || 'GCC'}: Climate-controlled air courier delivery to your doorstep.`}
+                                            ? '🇶🇦 التوصيل متاح حصرياً داخل دولة قطر — العنوان الوطني: رقم المنطقة، رقم الشارع، ورقم المبنى (اللوحة الزرقاء) لضمان سرعة الوصول.' 
+                                            : '🇶🇦 Exclusive Doorstep Delivery Across the State of Qatar: Zone, Street, and Building Number (Blue Plate) ensure rapid dispatch.'}
                                     </span>
                                 </div>
                             )}
@@ -525,14 +461,14 @@ const Checkout = () => {
                                 </div>
                                 <div className="form-group">
                                     <label>
-                                        <Phone size={15} /> {t('checkout.phone')} ({GCC_COUNTRIES.find(c => c.code === formData.country)?.phoneCode || '+974'})
+                                        <Phone size={15} /> {t('checkout.phone')} (+974)
                                     </label>
                                     <input 
                                         type="tel" 
                                         name="phone" 
                                         value={formData.phone} 
                                         onChange={handleInputChange} 
-                                        placeholder={`${GCC_COUNTRIES.find(c => c.code === formData.country)?.phoneCode || '+974'} 5500 0000`}
+                                        placeholder="+974 5500 0000"
                                         required 
                                     />
                                 </div>
@@ -593,7 +529,7 @@ const Checkout = () => {
                             )}
 
                             {/* Qatar National Address Fields */}
-                            {fulfillmentType === 'delivery' && !orderData.isReservation && formData.country === 'QA' && (
+                            {fulfillmentType === 'delivery' && !orderData.isReservation && (
                                 <>
                                     <div className="form-row">
                                         <div className="form-group">
@@ -724,71 +660,6 @@ const Checkout = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* GCC Flexible Address Fields */}
-                            {fulfillmentType === 'delivery' && !orderData.isReservation && formData.country !== 'QA' && (
-                                <>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>{isRTL ? 'المدينة' : 'City'}</label>
-                                            <input 
-                                                type="text" 
-                                                name="gccCity" 
-                                                value={formData.gccCity} 
-                                                onChange={handleInputChange} 
-                                                placeholder={isRTL ? 'مثال: الرياض / دبي / الكويت' : 'e.g. Riyadh, Dubai, Kuwait City'} 
-                                                required 
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>{isRTL ? 'الحي / المنطقة' : 'District / Area'}</label>
-                                            <input 
-                                                type="text" 
-                                                name="district" 
-                                                value={formData.district} 
-                                                onChange={handleInputChange} 
-                                                placeholder={isRTL ? 'مثال: حي العليا / مارينا' : 'e.g. Al Olaya / Marina'} 
-                                                required 
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>{isRTL ? 'اسم الشارع ورقم المبنى / الفيلا' : 'Street & Building / Villa'}</label>
-                                            <input 
-                                                type="text" 
-                                                name="street" 
-                                                value={formData.street} 
-                                                onChange={handleInputChange} 
-                                                placeholder={isRTL ? 'مثال: شارع التحلية، فيلا 24' : 'e.g. Tahlia St, Villa 24'} 
-                                                required 
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>{isRTL ? 'أقرب معلم بارز (اختياري)' : 'Nearest Landmark (Optional)'}</label>
-                                            <input 
-                                                type="text" 
-                                                name="landmark" 
-                                                value={formData.landmark} 
-                                                onChange={handleInputChange} 
-                                                placeholder={isRTL ? 'مثال: بجوار مول المملكة' : 'e.g. Near Kingdom Mall'} 
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>{isRTL ? 'الرمز البريدي (اختياري)' : 'Postal / Zip Code (Optional)'}</label>
-                                        <input 
-                                            type="text" 
-                                            name="postalCode" 
-                                            value={formData.postalCode} 
-                                            onChange={handleInputChange} 
-                                            placeholder={isRTL ? 'مثال: 12214' : 'e.g. 12214'} 
-                                        />
                                     </div>
                                 </>
                             )}
