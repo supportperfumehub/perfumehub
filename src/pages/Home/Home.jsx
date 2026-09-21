@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ShieldCheck, Truck, Sparkles, CreditCard, MapPin, ChevronDown, ChevronUp, Star, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFin
 import TrustBadges from '../../components/TrustBadges/TrustBadges';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
+import api from '../../utils/api_v1_0_2';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
 import aiAdvisorBg from '../../assets/ai_advisor_banner_bg_1773366093433.webp';
@@ -189,27 +190,81 @@ const Home = () => {
         return () => { isMounted = false; };
     }, []);
 
-    // Determine what powers the Hero Banners 
-    const baseHeroItems = (discoverCampaigns && discoverCampaigns.length > 0) 
-        ? discoverCampaigns 
-        : shuffledFeatured;
-        
-    const isShopCampaign = discoverCampaigns && discoverCampaigns.length > 0;
+    // Dynamic Hero Banners from Master Ads & Banners Manager
+    const [dbHeroBanners, setDbHeroBanners] = useState(() => {
+        try {
+            const cached = localStorage.getItem('perfumehub_hero_banners');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {}
+        return [];
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchHeroBanners = async () => {
+            try {
+                const res = await api.get('/banners?type=hero_banner&active=true');
+                if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
+                    setDbHeroBanners(res.data);
+                    try {
+                        localStorage.setItem('perfumehub_hero_banners', JSON.stringify(res.data));
+                    } catch (e) {}
+                }
+            } catch (err) {
+                // Silently fallback to cached or default
+            }
+        };
+        fetchHeroBanners();
+        return () => { isMounted = false; };
+    }, []);
 
     const scentGenieHeroSlide = {
         id: 'scent-genie-hero-slide',
         isScentGenie: true,
         tagline: isRTL ? 'مستشارك العطري الذكي • AI CONCIERGE' : 'ROYAL AI FRAGRANCE CONCIERGE',
         title: isRTL ? 'جني العطور الذكي • Scent Genie' : 'Scent Genie AI Advisor',
+        subtitle: isRTL ? 'خوارزمية ذكاء اصطناعي فاخرة' : 'Bespoke Olfactory Matching',
         description: isRTL 
             ? 'لست متأكداً من اختيارك؟ دع خوارزمية الذكاء الاصطناعي تحلل ذوقك وترشح لك العطر النيش الأنسب لشخصيتك وأمسيات الدوحة.' 
             : 'Unsure which fragrance fits your essence? Let our bespoke AI engine analyze your preferences and match you to rare niche perfumes in Qatar.',
-        image: aiAdvisorBg
+        image: aiAdvisorBg,
+        buttonText: isRTL ? 'اكتشف عطرك بالذكاء الاصطناعي' : 'Launch Scent Genie AI',
+        linkUrl: '/scent-genie'
     };
 
-    const heroItems = baseHeroItems.length > 0 
-        ? [scentGenieHeroSlide, ...baseHeroItems] 
-        : [scentGenieHeroSlide];
+    // Hero items: active custom hero banners take primary priority
+    const heroItems = useMemo(() => {
+        if (dbHeroBanners && dbHeroBanners.length > 0) {
+            return dbHeroBanners.map(b => {
+                const targetProd = b.product_id ? products?.find(p => String(p.id) === String(b.product_id)) : null;
+                const rawImg = b.image_url || (targetProd ? (Array.isArray(targetProd.image) ? targetProd.image[0] : targetProd.image) : aiAdvisorBg);
+                return {
+                    id: b.id,
+                    isCustomBanner: true,
+                    product: targetProd,
+                    tagline: isRTL ? (b.tagline_ar || b.tagline_en || b.badge) : (b.tagline_en || b.tagline_ar || b.badge),
+                    title: isRTL ? (b.title_ar || b.title_en) : (b.title_en || b.title_ar),
+                    subtitle: isRTL ? (b.subtitle_ar || b.subtitle_en) : (b.subtitle_en || b.subtitle_ar),
+                    description: isRTL ? (b.description_ar || b.description_en) : (b.description_en || b.description_ar),
+                    buttonText: isRTL ? (b.button_text_ar || b.button_text_en || 'اكتشف الآن') : (b.button_text_en || b.button_text_ar || 'DISCOVER NOW'),
+                    linkUrl: b.link_url || (b.product_id ? `/product/${b.product_id}` : '/shop'),
+                    image: rawImg,
+                    price: targetProd?.price,
+                    oldPrice: targetProd?.oldPrice || targetProd?.old_price,
+                    discount: targetProd?.discount
+                };
+            });
+        }
+
+        if (discoverCampaigns && discoverCampaigns.length > 0) {
+            return [scentGenieHeroSlide, ...discoverCampaigns];
+        }
+
+        return [scentGenieHeroSlide];
+    }, [dbHeroBanners, products, discoverCampaigns, isRTL]);
 
     useEffect(() => {
         if (featuredProducts && featuredProducts.length > 0) {
@@ -404,37 +459,55 @@ const Home = () => {
                     <div className="featured-slider-container">
                         <div className="featured-slider-track" style={{ transform: `translateX(-${currentSlide * 100}%)`, direction: 'ltr' }}>
                             {heroItems.map((item) => {
-                                if (item.isScentGenie) {
+                                if (item.isCustomBanner || item.isScentGenie) {
+                                    const slideImg = item.image || aiAdvisorBg;
                                     return (
                                         <div key={item.id} className="featured-slide scent-genie-hero-slide">
                                             <div 
                                                 className="featured-slide-dynamic-bg" 
-                                                style={{ backgroundImage: `url(${item.image})`, opacity: 0.75 }}
+                                                style={{ backgroundImage: `url(${slideImg})`, opacity: 0.75 }}
                                             ></div>
                                             <div className="featured-slide-img-container">
                                                 <img 
-                                                    src={item.image} 
-                                                    alt="Scent Genie AI Fragrance Advisor" 
+                                                    src={slideImg} 
+                                                    alt={item.title || 'Featured Banner'} 
                                                     className="featured-slide-img" 
                                                     loading="eager"
                                                     decoding="async"
+                                                    onError={(e) => { e.target.src = aiAdvisorBg; }}
                                                     style={{ objectFit: 'cover', borderRadius: '16px', boxShadow: '0 12px 36px rgba(0,0,0,0.6)' }}
                                                 />
                                             </div>
                                             <div className="featured-slide-content">
-                                                <span className="featured-slide-brand" style={{ color: '#d4af37', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Sparkles size={16} color="#d4af37" />
-                                                    {item.tagline}
-                                                </span>
+                                                {item.tagline && (
+                                                    <span className="featured-slide-brand" style={{ color: '#d4af37', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Sparkles size={16} color="#d4af37" />
+                                                        {item.tagline}
+                                                    </span>
+                                                )}
                                                 <h3 className="featured-slide-title" style={{ color: '#ffffff' }}>{item.title}</h3>
-                                                <span className="featured-slide-type" style={{ color: '#d4af37' }}>
-                                                    {isRTL ? 'خوارزمية ذكاء اصطناعي فاخرة' : 'Bespoke Olfactory Matching'}
-                                                </span>
-                                                <p className="featured-slide-desc" dir="auto">{item.description}</p>
+                                                {item.subtitle && (
+                                                    <span className="featured-slide-type" style={{ color: '#d4af37' }}>
+                                                        {item.subtitle}
+                                                    </span>
+                                                )}
+                                                {item.description && <p className="featured-slide-desc" dir="auto">{item.description}</p>}
+                                                {item.price !== undefined && (
+                                                    <div className="featured-slide-price-row has-discount" style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '6px' }}>
+                                                        <span className="featured-slide-price price-sale" style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc' }}>
+                                                            {item.price} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
+                                                        </span>
+                                                        {item.oldPrice && Number(item.oldPrice) > Number(item.price) && (
+                                                            <span className="featured-slide-old-price" style={{ fontSize: '1rem', textDecoration: 'line-through', color: '#94a3b8' }}>
+                                                                {Math.round(item.oldPrice)} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 <div className="featured-slide-actions">
-                                                    <Link to="/scent-genie" className="btn btn-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontWeight: '800' }}>
+                                                    <Link to={item.linkUrl || '/shop'} className="btn btn-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontWeight: '800' }}>
                                                         <Sparkles size={16} />
-                                                        <span>{isRTL ? 'اكتشف عطرك بالذكاء الاصطناعي' : 'Launch Scent Genie AI'}</span>
+                                                        <span>{item.buttonText || (isRTL ? 'اكتشف الآن' : 'Discover Now')}</span>
                                                     </Link>
                                                 </div>
                                             </div>

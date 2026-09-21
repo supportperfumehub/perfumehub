@@ -142,7 +142,7 @@ const Admin = () => {
             { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
             { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
             { id: 'regions', label: isRTL ? 'المناطق والبلديات' : 'Regions & Zones', icon: <Globe size={20} /> },
-            { id: 'banners', label: isRTL ? 'البانرات' : 'Banners', icon: <Megaphone size={20} /> },
+            { id: 'banners', label: isRTL ? 'إدارة الإعلانات والبانرات' : 'Ads & Banners', icon: <Megaphone size={20} /> },
         ] : []),
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
