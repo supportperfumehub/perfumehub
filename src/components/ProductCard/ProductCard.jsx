@@ -111,29 +111,32 @@ const ProductCard = ({ product, isRTL }) => {
                 {/* Swipeable image gallery */}
                 <ImageSwiper images={product.image} name={product.name} />
 
-                <button
-                    type="button"
-                    className={`wishlist-btn ${isInWishlist(product.id) ? 'active' : ''}`}
-                    onClick={handleToggleWishlist}
-                    aria-label="Wishlist"
-                >
-                    <Heart size={18} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} color="currentColor" />
-                </button>
+                {/* Upper floating action buttons: Wishlist & Quick View */}
+                <div className="card-floating-actions">
+                    <button
+                        type="button"
+                        className={`card-action-btn wishlist-btn ${isInWishlist(product.id) ? 'active' : ''}`}
+                        onClick={handleToggleWishlist}
+                        aria-label={isInWishlist(product.id) ? (isRTL ? "إزالة من المفضلة" : "Remove from Wishlist") : (isRTL ? "إضافة للمفضلة" : "Add to Wishlist")}
+                        title={isInWishlist(product.id) ? (isRTL ? "إزالة من المفضلة" : "Remove from Wishlist") : (isRTL ? "إضافة للمفضلة" : "Add to Wishlist")}
+                    >
+                        <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} color="currentColor" />
+                    </button>
 
-                {/* Floating Quick View Eye Button */}
-                <button
-                    type="button"
-                    className="quick-view-floating-btn"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsQuickViewOpen(true);
-                    }}
-                    title={isRTL ? "نظرة سريعة" : "Quick View"}
-                    aria-label="Quick View"
-                >
-                    <Eye size={16} />
-                </button>
+                    <button
+                        type="button"
+                        className="card-action-btn quick-view-btn"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsQuickViewOpen(true);
+                        }}
+                        title={isRTL ? "نظرة سريعة" : "Quick View"}
+                        aria-label={isRTL ? "نظرة سريعة" : "Quick View"}
+                    >
+                        <Eye size={16} />
+                    </button>
+                </div>
 
                 {product.isNew && (product.discount === 0 || !product.discount) ? (
                     <span className="product-badge premium-badge">
@@ -151,20 +154,8 @@ const ProductCard = ({ product, isRTL }) => {
                     </span>
                 ) : null}
 
+                {/* Bottom Overlay: Exclusively Add to Cart */}
                 <div className="product-overlay">
-                    <button
-                        type="button"
-                        className="btn quick-inspect-btn"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsQuickViewOpen(true);
-                        }}
-                        title={isRTL ? "نظرة سريعة" : "Quick View"}
-                    >
-                        <Eye size={16} />
-                        <span>{isRTL ? 'نظرة سريعة' : 'Quick View'}</span>
-                    </button>
                     <button
                         type="button"
                         className={`btn ${addedToCart ? 'btn-success' : 'btn-primary'} quick-add ${product.stock === 0 ? 'out-of-stock' : ''}`}
