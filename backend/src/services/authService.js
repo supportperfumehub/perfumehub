@@ -60,7 +60,7 @@ export class AuthService {
         const user = await this.userRepository.findByEmail(cleanEmail);
 
         if (!user) {
-            throw new AppError('Invalid credentials', 401);
+            throw new AppError('Incorrect email or password. Please check your details and try again.', 401);
         }
 
         // Check Lockout
@@ -89,7 +89,7 @@ export class AuthService {
 
         if (!isMatch) {
             await this.userRepository.incrementFailedAttempts(user.id, user.failed_attempts || 0, this.lockoutMins);
-            throw new AppError('Invalid credentials', 401);
+            throw new AppError('Incorrect email or password. Please check your details and try again.', 401);
         }
 
         // Reset attempts

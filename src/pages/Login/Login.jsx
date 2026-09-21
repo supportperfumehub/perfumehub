@@ -52,6 +52,27 @@ const Login = () => {
         }
     }, [user, navigate, location.state]);
 
+    const formatAuthError = (msg) => {
+        if (!msg) return '';
+        const lower = String(msg).toLowerCase();
+        if (lower.includes('credential') || lower.includes('incorrect') || (lower.includes('password') && lower.includes('wrong')) || lower.includes('invalid')) {
+            return isRTL 
+                ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التأكد من البيانات والمحاولة مجدداً.'
+                : 'Incorrect email or password. Please check your details and try again.';
+        }
+        if (lower.includes('google')) {
+            return isRTL
+                ? 'تم إنشاء هذا الحساب باستخدام جوجل. يرجى تسجيل الدخول عبر الزر أدناه.'
+                : 'This account was created with Google. Please click "Continue with Google" below.';
+        }
+        if (lower.includes('already exists')) {
+            return isRTL
+                ? 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول أو استعادة كلمة المرور.'
+                : 'This email is already registered. Please sign in or reset your password.';
+        }
+        return msg;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -161,53 +182,40 @@ const Login = () => {
                 <form className="login-form animate-slide-up" style={{ animationDelay: '0.2s' }} onSubmit={handleSubmit}>
                     {error && (
                         <div className="error-message">
-                            <div>{error}</div>
-                            {error.toLowerCase().includes('credential') && (
-                                <div className="error-help-actions" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', borderTop: '1px solid rgba(255, 107, 107, 0.2)', paddingTop: '8px' }}>
-                                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                                        {isRTL ? 'هل تواجه صعوبة في تسجيل الدخول؟' : 'Having trouble signing in?'}
-                                    </span>
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => toggleMode()}
-                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
-                                        >
-                                            {isRTL ? 'إنشاء حساب جديد' : 'Create an Account'}
-                                        </button>
-                                        <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => {
-                                                setIsForgotPassword(true);
-                                                setError('');
-                                            }}
-                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
-                                        >
-                                            {isRTL ? 'نسيت كلمة المرور' : 'Reset Password'}
-                                        </button>
-                                        <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => loginWithGoogle()}
-                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
-                                        >
-                                            {isRTL ? 'دخول عبر Google' : 'Sign in with Google'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            {error.toLowerCase().includes('google') && (
-                                <div style={{ marginTop: '8px' }}>
+                            <div style={{ fontWeight: '500', lineHeight: '1.4' }}>{formatAuthError(error)}</div>
+                            <div className="error-help-actions" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', borderTop: '1px solid rgba(255, 107, 107, 0.2)', paddingTop: '8px' }}>
+                                <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                                    {isRTL ? 'خيارات سريعة للمساعدة:' : 'Quick options to help you sign in:'}
+                                </span>
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => toggleMode()}
+                                        style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
+                                    >
+                                        {isRTL ? 'إنشاء حساب جديد' : 'Create an Account'}
+                                    </button>
+                                    <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => {
+                                            setIsForgotPassword(true);
+                                            setError('');
+                                        }}
+                                        style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
+                                    >
+                                        {isRTL ? 'نسيت كلمة المرور' : 'Reset Password'}
+                                    </button>
+                                    <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
                                     <button 
                                         type="button" 
                                         onClick={() => loginWithGoogle()}
-                                        style={{ background: '#d4af37', border: 'none', color: '#000', fontWeight: '600', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                        style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
                                     >
-                                        {isRTL ? 'المتابعة باستخدام Google الآن' : 'Continue with Google Now'}
+                                        {isRTL ? 'دخول عبر Google' : 'Sign in with Google'}
                                     </button>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
 
