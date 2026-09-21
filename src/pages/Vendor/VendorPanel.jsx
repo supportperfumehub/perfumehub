@@ -748,7 +748,7 @@ const VendorPanel = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                <header className="admin-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <header className="admin-topbar">
                     <div className="welcome-text">
                         <h1>
                             {isRTL ? 'مرحباً، ' : 'Welcome back, '}
@@ -765,7 +765,7 @@ const VendorPanel = () => {
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div className="admin-topbar-controls vendor-topbar-controls">
                         {/* Shop Switcher Dropdown */}
                         <div className="vendor-shop-switcher-container" style={{ position: 'relative' }}>
                             <button

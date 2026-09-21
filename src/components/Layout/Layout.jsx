@@ -26,10 +26,11 @@ const Layout = ({ isRTL, toggleLanguage }) => {
 
     const isAdminPath = location.pathname.startsWith('/admin');
     const isVendorPath = (location.pathname.startsWith('/vendor') || location.pathname.startsWith('/vendor-panel')) && !location.pathname.startsWith('/vendor-signup');
-    const isDashboardPath = isAdminPath || isVendorPath;
+    const isVerifyPath = location.pathname.startsWith('/verify');
+    const isDashboardPath = isAdminPath || isVendorPath || isVerifyPath;
 
     return (
-        <div className={`app-layout ${isVendorPath ? 'vendor-panel-layout' : ''} ${isAdminPath ? 'admin-layout' : ''}`}>
+        <div className={`app-layout ${isDashboardPath ? 'admin-layout' : ''} ${isVendorPath ? 'vendor-panel-layout' : ''}`}>
             {isHomePage && <PromotionBar isRTL={isRTL} />}
             <Toast
                 message={toast.message}
@@ -37,12 +38,12 @@ const Layout = ({ isRTL, toggleLanguage }) => {
                 visible={toast.visible}
                 onHide={() => showToast('', toast.type)}
             />
-            {!isAdminPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
-            <main className={`main-content ${pageTransition}`} style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
+            {!isDashboardPath && <Navbar isRTL={isRTL} toggleLanguage={toggleLanguage} />}
+            <main className={`main-content ${pageTransition}`} style={{ minHeight: isDashboardPath ? '100vh' : '80vh' }}>
                 <Outlet context={{ isRTL, user }} />
             </main>
-            {!isAdminPath && <Footer isRTL={isRTL} />}
-            {!isAdminPath && <WhatsAppWidget isRTL={isRTL} />}
+            {!isDashboardPath && <Footer isRTL={isRTL} />}
+            {!isDashboardPath && <WhatsAppWidget isRTL={isRTL} />}
         </div>
     );
 };

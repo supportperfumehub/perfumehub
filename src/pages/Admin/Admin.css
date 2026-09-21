@@ -186,8 +186,9 @@
 
 /* Admin Top Bar */
 .admin-topbar {
-    height: 80px;
-    padding: 0 36px;
+    min-height: 80px;
+    height: auto !important;
+    padding: 14px 36px;
     background: #111827;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
@@ -197,6 +198,15 @@
     box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
     box-sizing: border-box;
+    z-index: 20;
+    gap: 16px;
+}
+
+.admin-topbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
 .admin-topbar .welcome-text h1 {
@@ -1136,6 +1146,12 @@
         padding: 0 4px 10px;
         margin-bottom: 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        height: auto !important;
+        min-height: 40px;
+    }
+
+    .vendor-sidebar-profile-card {
+        display: none !important;
     }
 
     .mobile-storefront-link {
@@ -1174,7 +1190,9 @@
     }
 
     .admin-topbar {
-        padding: 16px;
+        padding: 14px 16px;
+        height: auto !important;
+        min-height: auto;
     }
 
     .main-content-wrapper {
@@ -1464,6 +1482,8 @@
     right: 0;
     top: calc(100% + 12px);
     width: 340px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
     background: #1e293b;
     border: 1px solid #334155;
     border-radius: 16px;
@@ -2135,18 +2155,81 @@
 
 @media (max-width: 900px) {
     .admin-topbar {
-        flex-wrap: wrap;
+        padding: 14px 16px;
+        flex-direction: column;
+        align-items: stretch;
         gap: 12px;
+        height: auto !important;
+        min-height: auto;
     }
+
+    .admin-topbar-controls {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .vendor-topbar-controls {
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
     .active-territory-container {
         margin: 0;
-        width: 100%;
+        flex: 1 1 200px;
+        min-width: 0;
+        width: auto;
     }
+
+    .municipality-pills-row {
+        display: none !important;
+    }
+
     .territory-badge {
         width: 100%;
         justify-content: flex-start;
+        box-sizing: border-box;
     }
-    .territory-select {
+
+    .territory-text-group {
         flex: 1;
+        min-width: 0;
+    }
+
+    .territory-select {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .admin-notification-wrapper {
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-topbar {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .admin-topbar-controls {
+        gap: 8px;
+    }
+
+    .active-territory-container {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .vendor-shop-switcher-container {
+        flex: 1 1 100%;
+    }
+
+    .vendor-shop-switcher-container button {
+        width: 100%;
+        justify-content: space-between;
     }
 }

@@ -209,138 +209,140 @@ const Admin = () => {
                         <p>{isRTL ? 'إليك نظرة عامة على عمليات المتجر اليوم.' : "Here's what's happening with your store today."}</p>
                     </div>
 
-                    {/* Active Territory Governance Badge & Switcher */}
-                    <div className="active-territory-container">
-                        <div className="territory-badge">
-                            <MapPin size={16} className="territory-pin-icon" />
-                            <div className="territory-text-group">
-                                <span className="territory-label">{isRTL ? 'الإقليم الإداري النشط' : 'Active Territory'}</span>
-                                <select
-                                    className="territory-select"
-                                    value={selectedTerritoryId}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setSelectedTerritoryId(val);
-                                        localStorage.setItem('perfumehub_admin_active_territory', val);
-                                    }}
-                                    aria-label={isRTL ? 'تحديد الإقليم الإداري' : 'Select Administrative Territory'}
-                                >
-                                    {(isSuperAdmin || adminRegions.length > 1) && (
-                                        <option value="all">
-                                            {isRTL ? '🌐 كافة الأقاليم الموكلة' : '🌐 All Authorized Territories'}
-                                        </option>
-                                    )}
-                                    {adminRegions.map(reg => (
-                                        <option key={reg.id} value={reg.id}>
-                                            📍 {reg.name} ({reg.code || reg.currency_code})
-                                        </option>
-                                    ))}
-                                    {adminRegions.length === 0 && (
-                                        <option value="all">{isRTL ? 'جاري التحميل...' : 'Loading Territories...'}</option>
-                                    )}
-                                </select>
+                    <div className="admin-topbar-controls">
+                        {/* Active Territory Governance Badge & Switcher */}
+                        <div className="active-territory-container">
+                            <div className="territory-badge">
+                                <MapPin size={16} className="territory-pin-icon" />
+                                <div className="territory-text-group">
+                                    <span className="territory-label">{isRTL ? 'الإقليم الإداري النشط' : 'Active Territory'}</span>
+                                    <select
+                                        className="territory-select"
+                                        value={selectedTerritoryId}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setSelectedTerritoryId(val);
+                                            localStorage.setItem('perfumehub_admin_active_territory', val);
+                                        }}
+                                        aria-label={isRTL ? 'تحديد الإقليم الإداري' : 'Select Administrative Territory'}
+                                    >
+                                        {(isSuperAdmin || adminRegions.length > 1) && (
+                                            <option value="all">
+                                                {isRTL ? '🌐 كافة الأقاليم الموكلة' : '🌐 All Authorized Territories'}
+                                            </option>
+                                        )}
+                                        {adminRegions.map(reg => (
+                                            <option key={reg.id} value={reg.id}>
+                                                📍 {reg.name} ({reg.code || reg.currency_code})
+                                            </option>
+                                        ))}
+                                        {adminRegions.length === 0 && (
+                                            <option value="all">{isRTL ? 'جاري التحميل...' : 'Loading Territories...'}</option>
+                                        )}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Interactive Quick Municipality Pills for Rapid Territory Governance */}
-                        {adminRegions.length > 1 && (
-                            <div className="municipality-pills-row">
-                                <button
-                                    type="button"
-                                    className={`muni-pill ${selectedTerritoryId === 'all' ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setSelectedTerritoryId('all');
-                                        localStorage.setItem('perfumehub_admin_active_territory', 'all');
-                                    }}
-                                >
-                                    {isRTL ? 'الكل' : 'All'}
-                                </button>
-                                {adminRegions.slice(0, 5).map(reg => (
+                            {/* Interactive Quick Municipality Pills for Rapid Territory Governance */}
+                            {adminRegions.length > 1 && (
+                                <div className="municipality-pills-row">
                                     <button
-                                        key={reg.id}
                                         type="button"
-                                        className={`muni-pill ${String(selectedTerritoryId) === String(reg.id) ? 'active' : ''}`}
+                                        className={`muni-pill ${selectedTerritoryId === 'all' ? 'active' : ''}`}
                                         onClick={() => {
-                                            setSelectedTerritoryId(String(reg.id));
-                                            localStorage.setItem('perfumehub_admin_active_territory', String(reg.id));
+                                            setSelectedTerritoryId('all');
+                                            localStorage.setItem('perfumehub_admin_active_territory', 'all');
                                         }}
                                     >
-                                        {reg.name}
+                                        {isRTL ? 'الكل' : 'All'}
                                     </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    
-                    {/* Admin Panel Notification Dropdown */}
-                    <div className="admin-notification-wrapper" ref={notificationRef}>
-                        <button 
-                            className={`admin-notification-btn ${notifications.length > 0 ? 'has-notifications' : ''}`}
-                            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                            aria-label={isRTL ? 'التنبيهات' : 'Notifications'}
-                        >
-                            <Bell size={20} />
-                            {notifications.length > 0 && (
-                                <span className="notification-badge-count">{notifications.length}</span>
-                            )}
-                        </button>
-                        
-                        {isNotificationOpen && (
-                            <div className="admin-notification-panel animate-scale-up">
-                                <div className="admin-notification-header">
-                                    <div className="admin-notification-title">
-                                        <Bell size={16} />
-                                        <span>{isRTL ? 'التنبيهات' : 'Notifications'}</span>
-                                        <span className="notification-count-tag">{notifications.length}</span>
-                                    </div>
-                                    {notifications.length > 0 && (
+                                    {adminRegions.slice(0, 5).map(reg => (
                                         <button
+                                            key={reg.id}
                                             type="button"
-                                            className="admin-clear-all-btn"
-                                            onClick={handleClearAllNotifications}
-                                            title={isRTL ? 'مسح الكل' : 'Clear all'}
+                                            className={`muni-pill ${String(selectedTerritoryId) === String(reg.id) ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setSelectedTerritoryId(String(reg.id));
+                                                localStorage.setItem('perfumehub_admin_active_territory', String(reg.id));
+                                            }}
                                         >
-                                            {isRTL ? 'مسح الكل' : 'Clear all'}
+                                            {reg.name}
                                         </button>
-                                    )}
+                                    ))}
                                 </div>
-                                <div className="admin-notification-body">
-                                    {notifications.length > 0 ? (
-                                        notifications.map(item => (
-                                            <div key={item.id} className="admin-notification-item">
-                                                <div className="admin-notification-item-top">
-                                                    <div className="admin-notification-item-title">
-                                                        {isRTL ? (item.titleAr || item.title) : item.title}
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        className="admin-notification-delete-btn"
-                                                        onClick={(e) => handleDeleteNotification(item.id, e)}
-                                                        title={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
-                                                        aria-label={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
-                                                    >
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                                <div className="admin-notification-item-msg">
-                                                    {item.message}
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="admin-notification-empty">
-                                            <BellOff size={26} />
-                                            <span className="empty-title">
-                                                {isRTL ? 'لا توجد تنبيهات جديدة' : 'No notifications'}
-                                            </span>
-                                            <span className="empty-subtitle">
-                                                {isRTL ? 'تم الاطلاع على جميع التنبيهات' : 'All caught up!'}
-                                            </span>
+                            )}
+                        </div>
+                        
+                        {/* Admin Panel Notification Dropdown */}
+                        <div className="admin-notification-wrapper" ref={notificationRef}>
+                            <button 
+                                className={`admin-notification-btn ${notifications.length > 0 ? 'has-notifications' : ''}`}
+                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                aria-label={isRTL ? 'التنبيهات' : 'Notifications'}
+                            >
+                                <Bell size={20} />
+                                {notifications.length > 0 && (
+                                    <span className="notification-badge-count">{notifications.length}</span>
+                                )}
+                            </button>
+                            
+                            {isNotificationOpen && (
+                                <div className="admin-notification-panel animate-scale-up">
+                                    <div className="admin-notification-header">
+                                        <div className="admin-notification-title">
+                                            <Bell size={16} />
+                                            <span>{isRTL ? 'التنبيهات' : 'Notifications'}</span>
+                                            <span className="notification-count-tag">{notifications.length}</span>
                                         </div>
-                                    )}
+                                        {notifications.length > 0 && (
+                                            <button
+                                                type="button"
+                                                className="admin-clear-all-btn"
+                                                onClick={handleClearAllNotifications}
+                                                title={isRTL ? 'مسح الكل' : 'Clear all'}
+                                            >
+                                                {isRTL ? 'مسح الكل' : 'Clear all'}
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="admin-notification-body">
+                                        {notifications.length > 0 ? (
+                                            notifications.map(item => (
+                                                <div key={item.id} className="admin-notification-item">
+                                                    <div className="admin-notification-item-top">
+                                                        <div className="admin-notification-item-title">
+                                                            {isRTL ? (item.titleAr || item.title) : item.title}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="admin-notification-delete-btn"
+                                                            onClick={(e) => handleDeleteNotification(item.id, e)}
+                                                            title={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
+                                                            aria-label={isRTL ? 'حذف هذا التنبيه' : 'Delete notification'}
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="admin-notification-item-msg">
+                                                        {item.message}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="admin-notification-empty">
+                                                <BellOff size={26} />
+                                                <span className="empty-title">
+                                                    {isRTL ? 'لا توجد تنبيهات جديدة' : 'No notifications'}
+                                                </span>
+                                                <span className="empty-subtitle">
+                                                    {isRTL ? 'تم الاطلاع على جميع التنبيهات' : 'All caught up!'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </header>
 
