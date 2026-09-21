@@ -81,7 +81,7 @@ export const RegionProvider = ({ children }) => {
                 const list = Array.isArray(res.data) ? res.data : [];
                 if (list.length > 0) {
                     setRegions(list);
-                    localStorage.setItem('perfumehub_regions', JSON.stringify(list));
+                    try { localStorage.setItem('perfumehub_regions', JSON.stringify(list)); } catch (_) {}
 
                     const savedId = localStorage.getItem('perfumehub_selected_region_id');
                     const match = list.find(r => String(r.id) === String(savedId))
@@ -91,8 +91,8 @@ export const RegionProvider = ({ children }) => {
 
                     if (match) {
                         setActiveRegion(match);
-                        localStorage.setItem('perfumehub_selected_region_id', String(match.id));
-                        localStorage.setItem('perfumehub_active_region', JSON.stringify(match));
+                        try { localStorage.setItem('perfumehub_selected_region_id', String(match.id)); } catch (_) {}
+                        try { localStorage.setItem('perfumehub_active_region', JSON.stringify(match)); } catch (_) {}
                     }
                 } else {
                     setRegions([FALLBACK_QATAR_REGION]);
@@ -122,8 +122,8 @@ export const RegionProvider = ({ children }) => {
         const found = regions.find(r => String(r.id) === String(regionId));
         const target = found || regions[0] || FALLBACK_QATAR_REGION;
         setActiveRegion(target);
-        localStorage.setItem('perfumehub_selected_region_id', String(target.id));
-        localStorage.setItem('perfumehub_active_region', JSON.stringify(target));
+        try { localStorage.setItem('perfumehub_selected_region_id', String(target.id)); } catch (_) {}
+        try { localStorage.setItem('perfumehub_active_region', JSON.stringify(target)); } catch (_) {}
     };
 
     /**

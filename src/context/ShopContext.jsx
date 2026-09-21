@@ -287,7 +287,9 @@ export const ShopProvider = ({ children }) => {
     }, [isAdmin]);
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_products', JSON.stringify(products));
+        try {
+            localStorage.setItem('perfumehub_products', JSON.stringify(products));
+        } catch (_) {}
     }, [products]);
 
     useEffect(() => {
@@ -299,7 +301,9 @@ export const ShopProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_discover_campaigns', JSON.stringify(discoverCampaigns));
+        try {
+            localStorage.setItem('perfumehub_discover_campaigns', JSON.stringify(discoverCampaigns));
+        } catch (_) {}
     }, [discoverCampaigns]);
 
     // Toast Function
