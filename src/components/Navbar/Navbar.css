@@ -333,6 +333,11 @@
     }
 }
 
+/* Backdrop Overlay Base (Hidden on Desktop) */
+.navbar-backdrop {
+    display: none;
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
     .navbar {
@@ -349,10 +354,6 @@
 
     .logo-image {
         height: 50px;
-    }
-
-    .navbar-links {
-        display: none;
     }
 
     .mobile-toggle {
@@ -394,7 +395,8 @@
         height: 18px;
     }
 
-    .navbar-links.mobile-open {
+    /* Mobile Navigation Drawer Base: Off-screen with smooth reversible exit transition */
+    .navbar-links {
         display: flex;
         flex-direction: column;
         position: fixed;
@@ -405,46 +407,47 @@
         height: 100vh;
         background: linear-gradient(165deg, #131210 0%, #090909 60%, #15140f 100%);
         border-right: 1.5px solid rgba(212, 175, 55, 0.45);
-        box-shadow: 18px 0 45px rgba(0, 0, 0, 0.85), 3px 0 25px rgba(212, 175, 55, 0.2);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
         padding: 85px 24px 40px;
         gap: 0;
         z-index: 1001;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        animation: luxuryDrawerSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        transform: translateX(-105%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform 0.34s cubic-bezier(0.32, 0, 0.2, 1),
+                    opacity 0.28s ease,
+                    visibility 0.34s ease,
+                    box-shadow 0.34s ease;
         will-change: transform, opacity;
     }
 
-    /* RTL Drawer opens from right */
-    [dir="rtl"] .navbar-links.mobile-open {
+    /* RTL Drawer default position (off-screen to the right) */
+    [dir="rtl"] .navbar-links {
         left: auto;
         right: 0;
         border-right: none;
         border-left: 1.5px solid rgba(212, 175, 55, 0.45);
+        transform: translateX(105%);
+    }
+
+    /* Mobile Drawer Open: Luxury slide in with radiant gold aura */
+    .navbar-links.mobile-open {
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        box-shadow: 18px 0 45px rgba(0, 0, 0, 0.85), 3px 0 25px rgba(212, 175, 55, 0.2);
+        transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 0.3s ease,
+                    visibility 0.38s ease,
+                    box-shadow 0.38s ease;
+    }
+
+    [dir="rtl"] .navbar-links.mobile-open {
         box-shadow: -18px 0 45px rgba(0, 0, 0, 0.85), -3px 0 25px rgba(212, 175, 55, 0.2);
-        animation: luxuryDrawerSlideInRTL 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes luxuryDrawerSlideIn {
-        0% {
-            transform: translateX(-100%);
-            opacity: 0.3;
-        }
-        100% {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes luxuryDrawerSlideInRTL {
-        0% {
-            transform: translateX(100%);
-            opacity: 0.3;
-        }
-        100% {
-            transform: translateX(0);
-            opacity: 1;
-        }
     }
 
     /* Staggered Cascading Entrance for Menu Items */
@@ -563,31 +566,33 @@
         transform: scale(1.1);
     }
 
-    /* Backdrop Overlay with Frosted Luxury Blur */
+    /* Backdrop Overlay with Frosted Luxury Blur and Smooth Fade In/Out */
     .navbar-backdrop {
+        display: block;
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
         background-color: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
         z-index: 1000;
-        animation: luxuryBackdropFadeIn 0.35s ease forwards;
+        transition: opacity 0.32s ease, 
+                    visibility 0.32s ease, 
+                    backdrop-filter 0.32s ease, 
+                    -webkit-backdrop-filter 0.32s ease;
     }
 
-    @keyframes luxuryBackdropFadeIn {
-        from {
-            opacity: 0;
-            backdrop-filter: blur(0px);
-            -webkit-backdrop-filter: blur(0px);
-        }
-        to {
-            opacity: 1;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-        }
+    .navbar-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
     }
 }
 
@@ -610,7 +615,7 @@
         height: 40px; /* Reduced slightly */
     }
 
-    .navbar-links.mobile-open {
+    .navbar-links {
         width: 90%; /* Almost full width for very small screens */
         padding: 80px 20px 40px;
     }

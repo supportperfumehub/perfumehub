@@ -52,9 +52,15 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     }, []);
 
     useEffect(() => {
-        if (!isMobileMenuOpen) {
+        if (isMobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
             setExpandedDropdown(null);
         }
+        return () => {
+            document.body.style.overflow = '';
+        };
     }, [isMobileMenuOpen]);
 
     const handleHomeClick = (e, path) => {
@@ -108,10 +114,12 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     <img src={logo} alt="PerfumeHub Logo" className="logo-image" />
                 </Link>
 
-                {/* Mobile Menu Backdrop (Click outside to close) */}
-                {isMobileMenuOpen && (
-                    <div className="navbar-backdrop" onClick={() => setIsMobileMenuOpen(false)}></div>
-                )}
+                {/* Mobile Menu Backdrop (Click outside to close with smooth exit fade) */}
+                <div 
+                    className={`navbar-backdrop ${isMobileMenuOpen ? 'active' : ''}`} 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    aria-hidden={!isMobileMenuOpen}
+                ></div>
 
                 {/* Desktop Navigation */}
                 <nav className={`navbar-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
