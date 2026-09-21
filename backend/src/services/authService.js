@@ -23,7 +23,8 @@ export class AuthService {
      * Register a new user
      */
     async register(name, email, password, role = 'customer') {
-        const existingUser = await this.userRepository.findByEmail(email);
+        const cleanEmail = email?.trim().toLowerCase();
+        const existingUser = await this.userRepository.findByEmail(cleanEmail);
         if (existingUser) {
             throw new AppError('Email already exists', 400);
         }
@@ -34,15 +35,15 @@ export class AuthService {
         const verificationToken = Math.random().toString(36).substring(2, 15);
 
         const newUser = await this.userRepository.create({
-            name,
-            email,
+            name: name?.trim() || 'Valued Customer',
+            email: cleanEmail,
             password_hash: passwordHash,
             role,
             email_verified: false,
             verification_token: verificationToken
         });
 
-        console.log(`[Email Verification Simulation] Link for ${email}: /verify?token=${verificationToken}`);
+        console.log(`[Email Verification Simulation] Link for ${cleanEmail}: /verify?token=${verificationToken}`);
 
         return newUser;
     }
@@ -51,7 +52,12 @@ export class AuthService {
      * Login User
      */
     async login(email, password, req = null) {
-        const user = await this.userRepository.findByEmail(email);
+        if (!email || !password) {
+            throw new AppError('Email and password are required', 400);
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const user = await this.userRepository.findByEmail(cleanEmail);
 
         if (!user) {
             throw new AppError('Invalid credentials', 401);
@@ -60,6 +66,11 @@ export class AuthService {
         // Check Lockout
         if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
             throw new AppError(`Account locked. Try again after ${user.lockout_until}`, 403);
+        }
+
+        // Detect if user registered via Google and has no manual password set
+        if (!user.password_hash && !user.password && (user.auth_provider === 'google' || user.supabase_id)) {
+            throw new AppError('This account was created with Google. Please click "Continue with Google" below to sign in.', 400);
         }
 
         // Verify Password (Handle legacy plain text if detected)
@@ -263,7 +274,8 @@ export class AuthService {
      * Request Password Reset
      */
     async requestPasswordReset(email) {
-        const user = await this.userRepository.findByEmail(email);
+        const cleanEmail = email?.trim().toLowerCase();
+        const user = await this.userRepository.findByEmail(cleanEmail);
         if (!user) {
             // Return success even if user not found to prevent email enumeration
             return { success: true, message: 'If an account exists, a reset link has been sent.' };

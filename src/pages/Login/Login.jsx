@@ -72,7 +72,8 @@ const Login = () => {
         }
 
         if (isForgotPassword) {
-            const result = await forgotPassword(email);
+            const cleanEmail = email.trim().toLowerCase();
+            const result = await forgotPassword(cleanEmail);
             if (result.success) {
                 setIsResetSent(true);
                 showToast(result.message, 'success');
@@ -84,7 +85,8 @@ const Login = () => {
         }
 
         if (isLogin) {
-            const result = await login(email, password);
+            const cleanEmail = email.trim().toLowerCase();
+            const result = await login(cleanEmail, password);
             if (result.success) {
                 if (result.requires2FA) {
                     showToast(isRTL ? "يرجى إدخال رمز التحقق الثنائي" : "Please enter 2FA code", 'info');
@@ -95,7 +97,7 @@ const Login = () => {
                 
                 // Handle Remember Me
                 if (rememberMe) {
-                    localStorage.setItem('remembered_email', email);
+                    localStorage.setItem('remembered_email', cleanEmail);
                 } else {
                     localStorage.removeItem('remembered_email');
                 }
@@ -110,8 +112,9 @@ const Login = () => {
         } else {
             const nameInput = e.target.querySelector('input[placeholder*="name"]');
             const name = nameInput ? nameInput.value : '';
+            const cleanEmail = email.trim().toLowerCase();
             
-            const result = await register(name, email, password);
+            const result = await register(name, cleanEmail, password);
             if (result.success) {
                 showToast(isRTL ? "تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول" : "Signup successful! You can now log in.", 'success');
                 setIsLogin(true);
@@ -156,7 +159,57 @@ const Login = () => {
                 </div>
 
                 <form className="login-form animate-slide-up" style={{ animationDelay: '0.2s' }} onSubmit={handleSubmit}>
-                    {error && <div className="error-message">{error}</div>}
+                    {error && (
+                        <div className="error-message">
+                            <div>{error}</div>
+                            {error.toLowerCase().includes('credential') && (
+                                <div className="error-help-actions" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', borderTop: '1px solid rgba(255, 107, 107, 0.2)', paddingTop: '8px' }}>
+                                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                                        {isRTL ? 'هل تواجه صعوبة في تسجيل الدخول؟' : 'Having trouble signing in?'}
+                                    </span>
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => toggleMode()}
+                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
+                                        >
+                                            {isRTL ? 'إنشاء حساب جديد' : 'Create an Account'}
+                                        </button>
+                                        <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                setIsForgotPassword(true);
+                                                setError('');
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
+                                        >
+                                            {isRTL ? 'نسيت كلمة المرور' : 'Reset Password'}
+                                        </button>
+                                        <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>•</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => loginWithGoogle()}
+                                            style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', padding: 0 }}
+                                        >
+                                            {isRTL ? 'دخول عبر Google' : 'Sign in with Google'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {error.toLowerCase().includes('google') && (
+                                <div style={{ marginTop: '8px' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => loginWithGoogle()}
+                                        style={{ background: '#d4af37', border: 'none', color: '#000', fontWeight: '600', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                    >
+                                        {isRTL ? 'المتابعة باستخدام Google الآن' : 'Continue with Google Now'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="form-content">
                         {requires2FA ? (

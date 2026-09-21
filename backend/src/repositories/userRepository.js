@@ -6,11 +6,13 @@ export class UserRepository {
      * Find a user by email
      */
     async findByEmail(email) {
+        if (!email) return null;
+        const cleanEmail = email.trim().toLowerCase();
         const { data, error } = await supabase
             .from('customers')
             .select('*')
-            .eq('email', email)
-            .single();
+            .ilike('email', cleanEmail)
+            .maybeSingle();
         
         if (error && error.code !== 'PGRST116') throw error;
         return data;
