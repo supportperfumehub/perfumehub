@@ -6,6 +6,8 @@ import { parseUserAgent } from '../utils/deviceParser.js';
 import { AppError } from '../middleware/errorHandler.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { supabase } from '../config/supabaseClient.js';
 import { emailService } from './emailService.js';
 
@@ -17,6 +19,31 @@ export class AuthService {
         this.lockoutAttempts = parseInt(process.env.LOCKOUT_ATTEMPTS || '5');
         this.lockoutMins = parseInt(process.env.LOCKOUT_DURATION_MINS || '15');
         this.bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12');
+    }
+
+    _getAvatarFallback(id) {
+        try {
+            const avatarFile = path.join(process.cwd(), 'backend', 'data', 'avatars', `${id}.json`);
+            if (fs.existsSync(avatarFile)) {
+                const data = JSON.parse(fs.readFileSync(avatarFile, 'utf8'));
+                return data?.avatar_url || null;
+            }
+        } catch (e) {
+            // Ignore error
+        }
+        return null;
+    }
+
+    _formatUser(user) {
+        if (!user) return null;
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            shop_id: user.shop_id,
+            avatar_url: user.avatar_url || this._getAvatarFallback(user.id)
+        };
     }
 
     /**
@@ -142,13 +169,7 @@ export class AuthService {
         return { 
             accessToken, 
             refreshToken, 
-            user: { 
-                id: user.id, 
-                name: user.name, 
-                email: user.email, 
-                role: user.role, 
-                shop_id: user.shop_id 
-            } 
+            user: this._formatUser(user)
         };
     }
 
@@ -180,7 +201,7 @@ export class AuthService {
                 return {
                     accessToken,
                     refreshToken: activeToken.token,
-                    user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id }
+                    user: this._formatUser(user)
                 };
             }
             throw new AppError('Session expired. Please log in again.', 401);
@@ -198,7 +219,7 @@ export class AuthService {
         const tokens = await this.issueTokens(user, req);
         return {
             ...tokens,
-            user: { id: user.id, name: user.name, email: user.email, role: user.role, shop_id: user.shop_id }
+            user: this._formatUser(user)
         };
     }
 

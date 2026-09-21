@@ -10,15 +10,15 @@ import {
     User, Mail, Phone, MapPin, Package as PackageIcon, Clock, CheckCircle, 
     Store, CalendarCheck, XCircle, ShieldCheck, Smartphone, Crown, Sparkles, 
     ArrowRight, ArrowLeft, KeyRound, Ticket, ChevronDown, ChevronUp,
-    MessageCircle, ExternalLink, Flame, Droplets, Compass
+    MessageCircle, ExternalLink, Flame, Droplets, Compass, Camera, Trash2, Upload
 } from 'lucide-react';
 import './Profile.css';
 
 const Profile = () => {
     const { t } = useTranslation();
     const { isRTL = false } = useOutletContext() || {};
-    const { products } = useContext(ShopContext);
-    const { user } = useContext(AuthContext);
+    const { products, showToast } = useContext(ShopContext);
+    const { user, updateUser } = useContext(AuthContext);
     const { formatPrice, currency } = useContext(RegionContext);
 
     // Profile data from user object
@@ -73,6 +73,79 @@ const Profile = () => {
     const [setup2FAData, setSetup2FAData] = useState(null);
     const [otpVerifyCode, setOtpVerifyCode] = useState('');
     const [is2FALoading, setIs2FALoading] = useState(false);
+
+    // Profile Avatar Upload & Management
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+    const handleAvatarUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            if (showToast) showToast(isRTL ? 'حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)' : 'Image is too large (max 5MB)', 'error');
+            return;
+        }
+
+        setIsUploadingAvatar(true);
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new window.Image();
+            img.onload = async () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+                    const res = await api.put(`/users/${user.id}`, { avatar_url: compressed });
+                    const newAvatar = res.data?.user?.avatar_url || compressed;
+                    if (updateUser) updateUser({ avatar_url: newAvatar });
+                    if (showToast) showToast(isRTL ? 'تم تحديث صورتك الشخصية بنجاح!' : 'Profile photo updated successfully!', 'success');
+                } catch (err) {
+                    console.error('Failed to update avatar:', err);
+                    if (showToast) showToast(isRTL ? 'فشل تحديث الصورة الشخصية' : 'Failed to update profile photo', 'error');
+                } finally {
+                    setIsUploadingAvatar(false);
+                    e.target.value = '';
+                }
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveAvatar = async () => {
+        if (!window.confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف الصورة الشخصية؟' : 'Are you sure you want to remove your profile photo?')) return;
+        setIsUploadingAvatar(true);
+        try {
+            await api.put(`/users/${user.id}`, { avatar_url: '' });
+            if (updateUser) updateUser({ avatar_url: '' });
+            if (showToast) showToast(isRTL ? 'تم حذف الصورة الشخصية' : 'Profile photo removed', 'info');
+        } catch (err) {
+            console.error('Failed to remove avatar:', err);
+            if (showToast) showToast(isRTL ? 'فشل حذف الصورة' : 'Failed to remove photo', 'error');
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
     const [show2FAForm, setShow2FAForm] = useState(false);
 
     // Load Scent DNA from localStorage
@@ -286,15 +359,49 @@ const Profile = () => {
                     <div className="profile-card">
                         {/* Luxury Profile Avatar Header */}
                         <div className="profile-avatar text-center">
-                            <div className="avatar-circle">
-                                <span className="avatar-initials">{getUserInitials(profileData.name)}</span>
+                            <div className="avatar-circle" style={{ position: 'relative' }}>
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt={profileData.name} className="avatar-img" />
+                                ) : (
+                                    <span className="avatar-initials">{getUserInitials(profileData.name)}</span>
+                                )}
                                 {user?.role === 'super_admin' && (
-                                    <div className="avatar-badge-crown" title="Super Admin">
+                                    <div className="avatar-badge-crown" title="Super Admin" style={{ top: '-4px', right: '-4px', bottom: 'auto' }}>
                                         <Crown size={13} fill="#000000" color="#000000" />
                                     </div>
                                 )}
+                                <label 
+                                    htmlFor="profile-avatar-upload-input" 
+                                    className="avatar-edit-trigger" 
+                                    title={isRTL ? 'تعديل / رفع الصورة الشخصية' : 'Upload or change profile photo'}
+                                >
+                                    <Camera size={13} />
+                                </label>
+                                <input 
+                                    type="file" 
+                                    id="profile-avatar-upload-input" 
+                                    accept="image/*" 
+                                    style={{ display: 'none' }} 
+                                    onChange={handleAvatarUpload} 
+                                    disabled={isUploadingAvatar}
+                                />
                             </div>
-                            <h3 className="profile-user-name">{profileData.name}</h3>
+
+                            {user?.avatar_url && (
+                                <div className="avatar-actions-row">
+                                    <button 
+                                        type="button" 
+                                        className="btn-avatar-remove" 
+                                        onClick={handleRemoveAvatar}
+                                        disabled={isUploadingAvatar}
+                                    >
+                                        <Trash2 size={12} />
+                                        <span>{isRTL ? 'حذف الصورة' : 'Remove Photo'}</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            <h3 className="profile-user-name" style={{ marginTop: user?.avatar_url ? '4px' : '0' }}>{profileData.name}</h3>
                             <div className="profile-role-wrapper">
                                 <span className={roleInfo.className}>
                                     {roleInfo.label}

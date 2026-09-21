@@ -234,14 +234,17 @@ router.post('/assign-admin', authenticateUser, verifyRole(['super_admin', 'admin
             mappingData = existing;
         }
 
-        // 2. Ensure user is promoted to regional_admin
-        const { error: roleError } = await supabase
-            .from('customers')
-            .update({ role: 'regional_admin' })
-            .eq('id', targetAdminId);
-            
-        if (roleError) {
-            console.error('Error updating customer role to regional_admin:', roleError);
+        // 2. Ensure user is promoted to regional_admin (without demoting super_admin or admin)
+        const { data: targetUser } = await supabase.from('customers').select('role').eq('id', targetAdminId).single();
+        if (targetUser && targetUser.role !== 'super_admin' && targetUser.role !== 'admin') {
+            const { error: roleError } = await supabase
+                .from('customers')
+                .update({ role: 'regional_admin' })
+                .eq('id', targetAdminId);
+                
+            if (roleError) {
+                console.error('Error updating customer role to regional_admin:', roleError);
+            }
         }
 
         res.status(200).json({ 

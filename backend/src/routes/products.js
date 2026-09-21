@@ -199,10 +199,10 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create product (Global Catalog - Super Admin Exclusive Authority)
+// Create product (Global Master Catalog & Regional Inventory)
 router.post('/', 
     authenticateUser, 
-    verifyRole(['super_admin', 'admin']), 
+    verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), 
     validateBase64Image('image'),
     [
         body('name').notEmpty().withMessage('Product name is required'),
@@ -215,7 +215,7 @@ router.post('/',
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, attributes,
-        price, oldPrice, discount, stock
+        price, oldPrice, discount, stock, shop_id
     } = req.body;
 
     try {
@@ -268,6 +268,27 @@ router.post('/',
         if (error) throw error;
         const newProduct = data[0];
 
+        // If target shop_id provided or user is vendor/regional_admin with assigned shop, auto-bind inventory
+        const targetShopId = shop_id && shop_id !== 'core' && shop_id !== 'all' && shop_id !== 'own'
+            ? shop_id
+            : (req.user?.role === 'vendor' ? (req.user.shop_id || req.user.ownedShopIds?.[0]) : null);
+
+        if (targetShopId && newProduct?.id) {
+            try {
+                await supabase.from('vendor_inventory').upsert([{
+                    product_id: newProduct.id,
+                    shop_id: targetShopId,
+                    price: finalPrice,
+                    stock: stock !== undefined ? Number(stock) : 10,
+                    is_active: true,
+                    pickup_available: true,
+                    updated_at: new Date().toISOString()
+                }], { onConflict: 'product_id, shop_id' });
+            } catch (invErr) {
+                console.warn('[Products] Auto-binding inventory notice:', invErr.message);
+            }
+        }
+
         // Audit logging
         logAdminAudit({
             actorId: req.user?.id,
@@ -276,7 +297,7 @@ router.post('/',
             action: 'create_product',
             targetEntity: 'products',
             targetId: String(newProduct.id),
-            details: { name: newProduct.name, brand: newProduct.brand, price: newProduct.price }
+            details: { name: newProduct.name, brand: newProduct.brand, price: newProduct.price, shop_id: targetShopId }
         }).catch(e => console.error('Audit log warning:', e.message));
 
         res.status(201).json({ 
@@ -289,8 +310,8 @@ router.post('/',
     }
 });
 
-// Update product (Global Catalog - Super Admin Exclusive Authority)
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+// Update product (Global Catalog & Regional Boutique Management)
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin']), async (req, res) => {
     const { id } = req.params;
     const { 
         name, brand, type, size, isNew, isFeatured,
@@ -389,8 +410,8 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
     }
 });
 
-// Delete product (Soft Delete / Archive - Super Admin Exclusive Authority)
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
+// Delete product (Soft Delete / Archive - Super Admin Exclusive Authority & Regional Unbind)
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin']), async (req, res) => {
     const { id } = req.params;
 
     try {

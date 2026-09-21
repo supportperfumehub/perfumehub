@@ -292,6 +292,19 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateUser = useCallback((updatedFields) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...updatedFields };
+            try {
+                localStorage.setItem('perfumehub_user', JSON.stringify(updated));
+            } catch (e) {
+                console.warn('[AuthContext] Could not update localStorage user:', e.message);
+            }
+            return updated;
+        });
+    }, []);
+
     const value = {
         user,
         loading,
@@ -305,7 +318,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         verify2FA,
         forgotPassword,
-        resetPassword
+        resetPassword,
+        updateUser
     };
 
     return (

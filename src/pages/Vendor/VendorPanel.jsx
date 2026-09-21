@@ -14,13 +14,14 @@ import {
     Image as ImageIcon, Home, CalendarCheck, CreditCard, CheckCircle, 
     Zap, ShieldCheck, Smartphone, Upload, Trash2, MapPin, Phone, Clock, 
     Truck, Bell, MessageSquare, Shield, Layers, ChevronDown, TrendingUp, 
-    DollarSign, Building2, Eye, ArrowUpRight, Download, Wallet, AlertCircle, RefreshCw
+    DollarSign, Building2, Eye, ArrowUpRight, Download, Wallet, AlertCircle, RefreshCw,
+    Camera, User as UserIcon
 } from 'lucide-react';
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
     const { isRTL = false } = useOutletContext() || {};
-    const { user, isVendor } = useContext(AuthContext);
+    const { user, isVendor, updateUser } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     
     // Multi-shop states
@@ -545,6 +546,88 @@ const VendorPanel = () => {
         setShopData(prev => ({ ...prev, logo_url: '', images: [] }));
     };
 
+    // User Avatar Management Helpers
+    const getUserInitials = (name) => {
+        if (!name) return 'V';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return name.slice(0, 2).toUpperCase();
+    };
+
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [profileModalTab, setProfileModalTab] = useState('user'); // 'user' or 'shop'
+    const [isUploadingUserAvatar, setIsUploadingUserAvatar] = useState(false);
+
+    const handleUserAvatarUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast(isRTL ? 'حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)' : 'Image is too large (max 5MB)', 'error');
+            return;
+        }
+
+        setIsUploadingUserAvatar(true);
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new window.Image();
+            img.onload = async () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+                    const res = await api.put(`/users/${user.id}`, { avatar_url: compressed });
+                    const newAvatar = res.data?.user?.avatar_url || compressed;
+                    if (updateUser) updateUser({ avatar_url: newAvatar });
+                    showToast(isRTL ? 'تم تحديث صورتك الشخصية بنجاح!' : 'Personal profile photo updated successfully!', 'success');
+                } catch (err) {
+                    console.error('Failed to update avatar:', err);
+                    showToast(isRTL ? 'فشل تحديث الصورة الشخصية' : 'Failed to update profile photo', 'error');
+                } finally {
+                    setIsUploadingUserAvatar(false);
+                    e.target.value = '';
+                }
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveUserAvatar = async () => {
+        if (!window.confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف صورتك الشخصية؟' : 'Are you sure you want to remove your personal profile photo?')) return;
+        setIsUploadingUserAvatar(true);
+        try {
+            await api.put(`/users/${user.id}`, { avatar_url: '' });
+            if (updateUser) updateUser({ avatar_url: '' });
+            showToast(isRTL ? 'تم حذف الصورة الشخصية' : 'Personal profile photo removed', 'info');
+        } catch (err) {
+            console.error('Failed to remove avatar:', err);
+            showToast(isRTL ? 'فشل حذف الصورة' : 'Failed to remove photo', 'error');
+        } finally {
+            setIsUploadingUserAvatar(false);
+        }
+    };
+
     const tabs = [
         { id: 'overview', label: isRTL ? 'نظرة شاملة' : 'All-Round View', icon: <Layers size={20} /> },
         { id: 'products', label: isRTL ? 'منتجاتي' : 'My Products', icon: <PackageIcon size={20} /> },
@@ -572,6 +655,72 @@ const VendorPanel = () => {
                             <Home size={16} />
                             <span>{isRTL ? 'المتجر' : 'Store'}</span>
                         </Link>
+                    </div>
+                </div>
+
+                {/* Vendor Personal Merchant Profile Pill */}
+                <div 
+                    className="vendor-sidebar-profile-card"
+                    onClick={() => { setProfileModalTab('user'); setIsProfileModalOpen(true); }}
+                    style={{
+                        margin: '10px 14px 18px',
+                        padding: '10px 12px',
+                        background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                        border: '1px solid rgba(212, 175, 55, 0.3)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                    title={isRTL ? 'تعديل الصورة الشخصية' : 'Edit Profile Photo'}
+                >
+                    <div style={{ position: 'relative', width: '40px', height: '40px', flexShrink: 0 }}>
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            border: '2px solid #d4af37',
+                            background: '#1e293b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt={user?.name || 'Vendor'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                    {getUserInitials(user?.name)}
+                                </span>
+                            )}
+                        </div>
+                        <div style={{
+                            position: 'absolute',
+                            bottom: -2,
+                            right: -2,
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            background: '#d4af37',
+                            color: '#000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.6)'
+                        }}>
+                            <Camera size={9} />
+                        </div>
+                    </div>
+                    <div style={{ overflow: 'hidden', flex: 1 }}>
+                        <div style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user?.name || (isRTL ? 'التاجر' : 'Vendor Merchant')}
+                        </div>
+                        <div style={{ color: '#c8a951', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Camera size={11} />
+                            <span>{isRTL ? 'تعديل الصورة الشخصية' : 'Edit Profile Photo'}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -773,6 +922,70 @@ const VendorPanel = () => {
                             <Plus size={16} />
                             <span>{isRTL ? 'فرع جديد' : 'New Branch'}</span>
                         </button>
+
+                        {/* Topbar Personal Profile Avatar Widget */}
+                        <div 
+                            className="vendor-topbar-avatar-widget"
+                            onClick={() => { setProfileModalTab('user'); setIsProfileModalOpen(true); }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '4px 12px 4px 6px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(212, 175, 55, 0.3)',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                            title={isRTL ? 'إدارة صورتك الشخصية وشعار المتجر' : 'Manage Profile Photo & Shop Logo'}
+                        >
+                            <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
+                                <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    overflow: 'hidden',
+                                    border: '2px solid #d4af37',
+                                    background: '#1e293b',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    {user?.avatar_url ? (
+                                        <img src={user.avatar_url} alt={user?.name || 'Vendor'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '0.88rem' }}>
+                                            {getUserInitials(user?.name)}
+                                        </span>
+                                    )}
+                                </div>
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: -1,
+                                    right: -1,
+                                    width: '15px',
+                                    height: '15px',
+                                    borderRadius: '50%',
+                                    background: '#d4af37',
+                                    color: '#000',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                }}>
+                                    <Camera size={9} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15, textAlign: isRTL ? 'right' : 'left' }}>
+                                <span style={{ color: '#f8fafc', fontSize: '0.84rem', fontWeight: '600', maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {user?.name || (isRTL ? 'التاجر' : 'Vendor')}
+                                </span>
+                                <span style={{ color: '#c8a951', fontSize: '0.70rem', fontWeight: '600' }}>
+                                    {isRTL ? 'تعديل الصورة' : 'Edit Photo'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </header>
 
@@ -1499,55 +1712,118 @@ const VendorPanel = () => {
                                             </p>
                                         </div>
 
-                                        {/* Brand Identity / Profile Photo */}
-                                        {(() => {
-                                            const currentLogo = shopData?.logo_url || (Array.isArray(shopData?.images) && shopData.images.length > 0 ? shopData.images[0] : '');
-                                            return (
-                                                <div className="vendor-logo-section">
-                                                    <div className="vendor-logo-preview">
-                                                        {currentLogo ? (
-                                                            <img src={currentLogo} alt="Shop Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                        ) : (
-                                                            <Store size={34} color="#c8a951" />
+                                        {/* Visual Identities Grid: Personal Merchant Avatar + Boutique Shop Logo */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+                                            {/* Card 1: Personal Merchant Profile Photo */}
+                                            <div className="vendor-logo-section" style={{ margin: 0, height: '100%', boxSizing: 'border-box' }}>
+                                                <div className="vendor-logo-preview" style={{ borderRadius: '50%', border: '2px solid #d4af37' }}>
+                                                    {user?.avatar_url ? (
+                                                        <img src={user.avatar_url} alt={user?.name || 'Vendor'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '1.6rem' }}>
+                                                            {getUserInitials(user?.name)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="vendor-logo-info">
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                        <UserIcon size={16} color="#c8a951" />
+                                                        <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
+                                                            {isRTL ? 'صورتك الشخصية (التاجر)' : 'Personal Merchant Photo'}
+                                                        </h4>
+                                                    </div>
+                                                    <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                                                        {isRTL ? 'صورتك الشخصية كمالك للمتجر تظهر في الهوية وإشعارات الإدارة' : 'Your merchant face shown on dashboard, partner credentials, and orders'}
+                                                    </p>
+                                                    <div className="vendor-logo-actions">
+                                                        <label 
+                                                            htmlFor="vendor-user-avatar-input-settings" 
+                                                            className="btn-logo-upload"
+                                                            style={{ opacity: isUploadingUserAvatar ? 0.7 : 1, cursor: isUploadingUserAvatar ? 'wait' : 'pointer' }}
+                                                        >
+                                                            {isUploadingUserAvatar ? <RefreshCw size={14} className="spin-animation" /> : <Camera size={14} />}
+                                                            <span>
+                                                                {isUploadingUserAvatar 
+                                                                    ? (isRTL ? 'جاري التحميل...' : 'Uploading...') 
+                                                                    : (user?.avatar_url ? (isRTL ? 'تغيير صورتك' : 'Change Photo') : (isRTL ? 'رفع صورتك' : 'Upload Photo'))}
+                                                            </span>
+                                                        </label>
+                                                        <input 
+                                                            type="file" 
+                                                            id="vendor-user-avatar-input-settings" 
+                                                            accept="image/*" 
+                                                            style={{ display: 'none' }} 
+                                                            onChange={handleUserAvatarUpload} 
+                                                            disabled={isUploadingUserAvatar}
+                                                        />
+                                                        {user?.avatar_url && (
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn-logo-remove" 
+                                                                onClick={handleRemoveUserAvatar}
+                                                                disabled={isUploadingUserAvatar}
+                                                            >
+                                                                <Trash2 size={14} />
+                                                                <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                                            </button>
                                                         )}
                                                     </div>
-                                                    <div className="vendor-logo-info">
-                                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
-                                                            {isRTL ? 'صورة وشعار المتجر' : 'Shop Profile Photo & Logo'}
-                                                        </h4>
-                                                        <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-                                                            {isRTL ? 'تظهر للعملاء في ملف المتجر وقائمة المتاجر' : 'Visible to customers across boutique discovery and profiles'}
-                                                        </p>
-                                                        <div className="vendor-logo-actions">
-                                                            <label 
-                                                                htmlFor="vendor-logo-file-input" 
-                                                                className="btn-logo-upload"
-                                                            >
-                                                                <Upload size={14} />
-                                                                <span>{currentLogo ? (isRTL ? 'تغيير الصورة' : 'Change Photo') : (isRTL ? 'رفع صورة المتجر' : 'Upload Photo')}</span>
-                                                            </label>
-                                                            <input 
-                                                                type="file" 
-                                                                id="vendor-logo-file-input" 
-                                                                accept="image/*" 
-                                                                style={{ display: 'none' }} 
-                                                                onChange={handleLogoUpload} 
-                                                            />
-                                                            {currentLogo && (
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="btn-logo-remove" 
-                                                                    onClick={removeLogo}
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                    <span>{isRTL ? 'حذف' : 'Remove'}</span>
-                                                                </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Card 2: Boutique Shop Logo & Brand */}
+                                            {(() => {
+                                                const currentLogo = shopData?.logo_url || (Array.isArray(shopData?.images) && shopData.images.length > 0 ? shopData.images[0] : '');
+                                                return (
+                                                    <div className="vendor-logo-section" style={{ margin: 0, height: '100%', boxSizing: 'border-box' }}>
+                                                        <div className="vendor-logo-preview" style={{ borderRadius: '14px' }}>
+                                                            {currentLogo ? (
+                                                                <img src={currentLogo} alt="Shop Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            ) : (
+                                                                <Store size={34} color="#c8a951" />
                                                             )}
                                                         </div>
+                                                        <div className="vendor-logo-info">
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                                <Store size={16} color="#c8a951" />
+                                                                <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#f8fafc', fontWeight: '700' }}>
+                                                                    {isRTL ? 'شعار وهوية المتجر' : 'Boutique Storefront Logo'}
+                                                                </h4>
+                                                            </div>
+                                                            <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                                                                {isRTL ? 'شعار الفرع يظهر للعملاء في دليل المتاجر والصفحة الرئيسية' : 'Public boutique logo displayed to customers across store discovery'}
+                                                            </p>
+                                                            <div className="vendor-logo-actions">
+                                                                <label 
+                                                                    htmlFor="vendor-logo-file-input" 
+                                                                    className="btn-logo-upload"
+                                                                >
+                                                                    <Upload size={14} />
+                                                                    <span>{currentLogo ? (isRTL ? 'تغيير الشعار' : 'Change Logo') : (isRTL ? 'رفع الشعار' : 'Upload Logo')}</span>
+                                                                </label>
+                                                                <input 
+                                                                    type="file" 
+                                                                    id="vendor-logo-file-input" 
+                                                                    accept="image/*" 
+                                                                    style={{ display: 'none' }} 
+                                                                    onChange={handleLogoUpload} 
+                                                                />
+                                                                {currentLogo && (
+                                                                    <button 
+                                                                        type="button" 
+                                                                        className="btn-logo-remove" 
+                                                                        onClick={removeLogo}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })()}
+                                                );
+                                            })()}
+                                        </div>
 
                                         <div className="settings-grid-2">
                                             {/* Shop Name */}
@@ -2091,6 +2367,377 @@ const VendorPanel = () => {
                 onBranchCreated={handleBranchCreated}
                 isRTL={isRTL}
             />
+
+            {/* Luxury Profile Photo & Boutique Logo Modal */}
+            {isProfileModalOpen && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                        padding: '20px'
+                    }}
+                    onClick={() => setIsProfileModalOpen(false)}
+                >
+                    <div 
+                        style={{
+                            background: '#111827',
+                            border: '1px solid rgba(212, 175, 55, 0.4)',
+                            borderRadius: '20px',
+                            maxWidth: '480px',
+                            width: '100%',
+                            padding: '28px',
+                            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.15)',
+                            position: 'relative',
+                            direction: isRTL ? 'rtl' : 'ltr'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#f8fafc', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Camera size={20} color="#d4af37" />
+                                    <span>{isRTL ? 'إدارة الهوية والصور' : 'Profile & Visual Identity'}</span>
+                                </h3>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                    {isRTL ? 'تعديل صورتك الشخصية كتاجر أو شعار فرعك' : 'Update your personal merchant avatar or boutique logo'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsProfileModalOpen(false)}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Modal Tabs: Personal vs Boutique */}
+                        <div style={{
+                            display: 'flex',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            padding: '4px',
+                            borderRadius: '12px',
+                            marginBottom: '24px',
+                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setProfileModalTab('user')}
+                                style={{
+                                    flex: 1,
+                                    padding: '9px 12px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: profileModalTab === 'user' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'transparent',
+                                    color: profileModalTab === 'user' ? '#000' : '#94a3b8',
+                                    fontWeight: '700',
+                                    fontSize: '0.84rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <UserIcon size={15} />
+                                <span>{isRTL ? 'صورتك الشخصية' : 'Personal Photo'}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setProfileModalTab('shop')}
+                                style={{
+                                    flex: 1,
+                                    padding: '9px 12px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: profileModalTab === 'shop' ? 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)' : 'transparent',
+                                    color: profileModalTab === 'shop' ? '#000' : '#94a3b8',
+                                    fontWeight: '700',
+                                    fontSize: '0.84rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Store size={15} />
+                                <span>{isRTL ? 'شعار المتجر' : 'Boutique Logo'}</span>
+                            </button>
+                        </div>
+
+                        {/* Modal Tab 1: Personal Profile Photo */}
+                        {profileModalTab === 'user' && (
+                            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                                    <div style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        overflow: 'hidden',
+                                        border: '3px solid #d4af37',
+                                        background: '#1e293b',
+                                        boxShadow: '0 8px 24px rgba(212, 175, 55, 0.25)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {user?.avatar_url ? (
+                                            <img src={user.avatar_url} alt={user?.name || 'Vendor'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '2.5rem' }}>
+                                                {getUserInitials(user?.name)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <label
+                                        htmlFor="modal-user-avatar-input"
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 4,
+                                            right: 4,
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            background: '#d4af37',
+                                            color: '#000',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                                            transition: 'transform 0.15s ease'
+                                        }}
+                                        title={isRTL ? 'تغيير الصورة' : 'Change Photo'}
+                                    >
+                                        <Camera size={16} />
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="modal-user-avatar-input"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handleUserAvatarUpload}
+                                        disabled={isUploadingUserAvatar}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h4 style={{ margin: '0 0 4px', color: '#f8fafc', fontSize: '1.1rem', fontWeight: '700' }}>
+                                        {user?.name || (isRTL ? 'التاجر المعتمد' : 'Boutique Partner')}
+                                    </h4>
+                                    <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem' }}>
+                                        {user?.email || (isRTL ? 'حساب بائع معتمد' : 'Verified Merchant Account')}
+                                    </p>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+                                    <label
+                                        htmlFor="modal-user-avatar-input"
+                                        style={{
+                                            flex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            padding: '10px 16px',
+                                            background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                            borderRadius: '10px',
+                                            color: '#000',
+                                            fontWeight: '700',
+                                            fontSize: '0.88rem',
+                                            cursor: isUploadingUserAvatar ? 'wait' : 'pointer',
+                                            opacity: isUploadingUserAvatar ? 0.7 : 1
+                                        }}
+                                    >
+                                        {isUploadingUserAvatar ? <RefreshCw size={16} className="spin-animation" /> : <Upload size={16} />}
+                                        <span>
+                                            {isUploadingUserAvatar 
+                                                ? (isRTL ? 'جاري الرفع...' : 'Uploading...') 
+                                                : (user?.avatar_url ? (isRTL ? 'تغيير صورتك' : 'Upload New Photo') : (isRTL ? 'رفع صورة شخصية' : 'Upload Photo'))}
+                                        </span>
+                                    </label>
+
+                                    {user?.avatar_url && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveUserAvatar}
+                                            disabled={isUploadingUserAvatar}
+                                            style={{
+                                                padding: '10px 16px',
+                                                background: 'rgba(239, 68, 68, 0.15)',
+                                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                borderRadius: '10px',
+                                                color: '#f87171',
+                                                fontWeight: '600',
+                                                fontSize: '0.88rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <Trash2 size={16} />
+                                            <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Modal Tab 2: Boutique Shop Logo */}
+                        {profileModalTab === 'shop' && (
+                            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                                    <div style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '16px',
+                                        overflow: 'hidden',
+                                        border: '3px solid #d4af37',
+                                        background: '#1e293b',
+                                        boxShadow: '0 8px 24px rgba(212, 175, 55, 0.25)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {shopData?.logo_url ? (
+                                            <img src={shopData.logo_url} alt="Shop Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <Store size={48} color="#d4af37" />
+                                        )}
+                                    </div>
+                                    <label
+                                        htmlFor="modal-shop-logo-input"
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 4,
+                                            right: 4,
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            background: '#d4af37',
+                                            color: '#000',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.6)'
+                                        }}
+                                        title={isRTL ? 'تغيير الشعار' : 'Change Logo'}
+                                    >
+                                        <Camera size={16} />
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="modal-shop-logo-input"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handleLogoUpload}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h4 style={{ margin: '0 0 4px', color: '#f8fafc', fontSize: '1.1rem', fontWeight: '700' }}>
+                                        {shopData?.name || (isRTL ? 'فرع المتجر' : 'Boutique Branch')}
+                                    </h4>
+                                    <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem' }}>
+                                        {isRTL ? 'شعار الفرع المعروض للزبائن في دليل المتاجر' : 'Public storefront identity shown on boutique discovery'}
+                                    </p>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+                                    <label
+                                        htmlFor="modal-shop-logo-input"
+                                        style={{
+                                            flex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            padding: '10px 16px',
+                                            background: 'linear-gradient(135deg, #c8a951 0%, #ebb637 100%)',
+                                            borderRadius: '10px',
+                                            color: '#000',
+                                            fontWeight: '700',
+                                            fontSize: '0.88rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Upload size={16} />
+                                        <span>
+                                            {shopData?.logo_url ? (isRTL ? 'تغيير الشعار' : 'Upload New Logo') : (isRTL ? 'رفع شعار الفرع' : 'Upload Logo')}
+                                        </span>
+                                    </label>
+
+                                    {shopData?.logo_url && (
+                                        <button
+                                            type="button"
+                                            onClick={removeLogo}
+                                            style={{
+                                                padding: '10px 16px',
+                                                background: 'rgba(239, 68, 68, 0.15)',
+                                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                borderRadius: '10px',
+                                                color: '#f87171',
+                                                fontWeight: '600',
+                                                fontSize: '0.88rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <Trash2 size={16} />
+                                            <span>{isRTL ? 'حذف' : 'Remove'}</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center' }}>
+                            <button
+                                type="button"
+                                onClick={() => setIsProfileModalOpen(false)}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#94a3b8',
+                                    fontSize: '0.84rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    padding: '6px 12px'
+                                }}
+                            >
+                                {isRTL ? 'إغلاق النافذة' : 'Done / Close Window'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
