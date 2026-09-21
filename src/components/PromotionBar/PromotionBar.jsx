@@ -30,7 +30,7 @@ const PromotionBar = () => {
     useEffect(() => {
         const fetchTopBanners = async () => {
             try {
-                const res = await api.get('/banners?type=top_banner&active=true');
+                const res = await api.get('/banners?type=top_banner&active=true&_t=' + Date.now());
                 if (Array.isArray(res.data)) {
                     setDbBanners(res.data);
                     try {

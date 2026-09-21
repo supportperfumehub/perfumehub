@@ -63,7 +63,9 @@ const getBannersFromStorage = async () => {
             .order('display_order', { ascending: true })
             .order('created_at', { ascending: false });
 
-        if (!error && Array.isArray(data) && data.length > 0) {
+        if (!error && Array.isArray(data)) {
+            // Note: If public.banners table exists, return its records even if empty.
+            // An empty list means the admin deliberately deleted all banners.
             return { data, source: 'banners_table' };
         }
     } catch (e) {
@@ -78,75 +80,108 @@ const getBannersFromStorage = async () => {
             .eq('code', '__SITE_BANNERS__')
             .maybeSingle();
 
-        if (coupon && coupon.used_by) {
+        if (!couponErr && coupon) {
             let parsed = [];
             try {
-                parsed = typeof coupon.used_by === 'string' ? JSON.parse(coupon.used_by) : coupon.used_by;
+                parsed = typeof coupon.used_by === 'string' ? JSON.parse(coupon.used_by) : (coupon.used_by || []);
             } catch (err) {
                 console.error('[Banners] JSON parse error:', err);
+                parsed = [];
             }
 
-            if (Array.isArray(parsed) && parsed.length > 0) {
+            if (Array.isArray(parsed)) {
+                // Return parsed banners, even if empty array! (Admin intentionally deleted all banners)
                 return { data: parsed, source: 'coupons_fallback' };
             }
         }
 
-        // Initialize default seed into coupons table
-        if (!couponErr) {
-            if (coupon) {
-                await supabase
-                    .from('coupons')
-                    .update({ used_by: JSON.stringify(DEFAULT_BANNERS), updated_at: new Date().toISOString() })
-                    .eq('code', '__SITE_BANNERS__');
-            } else {
-                await supabase
-                    .from('coupons')
-                    .insert([{
-                        code: '__SITE_BANNERS__',
-                        discount_type: 'metadata',
-                        discount_percentage: 0,
-                        is_active: false,
-                        usage_limit: 0,
-                        usage_count: 0,
-                        used_by: JSON.stringify(DEFAULT_BANNERS)
-                    }]);
+        // Initialize default seed into coupons table ONLY if coupon record does not exist at all (first-ever cold start)
+        if (!couponErr && !coupon) {
+            const { error: insertErr } = await supabase
+                .from('coupons')
+                .insert([{
+                    code: '__SITE_BANNERS__',
+                    discount_type: 'metadata',
+                    discount_percentage: 0,
+                    is_active: false,
+                    usage_limit: 0,
+                    usage_count: 0,
+                    used_by: JSON.stringify(DEFAULT_BANNERS)
+                }]);
+            if (!insertErr) {
+                return { data: DEFAULT_BANNERS, source: 'defaults_initialized' };
             }
         }
     } catch (err) {
         console.warn('[Banners] Fallback storage error:', err.message);
     }
 
-    return { data: DEFAULT_BANNERS, source: 'defaults' };
+    return { data: [], source: 'empty' };
 };
 
 const saveBannersToStorage = async (bannersList) => {
-    // 1. Try writing to public.banners table
+    // 1. Try synchronizing with public.banners table if it exists
     try {
-        // Test if table exists
         const { error: testErr } = await supabase.from('banners').select('id').limit(1);
         if (!testErr) {
-            // Table exists - manage in table
-            // However, to ensure consistency with rich fields (image_url, etc.), also sync fallback
+            const { data: dbBanners } = await supabase.from('banners').select('id');
+            const targetIds = new Set(bannersList.map(b => String(b.id)));
+            if (Array.isArray(dbBanners)) {
+                const toDelete = dbBanners.filter(b => !targetIds.has(String(b.id)));
+                for (const del of toDelete) {
+                    await supabase.from('banners').delete().eq('id', del.id);
+                }
+            }
+            for (const item of bannersList) {
+                await supabase.from('banners').upsert({
+                    id: item.id,
+                    type: item.type || 'top_banner',
+                    title_en: item.title_en,
+                    title_ar: item.title_ar,
+                    badge: item.badge || null,
+                    discount_code: item.discount_code || null,
+                    link_url: item.link_url || '',
+                    bg_color: item.bg_color || null,
+                    text_color: item.text_color || null,
+                    is_active: item.is_active !== false,
+                    display_order: parseInt(item.display_order) || 1,
+                    countdown_end: item.countdown_end || null,
+                    image_url: item.image_url || null,
+                    tagline_en: item.tagline_en || null,
+                    tagline_ar: item.tagline_ar || null,
+                    subtitle_en: item.subtitle_en || null,
+                    subtitle_ar: item.subtitle_ar || null,
+                    description_en: item.description_en || null,
+                    description_ar: item.description_ar || null,
+                    button_text_en: item.button_text_en || null,
+                    button_text_ar: item.button_text_ar || null,
+                    product_id: item.product_id ? String(item.product_id) : null
+                });
+            }
         }
     } catch (e) {
-        // Skip table
+        // Skip table if not present
     }
 
     // 2. Persist to coupons table __SITE_BANNERS__
     const jsonStr = JSON.stringify(bannersList);
-    const { data: existing } = await supabase
+    const { data: existing, error: findErr } = await supabase
         .from('coupons')
         .select('id')
         .eq('code', '__SITE_BANNERS__')
         .maybeSingle();
 
     if (existing) {
-        await supabase
+        const { error: updateErr } = await supabase
             .from('coupons')
             .update({ used_by: jsonStr })
             .eq('code', '__SITE_BANNERS__');
+        if (updateErr) {
+            console.error('[Banners] Failed to update coupons storage:', updateErr);
+            throw updateErr;
+        }
     } else {
-        await supabase
+        const { error: insertErr } = await supabase
             .from('coupons')
             .insert([{
                 code: '__SITE_BANNERS__',
@@ -157,13 +192,19 @@ const saveBannersToStorage = async (bannersList) => {
                 usage_count: 0,
                 used_by: jsonStr
             }]);
+        if (insertErr) {
+            console.error('[Banners] Failed to insert coupons storage:', insertErr);
+            throw insertErr;
+        }
     }
     return bannersList;
 };
 
-// 1. Get all banners (Public / Filterable, Edge CDN Cached)
+// 1. Get all banners (Public / Filterable - Cache-controlled for instant reactivity)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { type, active } = req.query;
 
     try {
@@ -250,9 +291,11 @@ router.post('/', adminOnly, async (req, res) => {
         await saveBannersToStorage(updatedList);
 
         await logAdminAudit({
-            req,
+            actorId: req.user?.id || 0,
+            actorEmail: req.user?.email || 'admin@perfumehubqa.com',
+            actorRole: req.user?.role || 'super_admin',
             action: 'CREATE_BANNER',
-            target: 'banners',
+            targetEntity: 'banners',
             targetId: newBanner.id,
             details: newBanner
         });
@@ -295,9 +338,11 @@ router.put('/:id', adminOnly, async (req, res) => {
         await saveBannersToStorage(currentList);
 
         await logAdminAudit({
-            req,
+            actorId: req.user?.id || 0,
+            actorEmail: req.user?.email || 'admin@perfumehubqa.com',
+            actorRole: req.user?.role || 'super_admin',
             action: 'UPDATE_BANNER',
-            target: 'banners',
+            targetEntity: 'banners',
             targetId: String(id),
             details: updatedBanner
         });
@@ -328,9 +373,11 @@ router.patch('/:id/toggle', adminOnly, async (req, res) => {
         await saveBannersToStorage(currentList);
 
         await logAdminAudit({
-            req,
+            actorId: req.user?.id || 0,
+            actorEmail: req.user?.email || 'admin@perfumehubqa.com',
+            actorRole: req.user?.role || 'super_admin',
             action: 'TOGGLE_BANNER',
-            target: 'banners',
+            targetEntity: 'banners',
             targetId: String(id),
             details: { is_active: currentList[index].is_active }
         });
@@ -354,16 +401,27 @@ router.delete('/:id', adminOnly, async (req, res) => {
             return res.status(404).json({ error: 'Banner not found' });
         }
 
+        // Try direct deletion from public.banners table if available
+        try {
+            await supabase.from('banners').delete().eq('id', id);
+        } catch (e) {
+            // Ignore if table not present
+        }
+
+        // Persist filtered list to storage
         await saveBannersToStorage(filteredList);
 
         await logAdminAudit({
-            req,
+            actorId: req.user?.id || 0,
+            actorEmail: req.user?.email || 'admin@perfumehubqa.com',
+            actorRole: req.user?.role || 'super_admin',
             action: 'DELETE_BANNER',
-            target: 'banners',
+            targetEntity: 'banners',
             targetId: String(id),
-            details: { deleted: true }
+            details: { deleted: true, remainingCount: filteredList.length }
         });
 
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.json({ success: true, message: 'Banner deleted successfully' });
     } catch (err) {
         console.error('Error deleting banner:', err);

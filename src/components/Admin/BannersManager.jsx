@@ -248,7 +248,7 @@ const BannersManager = ({ isRTL }) => {
 
     const fetchBanners = async () => {
         try {
-            const res = await api.get('/banners');
+            const res = await api.get(`/banners?_t=${Date.now()}`);
             setBanners(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Error fetching banners:', err);
@@ -419,6 +419,10 @@ const BannersManager = ({ isRTL }) => {
                 await api.post('/banners', formData);
                 setSuccessMessage(isRTL ? 'تم إنشاء الإعلان بنجاح' : 'New banner created successfully');
             }
+            try {
+                localStorage.removeItem('perfumehub_top_banners');
+                localStorage.removeItem('perfumehub_hero_banners');
+            } catch (e) {}
             await fetchBanners();
             setIsFormOpen(false);
         } catch (err) {
@@ -434,6 +438,10 @@ const BannersManager = ({ isRTL }) => {
         try {
             await api.patch(`/banners/${banner.id}/toggle`, { is_active: nextActive });
             setBanners(prev => prev.map(b => b.id === banner.id ? { ...b, is_active: nextActive } : b));
+            try {
+                localStorage.removeItem('perfumehub_top_banners');
+                localStorage.removeItem('perfumehub_hero_banners');
+            } catch (e) {}
         } catch (err) {
             console.error('Error toggling banner status:', err);
             setError(err.response?.data?.error || err.message);
@@ -450,10 +458,16 @@ const BannersManager = ({ isRTL }) => {
 
     const handleConfirmDelete = async () => {
         if (!confirmModal.bannerId) return;
+        const targetId = confirmModal.bannerId;
         try {
-            await api.delete(`/banners/${confirmModal.bannerId}`);
-            setBanners(prev => prev.filter(b => b.id !== confirmModal.bannerId));
+            await api.delete(`/banners/${targetId}`);
+            setBanners(prev => prev.filter(b => String(b.id) !== String(targetId)));
+            try {
+                localStorage.removeItem('perfumehub_top_banners');
+                localStorage.removeItem('perfumehub_hero_banners');
+            } catch (e) {}
             setSuccessMessage(isRTL ? 'تم حذف الإعلان بنجاح' : 'Banner deleted successfully');
+            await fetchBanners();
         } catch (err) {
             console.error('Error deleting banner:', err);
             setError(err.response?.data?.error || err.message);

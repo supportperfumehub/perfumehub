@@ -206,8 +206,8 @@ const Home = () => {
         let isMounted = true;
         const fetchHeroBanners = async () => {
             try {
-                const res = await api.get('/banners?type=hero_banner&active=true');
-                if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
+                const res = await api.get('/banners?type=hero_banner&active=true&_t=' + Date.now());
+                if (isMounted && Array.isArray(res.data)) {
                     setDbHeroBanners(res.data);
                     try {
                         localStorage.setItem('perfumehub_hero_banners', JSON.stringify(res.data));
