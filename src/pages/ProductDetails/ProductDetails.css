@@ -395,24 +395,24 @@
 }
 
 .price-amount-large {
-    font-family: var(--font-heading, 'Playfair Display', serif);
-    font-size: 2.35rem;
-    font-weight: 700;
-    color: #0f172a;
+    font-family: var(--font-body, 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: 2.85rem;
+    font-weight: 800;
+    color: #0a0a0a;
     letter-spacing: -0.5px;
     line-height: 1;
 }
 
 [dir="rtl"] .price-amount-large {
-    font-family: var(--font-arabic-heading, 'Amiri', 'Playfair Display', serif);
+    font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
 }
 
 .price-currency-unit {
     font-family: var(--font-body, 'Montserrat', sans-serif);
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #b48a33; /* Elegant warm amber gold */
-    letter-spacing: 1.2px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #a8842c; /* Warm luxury gold */
+    letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
@@ -420,6 +420,7 @@
     font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
     letter-spacing: 0;
 }
+
 
 /* Original Retail Price ("Was") */
 .original-price-wrap {
@@ -1074,7 +1075,8 @@
     }
 
     .price-amount-large {
-        font-size: 2rem;
+        font-size: 2.35rem;
+        font-weight: 800;
     }
 
     .original-price-amount {

@@ -761,15 +761,20 @@
     }
 
     .products-grid .product-price {
-        font-size: 0.9rem;
+        font-size: 1.12rem !important;
+        font-weight: 800 !important;
+        color: #0a0a0a !important;
     }
 
     .products-grid .product-old-price {
-        font-size: 0.75rem;
+        font-size: 0.80rem !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
     }
 
     .products-grid .product-savings-pill {
-        font-size: 0.65rem;
+        font-size: 0.66rem !important;
+        font-weight: 700 !important;
     }
 
 }

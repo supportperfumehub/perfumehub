@@ -394,10 +394,10 @@
 /* Normal price - clear, bold, dark, prominent */
 .product-price {
     font-weight: 800 !important;
-    font-size: 1.15rem !important;
-    color: #0f172a !important;
+    font-size: 1.25rem !important;
+    color: #0a0a0a !important;
     font-family: var(--font-body, 'Montserrat', sans-serif) !important;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.3px;
 }
 
 [dir="rtl"] .product-price {
@@ -406,10 +406,11 @@
 
 /* Sale price – bold with prominent dark look */
 .product-price.price-sale {
-    color: #0f172a !important;
-    font-size: 1.18rem !important;
+    color: #0a0a0a !important;
+    font-size: 1.28rem !important;
     font-weight: 800 !important;
 }
+
 
 /* Old / original price - clean, legible, not washed out */
 .product-old-price {
@@ -585,20 +586,27 @@
     }
 
     .product-price {
-        font-size: 0.88rem;
+        font-size: 1.12rem !important;
+        font-weight: 800 !important;
+        color: #0a0a0a !important;
     }
 
     .product-price.price-sale {
-        font-size: 0.88rem;
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        color: #0a0a0a !important;
     }
 
     .product-old-price {
-        font-size: 0.72rem;
+        font-size: 0.80rem !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
     }
 
     .product-savings-pill {
-        font-size: 0.62rem;
-        padding: 1px 6px;
+        font-size: 0.66rem !important;
+        font-weight: 700 !important;
+        padding: 2px 6px !important;
     }
 
     .product-price-row {
