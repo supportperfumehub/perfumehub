@@ -357,39 +357,178 @@
     background: linear-gradient(to right, #e0e0e0, transparent);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   Luxury Pricing Architecture (Offer Price vs Original Price)
+══════════════════════════════════════════════════════════════ */
 .price-section {
     display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 35px;
+    flex-direction: column;
+    margin-bottom: 28px;
+    margin-top: 6px;
 }
 
+.luxury-price-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.price-primary-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+[dir="rtl"] .price-primary-row {
+    direction: rtl;
+}
+
+/* Offer Price (Main Selling Price) */
+.offer-price-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.price-amount-large {
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 2.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    line-height: 1;
+}
+
+[dir="rtl"] .price-amount-large {
+    font-family: var(--font-arabic-heading, 'Amiri', 'Playfair Display', serif);
+}
+
+.price-currency-unit {
+    font-family: var(--font-body, 'Montserrat', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #b48a33; /* Elegant warm amber gold */
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+[dir="rtl"] .price-currency-unit {
+    font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
+    letter-spacing: 0;
+}
+
+/* Original Retail Price ("Was") */
+.original-price-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0 4px;
+}
+
+.original-price-prefix {
+    font-family: var(--font-body, 'Montserrat', sans-serif);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[dir="rtl"] .original-price-prefix {
+    font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
+    letter-spacing: 0;
+}
+
+.original-price-amount {
+    font-family: var(--font-body, 'Montserrat', sans-serif);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-decoration: line-through;
+    text-decoration-color: #cbd5e1;
+    text-decoration-thickness: 1.5px;
+    white-space: nowrap;
+}
+
+/* Luxury Discount / Offer Pill */
+.luxury-discount-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(243, 229, 171, 0.28) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: #856404;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-family: var(--font-body, 'Montserrat', sans-serif);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(212, 175, 55, 0.12);
+    align-self: center;
+}
+
+.discount-sparkle {
+    color: #c89d2c;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/* Savings Callout Banner */
+.price-savings-callout {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px solid rgba(22, 163, 74, 0.22);
+    color: #15803d;
+    font-family: var(--font-body, 'Montserrat', sans-serif);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+[dir="rtl"] .price-savings-callout {
+    font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
+}
+
+.savings-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #16a34a;
+    display: inline-block;
+}
+
+/* Backward compatibility classes */
 .current-price {
     font-size: 1.9rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    font-family: 'Montserrat', sans-serif;
-    letter-spacing: -0.2px;
-    white-space: nowrap; /* Keep value and QAR on the same line */
+    font-weight: 700;
+    color: #0f172a;
+    font-family: var(--font-heading, 'Playfair Display', serif);
 }
 
 .old-price {
     font-size: 1.2rem;
-    color: #bbb;
+    color: #94a3b8;
     text-decoration: line-through;
-    white-space: nowrap; /* Keep value and QAR on the same line */
+    text-decoration-color: #cbd5e1;
 }
 
 .discount-tag {
-    background: #000;
-    color: var(--color-gold);
-    padding: 5px 12px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(243, 229, 171, 0.28) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: #856404;
+    padding: 4px 12px;
     font-size: 0.8rem;
     font-weight: 700;
     border-radius: 50px;
-    letter-spacing: 1px;
-    white-space: nowrap; /* Prevents text from breaking into 2 lines */
 }
+
 
 .product-description {
     font-size: 1rem;
@@ -924,16 +1063,26 @@
     }
 
     .price-section {
-        flex-wrap: wrap; /* Allows the tag to drop to a new line */
+        margin-bottom: 20px;
+    }
+
+    .price-primary-row {
         gap: 12px;
     }
 
-    .discount-tag {
-        flex-basis: 100%; /* Force 'Save' tag to its own line on mobile */
-        width: fit-content;
-        margin-top: 5px;
+    .price-amount-large {
+        font-size: 2rem;
+    }
+
+    .original-price-amount {
+        font-size: 1.05rem;
+    }
+
+    .price-savings-callout {
+        font-size: 0.78rem;
     }
 }
+
 
 /* Page padding */
 .product-details-page {

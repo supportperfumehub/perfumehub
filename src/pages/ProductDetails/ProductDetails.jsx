@@ -561,12 +561,35 @@ const ProductDetails = () => {
                     </p>
 
                     <div className="price-section">
-                        <div className="price-container">
-                            <span className="current-price">{Math.round(displayPrice)} {t('common.currency')}</span>
+                        <div className="luxury-price-cluster">
+                            <div className="price-primary-row">
+                                <div className="offer-price-wrap">
+                                    <span className="price-amount-large">{Math.round(displayPrice)}</span>
+                                    <span className="price-currency-unit">{t('common.currency')}</span>
+                                </div>
+                                {displayOldPrice && displayOldPrice > displayPrice && (
+                                    <div className="original-price-wrap">
+                                        <span className="original-price-prefix">{isRTL ? 'بدلاً من' : 'Was'}</span>
+                                        <span className="original-price-amount">{Math.round(displayOldPrice)} {t('common.currency')}</span>
+                                    </div>
+                                )}
+                                {displayDiscount > 0 && (
+                                    <span className="luxury-discount-pill">
+                                        <span className="discount-sparkle">✦</span>
+                                        <span className="discount-text">{t('product.save')} {displayDiscount}%</span>
+                                    </span>
+                                )}
+                            </div>
                             {displayOldPrice && displayOldPrice > displayPrice && (
-                                <span className="old-price">{Math.round(displayOldPrice)} {t('common.currency')}</span>
+                                <div className="price-savings-callout">
+                                    <span className="savings-dot"></span>
+                                    <span>
+                                        {isRTL 
+                                            ? `وفرت ${Math.round(displayOldPrice - displayPrice)} ${t('common.currency')} في هذا العرض الخاص`
+                                            : `You save ${Math.round(displayOldPrice - displayPrice)} ${t('common.currency')} on this special offer`}
+                                    </span>
+                                </div>
                             )}
-                            {displayDiscount > 0 && <span className="discount-tag">{t('product.save')} {displayDiscount}%</span>}
                         </div>
                     </div>
 

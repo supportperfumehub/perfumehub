@@ -359,49 +359,57 @@
 /* ── Price row ── */
 .product-price-row {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: center;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 2px;
 }
 
 /* Normal price */
 .product-price {
-    font-weight: 500;
-    font-size: 1rem;
-    color: var(--color-black);
+    font-weight: 700;
+    font-size: 1.12rem;
+    color: #0f172a;
     transition: color 0.3s;
-    font-family: 'Montserrat', sans-serif;
-    letter-spacing: 0.01em;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    letter-spacing: -0.2px;
 }
 
-/* Sale price – bold red with glow */
+[dir="rtl"] .product-price {
+    font-family: var(--font-arabic-heading, 'Amiri', 'Playfair Display', serif);
+}
+
+/* Sale price – bold with premium look */
 .product-price.price-sale {
-    color: #e21c3d;
-    font-size: 1.05rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 700;
 }
 
 /* Old / original price */
 .product-old-price {
     font-size: 0.88rem;
-    color: var(--color-text-light);
+    color: #94a3b8;
     text-decoration: line-through;
-    opacity: 0.7;
+    text-decoration-color: #cbd5e1;
+    font-weight: 500;
+    font-family: var(--font-body, 'Montserrat', sans-serif);
 }
 
 /* "Save X QAR" pill */
 .product-savings-pill {
     font-size: 0.72rem;
     font-weight: 700;
-    background: rgba(226, 28, 61, 0.1);
-    color: #e21c3d;
-    border: 1px solid rgba(226, 28, 61, 0.25);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.14) 0%, rgba(243, 229, 171, 0.24) 100%);
+    color: #856404;
+    border: 1px solid rgba(212, 175, 55, 0.4);
     padding: 2px 8px;
-    border-radius: 20px;
+    border-radius: 999px;
     white-space: nowrap;
+    letter-spacing: 0.3px;
 }
+
 
 /* ── Mobile: clean 2-col grid cards ── */
 @media (max-width: 768px) {
