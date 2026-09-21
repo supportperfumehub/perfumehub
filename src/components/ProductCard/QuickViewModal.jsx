@@ -94,15 +94,25 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                 className={`quickview-card animate-scale-up ${isRTL ? 'rtl' : ''}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Close Button */}
-                <button 
-                    type="button" 
-                    className="quickview-close-btn" 
-                    onClick={onClose} 
-                    aria-label={isRTL ? 'إغلاق' : 'Close'}
-                >
-                    <X size={20} />
-                </button>
+                {/* ── Top Action Bar: Wishlist (left) + Close (right) ── */}
+                <div className="quickview-action-bar">
+                    <button
+                        type="button"
+                        className={`quickview-wishlist-top-btn ${isInWishlist(product.id) ? 'active' : ''}`}
+                        onClick={() => toggleWishlist(product)}
+                        title={isInWishlist(product.id) ? (isRTL ? 'إزالة من المفضلة' : 'Remove from wishlist') : (isRTL ? 'إضافة إلى المفضلة' : 'Add to wishlist')}
+                    >
+                        <Heart size={18} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                        type="button"
+                        className="quickview-close-btn"
+                        onClick={onClose}
+                        aria-label={isRTL ? 'إغلاق' : 'Close'}
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
 
                 <div className="quickview-layout">
                     {/* Media Column */}
@@ -158,17 +168,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
 
                     {/* Content Column */}
                     <div className="quickview-details">
-                        <div className="quickview-brand-row">
-                            <span className="quickview-brand">{product.brand || 'Luxury Fragrance'}</span>
-                            <button
-                                type="button"
-                                className={`quickview-wishlist-btn ${isInWishlist(product.id) ? 'active' : ''}`}
-                                onClick={() => toggleWishlist(product)}
-                                title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                            >
-                                <Heart size={18} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                            </button>
-                        </div>
+                        <span className="quickview-brand">{product.brand || 'Luxury Fragrance'}</span>
 
                         <h2 className="quickview-title">{product.name}</h2>
                         <div className="quickview-concentration">
