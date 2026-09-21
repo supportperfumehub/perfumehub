@@ -56,7 +56,7 @@ const ProductDetails = () => {
             return null;
         }
     });
-    const DESCRIPTION_LIMIT = 200;
+    const DESCRIPTION_LIMIT = 450;
 
     const [recommendedVendors, setRecommendedVendors] = useState([]);
 
@@ -723,186 +723,23 @@ const ProductDetails = () => {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Section 3: Olfactory Notes Pyramid & Sensory Performance */}
-                <div className="product-olfactory-panel animate-fade-in" style={{ animationDelay: '0.15s' }}>
-                    {product && (!product.category?.includes('fashion') && !product.category?.includes('jewellery') && !product.category?.includes('giftbox') && !product.category?.includes('gift-box')) ? (
-                        (product.topNotes || product.middleNotes || product.baseNotes) && (() => {
-                            const parseNotes = (notesVal) => {
-                                if (!notesVal) return [];
-                                if (Array.isArray(notesVal)) return notesVal;
-                                return String(notesVal).split(/[,/•|\n]+/).map(s => s.trim()).filter(Boolean);
-                            };
-                            const isArabicScent = product.category?.includes('arabic') || product.category?.includes('oriental');
-                            const longevityVal = product.attributes?.longevity || (
-                                isArabicScent 
-                                    ? (isRTL ? '10 - 14 ساعة (تركيز استثنائي)' : '10 – 14 Hours (Imperial Extrait)') 
-                                    : (isRTL ? '8 - 12 ساعة (ثبات طويل)' : '8 – 12 Hours (Eau de Parfum)')
-                            );
-                            const longevityPct = isArabicScent ? 92 : 82;
-                            const sillageVal = product.attributes?.sillage || (
-                                isArabicScent
-                                    ? (isRTL ? 'فواح جداً (أثر عطري طاغي)' : 'Enveloping & Majestic')
-                                    : (isRTL ? 'قوي وملفت (حضور راقي)' : 'Strong & Radiant Aura')
-                            );
-                            const sillagePct = isArabicScent ? 88 : 78;
-                            const activeSeasons = Array.isArray(product.seasons) && product.seasons.length > 0
-                                ? product.seasons.map(s => String(s).toLowerCase())
-                                : ['winter', 'autumn', 'spring'];
+            {/* Full-width Product Editorial Section (Spans long side-to-side across container) */}
+            <div className="container product-editorial-container">
 
-                            return (
-                                <div className="olfactory-pyramid-card">
-                                    <div className="pyramid-header">
-                                        <Sparkles size={16} className="pyramid-header-icon" />
-                                        <h3 className="pyramid-title">{isRTL ? 'الهرم العطري والنوتات' : 'Olfactive Notes Pyramid'}</h3>
-                                        <span className="pyramid-subtitle">{isRTL ? 'انقر لاكتشاف عطور مماثلة' : 'Click note to explore related scents'}</span>
-                                    </div>
-
-                                    <div className="pyramid-tiers">
-                                        {product.topNotes && (
-                                            <div className="pyramid-tier top-tier">
-                                                <div className="tier-badge">
-                                                    <span className="tier-timing">{isRTL ? 'أول 15 دقيقة' : 'First 15 Mins'}</span>
-                                                    <span className="tier-name">{isRTL ? 'إفتتاحية العطر (Top Notes)' : 'Top Notes'}</span>
-                                                </div>
-                                                <div className="tier-chips">
-                                                    {parseNotes(product.topNotes).map((n, i) => (
-                                                        <Link 
-                                                            key={i} 
-                                                            to={`/shop?search=${encodeURIComponent(n)}`}
-                                                            className="pyramid-chip"
-                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
-                                                        >
-                                                            {n}
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {product.middleNotes && (
-                                            <div className="pyramid-tier heart-tier">
-                                                <div className="tier-badge">
-                                                    <span className="tier-timing">{isRTL ? '2 - 4 ساعات' : '2 – 4 Hours'}</span>
-                                                    <span className="tier-name">{isRTL ? 'قلب العطر (Heart Notes)' : 'Heart Notes'}</span>
-                                                </div>
-                                                <div className="tier-chips">
-                                                    {parseNotes(product.middleNotes).map((n, i) => (
-                                                        <Link 
-                                                            key={i} 
-                                                            to={`/shop?search=${encodeURIComponent(n)}`}
-                                                            className="pyramid-chip"
-                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
-                                                        >
-                                                            {n}
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {product.baseNotes && (
-                                            <div className="pyramid-tier base-tier">
-                                                <div className="tier-badge">
-                                                    <span className="tier-timing">{isRTL ? '6 - 12+ ساعة' : '6 – 12+ Hours'}</span>
-                                                    <span className="tier-name">{isRTL ? 'قاعدة العطر (Base Notes)' : 'Base Notes'}</span>
-                                                </div>
-                                                <div className="tier-chips">
-                                                    {parseNotes(product.baseNotes).map((n, i) => (
-                                                        <Link 
-                                                            key={i} 
-                                                            to={`/shop?search=${encodeURIComponent(n)}`}
-                                                            className="pyramid-chip"
-                                                            title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
-                                                        >
-                                                            {n}
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="sensory-meters-section">
-                                        <div className="sensory-meter-row">
-                                            <div className="sensory-label-row">
-                                                <span className="meter-label">{isRTL ? 'ثبات العطر' : 'Longevity'}</span>
-                                                <span className="meter-val">{longevityVal}</span>
-                                            </div>
-                                            <div className="luxury-progress-track">
-                                                <div className="luxury-progress-fill" style={{ width: `${longevityPct}%` }}></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="sensory-meter-row">
-                                            <div className="sensory-label-row">
-                                                <span className="meter-label">{isRTL ? 'فوحان العطر' : 'Sillage & Aura'}</span>
-                                                <span className="meter-val">{sillageVal}</span>
-                                            </div>
-                                            <div className="luxury-progress-track">
-                                                <div className="luxury-progress-fill" style={{ width: `${sillagePct}%` }}></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="sensory-seasons-row">
-                                            <span className="meter-label">{isRTL ? 'المواسم المثالية:' : 'Best Seasons:'}</span>
-                                            <div className="season-pills-list">
-                                                <span className={`season-pill ${activeSeasons.includes('winter') || activeSeasons.includes('all') ? 'active' : ''}`}>
-                                                    ❄️ {isRTL ? 'الشتاء' : 'Winter'}
-                                                </span>
-                                                <span className={`season-pill ${activeSeasons.includes('autumn') || activeSeasons.includes('all') ? 'active' : ''}`}>
-                                                    🍂 {isRTL ? 'الخريف' : 'Autumn'}
-                                                </span>
-                                                <span className={`season-pill ${activeSeasons.includes('spring') || activeSeasons.includes('all') ? 'active' : ''}`}>
-                                                    🌸 {isRTL ? 'الربيع' : 'Spring'}
-                                                </span>
-                                                <span className={`season-pill ${activeSeasons.includes('summer') || activeSeasons.includes('all') ? 'active' : ''}`}>
-                                                    ☀️ {isRTL ? 'الصيف' : 'Summer'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })()
-                    ) : (
-                        product && product.attributes && Object.keys(product.attributes).length > 0 && (
-                            <div className="product-specifications" style={{ marginBottom: '25px', padding: '20px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                                <h3 className="notes-title" style={{ fontSize: '1.05rem', color: 'var(--color-black)', margin: '0 0 12px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '8px' }}>
-                                    {isRTL ? 'المواصفات والتفاصيل:' : 'Specifications & Details:'}
-                                </h3>
-                                <div className="specs-container" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                                    {Object.entries(product.attributes).map(([key, val]) => (
-                                        <div className="spec-item" key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed rgba(0,0,0,0.06)', fontSize: '0.9rem' }}>
-                                            <span className="spec-label" style={{ fontWeight: '600', color: 'var(--color-text-light)', textTransform: 'capitalize' }}>
-                                                {isRTL ? (
-                                                    key === 'material' ? 'المادة' :
-                                                    key === 'color' ? 'اللون' :
-                                                    key === 'stone' ? 'الحجر' :
-                                                    key === 'purity' ? 'النقاء / العيار' :
-                                                    key === 'theme' ? 'الموضوع' :
-                                                    key === 'contents' ? 'المحتويات' :
-                                                    key === 'size' ? 'الحجم / المقاس' : key
-                                                ) : key.replace(/([A-Z])/g, ' $1').trim()}
-                                            </span>
-                                            <span className="spec-value" style={{ color: 'var(--color-black)', fontWeight: '500' }}>
-                                                {Array.isArray(val) ? val.join(', ') : String(val)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )
-                    )}
-                </div>
-
-                {/* Section 4: Story, Description & Boutique Selection Panel */}
-                <div className="product-story-panel animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <div className="product-description-section" style={{ background: '#fff', padding: '22px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', marginBottom: '25px' }}>
-                        <h3 className="section-title" style={{ fontSize: '1.15rem', fontFamily: "var(--font-heading, 'Playfair Display', serif)", margin: '0 0 12px 0' }}>
-                            {isRTL ? 'وصف المنتج وتفاصيله' : 'Product Description & Details'}
-                        </h3>
-                        <p className="description-text" style={{ lineHeight: '1.8', color: '#4a4a4a', fontSize: '0.95rem' }}>
+                {/* Section: Product Description & Details (Full-width side-to-side) */}
+                <div className="product-description-card-fullwidth animate-fade-in">
+                    <div className="editorial-card-header">
+                        <div className="editorial-title-badge">
+                            <Sparkles size={18} className="editorial-header-icon" />
+                            <h3 className="editorial-section-title">
+                                {isRTL ? 'وصف المنتج وتفاصيله' : 'Product Description & Details'}
+                            </h3>
+                        </div>
+                    </div>
+                    <div className="editorial-body">
+                        <p className="description-text">
                             {product.description ? (
                                 (product.description.length > DESCRIPTION_LIMIT && !isDescriptionExpanded)
                                     ? `${product.description.substring(0, DESCRIPTION_LIMIT)}...`
@@ -918,73 +755,252 @@ const ProductDetails = () => {
                             </button>
                         )}
                     </div>
+                </div>
 
-                    {recommendedVendors.length > 0 && (
-                        <div className="shop-selection-accordion premium-card" style={{ marginBottom: '25px', padding: '20px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <h4 style={{ fontSize: '1.05rem', color: 'var(--color-black)', margin: 0, fontWeight: '700' }}>
-                                    {isRTL ? 'أفضل عروض البوتيكات القريبة:' : 'Nearby Boutique Availability:'}
-                                </h4>
-                                {recommendedVendors.length > 1 && (
-                                    <button 
-                                        className="btn-link" 
-                                        onClick={() => setIsVendorsExpanded(!isVendorsExpanded)}
-                                        style={{ background: 'none', border: 'none', color: 'var(--color-gold-dark)', fontWeight: '600', cursor: 'pointer' }}
-                                    >
-                                        {isVendorsExpanded ? (isRTL ? 'إخفاء' : 'View Less') : (isRTL ? `عرض ${recommendedVendors.length - 1} عروض أخرى` : `View ${recommendedVendors.length - 1} other offers`)}
-                                    </button>
-                                )}
-                            </div>
+                {/* Non-fragrance specifications */}
+                {product && product.attributes && Object.keys(product.attributes).length > 0 && (!product.topNotes && !product.middleNotes && !product.baseNotes) && (
+                    <div className="product-specifications-card animate-fade-in" style={{ padding: '24px 28px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '18px', backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                        <h3 className="notes-title" style={{ fontSize: '1.1rem', color: 'var(--color-black)', margin: '0 0 16px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '10px', fontFamily: "var(--font-heading, 'Playfair Display', serif)" }}>
+                            {isRTL ? 'المواصفات والتفاصيل:' : 'Specifications & Details:'}
+                        </h3>
+                        <div className="specs-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            {Object.entries(product.attributes).map(([key, val]) => (
+                                <div className="spec-item" key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#fafafa', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.04)', fontSize: '0.9rem' }}>
+                                    <span className="spec-label" style={{ fontWeight: '600', color: 'var(--color-text-light)', textTransform: 'capitalize' }}>
+                                        {isRTL ? (
+                                            key === 'material' ? 'المادة' :
+                                            key === 'color' ? 'اللون' :
+                                            key === 'stone' ? 'الحجر' :
+                                            key === 'purity' ? 'النقاء / العيار' :
+                                            key === 'theme' ? 'الموضوع' :
+                                            key === 'contents' ? 'المحتويات' :
+                                            key === 'size' ? 'الحجم / المقاس' : key
+                                        ) : key.replace(/([A-Z])/g, ' $1').trim()}
+                                    </span>
+                                    <span className="spec-value" style={{ color: 'var(--color-black)', fontWeight: '600' }}>
+                                        {Array.isArray(val) ? val.join(', ') : String(val)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {recommendedVendors
-                                    .filter((_, idx) => isVendorsExpanded || idx === 0)
-                                    .map((vendor) => {
-                                        const isSelected = vendor.inventory_id === selectedInventoryId;
-                                        
-                                        return (
-                                            <label key={vendor.inventory_id} style={{ display: 'flex', alignItems: 'center', padding: '12px', border: isSelected ? '2px solid var(--color-gold)' : '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.05)' : '#fff', transition: 'all var(--transition-fast)' }}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="shopSelection" 
-                                                    checked={isSelected} 
-                                                    onChange={() => setSelectedInventoryId(vendor.inventory_id)}
-                                                    style={{ marginRight: '12px', width: '18px', height: '18px', accentColor: 'var(--color-gold)' }}
-                                                />
-                                                <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                        <span style={{ fontWeight: isSelected ? '700' : '500', fontSize: '0.95rem', color: 'var(--color-black)' }}>
-                                                            {vendor.shop_name} <span style={{color: 'var(--color-text-light)', fontSize: '0.85rem', fontWeight: '400'}}>({vendor.dist_km.toFixed(1)} km)</span>
-                                                        </span>
-                                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                                            {vendor.badges.map((badge, idx) => {
-                                                                let badgeClass = 'best-price';
-                                                                if(badge.includes('Premium')) badgeClass = 'premium';
-                                                                if(badge.includes('Nearest')) badgeClass = 'nearest';
-                                                                return <span key={idx} className={`ui-badge ${badgeClass}`}>{badge}</span>;
-                                                            })}
-                                                        </div>
+                {/* Section: Olfactory Notes Pyramid & Sensory Performance (Full-width side-to-side) */}
+                {product && (!product.category?.includes('fashion') && !product.category?.includes('jewellery') && !product.category?.includes('giftbox') && !product.category?.includes('gift-box')) && (
+                    (product.topNotes || product.middleNotes || product.baseNotes) && (() => {
+                        const parseNotes = (notesVal) => {
+                            if (!notesVal) return [];
+                            if (Array.isArray(notesVal)) return notesVal;
+                            return String(notesVal).split(/[,/•|\n]+/).map(s => s.trim()).filter(Boolean);
+                        };
+                        const isArabicScent = product.category?.includes('arabic') || product.category?.includes('oriental');
+                        const longevityVal = product.attributes?.longevity || (
+                            isArabicScent 
+                                ? (isRTL ? '10 - 14 ساعة (تركيز استثنائي)' : '10 – 14 Hours (Imperial Extrait)') 
+                                : (isRTL ? '8 - 12 ساعة (ثبات طويل)' : '8 – 12 Hours (Eau de Parfum)')
+                        );
+                        const longevityPct = isArabicScent ? 92 : 82;
+                        const sillageVal = product.attributes?.sillage || (
+                            isArabicScent
+                                ? (isRTL ? 'فواح جداً (أثر عطري طاغي)' : 'Enveloping & Majestic')
+                                : (isRTL ? 'قوي وملفت (حضور راقي)' : 'Strong & Radiant Aura')
+                        );
+                        const sillagePct = isArabicScent ? 88 : 78;
+                        const activeSeasons = Array.isArray(product.seasons) && product.seasons.length > 0
+                            ? product.seasons.map(s => String(s).toLowerCase())
+                            : ['winter', 'autumn', 'spring'];
+
+                        return (
+                            <div className="product-olfactory-card-fullwidth animate-fade-in" style={{ animationDelay: '0.15s' }}>
+                                <div className="olfactory-pyramid-card">
+                                    <div className="pyramid-header">
+                                        <Sparkles size={18} className="pyramid-header-icon" />
+                                        <h3 className="pyramid-title">{isRTL ? 'الهرم العطري والأداء الحسي' : 'Olfactive Architecture & Sensory Performance'}</h3>
+                                        <span className="pyramid-subtitle">{isRTL ? 'انقر لاكتشاف عطور مماثلة' : 'Click note to explore related scents'}</span>
+                                    </div>
+
+                                    <div className="olfactory-fullwidth-grid">
+                                        {/* Left Column: 3-Tier Notes */}
+                                        <div className="pyramid-tiers">
+                                            {product.topNotes && (
+                                                <div className="pyramid-tier top-tier">
+                                                    <div className="tier-badge">
+                                                        <span className="tier-timing">{isRTL ? 'أول 15 دقيقة' : 'First 15 Mins'}</span>
+                                                        <span className="tier-name">{isRTL ? 'إفتتاحية العطر (Top Notes)' : 'Top Notes'}</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem' }}>
-                                                        <span style={{ fontWeight: '600', color: 'var(--color-black)' }}>{vendor.price} {vendor.currency}</span>
-                                                        <span style={{ color: '#2E7D32', fontWeight: '500' }}>{t('product.in_stock')}</span>
+                                                    <div className="tier-chips">
+                                                        {parseNotes(product.topNotes).map((n, i) => (
+                                                            <Link 
+                                                                key={i} 
+                                                                to={`/shop?search=${encodeURIComponent(n)}`}
+                                                                className="pyramid-chip"
+                                                                title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                            >
+                                                                {n}
+                                                            </Link>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            </label>
-                                        );
-                                    })}
+                                            )}
+
+                                            {product.middleNotes && (
+                                                <div className="pyramid-tier heart-tier">
+                                                    <div className="tier-badge">
+                                                        <span className="tier-timing">{isRTL ? '2 - 4 ساعات' : '2 – 4 Hours'}</span>
+                                                        <span className="tier-name">{isRTL ? 'قلب العطر (Heart Notes)' : 'Heart Notes'}</span>
+                                                    </div>
+                                                    <div className="tier-chips">
+                                                        {parseNotes(product.middleNotes).map((n, i) => (
+                                                            <Link 
+                                                                key={i} 
+                                                                to={`/shop?search=${encodeURIComponent(n)}`}
+                                                                className="pyramid-chip"
+                                                                title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                            >
+                                                                {n}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {product.baseNotes && (
+                                                <div className="pyramid-tier base-tier">
+                                                    <div className="tier-badge">
+                                                        <span className="tier-timing">{isRTL ? '6 - 12+ ساعة' : '6 – 12+ Hours'}</span>
+                                                        <span className="tier-name">{isRTL ? 'قاعدة العطر (Base Notes)' : 'Base Notes'}</span>
+                                                    </div>
+                                                    <div className="tier-chips">
+                                                        {parseNotes(product.baseNotes).map((n, i) => (
+                                                            <Link 
+                                                                key={i} 
+                                                                to={`/shop?search=${encodeURIComponent(n)}`}
+                                                                className="pyramid-chip"
+                                                                title={isRTL ? `ابحث عن عطور تحتوي على ${n}` : `Find perfumes with ${n}`}
+                                                            >
+                                                                {n}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Right Column: Longevity, Sillage & Seasons */}
+                                        <div className="sensory-meters-section">
+                                            <div className="sensory-meter-row">
+                                                <div className="sensory-label-row">
+                                                    <span className="meter-label">{isRTL ? 'ثبات العطر' : 'Longevity'}</span>
+                                                    <span className="meter-val">{longevityVal}</span>
+                                                </div>
+                                                <div className="luxury-progress-track">
+                                                    <div className="luxury-progress-fill" style={{ width: `${longevityPct}%` }}></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="sensory-meter-row">
+                                                <div className="sensory-label-row">
+                                                    <span className="meter-label">{isRTL ? 'فوحان العطر' : 'Sillage & Aura'}</span>
+                                                    <span className="meter-val">{sillageVal}</span>
+                                                </div>
+                                                <div className="luxury-progress-track">
+                                                    <div className="luxury-progress-fill" style={{ width: `${sillagePct}%` }}></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="sensory-seasons-row">
+                                                <span className="meter-label">{isRTL ? 'المواسم المثالية:' : 'Best Seasons:'}</span>
+                                                <div className="season-pills-list">
+                                                    <span className={`season-pill ${activeSeasons.includes('winter') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                        ❄️ {isRTL ? 'الشتاء' : 'Winter'}
+                                                    </span>
+                                                    <span className={`season-pill ${activeSeasons.includes('autumn') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                        🍂 {isRTL ? 'الخريف' : 'Autumn'}
+                                                    </span>
+                                                    <span className={`season-pill ${activeSeasons.includes('spring') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                        🌸 {isRTL ? 'الربيع' : 'Spring'}
+                                                    </span>
+                                                    <span className={`season-pill ${activeSeasons.includes('summer') || activeSeasons.includes('all') ? 'active' : ''}`}>
+                                                        ☀️ {isRTL ? 'الصيف' : 'Summer'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            {!userLocation && (
-                                <button className="btn-link" onClick={detectLocation} style={{ marginTop: '12px', fontSize: '0.85rem', padding: '0', background: 'none', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <MapPin size={14} />
-                                    {isRTL ? 'اكتشف المتجر الأقرب إليك' : 'Allow location to find nearest shop'}
+                        );
+                    })()
+                )}
+
+                {/* Section: Nearby Boutique Selection Accordion */}
+                {recommendedVendors.length > 0 && (
+                    <div className="shop-selection-accordion premium-card animate-fade-in" style={{ padding: '24px 28px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <h4 style={{ fontSize: '1.1rem', color: 'var(--color-black)', margin: 0, fontWeight: '700', fontFamily: "var(--font-heading, 'Playfair Display', serif)" }}>
+                                {isRTL ? 'أفضل عروض البوتيكات القريبة:' : 'Nearby Boutique Availability:'}
+                            </h4>
+                            {recommendedVendors.length > 1 && (
+                                <button 
+                                    className="btn-link" 
+                                    onClick={() => setIsVendorsExpanded(!isVendorsExpanded)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-gold-dark)', fontWeight: '600', cursor: 'pointer' }}
+                                >
+                                    {isVendorsExpanded ? (isRTL ? 'إخفاء' : 'View Less') : (isRTL ? `عرض ${recommendedVendors.length - 1} عروض أخرى` : `View ${recommendedVendors.length - 1} other offers`)}
                                 </button>
                             )}
                         </div>
-                    )}
-                </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {recommendedVendors
+                                .filter((_, idx) => isVendorsExpanded || idx === 0)
+                                .map((vendor) => {
+                                    const isSelected = vendor.inventory_id === selectedInventoryId;
+                                    
+                                    return (
+                                        <label key={vendor.inventory_id} style={{ display: 'flex', alignItems: 'center', padding: '12px', border: isSelected ? '2px solid var(--color-gold)' : '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.05)' : '#fff', transition: 'all var(--transition-fast)' }}>
+                                            <input 
+                                                type="radio" 
+                                                name="shopSelection" 
+                                                checked={isSelected} 
+                                                onChange={() => setSelectedInventoryId(vendor.inventory_id)}
+                                                style={{ marginRight: '12px', width: '18px', height: '18px', accentColor: 'var(--color-gold)' }}
+                                            />
+                                            <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <span style={{ fontWeight: isSelected ? '700' : '500', fontSize: '0.95rem', color: 'var(--color-black)' }}>
+                                                        {vendor.shop_name} <span style={{color: 'var(--color-text-light)', fontSize: '0.85rem', fontWeight: '400'}}>({vendor.dist_km.toFixed(1)} km)</span>
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        {vendor.badges.map((badge, idx) => {
+                                                            let badgeClass = 'best-price';
+                                                            if(badge.includes('Premium')) badgeClass = 'premium';
+                                                            if(badge.includes('Nearest')) badgeClass = 'nearest';
+                                                            return <span key={idx} className={`ui-badge ${badgeClass}`}>{badge}</span>;
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem' }}>
+                                                    <span style={{ fontWeight: '600', color: 'var(--color-black)' }}>{vendor.price} {vendor.currency}</span>
+                                                    <span style={{ color: '#2E7D32', fontWeight: '500' }}>{t('product.in_stock')}</span>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                        </div>
+                        {!userLocation && (
+                            <button className="btn-link" onClick={detectLocation} style={{ marginTop: '12px', fontSize: '0.85rem', padding: '0', background: 'none', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <MapPin size={14} />
+                                {isRTL ? 'اكتشف المتجر الأقرب إليك' : 'Allow location to find nearest shop'}
+                            </button>
+                        )}
+                    </div>
+                )}
 
             </div>
+
 
             {/* Full-width Luxury Trust Bar */}
             <div className="product-trust-strip-wrapper">

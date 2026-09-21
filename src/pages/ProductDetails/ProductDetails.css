@@ -11,11 +11,7 @@
 .details-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-        "media buybox"
-        "olfactory story";
-    column-gap: 50px;
-    row-gap: 30px;
+    gap: 50px;
     align-items: start;
     padding-top: 30px;
     width: 100%;
@@ -27,24 +23,137 @@
 }
 
 .product-media-column {
-    grid-area: media;
     width: 100%;
 }
 
 .product-buybox-panel {
-    grid-area: buybox;
     width: 100%;
 }
 
-.product-olfactory-panel {
-    grid-area: olfactory;
+/* ══════════════════════════════════════════════════════════════
+   Full-Width Product Editorial Section (Side-to-Side on Desktop)
+══════════════════════════════════════════════════════════════ */
+.product-editorial-container {
     width: 100%;
+    margin: 40px auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
 }
 
-.product-story-panel {
-    grid-area: story;
-    width: 100%;
+[dir="rtl"] .product-editorial-container {
+    direction: rtl;
 }
+
+.product-description-card-fullwidth {
+    width: 100%;
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 20px;
+    padding: 32px 36px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.product-description-card-fullwidth::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #d4af37, #f3e5ab, #d4af37, transparent);
+}
+
+.editorial-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.editorial-title-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.editorial-header-icon {
+    color: #d4af37;
+    flex-shrink: 0;
+}
+
+.editorial-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    letter-spacing: 0.5px;
+}
+
+.editorial-body .description-text {
+    font-size: 1.02rem;
+    line-height: 1.9;
+    color: #3f3f46;
+    margin: 0;
+    max-width: 100%;
+}
+
+.editorial-body .read-more-btn {
+    background: none;
+    border: none;
+    color: #c89d2c;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    padding: 12px 0 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+.editorial-body .read-more-btn:hover {
+    color: #8f6e14;
+    text-decoration: underline;
+}
+
+/* Full-width Olfactory Architecture & Internal Grid */
+.product-olfactory-card-fullwidth {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.olfactory-fullwidth-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.olfactory-fullwidth-grid .pyramid-tiers {
+    margin-bottom: 0;
+}
+
+.olfactory-fullwidth-grid .sensory-meters-section {
+    padding-top: 0;
+    border-top: none;
+    padding-left: 28px;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[dir="rtl"] .olfactory-fullwidth-grid .sensory-meters-section {
+    padding-left: 0;
+    padding-right: 28px;
+    border-left: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+
 
 /* Luxury Trust Bar Ribbon */
 .product-trust-strip-wrapper {
@@ -712,18 +821,31 @@
         box-sizing: border-box !important;
     }
 
-    .product-olfactory-panel {
-        order: 3 !important;
-        width: 100% !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
+    .product-editorial-container {
+        margin-top: 20px !important;
+        gap: 20px !important;
     }
 
-    .product-story-panel {
-        order: 4 !important;
-        width: 100% !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
+    .product-description-card-fullwidth {
+        padding: 22px 18px !important;
+        border-radius: 16px !important;
+    }
+
+    .olfactory-fullwidth-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .olfactory-fullwidth-grid .sensory-meters-section {
+        padding-top: 18px !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+        padding-left: 0 !important;
+        border-left: none !important;
+    }
+
+    [dir="rtl"] .olfactory-fullwidth-grid .sensory-meters-section {
+        padding-right: 0 !important;
+        border-right: none !important;
     }
 
     .product-trust-strip-wrapper {
@@ -760,6 +882,13 @@
         padding: 5px 16px 16px !important; /* Extremely tight top padding */
         box-sizing: border-box !important;
         gap: 16px !important;
+    }
+
+    .product-editorial-container {
+        margin-top: 16px !important;
+        gap: 16px !important;
+        padding: 0 16px !important;
+        box-sizing: border-box !important;
     }
 
     .main-image-wrapper {
