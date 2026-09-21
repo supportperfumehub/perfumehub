@@ -10,14 +10,40 @@ export const ShopProvider = ({ children }) => {
     const { user, isVendor, loading: authLoading, isAdmin, isAuthenticated } = useContext(AuthContext);
     const { activeRegion } = useContext(RegionContext);
 
-    // Initialize products from cache to enable instant loading
+    // Safe helper to parse JSON or fallback cleanly without throwing
+    const safeJsonParse = (val, fallback) => {
+        if (!val) return fallback;
+        if (typeof val !== 'string') return val;
+        try {
+            return JSON.parse(val);
+        } catch (_) {
+            if (Array.isArray(fallback)) {
+                return val.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return fallback;
+        }
+    };
+
+    // Initialize products from cache to enable instant loading safely
     const [products, setProducts] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_products');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('perfumehub_products');
+            if (!saved) return [];
+            const parsed = JSON.parse(saved);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.warn('Corrupt perfumehub_products cache, clearing:', e);
+            try { localStorage.removeItem('perfumehub_products'); } catch (_) {}
+            return [];
+        }
     });
     const [loading, setLoading] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_products');
-        return saved ? false : true;
+        try {
+            const saved = localStorage.getItem('perfumehub_products');
+            return !saved;
+        } catch (e) {
+            return true;
+        }
     });
     const [backups, setBackups] = useState([]);
     const [discoverCampaigns, setDiscoverCampaigns] = useState(() => {
@@ -106,14 +132,14 @@ export const ShopProvider = ({ children }) => {
                     type: p.type,
                     isNew: p.is_new ?? p.isNew ?? false,
                     isFeatured: p.is_featured ?? p.isFeatured ?? false,
-                    notes: typeof p.notes === 'string' ? JSON.parse(p.notes || '[]') : (p.notes || []),
-                    vibes: typeof p.vibes === 'string' ? JSON.parse(p.vibes || '[]') : (p.vibes || []),
-                    occasions: typeof p.occasions === 'string' ? JSON.parse(p.occasions || '[]') : (p.occasions || []),
-                    seasons: typeof p.seasons === 'string' ? JSON.parse(p.seasons || '[]') : (p.seasons || []),
+                    notes: safeJsonParse(p.notes, []),
+                    vibes: safeJsonParse(p.vibes, []),
+                    occasions: safeJsonParse(p.occasions, []),
+                    seasons: safeJsonParse(p.seasons, []),
                     topNotes: p.topNotes || p.top_notes || '',
                     middleNotes: p.middleNotes || p.middle_notes || '',
                     baseNotes: p.baseNotes || p.base_notes || '',
-                    attributes: typeof p.attributes === 'string' ? JSON.parse(p.attributes || '{}') : (p.attributes || {})
+                    attributes: safeJsonParse(p.attributes, {})
                 };
             });
 
@@ -122,12 +148,16 @@ export const ShopProvider = ({ children }) => {
                     const existingIds = new Set(prev.map(i => i.id));
                     const filteredNew = mappedProducts.filter(i => !existingIds.has(i.id));
                     const combined = [...prev, ...filteredNew];
-                    localStorage.setItem('perfumehub_products', JSON.stringify(combined));
+                    try {
+                        localStorage.setItem('perfumehub_products', JSON.stringify(combined));
+                    } catch (_) {}
                     return combined;
                 });
             } else {
                 setProducts(mappedProducts);
-                localStorage.setItem('perfumehub_products', JSON.stringify(mappedProducts));
+                try {
+                    localStorage.setItem('perfumehub_products', JSON.stringify(mappedProducts));
+                } catch (_) {}
             }
 
             setPagination(pageMeta);

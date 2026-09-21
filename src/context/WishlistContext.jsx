@@ -4,12 +4,24 @@ export const WishlistContext = createContext();
 
 export const WishlistProvider = ({ children }) => {
     const [wishlistItems, setWishlistItems] = useState(() => {
-        const savedWishlist = localStorage.getItem('perfumehub_wishlist');
-        return savedWishlist ? JSON.parse(savedWishlist) : [];
+        try {
+            const savedWishlist = localStorage.getItem('perfumehub_wishlist');
+            if (!savedWishlist) return [];
+            const parsed = JSON.parse(savedWishlist);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.warn('Corrupt wishlist in localStorage, resetting:', e);
+            try { localStorage.removeItem('perfumehub_wishlist'); } catch (_) {}
+            return [];
+        }
     });
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_wishlist', JSON.stringify(wishlistItems));
+        try {
+            localStorage.setItem('perfumehub_wishlist', JSON.stringify(wishlistItems));
+        } catch (e) {
+            console.warn('Failed to save wishlist to localStorage:', e);
+        }
     }, [wishlistItems]);
 
     const addToWishlist = (product) => {

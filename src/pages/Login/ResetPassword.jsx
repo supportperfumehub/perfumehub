@@ -8,7 +8,7 @@ import './Login.css';
 const ResetPassword = () => {
     const { token } = useParams();
     const navigate = useNavigate();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { resetPassword } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
 

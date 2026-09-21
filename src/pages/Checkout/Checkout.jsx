@@ -31,7 +31,7 @@ const Checkout = () => {
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { activeRegion, formatPrice, currency } = useContext(RegionContext);
     const { placeConsolidatedOrder, showToast, validateCoupon } = useContext(ShopContext);
     const { clearCart } = useContext(CartContext);

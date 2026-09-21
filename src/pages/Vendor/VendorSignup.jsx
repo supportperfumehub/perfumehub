@@ -8,7 +8,7 @@ import './VendorSignup.css';
 
 const VendorSignup = () => {
     useTranslation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { user } = useContext(AuthContext);
     // No ref needed for label-based upload triggers
 

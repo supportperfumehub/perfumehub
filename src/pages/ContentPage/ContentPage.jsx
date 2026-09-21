@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 
 const ContentPage = () => {
     const { pathname } = useLocation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
 
     useEffect(() => {
         window.scrollTo(0, 0);

@@ -4,12 +4,24 @@ export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState(() => {
-        const savedCart = localStorage.getItem('perfumehub_cart');
-        return savedCart ? JSON.parse(savedCart) : [];
+        try {
+            const savedCart = localStorage.getItem('perfumehub_cart');
+            if (!savedCart) return [];
+            const parsed = JSON.parse(savedCart);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.warn('Corrupt cart in localStorage, resetting:', e);
+            try { localStorage.removeItem('perfumehub_cart'); } catch (_) {}
+            return [];
+        }
     });
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_cart', JSON.stringify(cartItems));
+        try {
+            localStorage.setItem('perfumehub_cart', JSON.stringify(cartItems));
+        } catch (e) {
+            console.warn('Failed to save cart to localStorage:', e);
+        }
     }, [cartItems]);
 
     const addToCart = (product, quantity = 1, isGiftWrapped = false, selectedSize = null, selectedPrice = null, shopId = null, inventoryId = null, vendorName = null, vendorAddress = null) => {

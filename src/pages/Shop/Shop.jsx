@@ -22,7 +22,7 @@ const POPULAR_BRANDS = [
 ];
 
 const Shop = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { type } = useParams(); // For category pages
     const [searchParams] = useSearchParams();
     const shopIdFilter = searchParams.get('shop_id');

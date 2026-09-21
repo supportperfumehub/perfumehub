@@ -6,8 +6,14 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_user');
-        return saved ? JSON.parse(saved) : null;
+        try {
+            const saved = localStorage.getItem('perfumehub_user');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            console.warn('Corrupt user in localStorage, clearing:', e);
+            localStorage.removeItem('perfumehub_user');
+            return null;
+        }
     });
     const [loading, setLoading] = useState(true);
     const [requires2FA, setRequires2FA] = useState(false);
@@ -15,13 +21,23 @@ export const AuthProvider = ({ children }) => {
 
     // Persist non-sensitive status flags
     const [isAdmin, setIsAdmin] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_isAdmin');
-        return saved ? JSON.parse(saved) : false;
+        try {
+            const saved = localStorage.getItem('perfumehub_isAdmin');
+            return saved ? JSON.parse(saved) : false;
+        } catch (e) {
+            localStorage.removeItem('perfumehub_isAdmin');
+            return false;
+        }
     });
 
     const [isVendor, setIsVendor] = useState(() => {
-        const saved = localStorage.getItem('perfumehub_isVendor');
-        return saved ? JSON.parse(saved) : false;
+        try {
+            const saved = localStorage.getItem('perfumehub_isVendor');
+            return saved ? JSON.parse(saved) : false;
+        } catch (e) {
+            localStorage.removeItem('perfumehub_isVendor');
+            return false;
+        }
     });
 
     /**

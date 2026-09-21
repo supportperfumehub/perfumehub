@@ -6,7 +6,7 @@ import { ShopContext } from '../../context/ShopContext';
 import './Login.css';
 
 const Login = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

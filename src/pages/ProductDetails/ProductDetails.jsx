@@ -31,7 +31,7 @@ const ProductDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { products: mockProducts, placeOrder } = useContext(ShopContext);
     const { addToCart } = useContext(CartContext);
     const { toggleWishlist, isInWishlist } = useContext(WishlistContext);

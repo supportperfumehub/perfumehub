@@ -6,7 +6,7 @@ import { ShopContext } from '../../context/ShopContext';
 import './Contact.css';
 
 const Contact = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { showToast } = useContext(ShopContext);
     const [formData, setFormData] = useState({
         name: '',

@@ -10,7 +10,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import api from '../../utils/api_v1_0_2';
 
 const VerificationPortal = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { user } = useContext(AuthContext);
     const [mode, setMode] = useState('camera'); // 'camera' | 'manual'
     const [code, setCode] = useState('');

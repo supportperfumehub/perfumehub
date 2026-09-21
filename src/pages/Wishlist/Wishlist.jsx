@@ -6,7 +6,7 @@ import { HeartCrack } from 'lucide-react';
 import './Wishlist.css';
 
 const Wishlist = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { wishlistItems } = useContext(WishlistContext);
 
     useEffect(() => {

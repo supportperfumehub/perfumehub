@@ -37,7 +37,7 @@ const DEFAULT_NOTIFICATIONS = [
 ];
 
 const Admin = () => {
-    const { isRTL, user } = useOutletContext();
+    const { isRTL = false, user = null } = useOutletContext() || {};
     const [activeTab, setActiveTab] = useState('shops');
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const notificationRef = useRef(null);

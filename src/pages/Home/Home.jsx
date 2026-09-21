@@ -81,7 +81,7 @@ const INITIAL_PREVIEW_REVIEWS = [
 
 const Home = () => {
     const { t } = useTranslation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { products, featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);

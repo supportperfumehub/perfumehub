@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Search, MessageCircle, HelpCircle } from 'lucid
 import './FAQ.css';
 
 const FAQ = () => {
-  const { isRTL } = useOutletContext();
+  const { isRTL = false } = useOutletContext() || {};
   const [activeIndex, setActiveIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 

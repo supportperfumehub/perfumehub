@@ -16,7 +16,7 @@ import './Profile.css';
 
 const Profile = () => {
     const { t } = useTranslation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { products } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
     const { formatPrice, currency } = useContext(RegionContext);

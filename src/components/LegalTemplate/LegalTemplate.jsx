@@ -4,7 +4,7 @@ import './LegalTemplate.css';
 
 const LegalTemplate = ({ title, lastUpdated, sections }) => {
     const { pathname } = useLocation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
 
     useEffect(() => {
         window.scrollTo(0, 0);

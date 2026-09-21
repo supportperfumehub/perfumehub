@@ -10,7 +10,7 @@ import './Cart.css';
 
 const Cart = () => {
     const { t } = useTranslation();
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const navigate = useNavigate();
     const { cartItems, removeFromCart, updateQuantity, clearCart, getCartTotal } = useContext(CartContext);
     const { showToast, validateCoupon } = useContext(ShopContext);

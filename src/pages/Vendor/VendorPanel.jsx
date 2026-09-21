@@ -19,7 +19,7 @@ import {
 import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
-    const { isRTL } = useOutletContext();
+    const { isRTL = false } = useOutletContext() || {};
     const { user, isVendor } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     

@@ -227,17 +227,27 @@ ul {
   }
 }
 
-/* Global Page Transition */
+/* Global Page Transition - Failsafe and Smooth */
+@keyframes pageFadeFallback {
+  0% {
+    opacity: 0.3;
+    transform: translateY(6px) translate3d(0,0,0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translate3d(0,0,0);
+  }
+}
+
 .page-fade-enter {
-  opacity: 0;
-  transform: translateY(10px) translate3d(0,0,0);
+  animation: pageFadeFallback 0.3s ease-out forwards;
   will-change: transform, opacity;
 }
 
 .page-fade-active {
   opacity: 1;
   transform: translateY(0) translate3d(0,0,0);
-  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Premium Text Styles */
