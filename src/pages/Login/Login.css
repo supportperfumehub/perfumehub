@@ -135,6 +135,25 @@
     color: rgba(255, 255, 255, 0.3);
 }
 
+/* WebKit / Chrome / Edge Autofill Fix for Dark Mode */
+.input-with-icon:has(input:-webkit-autofill) {
+    background: #191816 !important;
+    border-color: rgba(212, 175, 55, 0.4) !important;
+}
+
+.input-with-icon input:-webkit-autofill,
+.input-with-icon input:-webkit-autofill:hover, 
+.input-with-icon input:-webkit-autofill:focus, 
+.input-with-icon input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #191816 inset !important;
+    -webkit-text-fill-color: #f8fafc !important;
+    box-shadow: 0 0 0 1000px #191816 inset !important;
+    caret-color: #d4af37 !important;
+    font-family: inherit !important;
+    font-size: 0.95rem !important;
+    transition: background-color 50000s ease-in-out 0s;
+}
+
 .error-message {
     background: rgba(255, 107, 107, 0.08);
     border: 1px solid rgba(255, 107, 107, 0.2);

@@ -246,6 +246,7 @@ const Login = () => {
                                                 type="text" 
                                                 placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'} 
                                                 required={!isLogin} 
+                                                autoComplete="name"
                                             />
                                         </div>
                                     </div>
@@ -261,6 +262,7 @@ const Login = () => {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
+                                            autoComplete="email"
                                         />
                                     </div>
                                 </div>
@@ -276,6 +278,7 @@ const Login = () => {
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 required
+                                                autoComplete={isLogin ? "current-password" : "new-password"}
                                             />
                                             <button 
                                                 type="button" 
