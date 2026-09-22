@@ -4,6 +4,16 @@ import { supabase } from '../utils/supabaseClient';
 
 export const AuthContext = createContext();
 
+const checkIsVendor = (u) => {
+    if (!u) return false;
+    return u.role === 'vendor' || Boolean(u.shop_id) || Boolean(u.is_vendor) || Boolean(u.hasShop) || Boolean(u.ownedShopIds?.length);
+};
+
+const checkIsAdmin = (u) => {
+    if (!u) return false;
+    return u.role === 'super_admin' || u.role === 'admin' || u.role === 'regional_admin';
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
         try {
@@ -54,8 +64,8 @@ export const AuthProvider = ({ children }) => {
         }
         setUser(authUser);
         localStorage.setItem('perfumehub_user', JSON.stringify(authUser));
-        const adminFlag = authUser.role === 'super_admin' || authUser.role === 'admin' || authUser.role === 'regional_admin';
-        const vendorFlag = authUser.role === 'vendor';
+        const adminFlag = checkIsAdmin(authUser);
+        const vendorFlag = checkIsVendor(authUser);
         setIsAdmin(adminFlag);
         setIsVendor(vendorFlag);
 
@@ -108,8 +118,8 @@ export const AuthProvider = ({ children }) => {
                 try {
                     const parsed = JSON.parse(savedUser);
                     setUser(parsed);
-                    setIsAdmin(parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'regional_admin');
-                    setIsVendor(parsed.role === 'vendor');
+                    setIsAdmin(checkIsAdmin(parsed));
+                    setIsVendor(checkIsVendor(parsed));
                 } catch (e) {
                     console.error('Failed to parse saved user:', e);
                 }
@@ -128,8 +138,26 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            setIsAdmin(user.role === 'super_admin' || user.role === 'admin' || user.role === 'regional_admin');
-            setIsVendor(user.role === 'vendor');
+            setIsAdmin(checkIsAdmin(user));
+            setIsVendor(checkIsVendor(user));
+
+            // Background discovery of boutique ownership for RA / Admin
+            if (!user.shop_id && !user.is_vendor && (user.role === 'regional_admin' || user.role === 'admin' || user.role === 'super_admin')) {
+                api.get('/shops/my-shops')
+                    .then(res => {
+                        const shops = res.data?.shops;
+                        if (shops && shops.length > 0) {
+                            setIsVendor(true);
+                            setUser(prev => {
+                                if (!prev) return prev;
+                                const updated = { ...prev, shop_id: shops[0].id, is_vendor: true, ownedShopIds: shops.map(s => s.id) };
+                                localStorage.setItem('perfumehub_user', JSON.stringify(updated));
+                                return updated;
+                            });
+                        }
+                    })
+                    .catch(() => {});
+            }
         } else {
             setIsAdmin(false);
             setIsVendor(false);
@@ -193,8 +221,8 @@ export const AuthProvider = ({ children }) => {
                 }
                 setUser(data.user);
                 localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor');
+                setIsAdmin(checkIsAdmin(data.user));
+                setIsVendor(checkIsVendor(data.user));
                 return { success: true, user: data.user };
             }
             return { success: false, message: data.error || 'Login failed' };
@@ -215,8 +243,8 @@ export const AuthProvider = ({ children }) => {
                 }
                 setUser(data.user);
                 localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor');
+                setIsAdmin(checkIsAdmin(data.user));
+                setIsVendor(checkIsVendor(data.user));
                 setRequires2FA(false);
                 setPendingUserId(null);
                 return { success: true, user: data.user };

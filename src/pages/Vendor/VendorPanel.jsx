@@ -649,7 +649,7 @@ const VendorPanel = () => {
                     <h2>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</h2>
                     <div className="sidebar-header-right">
                         <span className="role-badge">
-                            {isRTL ? 'بائع معتمد' : 'Vendor'}
+                            {user?.role === 'regional_admin' ? (isRTL ? 'مدير إقليمي / بائع' : 'RA / Vendor') : (isRTL ? 'بائع معتمد' : 'Vendor')}
                         </span>
                         <Link to="/" className="mobile-storefront-link" title={isRTL ? 'المتجر الرئيسي' : 'Storefront'}>
                             <Home size={16} />
@@ -657,6 +657,21 @@ const VendorPanel = () => {
                         </Link>
                     </div>
                 </div>
+
+                {/* Hybrid Role Switcher: Quick Switch to Admin Dashboard */}
+                {(user?.role === 'regional_admin' || user?.role === 'super_admin' || user?.role === 'admin') && (
+                    <div className="dual-role-switcher-card">
+                        <div className="dual-role-info">
+                            <span className="dual-role-title">{isRTL ? 'الإدارة العامة' : 'Governance'}</span>
+                            <span className="dual-role-sub">{user?.role === 'regional_admin' ? (isRTL ? 'لوحة الإدارة الإقليمية' : 'Regional Admin') : (isRTL ? 'لوحة الإدارة' : 'Admin Panel')}</span>
+                        </div>
+                        <Link to="/admin" className="dual-role-switch-btn admin-theme-btn" title={isRTL ? 'الانتقال إلى لوحة الإدارة' : 'Switch to Admin Dashboard'}>
+                            <Shield size={15} />
+                            <span>{isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}</span>
+                            <ArrowUpRight size={13} />
+                        </Link>
+                    </div>
+                )}
 
                 {/* Vendor Personal Merchant Profile Pill */}
                 <div 
@@ -766,6 +781,19 @@ const VendorPanel = () => {
                     </div>
 
                     <div className="admin-topbar-controls vendor-topbar-controls">
+                        {/* Quick switch to Admin Dashboard for hybrid accounts */}
+                        {(user?.role === 'regional_admin' || user?.role === 'super_admin' || user?.role === 'admin') && (
+                            <Link 
+                                to="/admin" 
+                                className="topbar-admin-switch-pill"
+                                title={isRTL ? 'الانتقال إلى لوحة الإدارة' : 'Switch to Admin Dashboard'}
+                            >
+                                <Shield size={15} />
+                                <span>{user?.role === 'regional_admin' ? (isRTL ? 'لوحة الإدارة الإقليمية' : 'Admin Dashboard') : (isRTL ? 'لوحة الإدارة' : 'Admin Panel')}</span>
+                                <ArrowUpRight size={13} />
+                            </Link>
+                        )}
+
                         {/* Shop Switcher Dropdown */}
                         <div className="vendor-shop-switcher-container" style={{ position: 'relative' }}>
                             <button

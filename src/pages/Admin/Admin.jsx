@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useOutletContext, Navigate, Link } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
 import CouponsManager from '../../components/Admin/CouponsManager';
@@ -16,14 +17,13 @@ import {
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
     Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
-    Megaphone, MapPin, CalendarCheck, ShieldAlert, DollarSign
+    Megaphone, MapPin, CalendarCheck, ShieldAlert, DollarSign, ArrowUpRight
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
 import ReservationManager from '../../components/Admin/ReservationManager';
 import AuditLogsManager from '../../components/Admin/AuditLogsManager';
-import { Link } from 'react-router-dom';
 import api from '../../utils/api_v1_0_2';
 import './Admin.css';
 
@@ -38,6 +38,8 @@ const DEFAULT_NOTIFICATIONS = [
 
 const Admin = () => {
     const { isRTL = false, user = null } = useOutletContext() || {};
+    const { user: authUser, isVendor } = useContext(AuthContext);
+    const currentUser = user || authUser;
     const [activeTab, setActiveTab] = useState('shops');
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const notificationRef = useRef(null);
@@ -60,12 +62,11 @@ const Admin = () => {
         return DEFAULT_NOTIFICATIONS;
     });
 
-    // Assume user object contains the role from context. 
-    // Fallback to 'super_admin' or 'admin' for demo purposes if strictly not set.
-    const role = user?.role || 'super_admin'; 
-
+    // Determine roles & permissions
+    const role = currentUser?.role || 'super_admin'; 
     const isSuperAdmin = role === 'super_admin' || role === 'admin';
     const isRegionalAdmin = role === 'regional_admin';
+    const hasBoutique = isVendor || Boolean(currentUser?.shop_id) || Boolean(currentUser?.is_vendor) || isRegionalAdmin;
 
     // Fetch assigned territories for this admin
     useEffect(() => {
@@ -173,6 +174,21 @@ const Admin = () => {
                         </Link>
                     </div>
                 </div>
+
+                {/* Hybrid Role Switcher: Quick Switch to Vendor Panel */}
+                {hasBoutique && (
+                    <div className="dual-role-switcher-card">
+                        <div className="dual-role-info">
+                            <span className="dual-role-title">{isRTL ? 'متجري الخاص' : 'My Boutique'}</span>
+                            <span className="dual-role-sub">{isRTL ? 'لوحة تحكم البائع' : 'Vendor Panel'}</span>
+                        </div>
+                        <Link to="/vendor" className="dual-role-switch-btn" title={isRTL ? 'الانتقال إلى لوحة البائع' : 'Switch to Vendor Panel'}>
+                            <Store size={15} />
+                            <span>{isRTL ? 'لوحة متجري' : 'Vendor Panel'}</span>
+                            <ArrowUpRight size={13} />
+                        </Link>
+                    </div>
+                )}
                 
                 <nav className="sidebar-nav">
                     {tabs.map(tab => (
@@ -210,6 +226,19 @@ const Admin = () => {
                     </div>
 
                     <div className="admin-topbar-controls">
+                        {/* Quick Switch to Boutique for hybrid vendor/admin */}
+                        {hasBoutique && (
+                            <Link 
+                                to="/vendor" 
+                                className="topbar-vendor-switch-pill"
+                                title={isRTL ? 'الانتقال إلى لوحة البائع (متجري)' : 'Switch to My Boutique (Vendor Panel)'}
+                            >
+                                <Store size={15} />
+                                <span>{isRTL ? 'لوحة متجري (البائع)' : 'My Boutique'}</span>
+                                <ArrowUpRight size={13} />
+                            </Link>
+                        )}
+
                         {/* Active Territory Governance Badge & Switcher */}
                         <div className="active-territory-container">
                             <div className="territory-badge">

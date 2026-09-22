@@ -17,11 +17,39 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [isVendorLogin, setIsVendorLogin] = useState(false);
 
-    const { user, login, register, forgotPassword, loginWithGoogle, requires2FA, verify2FA } = useContext(AuthContext);
+    const { user, isVendor, login, register, forgotPassword, loginWithGoogle, requires2FA, verify2FA } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
     const location = useLocation();
     const [otpCode, setOtpCode] = useState('');
+
+    const resolveDestination = (authUser, explicitVendorLogin = isVendorLogin) => {
+        if (!authUser) return '/';
+        const role = authUser.role;
+        const hasVendor = role === 'vendor' || authUser.is_vendor || Boolean(authUser.shop_id) || isVendor;
+        const isAdminRole = role === 'admin' || role === 'super_admin' || role === 'regional_admin';
+
+        // 1. If explicit vendor sign in was selected and account has vendor capabilities
+        if (explicitVendorLogin && hasVendor) {
+            return '/vendor';
+        }
+        // 2. If attempted navigation from a specific path was recorded
+        if (location.state?.from?.pathname) {
+            return location.state.from.pathname;
+        }
+        // 3. If explicit vendor login but no vendor shop yet, route to vendor anyway to show prompt
+        if (explicitVendorLogin) {
+            return '/vendor';
+        }
+        // 4. Role defaults:
+        if (isAdminRole) {
+            return '/admin';
+        }
+        if (hasVendor) {
+            return '/vendor';
+        }
+        return '/';
+    };
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
@@ -45,12 +73,10 @@ const Login = () => {
     // Redirect authenticated users away from Login/Register page
     React.useEffect(() => {
         if (user) {
-            const role = user.role;
-            const origin = location.state?.from?.pathname
-                || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
-            navigate(origin, { replace: true });
+            const dest = resolveDestination(user);
+            navigate(dest, { replace: true });
         }
-    }, [user, navigate, location.state]);
+    }, [user, isVendor, isVendorLogin, navigate, location.state]);
 
     const formatAuthError = (msg) => {
         if (!msg) return '';
@@ -81,10 +107,8 @@ const Login = () => {
             const result = await verify2FA(otpCode);
             if (result.success) {
                 showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
-                const role = result.user?.role;
-                const origin = location.state?.from?.pathname
-                    || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
-                navigate(origin);
+                const dest = resolveDestination(result.user);
+                navigate(dest);
             } else {
                 setError(result.message);
                 showToast(result.message, 'error');
@@ -114,7 +138,6 @@ const Login = () => {
                     return;
                 }
                 showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
-                const role = result.user?.role;
                 
                 // Handle Remember Me
                 if (rememberMe) {
@@ -123,9 +146,8 @@ const Login = () => {
                     localStorage.removeItem('remembered_email');
                 }
 
-                const origin = location.state?.from?.pathname
-                    || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
-                navigate(origin);
+                const dest = resolveDestination(result.user);
+                navigate(dest);
             } else {
                 setError(result.message);
                 showToast(result.message, 'error');
@@ -178,6 +200,41 @@ const Login = () => {
                             : (isVendorLogin ? 'Sign in to your vendor dashboard to continue' : (isLogin ? 'Sign in to your premium account' : 'Discover a world of luxury'))}
                     </p>
                 </div>
+
+                {isVendorLogin && (
+                    <div className="vendor-login-indicator animate-slide-up" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        background: 'rgba(212, 175, 55, 0.12)',
+                        border: '1px solid rgba(212, 175, 55, 0.35)',
+                        marginBottom: '18px',
+                        color: '#d4af37',
+                        fontSize: '0.86rem',
+                        fontWeight: '600'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Store size={18} />
+                            <span>{isRTL ? 'بوابة دخول الشركاء وأصحاب المتاجر' : 'Vendor & Boutique Partner Login'}</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsVendorLogin(false)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                fontSize: '0.78rem',
+                                textDecoration: 'underline',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {isRTL ? 'دخول عادي' : 'Standard'}
+                        </button>
+                    </div>
+                )}
 
                 <form className="login-form animate-slide-up" style={{ animationDelay: '0.2s' }} onSubmit={handleSubmit}>
                     {error && (
@@ -366,9 +423,9 @@ const Login = () => {
                         <span>{isRTL ? 'هل أنت صاحب متجر؟' : 'Are you a shop owner?'}</span>
                     </div>
                     <div className="vendor-cta-links">
-                        {user && (user.role === 'vendor' || user.role === 'admin') ? (
+                        {user && (user.role === 'vendor' || user.role === 'admin' || user.role === 'regional_admin' || user.role === 'super_admin' || isVendor || user.shop_id) ? (
                             <Link to="/vendor" className="vendor-link vendor-link-highlight">
-                                {isRTL ? 'لوحة التحكم' : 'Vendor Dashboard'}
+                                {isRTL ? 'لوحة تحكم البائع' : 'Vendor Dashboard'}
                             </Link>
                         ) : (
                             <>

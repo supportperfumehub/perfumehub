@@ -32,9 +32,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
             return 'SA';
         }
         if (role === 'regional_admin' || name.includes('regional admin')) {
-            return 'RA';
+            return (user.shop_id || isVendor || user.is_vendor) ? (isRTL ? 'مدير إقليمي / بائع' : 'RA / Vendor') : 'RA';
         }
-        if (user.shop_id || role === 'vendor' || isVendor || name.includes('vendor')) {
+        if (user.shop_id || role === 'vendor' || isVendor || user.is_vendor || name.includes('vendor')) {
             return isRTL ? 'بائع' : 'Vendor';
         }
         if (role === 'admin') {
@@ -186,7 +186,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
-                                {(isVendor || user?.role === 'regional_admin') && (
+                                {(isVendor || user?.shop_id || user?.is_vendor || user?.role === 'regional_admin') && (
                                     <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <Store size={18} />
                                         <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
@@ -257,7 +257,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                 <Settings size={20} />
                             </Link>
                         )}
-                        {(isVendor || user?.role === 'regional_admin') && (
+                        {(isVendor || user?.shop_id || user?.is_vendor || user?.role === 'regional_admin') && (
                             <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
                                 <Store size={20} />
                             </Link>
