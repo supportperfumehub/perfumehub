@@ -28,10 +28,11 @@ const luxuryAccords = [
     { en: 'Smoky', ar: 'دخاني / بخور' }
 ];
 
-const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions }) => {
+const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
     const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
     const isRegionalAdmin = user?.role === 'regional_admin';
+    const isRegionalAdminTerritoryMode = isRegionalAdmin && !shopId && !isVendorContext;
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isBindingCatalog, setIsBindingCatalog] = useState(false);
@@ -1223,25 +1224,39 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         await updateProduct(product.id, updatedData);
     };
     const handleDelete = (id, productName, product) => {
-        const isLinkedItem = shopId && product && product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(shopId));
-        const targetInventory = isLinkedItem ? product.inventories.find(inv => String(inv.shop_id) === String(shopId)) : null;
+        const targetShopId = shopId || (isVendorContext ? user?.shop_id : null);
+        const isOwner = Boolean(targetShopId && String(product?.shop_id) === String(targetShopId));
+        const isLinkedItem = Boolean(targetShopId && product && product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(targetShopId)));
+        const targetInventory = isLinkedItem ? product.inventories.find(inv => String(inv.shop_id) === String(targetShopId)) : null;
 
         setConfirmModal({
             isOpen: true,
             productId: id,
             productName: productName,
             inventoryId: targetInventory?.id || null,
-            isLinkedItem: !!targetInventory
+            isLinkedItem: !isOwner && (!!targetInventory || Boolean(targetShopId)),
+            isOwner: isOwner
         });
     };
 
     const confirmDelete = async () => {
-        if (confirmModal.inventoryId && shopId) {
-            await deleteInventory(confirmModal.inventoryId);
-            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false });
-        } else if (confirmModal.productId) {
-            await deleteProduct(confirmModal.productId);
-            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false });
+        const targetShopId = shopId || (isVendorContext ? user?.shop_id : null);
+        try {
+            if (confirmModal.inventoryId && targetShopId) {
+                await deleteInventory(confirmModal.inventoryId);
+            } else if (targetShopId && confirmModal.productId) {
+                const targetProd = safeProducts.find(p => p.id === confirmModal.productId);
+                const inv = targetProd?.inventories?.find(i => String(i.shop_id) === String(targetShopId));
+                if (inv?.id) {
+                    await deleteInventory(inv.id);
+                } else {
+                    await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
+                }
+            } else if (confirmModal.productId) {
+                await deleteProduct(confirmModal.productId);
+            }
+        } finally {
+            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false, isOwner: false });
         }
     };
 
@@ -2622,10 +2637,10 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                             <th style={{ minWidth: '150px' }}>{isRTL ? 'المنتج' : 'Product'}</th>
                             <th style={{ minWidth: '100px' }}>{isRTL ? 'الماركة' : 'Brand'}</th>
                             <th style={{ whiteSpace: 'nowrap', minWidth: '130px' }}>
-                                {isRegionalAdmin ? (isRTL ? 'السعر الإقليمي / MSRP' : 'Regional Price / MSRP') : (isRTL ? 'السعر' : 'Price')}
+                                {isRegionalAdminTerritoryMode ? (isRTL ? 'السعر الإقليمي / MSRP' : 'Regional Price / MSRP') : (isRTL ? 'السعر' : 'Price')}
                             </th>
                             <th style={{ whiteSpace: 'nowrap', minWidth: '130px' }}>
-                                {isRegionalAdmin ? (isRTL ? 'مخزون الإقليم' : 'Territory Stock') : (isRTL ? 'المخزون (المتوفر / المحجوز / المتاح)' : 'Stock (On-Hand / Reserved / Available)')}
+                                {isRegionalAdminTerritoryMode ? (isRTL ? 'مخزون الإقليم' : 'Territory Stock') : (isRTL ? 'المخزون (المتوفر / المحجوز / المتاح)' : 'Stock (On-Hand / Reserved / Available)')}
                             </th>
                             <th style={{ whiteSpace: 'nowrap', textAlign: 'center', minWidth: '75px' }}>{isRTL ? 'الحجز' : 'Reserve'}</th>
                             <th style={{ textAlign: 'center', minWidth: '85px' }}>{isRTL ? 'الإجراءات' : 'Actions'}</th>
@@ -2694,11 +2709,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 const displayPrice = shopInventory ? shopInventory.price : product.price;
                                 const displayOldPrice = shopInventory ? null : product.oldPrice;
                                 const displayDiscount = shopInventory ? 0 : product.discount;
-                                const displayStock = isRegionalAdmin ? territoryStock : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
+                                const displayStock = isRegionalAdminTerritoryMode ? territoryStock : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
 
                                 // Price anomaly benchmark comparison for regional governance
                                 let priceAnomaly = null;
-                                if (isRegionalAdmin && masterMsrp > 0 && regionalPrice > 0) {
+                                if (isRegionalAdminTerritoryMode && masterMsrp > 0 && regionalPrice > 0) {
                                     const diffPct = Math.round(((regionalPrice - masterMsrp) / masterMsrp) * 100);
                                     if (diffPct > 20) {
                                         priceAnomaly = { type: 'high', label: `+${diffPct}% vs MSRP`, color: '#f59e0b' };
@@ -2706,7 +2721,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                         priceAnomaly = { type: 'low', label: `${diffPct}% vs MSRP`, color: '#ef4444' };
                                     }
                                 }
-                                const isLowStockInTerritory = isRegionalAdmin && territoryStock < 5;
+                                const isLowStockInTerritory = isRegionalAdminTerritoryMode && territoryStock < 5;
 
                                 return (
                                     <tr key={product.id}>
@@ -2834,7 +2849,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                         </td>
                                         <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
                                             {(() => {
-                                                const totalOnHand = isRegionalAdmin ? territoryStock : (shopInventory ? Number(shopInventory.stock || 0) : (product.stock !== undefined ? Number(product.stock) : 10));
+                                                const totalOnHand = isRegionalAdminTerritoryMode ? territoryStock : (shopInventory ? Number(shopInventory.stock || 0) : (product.stock !== undefined ? Number(product.stock) : 10));
                                                 const reservedCount = shopInventory ? Number(shopInventory.reserved_quantity || 0) : 0;
                                                 const availableToSell = Math.max(0, totalOnHand - reservedCount);
 
@@ -3213,15 +3228,17 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false })}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false, isOwner: false })}
                 onConfirm={confirmDelete}
-                title={isRegionalAdmin 
+                title={isRegionalAdminTerritoryMode 
                     ? (isRTL ? 'إلغاء تفعيل المنتج بالإقليم' : 'DEACTIVATE REGIONAL INVENTORY')
-                    : (confirmModal.isLinkedItem 
-                        ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
-                        : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT'))}
+                    : (confirmModal.isOwner
+                        ? (isRTL ? 'حذف منتج المتجر' : 'DELETE BOUTIQUE PRODUCT')
+                        : (confirmModal.isLinkedItem || shopId || isVendorContext
+                            ? (isRTL ? 'إزالة من المخزون' : 'REMOVE FROM INVENTORY') 
+                            : (isRTL ? 'حذف المنتج' : 'DELETE PRODUCT')))}
                 message={
-                    isRegionalAdmin ? (
+                    isRegionalAdminTerritoryMode ? (
                         <span>
                             {isRTL 
                                 ? 'هل أنت متأكد من إلغاء تفعيل وفك ارتباط ' 
@@ -3233,7 +3250,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 ? ' في كافة متاجر إقليمك الموكل؟ سيتم الحفاظ على الكتالوج الرئيسي ومتاجر الدول الأخرى دون تغيير.' 
                                 : ' across all boutiques in your assigned territory? The global master catalog and other GCC territories will remain preserved.'}
                         </span>
-                    ) : (confirmModal.isLinkedItem ? (
+                    ) : (confirmModal.isOwner ? (
+                        <span>
+                            {isRTL ? 'هل أنت متأكد من حذف المنتج الخاص بمتجرك ' : 'Are you sure you want to delete your boutique product '}
+                            <strong style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-block', margin: '0 4px' }}>
+                                {confirmModal.productName}
+                            </strong>
+                            {isRTL ? '؟ سيتم حذفه من متجرك مع الحفاظ على نسخه للمتاجر الأخرى إن وجدت.' : '? It will be removed from your boutique while preserving copies used by other vendors.'}
+                        </span>
+                    ) : ((confirmModal.isLinkedItem || shopId || isVendorContext) ? (
                         <span>
                             {isRTL ? 'هل أنت متأكد من إزالة ' : 'Are you sure you want to remove '}
                             <strong style={{ color: '#c8a951', background: 'rgba(200, 169, 81, 0.12)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)', display: 'inline-block', margin: '0 4px' }}>
@@ -3249,13 +3274,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                             </strong>
                             {isRTL ? '؟ سيتم إزالته من كافة المتاجر وقواعد البيانات.' : '? This will permanently delete it across the entire platform.'}
                         </span>
-                    ))
+                    )))
                 }
-                confirmText={isRegionalAdmin 
+                confirmText={isRegionalAdminTerritoryMode 
                     ? (isRTL ? 'إلغاء التفعيل بالإقليم' : 'DEACTIVATE IN REGION')
-                    : (confirmModal.isLinkedItem 
-                        ? (isRTL ? 'إزالة' : 'REMOVE') 
-                        : (isRTL ? 'حذف' : 'DELETE'))}
+                    : (confirmModal.isOwner
+                        ? (isRTL ? 'حذف' : 'DELETE')
+                        : ((confirmModal.isLinkedItem || shopId || isVendorContext) 
+                            ? (isRTL ? 'إزالة' : 'REMOVE') 
+                            : (isRTL ? 'حذف' : 'DELETE')))}
                 cancelText={isRTL ? 'إلغاء' : 'CANCEL'}
                 isRTL={isRTL}
                 variant="danger"

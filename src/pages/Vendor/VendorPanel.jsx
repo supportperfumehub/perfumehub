@@ -1329,9 +1329,9 @@ const VendorPanel = () => {
                         </div>
                     )}
 
-                    {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
-                    {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
-                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={selectedShopId === 'all' ? null : selectedShopId} />}
+                    {activeTab === 'products' && <ProductManager isRTL={isRTL} shopId={effectiveShopId} isVendorContext={true} />}
+                    {activeTab === 'orders' && <OrderManager isRTL={isRTL} shopId={effectiveShopId} />}
+                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} shopId={effectiveShopId} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
 
                     {/* ── Financials & Payouts Tab ── */}

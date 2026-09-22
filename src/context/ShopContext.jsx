@@ -448,24 +448,43 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const deleteProduct = async (id) => {
+    const deleteProduct = async (id, options = {}) => {
         if (!id) {
             console.error('deleteProduct called without ID');
-            return;
+            return false;
         }
+
+        const shopIdParam = options?.shop_id || (typeof options === 'string' ? options : null);
+        const url = shopIdParam ? `/products/${id}?shop_id=${encodeURIComponent(shopIdParam)}` : `/products/${id}`;
 
         // Optimistic update
         const previousProducts = [...products];
-        setProducts(prevProducts => prevProducts.filter(p => p.id.toString() !== id.toString()));
+        if (shopIdParam) {
+            setProducts(prevProducts => prevProducts.map(p => {
+                if (p.id.toString() === id.toString()) {
+                    const updatedInvs = (p.inventories || []).filter(inv => String(inv.shop_id) !== String(shopIdParam));
+                    const isOwn = String(p.shop_id) === String(shopIdParam);
+                    if (isOwn && updatedInvs.length === 0) return null;
+                    return { ...p, shop_id: isOwn ? null : p.shop_id, inventories: updatedInvs };
+                }
+                return p;
+            }).filter(Boolean));
+        } else {
+            setProducts(prevProducts => prevProducts.filter(p => p.id.toString() !== id.toString()));
+        }
 
         try {
-            await api.delete(`/products/${id}`);
-            showToast('Product archived successfully', 'success');
+            const res = await api.delete(url);
+            const msg = res.data?.message || (shopIdParam ? 'Product removed from boutique inventory' : 'Product archived successfully');
+            showToast(msg, 'success');
+            await fetchProducts();
             await fetchBackups();
+            return true;
         } catch (error) {
             setProducts(previousProducts);
             showToast('Failed to delete: ' + (error.response?.data?.error || error.message), 'error');
             console.error('Delete error:', error);
+            return false;
         }
     };
 

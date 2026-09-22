@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 24));
         const offset = (page - 1) * limit;
 
-        const catalogFields = 'id, name, brand, type, size, price, old_price, discount, is_new, is_featured, image, category, gender, notes, stock, top_notes, middle_notes, base_notes, created_at';
+        const catalogFields = 'id, name, brand, type, size, price, old_price, discount, is_new, is_featured, image, category, gender, notes, stock, top_notes, middle_notes, base_notes, created_at, shop_id, sku, description, attributes';
 
         let query = supabase
             .from('products')
@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
             query = query.is('deleted_at', null);
         }
 
-        // Apply filters
+        // Filters
         if (req.query.gender) {
             const g = req.query.gender.toLowerCase();
             if (g === 'men' || g === 'women') {
@@ -94,19 +94,34 @@ router.get('/', async (req, res) => {
         const { data, count, error } = await withTimeout(query);
         if (error) throw error;
 
-        // Fetch active boutique inventories for these products to attach authentic vendor attribution
+        // Fetch boutique inventories for these products to attach authentic vendor attribution & inventory arrays
         const productIds = (data || []).map(p => p.id);
         const inventoryMap = {};
+        const allInventoriesMap = {};
         if (productIds.length > 0) {
             try {
                 const { data: invRows } = await supabase
                     .from('vendor_inventory')
-                    .select('product_id, shop_id, price, stock, shops(id, name, address)')
-                    .in('product_id', productIds)
-                    .eq('is_active', true)
-                    .gt('stock', 0);
+                    .select('id, product_id, shop_id, price, stock, reserved_quantity, is_active, pickup_available, updated_at, shops(id, name, address)')
+                    .in('product_id', productIds);
+
                 (invRows || []).forEach(row => {
-                    if (!inventoryMap[row.product_id]) {
+                    if (!allInventoriesMap[row.product_id]) {
+                        allInventoriesMap[row.product_id] = [];
+                    }
+                    allInventoriesMap[row.product_id].push({
+                        id: row.id,
+                        shop_id: row.shop_id,
+                        price: Number(row.price),
+                        stock: Number(row.stock),
+                        reserved_quantity: Number(row.reserved_quantity || 0),
+                        is_active: row.is_active !== false,
+                        pickup_available: row.pickup_available !== false,
+                        shop_name: row.shops?.name,
+                        shop_address: row.shops?.address
+                    });
+
+                    if (row.is_active && Number(row.stock) > 0 && !inventoryMap[row.product_id]) {
                         inventoryMap[row.product_id] = {
                             shop_id: row.shop_id,
                             vendor_name: row.shops?.name || 'PerfumeHub Boutique',
@@ -120,7 +135,7 @@ router.get('/', async (req, res) => {
             }
         }
 
-        // Lightweight Card DTO mapping with live vendor attribution
+        // Lightweight Card DTO mapping with live vendor attribution and full inventories collection
         const productsList = (data || []).map(p => {
             const inv = inventoryMap[p.id];
             return {
@@ -146,10 +161,14 @@ router.get('/', async (req, res) => {
                 baseNotes: p.base_notes || '',
                 rating_avg: p.rating_avg !== undefined ? Number(p.rating_avg) : 4.8,
                 review_count: p.review_count !== undefined ? Number(p.review_count) : 12,
-                stock: inv ? inv.stock : (p.stock !== undefined ? Number(p.stock) : 10),
-                shop_id: inv?.shop_id || null,
+                stock: p.stock !== undefined ? Number(p.stock) : (inv ? inv.stock : 10),
+                shop_id: p.shop_id || inv?.shop_id || null,
                 vendor_name: inv?.vendor_name || null,
-                vendor_address: inv?.vendor_address || null
+                vendor_address: inv?.vendor_address || null,
+                sku: p.sku || null,
+                description: p.description || null,
+                attributes: p.attributes || {},
+                inventories: allInventoriesMap[p.id] || []
             };
         });
 
@@ -192,6 +211,30 @@ router.get('/:id', async (req, res) => {
             if (error.code === 'PGRST116') return res.status(404).json({ error: 'Product not found' });
             throw error;
         }
+
+        // Attach boutique inventories for this product
+        try {
+            const { data: invRows } = await supabase
+                .from('vendor_inventory')
+                .select('id, product_id, shop_id, price, stock, reserved_quantity, is_active, pickup_available, updated_at, shops(id, name, address)')
+                .eq('product_id', req.params.id);
+
+            data.inventories = (invRows || []).map(row => ({
+                id: row.id,
+                shop_id: row.shop_id,
+                price: Number(row.price),
+                stock: Number(row.stock),
+                reserved_quantity: Number(row.reserved_quantity || 0),
+                is_active: row.is_active !== false,
+                pickup_available: row.pickup_available !== false,
+                shop_name: row.shops?.name,
+                shop_address: row.shops?.address
+            }));
+        } catch (invErr) {
+            console.warn('Inventory fetch warning for single product:', invErr.message);
+            data.inventories = [];
+        }
+
         res.json(data);
     } catch (error) {
         console.error('Error fetching product:', error);
@@ -246,6 +289,11 @@ router.post('/',
             });
         }
 
+        // Determine target boutique shop_id
+        const targetShopId = (shop_id && shop_id !== 'core' && shop_id !== 'all' && shop_id !== 'own')
+            ? shop_id
+            : (req.user?.shop_id || req.user?.ownedShopIds?.[0] || null);
+
         const { data, error } = await supabase
             .from('products')
             .insert([{
@@ -261,18 +309,15 @@ router.post('/',
                 reason: reason || null, seasons: seasons || [],
                 top_notes: topNotes || null, middle_notes: middleNotes || null,
                 base_notes: baseNotes || null,
-                attributes: attributes || {}
+                attributes: attributes || {},
+                shop_id: targetShopId
             }])
             .select();
 
         if (error) throw error;
         const newProduct = data[0];
 
-        // If target shop_id provided or user is vendor/regional_admin with assigned shop, auto-bind inventory
-        const targetShopId = shop_id && shop_id !== 'core' && shop_id !== 'all' && shop_id !== 'own'
-            ? shop_id
-            : (req.user?.role === 'vendor' ? (req.user.shop_id || req.user.ownedShopIds?.[0]) : null);
-
+        // If target boutique provided or user is vendor/regional_admin with assigned shop, auto-bind inventory
         if (targetShopId && newProduct?.id) {
             try {
                 await supabase.from('vendor_inventory').upsert([{
@@ -311,86 +356,114 @@ router.post('/',
 });
 
 // Update product (Global Catalog & Regional Boutique Management)
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin']), async (req, res) => {
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
     const { 
         name, brand, type, size, isNew, isFeatured,
         image, category, gender, description, sku,
         notes, vibes, occasions, reason, seasons,
         topNotes, middleNotes, baseNotes, attributes,
-        price, oldPrice, discount, stock
+        price, oldPrice, discount, stock, shop_id, pickup_available
     } = req.body;
 
     try {
-        // Fetch existing product to know current images for sync/cleanup
-        const { data: existingProd } = await supabase.from('products').select('image').eq('id', id).single();
-        let existingImages = [];
-        if (Array.isArray(existingProd?.image)) existingImages = existingProd.image;
-        else if (existingProd?.image) existingImages = [existingProd.image];
+        // Fetch existing product to know current data and owner
+        const { data: existingProd, error: fetchError } = await supabase.from('products').select('*').eq('id', id).single();
+        if (fetchError || !existingProd) return res.status(404).json({ error: 'Product not found' });
 
-        let imageUrls = image;
-        if (image !== undefined) {
-            const newImageArr = Array.isArray(image) ? image : (image ? [image] : []);
-            const synced = await syncImagesStorage(existingImages, newImageArr, name || 'product', 'products');
-            imageUrls = Array.isArray(image) ? synced : (synced[0] || null);
+        const targetShopId = (shop_id && shop_id !== 'core' && shop_id !== 'all' && shop_id !== 'own')
+            ? shop_id
+            : (req.user?.role === 'vendor' ? (req.user.shop_id || req.user.ownedShopIds?.[0]) : null);
+
+        // If operating in a boutique context, sync price/stock/pickup with vendor_inventory
+        if (targetShopId) {
+            const invPayload = {
+                product_id: Number(id),
+                shop_id: targetShopId,
+                updated_at: new Date().toISOString()
+            };
+            if (price !== undefined) invPayload.price = Number(price);
+            if (stock !== undefined) invPayload.stock = Number(stock);
+            if (pickup_available !== undefined) invPayload.pickup_available = pickup_available;
+
+            await supabase
+                .from('vendor_inventory')
+                .upsert([invPayload], { onConflict: 'product_id, shop_id' });
         }
 
-        const updatePayload = {
-            name, brand, type, size,
-            is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
-            description, sku: sku || null,
-            notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
-            reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
-            top_notes: topNotes !== undefined ? topNotes : undefined,
-            middle_notes: middleNotes !== undefined ? middleNotes : undefined,
-            base_notes: baseNotes !== undefined ? baseNotes : undefined,
-            attributes: attributes !== undefined ? attributes : undefined
-        };
+        // Allow updating master product if user is admin/super_admin OR owns this master product
+        const isMasterOwner = existingProd.shop_id && targetShopId && String(existingProd.shop_id) === String(targetShopId);
+        const canUpdateMaster = req.user.role === 'super_admin' || req.user.role === 'admin' || isMasterOwner || (!targetShopId && req.user.role === 'regional_admin');
 
-        if (price !== undefined) updatePayload.price = Number(price);
-        if (oldPrice !== undefined) updatePayload.old_price = oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;
+        if (canUpdateMaster) {
+            let existingImages = [];
+            if (Array.isArray(existingProd?.image)) existingImages = existingProd.image;
+            else if (existingProd?.image) existingImages = [existingProd.image];
 
-        // Auto-calculate discount percentage whenever price or oldPrice changes
-        if (updatePayload.price !== undefined || updatePayload.old_price !== undefined) {
-            const finalP = updatePayload.price !== undefined ? updatePayload.price : Number(req.body.price || 0);
-            const finalOldP = updatePayload.old_price !== undefined ? updatePayload.old_price : (req.body.oldPrice ? Number(req.body.oldPrice) : null);
-            
-            if (finalOldP && Number(finalOldP) > Number(finalP)) {
-                updatePayload.discount = Math.round((1 - Number(finalP) / Number(finalOldP)) * 100);
-            } else {
-                updatePayload.old_price = null;
-                updatePayload.discount = 0;
+            let imageUrls = image;
+            if (image !== undefined) {
+                const newImageArr = Array.isArray(image) ? image : (image ? [image] : []);
+                const synced = await syncImagesStorage(existingImages, newImageArr, name || 'product', 'products');
+                imageUrls = Array.isArray(image) ? synced : (synced[0] || null);
             }
 
-            // Synchronize size variant price if size exists
-            if (Array.isArray(updatePayload.size) && updatePayload.size.length > 0) {
-                updatePayload.size = updatePayload.size.map((sz, idx) => {
-                    if (idx === 0 || updatePayload.size.length === 1) {
-                        return typeof sz === 'object'
-                            ? { ...sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount }
-                            : { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
-                    }
-                    return sz;
-                });
+            const updatePayload = {
+                name, brand, type, size,
+                is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
+                description, sku: sku || null,
+                notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
+                reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
+                top_notes: topNotes !== undefined ? topNotes : undefined,
+                middle_notes: middleNotes !== undefined ? middleNotes : undefined,
+                base_notes: baseNotes !== undefined ? baseNotes : undefined,
+                attributes: attributes !== undefined ? attributes : undefined
+            };
+
+            if (price !== undefined) updatePayload.price = Number(price);
+            if (oldPrice !== undefined) updatePayload.old_price = oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;
+
+            // Auto-calculate discount percentage whenever price or oldPrice changes
+            if (updatePayload.price !== undefined || updatePayload.old_price !== undefined) {
+                const finalP = updatePayload.price !== undefined ? updatePayload.price : Number(req.body.price || 0);
+                const finalOldP = updatePayload.old_price !== undefined ? updatePayload.old_price : (req.body.oldPrice ? Number(req.body.oldPrice) : null);
+                
+                if (finalOldP && Number(finalOldP) > Number(finalP)) {
+                    updatePayload.discount = Math.round((1 - Number(finalP) / Number(finalOldP)) * 100);
+                } else {
+                    updatePayload.old_price = null;
+                    updatePayload.discount = 0;
+                }
+
+                // Synchronize size variant price if size exists
+                if (Array.isArray(updatePayload.size) && updatePayload.size.length > 0) {
+                    updatePayload.size = updatePayload.size.map((sz, idx) => {
+                        if (idx === 0 || updatePayload.size.length === 1) {
+                            return typeof sz === 'object'
+                                ? { ...sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount }
+                                : { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
+                        }
+                        return sz;
+                    });
+                }
+            } else if (discount !== undefined) {
+                updatePayload.discount = Number(discount);
             }
-        } else if (discount !== undefined) {
-            updatePayload.discount = Number(discount);
+            if (stock !== undefined) updatePayload.stock = Number(stock);
+
+            Object.keys(updatePayload).forEach(key => {
+                if (updatePayload[key] === undefined) {
+                    delete updatePayload[key];
+                }
+            });
+
+            const { error } = await supabase
+                .from('products')
+                .update(updatePayload)
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
         }
-        if (stock !== undefined) updatePayload.stock = Number(stock);
-
-        Object.keys(updatePayload).forEach(key => {
-            if (updatePayload[key] === undefined) {
-                delete updatePayload[key];
-            }
-        });
-
-        const { error } = await supabase
-            .from('products')
-            .update(updatePayload)
-            .eq('id', id)
-            .select();
-
-        if (error) throw error;
 
         // Audit logging
         logAdminAudit({
@@ -400,18 +473,18 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'region
             action: 'update_product',
             targetEntity: 'products',
             targetId: String(id),
-            details: { updatedFields: Object.keys(updatePayload) }
+            details: { boutique_sync: !!targetShopId }
         }).catch(e => console.error('Audit log warning:', e.message));
 
-        res.json({ message: 'Global product updated successfully' });
+        res.json({ message: 'Product updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Delete product (Soft Delete / Archive - Super Admin Exclusive Authority & Regional Unbind)
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin']), async (req, res) => {
+// Delete product (Soft Delete / Archive - Super Admin, Regional Territory Governance & Boutique Inventory Removal)
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -423,8 +496,88 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'reg
 
         if (fetchError || !product) return res.status(404).json({ error: 'Product not found' });
 
-        // If invoked by Regional Admin: strictly unbind/deactivate from regional boutique inventory ONLY
-        // Preserve the master catalog and storage assets for other GCC territories
+        // Determine if this is a boutique-scoped removal
+        const targetShopId = req.query.shop_id || req.body?.shop_id || (req.user.role === 'vendor' ? (req.user.shop_id || req.user.ownedShopIds?.[0]) : null);
+
+        if (targetShopId) {
+            // Check authorization for target boutique
+            if (req.user.role === 'vendor') {
+                const owned = req.user.ownedShopIds || (req.user.shop_id ? [req.user.shop_id] : []);
+                if (!owned.includes(targetShopId)) {
+                    return res.status(403).json({ error: 'Forbidden: You do not own this boutique.' });
+                }
+            } else if (req.user.role === 'regional_admin') {
+                const owned = req.user.ownedShopIds || (req.user.shop_id ? [req.user.shop_id] : []);
+                const isOwnShop = owned.includes(targetShopId);
+                if (!isOwnShop) {
+                    const { data: shop } = await supabase.from('shops').select('region_id').eq('id', targetShopId).single();
+                    if (!shop || !(req.user.assignedRegionIds || []).includes(shop.region_id)) {
+                        return res.status(403).json({ error: 'Access Denied: You do not have authority over this boutique.' });
+                    }
+                }
+            }
+
+            // 1. Delete this boutique's record from vendor_inventory
+            await supabase
+                .from('vendor_inventory')
+                .delete()
+                .eq('product_id', id)
+                .eq('shop_id', targetShopId);
+
+            // 2. Manage master catalog product ownership
+            if (String(product.shop_id) === String(targetShopId)) {
+                // Check if any other boutique has inventory for this product
+                const { data: otherBindings } = await supabase
+                    .from('vendor_inventory')
+                    .select('id, shop_id')
+                    .eq('product_id', id)
+                    .neq('shop_id', targetShopId);
+
+                if (otherBindings && otherBindings.length > 0) {
+                    // Other shops are using this product: keep master row, unbind from this boutique
+                    await supabase
+                        .from('products')
+                        .update({ shop_id: null })
+                        .eq('id', id);
+                } else {
+                    // No other shops use it: backup and remove product completely
+                    await supabase
+                        .from('backups')
+                        .insert([{
+                            table_name: 'products',
+                            record_id: id.toString(),
+                            data: product,
+                            deleted_at: new Date().toISOString()
+                        }]);
+
+                    const hasDeletedCol = await checkDeletedAtColumn();
+                    if (hasDeletedCol) {
+                        await supabase.from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+                    } else {
+                        await supabase.from('products').delete().eq('id', id);
+                    }
+                }
+            }
+
+            logAdminAudit({
+                actorId: req.user?.id,
+                actorEmail: req.user?.email,
+                actorRole: req.user?.role,
+                action: 'delete_boutique_inventory',
+                targetEntity: 'vendor_inventory',
+                targetId: String(id),
+                details: { shop_id: targetShopId, product_name: product.name }
+            }).catch(e => console.error('Audit log warning:', e.message));
+
+            return res.json({ 
+                success: true, 
+                action: 'boutique_removed',
+                message: 'Product removed from boutique inventory successfully.' 
+            });
+        }
+
+        // If invoked by Regional Admin without boutique context (Territory Catalog Governance in /admin):
+        // strictly unbind/deactivate from regional boutique inventory across the territory
         if (req.user.role === 'regional_admin') {
             const assignedRegionIds = req.user.assignedRegionIds || [];
             if (assignedRegionIds.length === 0) {

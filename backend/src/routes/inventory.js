@@ -304,17 +304,46 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
 
         if (error) throw error;
 
-        // Recalculate total master stock
+        // Recalculate total master stock and manage catalog ownership
         if (existingInv.product_id) {
             try {
                 const { data: allActiveInvs } = await supabase
                     .from('vendor_inventory')
-                    .select('stock')
+                    .select('id, stock')
                     .eq('product_id', existingInv.product_id)
                     .eq('is_active', true);
 
-                const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
-                await supabase.from('products').update({ stock: totalMasterStock }).eq('id', existingInv.product_id);
+                const { data: prodData } = await supabase
+                    .from('products')
+                    .select('id, shop_id, name, brand')
+                    .eq('id', existingInv.product_id)
+                    .single();
+
+                if (prodData && String(prodData.shop_id) === String(existingInv.shop_id)) {
+                    if (!allActiveInvs || allActiveInvs.length === 0) {
+                        // Nobody else is using it: soft-delete or remove from products
+                        await supabase
+                            .from('backups')
+                            .insert([{
+                                table_name: 'products',
+                                record_id: String(existingInv.product_id),
+                                data: prodData,
+                                deleted_at: new Date().toISOString()
+                            }]);
+
+                        try {
+                            await supabase.from('products').update({ deleted_at: new Date().toISOString(), stock: 0 }).eq('id', existingInv.product_id);
+                        } catch (_) {
+                            await supabase.from('products').delete().eq('id', existingInv.product_id);
+                        }
+                    } else {
+                        // Other shops still use it: unbind boutique ownership so it persists as shared catalog item
+                        await supabase.from('products').update({ shop_id: null }).eq('id', existingInv.product_id);
+                    }
+                } else {
+                    const totalMasterStock = (allActiveInvs || []).reduce((acc, row) => acc + (Number(row.stock) || 0), 0);
+                    await supabase.from('products').update({ stock: totalMasterStock }).eq('id', existingInv.product_id);
+                }
             } catch (calcErr) {
                 console.error('Master stock recalculation error:', calcErr.message);
             }
