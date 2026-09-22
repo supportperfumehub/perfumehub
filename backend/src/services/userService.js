@@ -1,5 +1,6 @@
 import { AppError } from '../middleware/errorHandler.js';
 import { uploadImageToStorage } from '../utils/storageUtils.js';
+import { supabase } from '../config/supabaseClient.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -13,7 +14,9 @@ export class UserService {
             const avatarFile = path.join(process.cwd(), 'backend', 'data', 'avatars', `${id}.json`);
             if (fs.existsSync(avatarFile)) {
                 const data = JSON.parse(fs.readFileSync(avatarFile, 'utf8'));
-                return data?.avatar_url || null;
+                if (data?.avatar_url !== undefined) {
+                    return data.avatar_url || null;
+                }
             }
         } catch (e) {
             // Ignore error
@@ -28,9 +31,20 @@ export class UserService {
                 fs.mkdirSync(avatarsDir, { recursive: true });
             }
             const avatarFile = path.join(avatarsDir, `${id}.json`);
-            fs.writeFileSync(avatarFile, JSON.stringify({ avatar_url: avatarUrl, updated_at: new Date().toISOString() }), 'utf8');
+            fs.writeFileSync(avatarFile, JSON.stringify({ avatar_url: avatarUrl || '', updated_at: new Date().toISOString() }), 'utf8');
         } catch (e) {
-            console.warn('[UserService] Could not write avatar fallback:', e.message);
+            console.warn('[UserService] Could not write avatar fallback file:', e.message);
+        }
+
+        // Dual persistence in Supabase backups table
+        try {
+            supabase.from('backups').upsert({
+                table_name: 'user_avatars',
+                record_id: id.toString(),
+                data: { avatar_url: avatarUrl || '', updated_at: new Date().toISOString() }
+            }, { onConflict: 'table_name,record_id' }).catch(() => {});
+        } catch (e) {
+            // Ignore background error
         }
     }
 
@@ -80,8 +94,12 @@ export class UserService {
             }
             return safeUser;
         } catch (err) {
-            // If avatar_url column does not exist yet in Supabase schema cache
-            if (err?.code === '42703' && updates.avatar_url !== undefined) {
+            // If avatar_url column does not exist yet in Supabase schema cache (Postgres 42703 or PostgREST PGRST204)
+            const isAvatarColumnMissing = err?.code === '42703' || 
+                                          err?.code === 'PGRST204' || 
+                                          (err?.message && typeof err.message === 'string' && err.message.toLowerCase().includes('avatar_url'));
+
+            if (isAvatarColumnMissing && updates.avatar_url !== undefined) {
                 console.warn('[UserService] avatar_url not in DB schema cache, saving with dual persistence fallback');
                 const cleanUpdates = { ...updates };
                 delete cleanUpdates.avatar_url;

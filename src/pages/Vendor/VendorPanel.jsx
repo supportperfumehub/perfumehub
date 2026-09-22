@@ -492,15 +492,22 @@ const VendorPanel = () => {
         setShopData({ ...shopData, images: updatedImages });
     };
 
+    const [isUploadingShopLogo, setIsUploadingShopLogo] = useState(false);
+
     const handleLogoUpload = (e) => {
-        try {
-            const file = e.target.files?.[0];
-            if (!file) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-            const objectUrl = URL.createObjectURL(file);
+        if (file.size > 5 * 1024 * 1024) {
+            showToast(isRTL ? 'حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)' : 'Image is too large (max 5MB)', 'error');
+            return;
+        }
+
+        setIsUploadingShopLogo(true);
+        const reader = new FileReader();
+        reader.onload = () => {
             const img = new window.Image();
-
-            img.onload = () => {
+            img.onload = async () => {
                 try {
                     const canvas = document.createElement('canvas');
                     const MAX_SIZE = 800;
@@ -509,12 +516,12 @@ const VendorPanel = () => {
 
                     if (width > height) {
                         if (width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
+                            height = Math.round((height * MAX_SIZE) / width);
                             width = MAX_SIZE;
                         }
                     } else {
                         if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
+                            width = Math.round((width * MAX_SIZE) / height);
                             height = MAX_SIZE;
                         }
                     }
@@ -524,27 +531,74 @@ const VendorPanel = () => {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                    setShopData(prev => ({ 
-                        ...prev, 
-                        logo_url: compressedBase64,
-                        images: [compressedBase64]
-                    }));
-                    URL.revokeObjectURL(objectUrl);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+                    if (effectiveShopId) {
+                        const res = await api.put(`/shops/${effectiveShopId}`, { 
+                            logo_url: compressedBase64,
+                            images: [compressedBase64]
+                        });
+                        const updatedLogo = res.data?.shop?.logo_url || compressedBase64;
+                        const updatedImages = res.data?.shop?.images || [compressedBase64];
+
+                        setShopData(prev => ({ 
+                            ...prev, 
+                            ...res.data?.shop,
+                            logo_url: updatedLogo,
+                            images: updatedImages
+                        }));
+
+                        setMyShops(prev => prev.map(s => String(s.id) === String(effectiveShopId) ? { ...s, logo_url: updatedLogo, images: updatedImages } : s));
+
+                        showToast(isRTL ? 'تم حفظ وتحديث شعار المتجر بنجاح!' : 'Boutique logo updated and saved successfully!', 'success');
+                    } else {
+                        setShopData(prev => ({ 
+                            ...prev, 
+                            logo_url: compressedBase64,
+                            images: [compressedBase64]
+                        }));
+                        showToast(isRTL ? 'تم تحديد الشعار مؤقتاً' : 'Logo selected', 'info');
+                    }
                 } catch (err) {
-                    console.error(err);
-                    URL.revokeObjectURL(objectUrl);
+                    console.error('Failed to update boutique logo:', err);
+                    const errMsg = err.response?.data?.error || (isRTL ? 'فشل تحديث شعار المتجر' : 'Failed to update boutique logo');
+                    showToast(errMsg, 'error');
+                } finally {
+                    setIsUploadingShopLogo(false);
+                    e.target.value = '';
                 }
             };
-            img.src = objectUrl;
-            e.target.value = '';
-        } catch (err) {
-            console.error(err);
-        }
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
     };
 
-    const removeLogo = () => {
-        setShopData(prev => ({ ...prev, logo_url: '', images: [] }));
+    const removeLogo = async () => {
+        if (!window.confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف شعار المتجر؟' : 'Are you sure you want to remove the boutique logo?')) return;
+        setIsUploadingShopLogo(true);
+        try {
+            if (effectiveShopId) {
+                const res = await api.put(`/shops/${effectiveShopId}`, { 
+                    logo_url: '',
+                    images: []
+                });
+                setShopData(prev => ({ 
+                    ...prev, 
+                    ...res.data?.shop,
+                    logo_url: '',
+                    images: []
+                }));
+                setMyShops(prev => prev.map(s => String(s.id) === String(effectiveShopId) ? { ...s, logo_url: '', images: [] } : s));
+                showToast(isRTL ? 'تم حذف شعار المتجر' : 'Boutique logo removed', 'info');
+            } else {
+                setShopData(prev => ({ ...prev, logo_url: '', images: [] }));
+            }
+        } catch (err) {
+            console.error('Failed to remove boutique logo:', err);
+            showToast(isRTL ? 'فشل حذف الشعار' : 'Failed to remove logo', 'error');
+        } finally {
+            setIsUploadingShopLogo(false);
+        }
     };
 
     // User Avatar Management Helpers
@@ -565,6 +619,11 @@ const VendorPanel = () => {
 
         if (file.size > 5 * 1024 * 1024) {
             showToast(isRTL ? 'حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)' : 'Image is too large (max 5MB)', 'error');
+            return;
+        }
+
+        if (!user?.id) {
+            showToast(isRTL ? 'جلسة المستخدم غير صالحة' : 'User session invalid', 'error');
             return;
         }
 
@@ -603,7 +662,8 @@ const VendorPanel = () => {
                     showToast(isRTL ? 'تم تحديث صورتك الشخصية بنجاح!' : 'Personal profile photo updated successfully!', 'success');
                 } catch (err) {
                     console.error('Failed to update avatar:', err);
-                    showToast(isRTL ? 'فشل تحديث الصورة الشخصية' : 'Failed to update profile photo', 'error');
+                    const msg = err.response?.data?.error || (isRTL ? 'فشل تحديث الصورة الشخصية' : 'Failed to update profile photo');
+                    showToast(msg, 'error');
                 } finally {
                     setIsUploadingUserAvatar(false);
                     e.target.value = '';
@@ -616,6 +676,7 @@ const VendorPanel = () => {
 
     const handleRemoveUserAvatar = async () => {
         if (!window.confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف صورتك الشخصية؟' : 'Are you sure you want to remove your personal profile photo?')) return;
+        if (!user?.id) return;
         setIsUploadingUserAvatar(true);
         try {
             await api.put(`/users/${user.id}`, { avatar_url: '' });
@@ -1836,9 +1897,14 @@ const VendorPanel = () => {
                                                                 <label 
                                                                     htmlFor="vendor-logo-file-input" 
                                                                     className="btn-logo-upload"
+                                                                    style={{ opacity: isUploadingShopLogo ? 0.7 : 1, cursor: isUploadingShopLogo ? 'wait' : 'pointer' }}
                                                                 >
-                                                                    <Upload size={14} />
-                                                                    <span>{currentLogo ? (isRTL ? 'تغيير الشعار' : 'Change Logo') : (isRTL ? 'رفع الشعار' : 'Upload Logo')}</span>
+                                                                    {isUploadingShopLogo ? <RefreshCw size={14} className="spin-animation" /> : <Upload size={14} />}
+                                                                    <span>
+                                                                        {isUploadingShopLogo
+                                                                            ? (isRTL ? 'جاري الحفظ...' : 'Uploading & Saving...')
+                                                                            : (currentLogo ? (isRTL ? 'تغيير الشعار' : 'Change Logo') : (isRTL ? 'رفع الشعار' : 'Upload Logo'))}
+                                                                    </span>
                                                                 </label>
                                                                 <input 
                                                                     type="file" 
@@ -1846,12 +1912,14 @@ const VendorPanel = () => {
                                                                     accept="image/*" 
                                                                     style={{ display: 'none' }} 
                                                                     onChange={handleLogoUpload} 
+                                                                    disabled={isUploadingShopLogo}
                                                                 />
                                                                 {currentLogo && (
                                                                     <button 
                                                                         type="button" 
                                                                         className="btn-logo-remove" 
                                                                         onClick={removeLogo}
+                                                                        disabled={isUploadingShopLogo}
                                                                     >
                                                                         <Trash2 size={14} />
                                                                         <span>{isRTL ? 'حذف' : 'Remove'}</span>
@@ -2682,12 +2750,13 @@ const VendorPanel = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.6)'
+                                            cursor: isUploadingShopLogo ? 'wait' : 'pointer',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                                            opacity: isUploadingShopLogo ? 0.7 : 1
                                         }}
                                         title={isRTL ? 'تغيير الشعار' : 'Change Logo'}
                                     >
-                                        <Camera size={16} />
+                                        {isUploadingShopLogo ? <RefreshCw size={14} className="spin-animation" /> : <Camera size={16} />}
                                     </label>
                                     <input
                                         type="file"
@@ -2695,6 +2764,7 @@ const VendorPanel = () => {
                                         accept="image/*"
                                         style={{ display: 'none' }}
                                         onChange={handleLogoUpload}
+                                        disabled={isUploadingShopLogo}
                                     />
                                 </div>
 
@@ -2722,12 +2792,15 @@ const VendorPanel = () => {
                                             color: '#000',
                                             fontWeight: '700',
                                             fontSize: '0.88rem',
-                                            cursor: 'pointer'
+                                            cursor: isUploadingShopLogo ? 'wait' : 'pointer',
+                                            opacity: isUploadingShopLogo ? 0.7 : 1
                                         }}
                                     >
-                                        <Upload size={16} />
+                                        {isUploadingShopLogo ? <RefreshCw size={16} className="spin-animation" /> : <Upload size={16} />}
                                         <span>
-                                            {shopData?.logo_url ? (isRTL ? 'تغيير الشعار' : 'Upload New Logo') : (isRTL ? 'رفع شعار الفرع' : 'Upload Logo')}
+                                            {isUploadingShopLogo 
+                                                ? (isRTL ? 'جاري الحفظ...' : 'Uploading & Saving...') 
+                                                : (shopData?.logo_url ? (isRTL ? 'تغيير الشعار' : 'Upload New Logo') : (isRTL ? 'رفع شعار الفرع' : 'Upload Logo'))}
                                         </span>
                                     </label>
 
@@ -2735,6 +2808,7 @@ const VendorPanel = () => {
                                         <button
                                             type="button"
                                             onClick={removeLogo}
+                                            disabled={isUploadingShopLogo}
                                             style={{
                                                 padding: '10px 16px',
                                                 background: 'rgba(239, 68, 68, 0.15)',
@@ -2743,10 +2817,11 @@ const VendorPanel = () => {
                                                 color: '#f87171',
                                                 fontWeight: '600',
                                                 fontSize: '0.88rem',
-                                                cursor: 'pointer',
+                                                cursor: isUploadingShopLogo ? 'wait' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                gap: '6px'
+                                                gap: '6px',
+                                                opacity: isUploadingShopLogo ? 0.6 : 1
                                             }}
                                         >
                                             <Trash2 size={16} />

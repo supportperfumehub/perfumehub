@@ -214,18 +214,23 @@ export class ShopService {
         if (user.email === 'supportperfumehub@gmail.com' || user.role === 'super_admin' || user.role === 'admin') {
             return; // Super Admin has global clearance
         }
-        if (user.role === 'vendor') {
-            const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
-            if (!owned.includes(shop.id) && shop.owner_id !== user.id) {
-                throw new AppError('Forbidden: You do not own this boutique branch.', 403);
-            }
+
+        // Direct Shop Ownership: Any user who owns this shop can manage their boutique branch
+        const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
+        const isOwner = shop.owner_id === user.id || owned.includes(shop.id) || user.shop_id === shop.id;
+        if (isOwner) {
             return;
         }
+
+        if (user.role === 'vendor') {
+            throw new AppError('Forbidden: You do not own this boutique branch.', 403);
+        }
+
         if (allowRegional && user.role === 'regional_admin') {
-            if (!user.assignedRegionIds?.includes(shop.region_id)) {
-                throw new AppError('Access Denied: You do not have administrative authority over this geographic territory.', 403);
+            if (user.assignedRegionIds?.includes(shop.region_id)) {
+                return;
             }
-            return;
+            throw new AppError('Access Denied: You do not have administrative authority over this geographic territory.', 403);
         }
         throw new AppError('Forbidden: Insufficient privileges', 403);
     }
