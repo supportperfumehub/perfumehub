@@ -14,12 +14,22 @@ export const authService = {
     },
     logout: async () => {
         try {
-            await api.post('/auth/logout');
+            const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
+            await api.post('/auth/logout', { refreshToken: backupToken }).catch(() => {});
         } finally {
             setAccessToken(null);
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('perfumehub_token');
                 localStorage.removeItem('perfumehub_refresh_token');
+                localStorage.removeItem('perfumehub_user');
+                localStorage.removeItem('perfumehub_isAdmin');
+                localStorage.removeItem('perfumehub_isVendor');
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') && key.includes('-auth-token')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                window.dispatchEvent(new Event('auth-logout'));
             }
         }
     },

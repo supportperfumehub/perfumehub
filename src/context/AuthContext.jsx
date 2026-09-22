@@ -41,9 +41,6 @@ export const AuthProvider = ({ children }) => {
     });
 
     /**
-     * Initialize Auth (Silent Refresh)
-     */
-    /**
      * Helper to apply backend user & token state
      */
     const applyBackendAuth = useCallback((data) => {
@@ -66,16 +63,57 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     /**
-     * Initialize Auth (Check Supabase OAuth session first, then Silent Refresh)
+     * Purge all local client tokens, Supabase sessions, and auth storage
+     */
+    const clearAllClientAuth = useCallback(async () => {
+        try {
+            if (supabase?.auth?.signOut) {
+                await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+            }
+        } catch (_) {}
+
+        setAccessToken(null);
+        setUser(null);
+        setIsAdmin(false);
+        setIsVendor(false);
+        setRequires2FA(false);
+        setPendingUserId(null);
+
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.removeItem('perfumehub_token');
+                localStorage.removeItem('perfumehub_refresh_token');
+                localStorage.removeItem('perfumehub_user');
+                localStorage.removeItem('perfumehub_isAdmin');
+                localStorage.removeItem('perfumehub_isVendor');
+
+                // Clear any lingering Supabase auth tokens (sb-*-auth-token)
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') && key.includes('-auth-token')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            } catch (_) {}
+        }
+    }, []);
+
+    /**
+     * Initialize Auth:
+     * 1. If actively returning from an OAuth redirect (URL contains access_token or code=), exchange with backend.
+     * 2. Otherwise, use backend session refresh (/auth/refresh via HttpOnly cookie or backup token).
+     * 3. Supabase getSession is only used as a fallback when no backend session exists.
      */
     const initAuth = useCallback(async () => {
         try {
-            // 1. Check if Supabase has an active OAuth session (from redirect or cached token)
-            try {
-                if (supabase?.auth?.getSession) {
+            const isOAuthRedirect = typeof window !== 'undefined' && 
+                (window.location.hash?.includes('access_token') || window.location.search?.includes('code='));
+
+            // 1. Handle active OAuth callback redirect
+            if (isOAuthRedirect && supabase?.auth?.getSession) {
+                try {
                     const { data: { session } } = await supabase.auth.getSession();
                     if (session?.access_token) {
-                        console.log('[Auth] Found active Supabase OAuth session, syncing with backend...');
+                        console.log('[Auth] Active Google OAuth redirect detected, syncing with backend...');
                         const response = await api.post('/auth/google', { token: session.access_token });
                         if (response.data.success) {
                             applyBackendAuth(response.data);
@@ -83,48 +121,65 @@ export const AuthProvider = ({ children }) => {
                             return;
                         }
                     }
+                } catch (oauthErr) {
+                    console.warn('[Auth] OAuth redirect exchange note:', oauthErr.message);
                 }
-            } catch (sbErr) {
-                console.warn('[Auth] Supabase session sync check note:', sbErr.message);
             }
 
-            // 2. Fall back to standard refresh token
-            const backupToken = localStorage.getItem('perfumehub_refresh_token');
-            const response = await api.post('/auth/refresh', { refreshToken: backupToken });
-            if (response.data.success) {
-                applyBackendAuth(response.data);
-            } else {
-                setUser(null);
-                localStorage.removeItem('perfumehub_user');
-                localStorage.removeItem('perfumehub_refresh_token');
-                setIsAdmin(false);
-                setIsVendor(false);
-            }
-        } catch (error) {
-            console.log('Session refresh note:', error.message || 'No active session cookie');
-            // If backend is unavailable or offline, retain saved user from localStorage
-            const savedUser = localStorage.getItem('perfumehub_user');
-            if (savedUser && (!error.response || error.response.status >= 500)) {
-                try {
-                    const parsed = JSON.parse(savedUser);
-                    setUser(parsed);
-                    setIsAdmin(parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'regional_admin');
-                    setIsVendor(parsed.role === 'vendor' || Boolean(parsed.shop_id));
-                } catch (e) {
-                    console.error('Failed to parse saved user:', e);
+            // 2. Standard backend session refresh (Cookie first, localStorage backup)
+            const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
+            try {
+                const response = await api.post('/auth/refresh', { refreshToken: backupToken });
+                if (response.data.success) {
+                    applyBackendAuth(response.data);
+                    setLoading(false);
+                    return;
                 }
-            } else if (error.response?.status === 401) {
-                // Only clear user on explicit 401 unauthorized response when refresh cookie is expired
-                setUser(null);
-                localStorage.removeItem('perfumehub_user');
-                localStorage.removeItem('perfumehub_refresh_token');
-                setIsAdmin(false);
-                setIsVendor(false);
+            } catch (refreshErr) {
+                // If 401 Unauthorized, the session is expired or invalid
+                if (refreshErr.response?.status === 401) {
+                    await clearAllClientAuth();
+                    setLoading(false);
+                    return;
+                }
+                // If network/server error (>= 500 or offline), retain offline saved user from localStorage
+                const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
+                if (savedUser && (!refreshErr.response || refreshErr.response.status >= 500)) {
+                    try {
+                        const parsed = JSON.parse(savedUser);
+                        setUser(parsed);
+                        setIsAdmin(parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'regional_admin');
+                        setIsVendor(parsed.role === 'vendor' || Boolean(parsed.shop_id));
+                    } catch (_) {}
+                    setLoading(false);
+                    return;
+                }
             }
+
+            // 3. Fallback: only if no backend user is saved in storage
+            if (typeof window !== 'undefined' && !localStorage.getItem('perfumehub_user') && supabase?.auth?.getSession) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.access_token) {
+                        const response = await api.post('/auth/google', { token: session.access_token });
+                        if (response.data.success) {
+                            applyBackendAuth(response.data);
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (_) {}
+            }
+
+            // No valid session found
+            await clearAllClientAuth();
+        } catch (error) {
+            console.log('Session init note:', error.message || 'No active session');
+            await clearAllClientAuth();
         } finally {
             setLoading(false);
         }
-    }, [applyBackendAuth]);
+    }, [applyBackendAuth, clearAllClientAuth]);
 
     useEffect(() => {
         if (user) {
@@ -154,12 +209,57 @@ export const AuthProvider = ({ children }) => {
         const handleLogout = () => logout();
         window.addEventListener('auth-logout', handleLogout);
 
-        // Listen for Supabase OAuth changes (SIGNED_IN, INITIAL_SESSION, TOKEN_REFRESHED)
+        // BFCache (Back/Forward Cache) handler:
+        // When navigating using browser back button, ensure the rendered user matches localStorage
+        const handlePageShow = (e) => {
+            if (e.persisted) {
+                try {
+                    const saved = localStorage.getItem('perfumehub_user');
+                    const parsed = saved ? JSON.parse(saved) : null;
+                    setUser(parsed);
+                    if (parsed) {
+                        setIsAdmin(parsed.role === 'super_admin' || parsed.role === 'admin' || parsed.role === 'regional_admin');
+                        setIsVendor(parsed.role === 'vendor' || Boolean(parsed.shop_id));
+                    } else {
+                        setIsAdmin(false);
+                        setIsVendor(false);
+                    }
+                } catch (_) {}
+            }
+        };
+        window.addEventListener('pageshow', handlePageShow);
+
+        // Cross-tab synchronization:
+        // If another tab logs in or logs out, synchronize immediately
+        const handleStorageChange = (e) => {
+            if (e.key === 'perfumehub_user') {
+                try {
+                    const nextUser = e.newValue ? JSON.parse(e.newValue) : null;
+                    setUser(nextUser);
+                    if (nextUser) {
+                        setIsAdmin(nextUser.role === 'super_admin' || nextUser.role === 'admin' || nextUser.role === 'regional_admin');
+                        setIsVendor(nextUser.role === 'vendor' || Boolean(nextUser.shop_id));
+                    } else {
+                        setIsAdmin(false);
+                        setIsVendor(false);
+                    }
+                } catch (_) {
+                    setUser(null);
+                    setIsAdmin(false);
+                    setIsVendor(false);
+                }
+            } else if (e.key === 'perfumehub_refresh_token' && !e.newValue) {
+                logout();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+
+        // Listen for explicit Supabase OAuth SIGNED_IN event (only when user actively completes OAuth flow)
         const syncGoogleLogin = () => {
             if (!supabase?.auth?.onAuthStateChange) return { unsubscribe: () => {} };
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                console.log('[Auth] onAuthStateChange:', event, 'Has session token:', !!session?.access_token);
-                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+                // Strictly only on SIGNED_IN event (ignore INITIAL_SESSION so stale caches don't hijack active accounts)
+                if (event === 'SIGNED_IN' && session?.access_token) {
                     try {
                         const response = await api.post('/auth/google', { token: session.access_token });
                         if (response.data.success) {
@@ -178,6 +278,8 @@ export const AuthProvider = ({ children }) => {
         return () => {
             clearTimeout(authKillSwitch);
             window.removeEventListener('auth-logout', handleLogout);
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('storage', handleStorageChange);
             subscription?.unsubscribe();
         };
     }, [initAuth, applyBackendAuth]);
@@ -191,6 +293,18 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
+            // Discard any stale Supabase sessions before logging into a new account
+            if (supabase?.auth?.signOut) {
+                await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+            }
+            if (typeof window !== 'undefined') {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') && key.includes('-auth-token')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            }
+
             const response = await api.post('/auth/login', { email, password });
             const data = response.data;
 
@@ -201,14 +315,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             if (data.success) {
-                setAccessToken(data.accessToken);
-                if (data.refreshToken) {
-                    localStorage.setItem('perfumehub_refresh_token', data.refreshToken);
-                }
-                setUser(data.user);
-                localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor' || Boolean(data.user.shop_id));
+                applyBackendAuth(data);
                 return { success: true, user: data.user };
             }
             return { success: false, message: data.error || 'Login failed' };
@@ -219,18 +326,22 @@ export const AuthProvider = ({ children }) => {
 
     const verify2FA = async (token) => {
         try {
+            if (supabase?.auth?.signOut) {
+                await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+            }
+            if (typeof window !== 'undefined') {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') && key.includes('-auth-token')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            }
+
             const response = await api.post('/auth/2fa/verify', { userId: pendingUserId, token });
             const data = response.data;
 
             if (data.success) {
-                setAccessToken(data.accessToken);
-                if (data.refreshToken) {
-                    localStorage.setItem('perfumehub_refresh_token', data.refreshToken);
-                }
-                setUser(data.user);
-                localStorage.setItem('perfumehub_user', JSON.stringify(data.user));
-                setIsAdmin(data.user.role === 'super_admin' || data.user.role === 'admin' || data.user.role === 'regional_admin');
-                setIsVendor(data.user.role === 'vendor' || Boolean(data.user.shop_id));
+                applyBackendAuth(data);
                 setRequires2FA(false);
                 setPendingUserId(null);
                 return { success: true, user: data.user };
@@ -255,17 +366,10 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            const backupToken = localStorage.getItem('perfumehub_refresh_token');
-            await api.post('/auth/logout', { refreshToken: backupToken });
+            const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
+            await api.post('/auth/logout', { refreshToken: backupToken }).catch(() => {});
         } finally {
-            setAccessToken(null);
-            setUser(null);
-            localStorage.removeItem('perfumehub_user');
-            localStorage.removeItem('perfumehub_refresh_token');
-            setIsAdmin(false);
-            setIsVendor(false);
-            setRequires2FA(false);
-            setPendingUserId(null);
+            await clearAllClientAuth();
         }
     };
 
