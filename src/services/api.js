@@ -5,7 +5,8 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json'
     },
-    withCredentials: true
+    withCredentials: true,
+    timeout: 12000  // 12 second max — prevents pages hanging forever if backend is slow
 });
 
 // Memoized access token (with localStorage fallback for instant boot)

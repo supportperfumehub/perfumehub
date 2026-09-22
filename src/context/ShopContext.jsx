@@ -268,7 +268,23 @@ export const ShopProvider = ({ children }) => {
             fetchShops();
             fetchDiscoverCampaigns();
         }, 100);
-        return () => clearTimeout(timer);
+
+        // Hard safety net: if loading is still true after 10s (API timeout/down),
+        // force it to false so pages stop showing skeleton and show empty/cached state
+        const loadingKillSwitch = setTimeout(() => {
+            setLoading(prev => {
+                if (prev) {
+                    console.warn('[ShopContext] Loading kill-switch fired — API took too long, forcing loading=false');
+                    return false;
+                }
+                return prev;
+            });
+        }, 10000);
+
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(loadingKillSwitch);
+        };
     }, [isVendor, user?.shop_id, activeRegion]);
 
     // Fetch user orders when authentication is active

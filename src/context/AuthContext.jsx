@@ -139,6 +139,17 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         initAuth();
 
+        // Safety net: if auth check hangs after 6s, force loading=false so pages don't get stuck
+        const authKillSwitch = setTimeout(() => {
+            setLoading(prev => {
+                if (prev) {
+                    console.warn('[AuthContext] Auth loading kill-switch fired — forcing loading=false');
+                    return false;
+                }
+                return prev;
+            });
+        }, 6000);
+
         // Listen for global logout events from axios interceptor
         const handleLogout = () => logout();
         window.addEventListener('auth-logout', handleLogout);
@@ -165,14 +176,17 @@ export const AuthProvider = ({ children }) => {
         const subscription = syncGoogleLogin();
 
         return () => {
+            clearTimeout(authKillSwitch);
             window.removeEventListener('auth-logout', handleLogout);
             subscription?.unsubscribe();
         };
     }, [initAuth, applyBackendAuth]);
 
     useEffect(() => {
-        localStorage.setItem('perfumehub_isAdmin', JSON.stringify(isAdmin));
-        localStorage.setItem('perfumehub_isVendor', JSON.stringify(isVendor));
+        try {
+            localStorage.setItem('perfumehub_isAdmin', JSON.stringify(isAdmin));
+            localStorage.setItem('perfumehub_isVendor', JSON.stringify(isVendor));
+        } catch (_) {}
     }, [isAdmin, isVendor]);
 
     const login = async (email, password) => {
