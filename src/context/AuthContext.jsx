@@ -156,21 +156,6 @@ export const AuthProvider = ({ children }) => {
                 }
             }
 
-            // 3. Fallback: only if no backend user is saved in storage
-            if (typeof window !== 'undefined' && !localStorage.getItem('perfumehub_user') && supabase?.auth?.getSession) {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session?.access_token) {
-                        const response = await api.post('/auth/google', { token: session.access_token });
-                        if (response.data.success) {
-                            applyBackendAuth(response.data);
-                            setLoading(false);
-                            return;
-                        }
-                    }
-                } catch (_) {}
-            }
-
             // No valid session found
             await clearAllClientAuth();
         } catch (error) {
@@ -258,8 +243,10 @@ export const AuthProvider = ({ children }) => {
         const syncGoogleLogin = () => {
             if (!supabase?.auth?.onAuthStateChange) return { unsubscribe: () => {} };
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                // Strictly only on SIGNED_IN event (ignore INITIAL_SESSION so stale caches don't hijack active accounts)
-                if (event === 'SIGNED_IN' && session?.access_token) {
+                // Strictly only on SIGNED_IN event during an active redirect (prevents background cached token sync)
+                const isRedirect = typeof window !== 'undefined' &&
+                    (window.location.hash?.includes('access_token') || window.location.search?.includes('code='));
+                if (event === 'SIGNED_IN' && session?.access_token && isRedirect) {
                     try {
                         const response = await api.post('/auth/google', { token: session.access_token });
                         if (response.data.success) {
@@ -397,7 +384,10 @@ export const AuthProvider = ({ children }) => {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.origin,
+                    queryParams: {
+                        prompt: 'select_account'
+                    }
                 }
             });
             if (error) {
