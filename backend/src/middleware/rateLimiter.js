@@ -44,7 +44,7 @@ class DistributedStore {
         if (this.upstashUrl && this.upstashToken) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1500);
+                const timeoutId = setTimeout(() => controller.abort(), 500);
 
                 const response = await fetch(`${this.upstashUrl}/pipeline`, {
                     method: 'POST',

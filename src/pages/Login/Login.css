@@ -330,6 +330,28 @@
     transform: translateY(-1px);
 }
 
+.login-btn:disabled {
+    opacity: 0.85;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.login-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(0, 0, 0, 0.25);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: login-spin 0.65s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+@keyframes login-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Google Login Button Styling */
 .login-divider {
     display: flex;

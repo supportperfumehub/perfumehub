@@ -17,6 +17,8 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [isVendorLogin, setIsVendorLogin] = useState(false);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const { user, login, register, forgotPassword, loginWithGoogle, requires2FA, verify2FA } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
     const navigate = useNavigate();
@@ -30,6 +32,7 @@ const Login = () => {
         setError('');
         setIsResetSent(false);
         setOtpCode('');
+        setIsSubmitting(false);
     };
 
     // Load remembered email on mount
@@ -46,8 +49,9 @@ const Login = () => {
     React.useEffect(() => {
         if (user) {
             const role = user.role;
+            const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
             const origin = location.state?.from?.pathname
-                || (role === 'admin' ? '/admin' : role === 'vendor' ? '/vendor' : '/');
+                || (isAdminRole ? '/admin' : (role === 'vendor' || user.shop_id ? '/vendor' : '/'));
             navigate(origin, { replace: true });
         }
     }, [user, navigate, location.state]);
@@ -75,76 +79,82 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setError('');
+        setIsSubmitting(true);
 
-        if (requires2FA) {
-            const result = await verify2FA(otpCode);
-            if (result.success) {
-                showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
-                const role = result.user?.role;
-                const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
-                const origin = location.state?.from?.pathname
-                    || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
-                navigate(origin);
-            } else {
-                setError(result.message);
-                showToast(result.message, 'error');
-            }
-            return;
-        }
-
-        if (isForgotPassword) {
-            const cleanEmail = email.trim().toLowerCase();
-            const result = await forgotPassword(cleanEmail);
-            if (result.success) {
-                setIsResetSent(true);
-                showToast(result.message, 'success');
-            } else {
-                setError(result.message);
-                showToast(result.message, 'error');
-            }
-            return;
-        }
-
-        if (isLogin) {
-            const cleanEmail = email.trim().toLowerCase();
-            const result = await login(cleanEmail, password);
-            if (result.success) {
-                if (result.requires2FA) {
-                    showToast(isRTL ? "يرجى إدخال رمز التحقق الثنائي" : "Please enter 2FA code", 'info');
-                    return;
-                }
-                showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
-                const role = result.user?.role;
-                
-                // Handle Remember Me
-                if (rememberMe) {
-                    localStorage.setItem('remembered_email', cleanEmail);
+        try {
+            if (requires2FA) {
+                const result = await verify2FA(otpCode);
+                if (result.success) {
+                    showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
+                    const role = result.user?.role;
+                    const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
+                    const origin = location.state?.from?.pathname
+                        || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
+                    navigate(origin);
                 } else {
-                    localStorage.removeItem('remembered_email');
+                    setError(result.message);
+                    showToast(result.message, 'error');
                 }
+                return;
+            }
 
-                const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
-                const origin = location.state?.from?.pathname
-                    || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
-                navigate(origin);
-            } else {
-                setError(result.message);
-                showToast(result.message, 'error');
+            if (isForgotPassword) {
+                const cleanEmail = email.trim().toLowerCase();
+                const result = await forgotPassword(cleanEmail);
+                if (result.success) {
+                    setIsResetSent(true);
+                    showToast(result.message, 'success');
+                } else {
+                    setError(result.message);
+                    showToast(result.message, 'error');
+                }
+                return;
             }
-        } else {
-            const nameInput = e.target.querySelector('input[placeholder*="name"]');
-            const name = nameInput ? nameInput.value : '';
-            const cleanEmail = email.trim().toLowerCase();
-            
-            const result = await register(name, cleanEmail, password);
-            if (result.success) {
-                showToast(isRTL ? "تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول" : "Signup successful! You can now log in.", 'success');
-                setIsLogin(true);
+
+            if (isLogin) {
+                const cleanEmail = email.trim().toLowerCase();
+                const result = await login(cleanEmail, password);
+                if (result.success) {
+                    if (result.requires2FA) {
+                        showToast(isRTL ? "يرجى إدخال رمز التحقق الثنائي" : "Please enter 2FA code", 'info');
+                        return;
+                    }
+                    showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
+                    const role = result.user?.role;
+                    
+                    // Handle Remember Me
+                    if (rememberMe) {
+                        localStorage.setItem('remembered_email', cleanEmail);
+                    } else {
+                        localStorage.removeItem('remembered_email');
+                    }
+
+                    const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
+                    const origin = location.state?.from?.pathname
+                        || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
+                    navigate(origin);
+                } else {
+                    setError(result.message);
+                    showToast(result.message, 'error');
+                }
             } else {
-                setError(result.message);
-                showToast(result.message, 'error');
+                const nameInput = e.target.querySelector('input[placeholder*="name"]');
+                const name = nameInput ? nameInput.value : '';
+                const cleanEmail = email.trim().toLowerCase();
+                
+                const result = await register(name, cleanEmail, password);
+                if (result.success) {
+                    showToast(isRTL ? "تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول" : "Signup successful! You can now log in.", 'success');
+                    setIsLogin(true);
+                } else {
+                    setError(result.message);
+                    showToast(result.message, 'error');
+                }
             }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -330,17 +340,30 @@ const Login = () => {
                             {isRTL ? 'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.' : 'Reset link has been sent to your email.'}
                         </div>
                     ) : (
-                        <button type="submit" className="btn btn-gold login-btn">
-                            <span>
-                                {requires2FA ? (
-                                    isRTL ? 'التحقق من الرمز' : 'Verify Code'
-                                ) : isForgotPassword 
-                                    ? (isRTL ? 'إرسال رابط التعيين' : 'Send Reset Link')
-                                    : (isRTL
-                                        ? (isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب')
-                                        : (isLogin ? 'Sign In' : 'Create Account'))}
-                            </span>
-                            <ArrowRight size={18} className={isRTL ? 'rotate-180' : ''} />
+                        <button type="submit" className="btn btn-gold login-btn" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                    <div className="login-spinner" />
+                                    <span>
+                                        {isForgotPassword 
+                                            ? (isRTL ? 'جاري الإرسال...' : 'Sending...')
+                                            : (isLogin ? (isRTL ? 'جاري تسجيل الدخول...' : 'Signing in...') : (isRTL ? 'جاري إنشاء الحساب...' : 'Creating Account...'))}
+                                    </span>
+                                </div>
+                            ) : (
+                                <>
+                                    <span>
+                                        {requires2FA ? (
+                                            isRTL ? 'التحقق من الرمز' : 'Verify Code'
+                                        ) : isForgotPassword 
+                                            ? (isRTL ? 'إرسال رابط التعيين' : 'Send Reset Link')
+                                            : (isRTL
+                                                ? (isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب')
+                                                : (isLogin ? 'Sign In' : 'Create Account'))}
+                                    </span>
+                                    <ArrowRight size={18} className={isRTL ? 'rotate-180' : ''} />
+                                </>
+                            )}
                         </button>
                     )}
                 </form>

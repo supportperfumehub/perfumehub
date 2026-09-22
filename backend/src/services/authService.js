@@ -18,7 +18,7 @@ export class AuthService {
         this.userRepository = userRepository;
         this.lockoutAttempts = parseInt(process.env.LOCKOUT_ATTEMPTS || '5');
         this.lockoutMins = parseInt(process.env.LOCKOUT_DURATION_MINS || '15');
-        this.bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12');
+        this.bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '10');
     }
 
     _getAvatarFallback(id) {
@@ -119,15 +119,19 @@ export class AuthService {
             throw new AppError('Incorrect email or password. Please check your details and try again.', 401);
         }
 
-        // Reset attempts
-        await this.userRepository.resetLoginAttempts(user.id);
-
         // Check if 2FA is needed
         if (user.two_factor_enabled) {
+            this.userRepository.resetLoginAttempts(user.id).catch(() => {});
             return { requires2FA: true, userId: user.id };
         }
 
-        return this.issueTokens(user, req);
+        // Run issueTokens and resetLoginAttempts concurrently to eliminate sequential DB latency
+        const [tokenResult] = await Promise.all([
+            this.issueTokens(user, req),
+            this.userRepository.resetLoginAttempts(user.id).catch(err => console.warn('Non-critical reset attempts error:', err.message))
+        ]);
+
+        return tokenResult;
     }
 
     /**
