@@ -331,10 +331,10 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_adm
                                 deleted_at: new Date().toISOString()
                             }]);
 
-                        try {
-                            await supabase.from('products').update({ deleted_at: new Date().toISOString(), stock: 0 }).eq('id', existingInv.product_id);
-                        } catch (_) {
-                            await supabase.from('products').delete().eq('id', existingInv.product_id);
+                        await supabase.from('vendor_inventory').delete().eq('product_id', existingInv.product_id);
+                        const { error: delErr } = await supabase.from('products').delete().eq('id', existingInv.product_id);
+                        if (delErr) {
+                            console.error('Error deleting product on inventory unbind:', delErr);
                         }
                     } else {
                         // Other shops still use it: unbind boutique ownership so it persists as shared catalog item

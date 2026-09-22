@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { mockProducts } from '../data/mockData';
 import { AuthContext } from './AuthContext';
 import { RegionContext } from './RegionContext';
@@ -9,6 +9,7 @@ export const ShopContext = createContext();
 export const ShopProvider = ({ children }) => {
     const { user, isVendor, loading: authLoading, isAdmin, isAuthenticated } = useContext(AuthContext);
     const { activeRegion } = useContext(RegionContext);
+    const deletedProductIdsRef = useRef(new Set());
 
     // Safe helper to parse JSON or fallback cleanly without throwing
     const safeJsonParse = (val, fallback) => {
@@ -147,27 +148,24 @@ export const ShopProvider = ({ children }) => {
                 };
             });
 
+            // Filter out any products locally deleted in this session
+            const freshProducts = mappedProducts.filter(p => !deletedProductIdsRef.current.has(String(p.id)));
+
             if (append) {
                 setProducts(prev => {
                     const existingIds = new Set(prev.map(i => i.id));
-                    const filteredNew = mappedProducts.filter(i => !existingIds.has(i.id));
-                    const combined = [...prev, ...filteredNew];
+                    const filteredNew = freshProducts.filter(i => !existingIds.has(i.id));
+                    const combined = [...prev, ...filteredNew].filter(p => !deletedProductIdsRef.current.has(String(p.id)));
                     try {
                         localStorage.setItem('perfumehub_products', JSON.stringify(combined));
                     } catch (_) {}
                     return combined;
                 });
             } else {
-                setProducts(prev => {
-                    const incomingIds = new Set(mappedProducts.map(p => p.id));
-                    // Smart merge: retain any products already in memory not returned in this page
-                    const preserved = prev.filter(p => !incomingIds.has(p.id) && !p._dummy);
-                    const combined = [...mappedProducts, ...preserved];
-                    try {
-                        localStorage.setItem('perfumehub_products', JSON.stringify(combined));
-                    } catch (_) {}
-                    return combined;
-                });
+                setProducts(freshProducts);
+                try {
+                    localStorage.setItem('perfumehub_products', JSON.stringify(freshProducts));
+                } catch (_) {}
             }
 
             setPagination(pageMeta);
@@ -476,8 +474,26 @@ export const ShopProvider = ({ children }) => {
 
     const deleteInventory = async (inventoryId) => {
         try {
-            await api.delete(`/inventory/${inventoryId}`);
-            showToast('Inventory item removed successfully', 'success');
+            const res = await api.delete(`/inventory/${inventoryId}`);
+            showToast(res.data?.message || 'Inventory item removed successfully', 'success');
+
+            // Optimistically update products state to remove inventory
+            setProducts(prev => {
+                const updated = prev.map(p => {
+                    if (p.inventories && p.inventories.some(inv => String(inv.id) === String(inventoryId))) {
+                        return {
+                            ...p,
+                            inventories: p.inventories.filter(inv => String(inv.id) !== String(inventoryId))
+                        };
+                    }
+                    return p;
+                });
+                try {
+                    localStorage.setItem('perfumehub_products', JSON.stringify(updated));
+                } catch (_) {}
+                return updated;
+            });
+
             await fetchProducts();
             return true;
         } catch (error) {
@@ -495,31 +511,44 @@ export const ShopProvider = ({ children }) => {
         const shopIdParam = options?.shop_id || (typeof options === 'string' ? options : null);
         const url = shopIdParam ? `/products/${id}?shop_id=${encodeURIComponent(shopIdParam)}` : `/products/${id}`;
 
-        // Optimistic update
+        // Mark ID as deleted immediately so no concurrent refresh re-adds it
+        deletedProductIdsRef.current.add(String(id));
+
+        // Optimistic update & localStorage update
         const previousProducts = [...products];
-        if (shopIdParam) {
-            setProducts(prevProducts => prevProducts.map(p => {
-                if (p.id.toString() === id.toString()) {
-                    const updatedInvs = (p.inventories || []).filter(inv => String(inv.shop_id) !== String(shopIdParam));
-                    const isOwn = String(p.shop_id) === String(shopIdParam);
-                    if (isOwn && updatedInvs.length === 0) return null;
-                    return { ...p, shop_id: isOwn ? null : p.shop_id, inventories: updatedInvs };
+        setProducts(prevProducts => {
+            const next = prevProducts.map(p => {
+                if (String(p.id) === String(id)) {
+                    if (shopIdParam) {
+                        const isOwn = String(p.shop_id) === String(shopIdParam);
+                        const updatedInvs = (p.inventories || []).filter(inv => String(inv.shop_id) !== String(shopIdParam));
+                        if (isOwn || updatedInvs.length === 0) return null;
+                        return { ...p, inventories: updatedInvs };
+                    }
+                    return null;
                 }
                 return p;
-            }).filter(Boolean));
-        } else {
-            setProducts(prevProducts => prevProducts.filter(p => p.id.toString() !== id.toString()));
-        }
+            }).filter(Boolean);
+
+            try {
+                localStorage.setItem('perfumehub_products', JSON.stringify(next));
+            } catch (_) {}
+            return next;
+        });
 
         try {
             const res = await api.delete(url);
-            const msg = res.data?.message || (shopIdParam ? 'Product removed from boutique inventory' : 'Product archived successfully');
+            const msg = res.data?.message || (shopIdParam ? 'Product removed from boutique inventory' : 'Product deleted successfully');
             showToast(msg, 'success');
             await fetchProducts();
             await fetchBackups();
             return true;
         } catch (error) {
+            deletedProductIdsRef.current.delete(String(id));
             setProducts(previousProducts);
+            try {
+                localStorage.setItem('perfumehub_products', JSON.stringify(previousProducts));
+            } catch (_) {}
             showToast('Failed to delete: ' + (error.response?.data?.error || error.message), 'error');
             console.error('Delete error:', error);
             return false;

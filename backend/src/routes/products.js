@@ -585,9 +585,15 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'reg
 
                     const hasDeletedCol = await checkDeletedAtColumn();
                     if (hasDeletedCol) {
-                        await supabase.from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+                        const { error: sDelErr } = await supabase.from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+                        if (sDelErr) throw sDelErr;
                     } else {
-                        await supabase.from('products').delete().eq('id', id);
+                        await supabase.from('vendor_inventory').delete().eq('product_id', id);
+                        const { error: delErr } = await supabase.from('products').delete().eq('id', id);
+                        if (delErr) {
+                            console.error('Error deleting product from products table:', delErr);
+                            throw delErr;
+                        }
                     }
                 }
             }
@@ -602,10 +608,13 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'reg
                 details: { shop_id: targetShopId, product_name: product.name }
             }).catch(e => console.error('Audit log warning:', e.message));
 
+            const isOwnProduct = String(product.shop_id) === String(targetShopId);
             return res.json({ 
                 success: true, 
-                action: 'boutique_removed',
-                message: 'Product removed from boutique inventory successfully.' 
+                action: isOwnProduct ? 'product_deleted' : 'boutique_removed',
+                message: isOwnProduct 
+                    ? 'Product deleted successfully.' 
+                    : 'Product removed from boutique inventory successfully.' 
             });
         }
 

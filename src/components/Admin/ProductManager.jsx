@@ -1223,6 +1223,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
 
         await updateProduct(product.id, updatedData);
     };
+    const safeProducts = Array.isArray(products) ? products : [];
+
     const handleDelete = (id, productName, product) => {
         const targetShopId = shopId || (isVendorContext ? user?.shop_id : null);
         const isOwner = Boolean(targetShopId && String(product?.shop_id) === String(targetShopId));
@@ -1242,16 +1244,14 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     const confirmDelete = async () => {
         const targetShopId = shopId || (isVendorContext ? user?.shop_id : null);
         try {
-            if (confirmModal.inventoryId && targetShopId) {
+            if (confirmModal.isOwner) {
+                // The vendor created and owns this boutique product: delete it!
+                await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
+            } else if (confirmModal.inventoryId && targetShopId) {
+                // Shared catalog item: remove from boutique shelf
                 await deleteInventory(confirmModal.inventoryId);
             } else if (targetShopId && confirmModal.productId) {
-                const targetProd = safeProducts.find(p => p.id === confirmModal.productId);
-                const inv = targetProd?.inventories?.find(i => String(i.shop_id) === String(targetShopId));
-                if (inv?.id) {
-                    await deleteInventory(inv.id);
-                } else {
-                    await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
-                }
+                await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
             } else if (confirmModal.productId) {
                 await deleteProduct(confirmModal.productId);
             }
@@ -1303,7 +1303,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             cancelEdit();
         }
     };
-    const safeProducts = Array.isArray(products) ? products : [];
     const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
 
     const relevantShops = React.useMemo(() => {
