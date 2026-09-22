@@ -126,8 +126,17 @@ export const AuthProvider = ({ children }) => {
                 }
             }
 
-            // 2. Standard backend session refresh (Cookie first, localStorage backup)
+            // 2. Standard backend session refresh (only if active session exists in storage)
             const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
+            const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
+
+            // If the user explicitly logged out (no stored user and no refresh token), do not attempt session revival
+            if (!backupToken && !savedUser) {
+                await clearAllClientAuth();
+                setLoading(false);
+                return;
+            }
+
             try {
                 const response = await api.post('/auth/refresh', { refreshToken: backupToken });
                 if (response.data.success) {

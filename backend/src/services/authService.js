@@ -191,19 +191,17 @@ export class AuthService {
 
         const storedToken = await this.userRepository.findRefreshToken(oldRefreshToken);
 
-        // If token is revoked, reject immediately with 401
-        if (storedToken && storedToken.is_revoked) {
+        // If token is missing from database or revoked, reject immediately with 401
+        if (!storedToken || storedToken.is_revoked) {
             throw new AppError('Session expired. Please log in again.', 401);
         }
 
-        if (storedToken && new Date(storedToken.expires_at) < new Date()) {
+        if (new Date(storedToken.expires_at) < new Date()) {
             throw new AppError('Expired session', 401);
         }
 
         // Revoke the old token and issue a new pair
-        if (storedToken) {
-            await this.userRepository.revokeRefreshToken(oldRefreshToken);
-        }
+        await this.userRepository.revokeRefreshToken(oldRefreshToken);
         
         const tokens = await this.issueTokens(user, req);
         return {
