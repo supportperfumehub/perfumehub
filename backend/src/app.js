@@ -14,10 +14,25 @@ const app = express();
 app.use(helmet());
 
 // CORS Configuration
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    config.server.frontendUrl
+].filter(Boolean);
+
 const corsOptions = {
-    origin: config.server.isProduction ? config.server.frontendUrl : '*',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || !config.server.isProduction) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'x-user-id', 'X-Requested-With', 'Accept', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'x-user-id', 'X-Requested-With', 'Accept', 'Authorization', 'x-refresh-token'],
     preflightContinue: false,
     optionsSuccessStatus: 204
 };

@@ -191,23 +191,8 @@ export class AuthService {
 
         const storedToken = await this.userRepository.findRefreshToken(oldRefreshToken);
 
-        // Graceful handling for concurrent requests: if token was recently revoked, return current active session
+        // If token is revoked, reject immediately with 401
         if (storedToken && storedToken.is_revoked) {
-            const activeToken = await this.userRepository.findActiveUserRefreshToken(user.id);
-            if (activeToken && new Date(activeToken.expires_at) > new Date()) {
-                const accessToken = generateAccessToken({ 
-                    id: user.id, 
-                    email: user.email, 
-                    role: user.role, 
-                    shop_id: user.shop_id,
-                    sessionId: decoded.sessionId || decoded.jti 
-                });
-                return {
-                    accessToken,
-                    refreshToken: activeToken.token,
-                    user: this._formatUser(user)
-                };
-            }
             throw new AppError('Session expired. Please log in again.', 401);
         }
 
@@ -232,7 +217,16 @@ export class AuthService {
      */
     async logout(token) {
         if (token) {
-            await this.userRepository.revokeRefreshToken(token);
+            try {
+                const decoded = verifyRefreshToken(token);
+                if (decoded?.id) {
+                    await this.userRepository.revokeAllUserTokens(decoded.id);
+                } else {
+                    await this.userRepository.revokeRefreshToken(token);
+                }
+            } catch (_) {
+                await this.userRepository.revokeRefreshToken(token).catch(() => {});
+            }
         }
     }
 

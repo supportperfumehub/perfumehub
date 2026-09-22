@@ -75,7 +75,7 @@ export class AuthController {
      */
     refresh = async (req, res, next) => {
         try {
-            const oldToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
+            const oldToken = req.body?.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
             if (!oldToken) return res.status(401).json({ success: false, error: 'No refresh token provided' });
 
             const result = await this.authService.refresh(oldToken, req);
@@ -98,15 +98,20 @@ export class AuthController {
      */
     logout = async (req, res, next) => {
         try {
-            const token = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
+            const token = req.body?.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
             await this.authService.logout(token);
             
-            res.clearCookie('refreshToken', {
+            const cookieOptions = {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'Lax',
                 path: '/'
-            });
+            };
+            res.clearCookie('refreshToken', cookieOptions);
+            res.clearCookie('refreshToken', { ...cookieOptions, path: '/api' });
+            res.clearCookie('refreshToken', { ...cookieOptions, path: '/api/auth' });
+            res.clearCookie('refreshToken');
+            
             res.status(200).json({ success: true, message: 'Logout successful' });
         } catch (error) {
             next(error);

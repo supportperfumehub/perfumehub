@@ -419,19 +419,34 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    background: rgba(212, 175, 55, 0.12);
-    border: 1px solid rgba(212, 175, 55, 0.35);
+    padding: 6px 14px;
+    background: var(--color-gold);
+    border: 1px solid var(--color-gold);
     border-radius: 20px;
     font-size: 0.82rem;
     font-weight: 700;
-    color: var(--color-gold) !important;
+    color: #111 !important;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .login-btn:hover {
-    background: rgba(212, 175, 55, 0.22);
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    background: #c8a835;
+    border-color: #c8a835;
+    color: #000 !important;
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.45);
+}
+
+/* Ensure text stays dark on both dark and light navbars */
+.navbar.light-nav .login-btn {
+    background: var(--color-gold);
+    border-color: var(--color-gold);
+    color: #111 !important;
+}
+
+.navbar.light-nav .login-btn:hover {
+    background: #c8a835;
+    color: #000 !important;
 }
 
 .cart-btn {
