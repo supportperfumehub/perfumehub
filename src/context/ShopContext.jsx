@@ -84,7 +84,7 @@ export const ShopProvider = ({ children }) => {
 
             const {
                 page = 1,
-                limit = 24,
+                limit = 100,
                 gender,
                 category,
                 brand,
@@ -92,6 +92,7 @@ export const ShopProvider = ({ children }) => {
                 min_price,
                 max_price,
                 sort,
+                shop_id,
                 append = false
             } = options;
 
@@ -103,6 +104,7 @@ export const ShopProvider = ({ children }) => {
             if (min_price) params.min_price = min_price;
             if (max_price) params.max_price = max_price;
             if (sort && sort !== 'default') params.sort = sort;
+            if (shop_id) params.shop_id = shop_id;
 
             const response = await api.get('/products', { params });
             const rawData = response.data;
@@ -139,7 +141,9 @@ export const ShopProvider = ({ children }) => {
                     topNotes: p.topNotes || p.top_notes || '',
                     middleNotes: p.middleNotes || p.middle_notes || '',
                     baseNotes: p.baseNotes || p.base_notes || '',
-                    attributes: safeJsonParse(p.attributes, {})
+                    attributes: safeJsonParse(p.attributes, {}),
+                    shop_id: p.shop_id || null,
+                    inventories: Array.isArray(p.inventories) ? p.inventories : []
                 };
             });
 
@@ -154,10 +158,16 @@ export const ShopProvider = ({ children }) => {
                     return combined;
                 });
             } else {
-                setProducts(mappedProducts);
-                try {
-                    localStorage.setItem('perfumehub_products', JSON.stringify(mappedProducts));
-                } catch (_) {}
+                setProducts(prev => {
+                    const incomingIds = new Set(mappedProducts.map(p => p.id));
+                    // Smart merge: retain any products already in memory not returned in this page
+                    const preserved = prev.filter(p => !incomingIds.has(p.id) && !p._dummy);
+                    const combined = [...mappedProducts, ...preserved];
+                    try {
+                        localStorage.setItem('perfumehub_products', JSON.stringify(combined));
+                    } catch (_) {}
+                    return combined;
+                });
             }
 
             setPagination(pageMeta);
@@ -333,13 +343,23 @@ export const ShopProvider = ({ children }) => {
 
     // Product Functions
     const addProduct = async (product) => {
-        // Optimistic update
+        // Optimistic update with boutique inventory binding
         const tempId = Date.now();
         const optimizedProduct = { 
             ...product, 
             id: tempId, 
             created_at: new Date().toISOString(),
-            _lastModified: Date.now() 
+            _lastModified: Date.now(),
+            shop_id: product.shop_id || null,
+            inventories: product.shop_id ? [{
+                id: `temp_inv_${tempId}`,
+                product_id: tempId,
+                shop_id: product.shop_id,
+                price: Number(product.price) || 0,
+                stock: product.stock !== undefined ? Number(product.stock) : 10,
+                is_active: true,
+                pickup_available: product.pickup_available !== false
+            }] : []
         };
         setProducts(prevProducts => [optimizedProduct, ...prevProducts]);
 
@@ -347,16 +367,34 @@ export const ShopProvider = ({ children }) => {
             const response = await api.post('/products', product);
             
             if (response.data) {
-                // Replace temp ID with real ID from backend
-                setProducts(prevProducts => prevProducts.map(p => p.id === tempId ? { ...p, id: response.data.id } : p));
+                const newId = response.data.id || response.data.product?.id || tempId;
+                const backendProd = response.data.product || {};
+                
+                setProducts(prevProducts => prevProducts.map(p => {
+                    if (p.id === tempId) {
+                        return {
+                            ...optimizedProduct,
+                            ...backendProd,
+                            id: newId,
+                            shop_id: product.shop_id || backendProd.shop_id || null,
+                            inventories: (backendProd.inventories && backendProd.inventories.length > 0)
+                                ? backendProd.inventories
+                                : optimizedProduct.inventories
+                        };
+                    }
+                    return p;
+                }));
+
                 showToast('Product added successfully', 'success');
-                // Refresh full products catalog & inventory bindings
-                await fetchProducts();
+                // Refresh catalog with higher limit to ensure full synchronization without discarding memory state
+                await fetchProducts({ limit: 100 });
+                return newId;
             }
         } catch (error) {
             setProducts(prevProducts => prevProducts.filter(p => p.id !== tempId));
             showToast(`Failed to save: ${error.response?.data?.error || error.message}`, 'error');
             console.error('Save failed:', error);
+            return false;
         }
     };
 

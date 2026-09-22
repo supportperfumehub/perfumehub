@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
 
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 24));
+        const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 50));
         const offset = (page - 1) * limit;
 
         const catalogFields = 'id, name, brand, type, size, price, old_price, discount, is_new, is_featured, image, category, gender, notes, stock, top_notes, middle_notes, base_notes, created_at, shop_id, sku, description, attributes';
@@ -42,6 +42,26 @@ router.get('/', async (req, res) => {
         const hasDeleted = await checkDeletedAtColumn();
         if (hasDeleted) {
             query = query.is('deleted_at', null);
+        }
+
+        // Filter by boutique shop_id
+        if (req.query.shop_id) {
+            try {
+                const { data: sInvs } = await supabase
+                    .from('vendor_inventory')
+                    .select('product_id')
+                    .eq('shop_id', req.query.shop_id)
+                    .eq('is_active', true);
+                const sIds = (sInvs || []).map(r => r.product_id).filter(Boolean);
+                if (sIds.length > 0) {
+                    query = query.or(`shop_id.eq.${req.query.shop_id},id.in.(${sIds.join(',')})`);
+                } else {
+                    query = query.eq('shop_id', req.query.shop_id);
+                }
+            } catch (sErr) {
+                console.warn('shop_id filter query notice:', sErr.message);
+                query = query.eq('shop_id', req.query.shop_id);
+            }
         }
 
         // Filters
@@ -347,7 +367,20 @@ router.post('/',
 
         res.status(201).json({ 
             id: newProduct.id, 
-            message: 'Global master catalog product created successfully' 
+            product: {
+                ...newProduct,
+                shop_id: targetShopId,
+                inventories: targetShopId ? [{
+                    id: `inv_${Date.now()}`,
+                    product_id: newProduct.id,
+                    shop_id: targetShopId,
+                    price: finalPrice,
+                    stock: stock !== undefined ? Number(stock) : 10,
+                    is_active: true,
+                    pickup_available: true
+                }] : []
+            },
+            message: 'Product created successfully' 
         });
     } catch (error) {
         console.error('Error creating product:', error);
