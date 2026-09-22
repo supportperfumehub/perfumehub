@@ -50,17 +50,17 @@ export const authenticateUser = async (req, res, next) => {
         }
 
         // Vendor Multi-Branch Scoping (Single Source of Truth: shops.owner_id)
-        // Check owned shops for vendor role or hybrid admin/regional_admin accounts
-        const { data: ownedShops } = await supabase
-            .from('shops')
-            .select('id, name')
-            .eq('owner_id', user.id)
-            .is('deleted_at', null);
-
-        req.user.ownedShopIds = ownedShops ? ownedShops.map(s => s.id) : [];
-        if (req.user.ownedShopIds.length > 0 || user.role === 'vendor') {
+        if (user.role === 'vendor' || user.role === 'regional_admin' || user.role === 'super_admin' || user.shop_id) {
+            const { data: ownedShops } = await supabase
+                .from('shops')
+                .select('id, name')
+                .eq('owner_id', user.id)
+                .is('deleted_at', null);
+            req.user.ownedShopIds = ownedShops ? ownedShops.map(s => s.id) : [];
+            if (user.shop_id && !req.user.ownedShopIds.includes(user.shop_id)) {
+                req.user.ownedShopIds.push(user.shop_id);
+            }
             req.user.shop_id = req.user.ownedShopIds[0] || user.shop_id || null;
-            req.user.isVendor = true;
         }
 
         next();

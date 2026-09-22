@@ -34,35 +34,14 @@ export class AuthService {
         return null;
     }
 
-    async _formatUser(user) {
+    _formatUser(user) {
         if (!user) return null;
-        let shop_id = user.shop_id || null;
-        let is_vendor = user.role === 'vendor' || Boolean(shop_id);
-
-        if (!shop_id) {
-            try {
-                const { data: shops } = await supabase
-                    .from('shops')
-                    .select('id')
-                    .eq('owner_id', user.id)
-                    .is('deleted_at', null)
-                    .limit(1);
-                if (shops && shops.length > 0) {
-                    shop_id = shops[0].id;
-                    is_vendor = true;
-                }
-            } catch (e) {
-                // Ignore fallback error
-            }
-        }
-
         return {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            shop_id,
-            is_vendor,
+            shop_id: user.shop_id,
             avatar_url: user.avatar_url || this._getAvatarFallback(user.id)
         };
     }
@@ -161,26 +140,11 @@ export class AuthService {
         const deviceInfo = parseUserAgent(userAgent);
         const sessionId = crypto.randomUUID();
 
-        let userShopId = user.shop_id || null;
-        if (!userShopId) {
-            try {
-                const { data: shops } = await supabase
-                    .from('shops')
-                    .select('id')
-                    .eq('owner_id', user.id)
-                    .is('deleted_at', null)
-                    .limit(1);
-                if (shops && shops.length > 0) {
-                    userShopId = shops[0].id;
-                }
-            } catch (e) {}
-        }
-
         const payload = { 
             id: user.id, 
             email: user.email, 
             role: user.role, 
-            shop_id: userShopId,
+            shop_id: user.shop_id,
             sessionId 
         };
         const accessToken = generateAccessToken(payload);
@@ -205,7 +169,7 @@ export class AuthService {
         return { 
             accessToken, 
             refreshToken, 
-            user: await this._formatUser({ ...user, shop_id: userShopId })
+            user: this._formatUser(user)
         };
     }
 
@@ -227,18 +191,17 @@ export class AuthService {
         if (storedToken && storedToken.is_revoked) {
             const activeToken = await this.userRepository.findActiveUserRefreshToken(user.id);
             if (activeToken && new Date(activeToken.expires_at) > new Date()) {
-                const formattedUser = await this._formatUser(user);
                 const accessToken = generateAccessToken({ 
                     id: user.id, 
                     email: user.email, 
                     role: user.role, 
-                    shop_id: formattedUser?.shop_id || user.shop_id,
+                    shop_id: user.shop_id,
                     sessionId: decoded.sessionId || decoded.jti 
                 });
                 return {
                     accessToken,
                     refreshToken: activeToken.token,
-                    user: formattedUser
+                    user: this._formatUser(user)
                 };
             }
             throw new AppError('Session expired. Please log in again.', 401);
@@ -256,7 +219,7 @@ export class AuthService {
         const tokens = await this.issueTokens(user, req);
         return {
             ...tokens,
-            user: tokens.user
+            user: this._formatUser(user)
         };
     }
 

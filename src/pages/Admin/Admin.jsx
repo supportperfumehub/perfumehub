@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { useOutletContext, Navigate, Link } from 'react-router-dom';
+import { useOutletContext, Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import ProductManager from '../../components/Admin/ProductManager';
 import OrderManager from '../../components/Admin/OrderManager';
@@ -17,13 +17,14 @@ import {
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, Store, BarChart2, DatabaseBackup, Globe, Home,
     Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
-    Megaphone, MapPin, CalendarCheck, ShieldAlert, DollarSign, ArrowUpRight
+    Megaphone, MapPin, CalendarCheck, ShieldAlert, DollarSign
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
 import RecommendationLab from '../../components/Admin/RecommendationLab';
 import ReservationManager from '../../components/Admin/ReservationManager';
 import AuditLogsManager from '../../components/Admin/AuditLogsManager';
+import { Link } from 'react-router-dom';
 import api from '../../utils/api_v1_0_2';
 import './Admin.css';
 
@@ -37,9 +38,10 @@ const DEFAULT_NOTIFICATIONS = [
 ];
 
 const Admin = () => {
-    const { isRTL = false, user = null } = useOutletContext() || {};
-    const { user: authUser, isVendor } = useContext(AuthContext);
-    const currentUser = user || authUser;
+    const { isRTL = false, user: outletUser = null } = useOutletContext() || {};
+    const { user: authUser, loading: authLoading, isVendor } = useContext(AuthContext);
+    const user = authUser || outletUser;
+
     const [activeTab, setActiveTab] = useState('shops');
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const notificationRef = useRef(null);
@@ -62,11 +64,12 @@ const Admin = () => {
         return DEFAULT_NOTIFICATIONS;
     });
 
-    // Determine roles & permissions
-    const role = currentUser?.role || 'super_admin'; 
+    // Real-time authoritative role resolution
+    const role = user?.role || 'customer'; 
+
     const isSuperAdmin = role === 'super_admin' || role === 'admin';
     const isRegionalAdmin = role === 'regional_admin';
-    const hasBoutique = isVendor || Boolean(currentUser?.shop_id) || Boolean(currentUser?.is_vendor) || isRegionalAdmin;
+    const hasShop = Boolean(user?.shop_id || isVendor);
 
     // Fetch assigned territories for this admin
     useEffect(() => {
@@ -126,7 +129,26 @@ const Admin = () => {
         setNotifications([]);
     };
 
-    // Protect Route
+    // Route Protection with reactive AuthContext loading guard
+    if (authLoading) {
+        return (
+            <div 
+                className="loading-fallback" 
+                style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '80vh', 
+                    color: 'var(--color-gold, #d4af37)', 
+                    fontSize: '1.2rem', 
+                    fontWeight: '600' 
+                }}
+            >
+                {isRTL ? 'جاري التحميل...' : 'Loading Perfume Hub...'}
+            </div>
+        );
+    }
+
     if (!isSuperAdmin && !isRegionalAdmin) {
         return <Navigate to="/" replace />;
     }
@@ -174,21 +196,6 @@ const Admin = () => {
                         </Link>
                     </div>
                 </div>
-
-                {/* Hybrid Role Switcher: Quick Switch to Vendor Panel */}
-                {hasBoutique && (
-                    <div className="dual-role-switcher-card">
-                        <div className="dual-role-info">
-                            <span className="dual-role-title">{isRTL ? 'متجري الخاص' : 'My Boutique'}</span>
-                            <span className="dual-role-sub">{isRTL ? 'لوحة تحكم البائع' : 'Vendor Panel'}</span>
-                        </div>
-                        <Link to="/vendor" className="dual-role-switch-btn" title={isRTL ? 'الانتقال إلى لوحة البائع' : 'Switch to Vendor Panel'}>
-                            <Store size={15} />
-                            <span>{isRTL ? 'لوحة متجري' : 'Vendor Panel'}</span>
-                            <ArrowUpRight size={13} />
-                        </Link>
-                    </div>
-                )}
                 
                 <nav className="sidebar-nav">
                     {tabs.map(tab => (
@@ -205,6 +212,25 @@ const Admin = () => {
 
                 {/* Sidebar Footer (Desktop only) */}
                 <div className="sidebar-footer">
+                    {hasShop && (
+                        <Link to="/vendor" className="nav-item switch-boutique-btn" style={{
+                            textDecoration: 'none',
+                            color: '#000',
+                            background: 'linear-gradient(135deg, #d4af37 0%, #f3e8b2 50%, #b8860b 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '10px 14px',
+                            borderRadius: '10px',
+                            fontWeight: '700',
+                            fontSize: '0.85rem',
+                            marginBottom: '10px',
+                            boxShadow: '0 4px 12px rgba(212, 175, 55, 0.25)'
+                        }}>
+                            <Store size={18} color="#000" />
+                            <span className="nav-label">{isRTL ? 'لوحة متجري (Vendor)' : 'My Boutique (Vendor Panel)'}</span>
+                        </Link>
+                    )}
                     <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
                         <Home size={20} />
                         <span className="nav-label">{isRTL ? 'المتجر الرئيسي' : 'Storefront'}</span>
@@ -226,19 +252,25 @@ const Admin = () => {
                     </div>
 
                     <div className="admin-topbar-controls">
-                        {/* Quick Switch to Boutique for hybrid vendor/admin */}
-                        {hasBoutique && (
-                            <Link 
-                                to="/vendor" 
-                                className="topbar-vendor-switch-pill"
-                                title={isRTL ? 'الانتقال إلى لوحة البائع (متجري)' : 'Switch to My Boutique (Vendor Panel)'}
-                            >
-                                <Store size={15} />
-                                <span>{isRTL ? 'لوحة متجري (البائع)' : 'My Boutique'}</span>
-                                <ArrowUpRight size={13} />
+                        {/* Switch to Boutique Button for dual-role users */}
+                        {hasShop && (
+                            <Link to="/vendor" className="topbar-boutique-link" style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 14px',
+                                background: 'rgba(212, 175, 55, 0.15)',
+                                border: '1px solid rgba(212, 175, 55, 0.4)',
+                                borderRadius: '10px',
+                                color: '#d4af37',
+                                textDecoration: 'none',
+                                fontSize: '0.84rem',
+                                fontWeight: '700'
+                            }} title={isRTL ? 'الذهاب إلى لوحة إدارة متجرك' : 'Switch to your Boutique Management Panel'}>
+                                <Store size={16} />
+                                <span>{isRTL ? 'لوحة متجري' : 'My Boutique'}</span>
                             </Link>
                         )}
-
                         {/* Active Territory Governance Badge & Switcher */}
                         <div className="active-territory-container">
                             <div className="territory-badge">

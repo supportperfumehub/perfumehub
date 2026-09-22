@@ -21,8 +21,9 @@ import api from '../../utils/api_v1_0_2';
 
 const VendorPanel = () => {
     const { isRTL = false } = useOutletContext() || {};
-    const { user, isVendor, updateUser } = useContext(AuthContext);
+    const { user, isVendor, isAdmin, updateUser } = useContext(AuthContext);
     const { showToast } = useContext(ShopContext);
+    const isDualAdmin = isAdmin || user?.role === 'regional_admin' || user?.role === 'super_admin';
     
     // Multi-shop states
     const [myShops, setMyShops] = useState([]);
@@ -649,7 +650,7 @@ const VendorPanel = () => {
                     <h2>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</h2>
                     <div className="sidebar-header-right">
                         <span className="role-badge">
-                            {user?.role === 'regional_admin' ? (isRTL ? 'مدير إقليمي / بائع' : 'RA / Vendor') : (isRTL ? 'بائع معتمد' : 'Vendor')}
+                            {isRTL ? 'بائع معتمد' : 'Vendor'}
                         </span>
                         <Link to="/" className="mobile-storefront-link" title={isRTL ? 'المتجر الرئيسي' : 'Storefront'}>
                             <Home size={16} />
@@ -657,21 +658,6 @@ const VendorPanel = () => {
                         </Link>
                     </div>
                 </div>
-
-                {/* Hybrid Role Switcher: Quick Switch to Admin Dashboard */}
-                {(user?.role === 'regional_admin' || user?.role === 'super_admin' || user?.role === 'admin') && (
-                    <div className="dual-role-switcher-card">
-                        <div className="dual-role-info">
-                            <span className="dual-role-title">{isRTL ? 'الإدارة العامة' : 'Governance'}</span>
-                            <span className="dual-role-sub">{user?.role === 'regional_admin' ? (isRTL ? 'لوحة الإدارة الإقليمية' : 'Regional Admin') : (isRTL ? 'لوحة الإدارة' : 'Admin Panel')}</span>
-                        </div>
-                        <Link to="/admin" className="dual-role-switch-btn admin-theme-btn" title={isRTL ? 'الانتقال إلى لوحة الإدارة' : 'Switch to Admin Dashboard'}>
-                            <Shield size={15} />
-                            <span>{isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}</span>
-                            <ArrowUpRight size={13} />
-                        </Link>
-                    </div>
-                )}
 
                 {/* Vendor Personal Merchant Profile Pill */}
                 <div 
@@ -754,6 +740,25 @@ const VendorPanel = () => {
 
                 {/* Sidebar Footer */}
                 <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    {isDualAdmin && (
+                        <Link to="/admin" className="nav-item switch-admin-btn" style={{
+                            textDecoration: 'none',
+                            color: '#000',
+                            background: 'linear-gradient(135deg, #d4af37 0%, #f3e8b2 50%, #b8860b 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '10px 14px',
+                            borderRadius: '10px',
+                            fontWeight: '700',
+                            fontSize: '0.85rem',
+                            marginBottom: '10px',
+                            boxShadow: '0 4px 12px rgba(212, 175, 55, 0.25)'
+                        }}>
+                            <Settings size={18} color="#000" />
+                            <span>{isRTL ? 'لوحة إدارة الإقليم (Admin)' : 'Territory Admin Dashboard'}</span>
+                        </Link>
+                    )}
                     <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
                         <Home size={20} />
                         <span>{isRTL ? 'العودة للرئيسية' : 'Back to Home'}</span>
@@ -781,19 +786,25 @@ const VendorPanel = () => {
                     </div>
 
                     <div className="admin-topbar-controls vendor-topbar-controls">
-                        {/* Quick switch to Admin Dashboard for hybrid accounts */}
-                        {(user?.role === 'regional_admin' || user?.role === 'super_admin' || user?.role === 'admin') && (
-                            <Link 
-                                to="/admin" 
-                                className="topbar-admin-switch-pill"
-                                title={isRTL ? 'الانتقال إلى لوحة الإدارة' : 'Switch to Admin Dashboard'}
-                            >
-                                <Shield size={15} />
-                                <span>{user?.role === 'regional_admin' ? (isRTL ? 'لوحة الإدارة الإقليمية' : 'Admin Dashboard') : (isRTL ? 'لوحة الإدارة' : 'Admin Panel')}</span>
-                                <ArrowUpRight size={13} />
+                        {/* Switch to Territory Admin Dashboard if dual role */}
+                        {isDualAdmin && (
+                            <Link to="/admin" className="topbar-admin-link" style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 14px',
+                                background: 'rgba(212, 175, 55, 0.15)',
+                                border: '1px solid rgba(212, 175, 55, 0.4)',
+                                borderRadius: '10px',
+                                color: '#d4af37',
+                                textDecoration: 'none',
+                                fontSize: '0.84rem',
+                                fontWeight: '700'
+                            }} title={isRTL ? 'الذهاب إلى لوحة إدارة الإقليم' : 'Switch to Territory Admin Dashboard'}>
+                                <Settings size={16} />
+                                <span>{isRTL ? 'لوحة الإدارة' : 'Admin Panel'}</span>
                             </Link>
                         )}
-
                         {/* Shop Switcher Dropdown */}
                         <div className="vendor-shop-switcher-container" style={{ position: 'relative' }}>
                             <button

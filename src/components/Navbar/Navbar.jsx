@@ -28,13 +28,13 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         const name = (user.name || '').toLowerCase();
         const email = (user.email || '').toLowerCase();
 
-        if (email === 'supportperfumehub@gmail.com' || role === 'super_admin' || name.includes('super admin')) {
+        if (email === 'admin@perfumehub.com' || role === 'super_admin' || name.includes('super admin')) {
             return 'SA';
         }
         if (role === 'regional_admin' || name.includes('regional admin')) {
-            return (user.shop_id || isVendor || user.is_vendor) ? (isRTL ? 'مدير إقليمي / بائع' : 'RA / Vendor') : 'RA';
+            return 'RA';
         }
-        if (user.shop_id || role === 'vendor' || isVendor || user.is_vendor || name.includes('vendor')) {
+        if (user.shop_id || role === 'vendor' || isVendor || name.includes('vendor')) {
             return isRTL ? 'بائع' : 'Vendor';
         }
         if (role === 'admin') {
@@ -43,11 +43,41 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         return null; // Normal users / customers: profile symbol only!
     };
 
+    const getUserInitials = (name) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.slice(0, 2).toUpperCase();
+    };
+
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        setIsUserMenuOpen(false);
+    }, [location.pathname]);
+
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
+            setIsScrolled(window.scrollY > 40);
         };
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -82,6 +112,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         { name: t('navbar.arabic'), path: '/shop?category=arabic' },
         { 
             name: t('navbar.lifestyle', isRTL ? 'أسلوب الحياة والإكسسوارات' : 'Lifestyle & Accessories'), 
+            shortName: isRTL ? 'أسلوب الحياة' : 'Lifestyle',
             path: '/category/lifestyle',
             hasDropdown: true,
             dropdownItems: [
@@ -97,7 +128,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
 
     return (
         <header className={`navbar ${isScrolled || !isHomePage ? 'scrolled' : ''} ${isHomePage && !isScrolled ? 'light-nav' : ''}`}>
-            <div className="container navbar-container">
+            <div className="navbar-container">
 
                 {/* Mobile Menu Toggle with Permanent Breathing Attention Effect */}
                 <button 
@@ -139,8 +170,9 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                             }
                                         }}
                                     >
-                                        {link.name}
-                                        <ChevronDown size={16} className="dropdown-chevron" />
+                                        <span className="link-full-text">{link.name}</span>
+                                        {link.shortName && <span className="link-short-text">{link.shortName}</span>}
+                                        <ChevronDown size={14} className="dropdown-chevron" />
                                     </Link>
                                     <div className={`dropdown-menu ${expandedDropdown === link.name ? 'mobile-show' : ''}`}>
                                         {link.dropdownItems.map(subItem => (
@@ -162,7 +194,8 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                         }
                         return (
                             <Link key={link.name} to={link.path} onClick={(e) => handleHomeClick(e, link.path)}>
-                                {link.name}
+                                <span className="link-full-text">{link.name}</span>
+                                {link.shortName && <span className="link-short-text">{link.shortName}</span>}
                             </Link>
                         );
                     })}
@@ -186,7 +219,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
-                                {(isVendor || user?.shop_id || user?.is_vendor || user?.role === 'regional_admin') && (
+                                {(isVendor || user?.role === 'regional_admin' || Boolean(user?.shop_id)) && (
                                     <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <Store size={18} />
                                         <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
@@ -221,63 +254,121 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                     <SearchBar isRTL={isRTL} />
 
                     <div className="hide-mobile icons-row">
-                        {/* User Profile / Login (Desktop Only) */}
-                        <div className="user-access">
-                            {isAuthenticated ? (
-                                (() => {
-                                    const roleBadge = getUserRoleBadge();
-                                    return (
-                                        <Link to="/profile" className="icon-btn profile-nav-item" title={user?.name || (isRTL ? 'حسابي' : 'Profile')}>
-                                            <User size={20} className={roleBadge ? "text-gold" : ""} />
-                                            {roleBadge && <span className="user-nav-name role-badge">{roleBadge}</span>}
-                                        </Link>
-                                    );
-                                })()
-                            ) : (
-                                <Link to="/login" className="icon-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
-                                    <User size={20} />
-                                </Link>
-                            )}
-                        </div>
-
+                        {/* Language Toggle */}
                         <button className="icon-btn lang-toggle" onClick={toggleLanguage} title={isRTL ? 'English' : 'عربي'}>
-                            <Globe size={20} />
+                            <Globe size={19} />
                             <span className="lang-text">{isRTL ? 'EN' : 'AR'}</span>
                         </button>
-                        
-                        {/* Desktop Only Icons (Profile is already handled above) */}
-                        {isAuthenticated && (
-                            <button className="icon-btn" onClick={logout} title={isRTL ? 'تسجيل الخروج' : 'Logout'}>
-                                <LogOut size={20} />
-                            </button>
-                        )}
 
-                        {isAdmin && (
-                            <Link to="/admin" className="icon-btn" title={t('navbar.admin')}>
-                                <Settings size={20} />
-                            </Link>
-                        )}
-                        {(isVendor || user?.shop_id || user?.is_vendor || user?.role === 'regional_admin') && (
-                            <Link to="/vendor" className="icon-btn" title={isRTL ? 'لوحة البائع' : 'Vendor Panel'}>
-                                <Store size={20} />
-                            </Link>
-                        )}
-                        {(isVendor || isAdmin) && (
-                            <Link to="/verify" className="icon-btn" title={isRTL ? 'التحقق من الحجز' : 'Verify Reservation'}>
-                                <Scan size={20} />
-                            </Link>
-                        )}
-                        
-                        <Link to="/wishlist" className="icon-btn" title={t('navbar.wishlist')} style={{ position: 'relative' }}>
-                            <Heart size={20} />
+                        {/* Wishlist */}
+                        <Link to="/wishlist" className="icon-btn wishlist-btn" title={t('navbar.wishlist')} style={{ position: 'relative' }}>
+                            <Heart size={19} />
                             {wishlistItems.length > 0 && <span className="cart-count">{wishlistItems.length}</span>}
                         </Link>
                     </div>
 
+                    {/* Cart Button (Always visible on all screens) */}
                     <Link to="/cart" className="icon-btn cart-btn" title="Cart" style={{ position: 'relative' }}>
                         <ShoppingBag size={20} />
                         {getCartCount() > 0 && <span className="cart-count">{getCartCount()}</span>}
                     </Link>
+
+                    {/* User Account Dropdown (Desktop) */}
+                    <div className="hide-mobile user-dropdown-wrapper" ref={userMenuRef}>
+                        {isAuthenticated ? (
+                            <div className="user-dropdown-anchor">
+                                <button 
+                                    type="button"
+                                    className="user-pill-btn" 
+                                    onClick={() => setIsUserMenuOpen(prev => !prev)}
+                                    title={user?.name || (isRTL ? 'حسابي' : 'My Account')}
+                                    aria-expanded={isUserMenuOpen}
+                                >
+                                    <div className="user-avatar-mini">
+                                        {getUserInitials(user?.name)}
+                                    </div>
+                                    {getUserRoleBadge() && (
+                                        <span className="user-nav-name role-badge">{getUserRoleBadge()}</span>
+                                    )}
+                                    <ChevronDown size={13} className={`user-chevron ${isUserMenuOpen ? 'is-rotated' : ''}`} />
+                                </button>
+
+                                {isUserMenuOpen && (
+                                    <div className="user-luxury-dropdown animate-scale-up">
+                                        <div className="dropdown-user-header">
+                                            <div className="dropdown-user-avatar">
+                                                {getUserInitials(user?.name)}
+                                            </div>
+                                            <div className="dropdown-user-meta">
+                                                <span className="dropdown-user-name">{user?.name || (isRTL ? 'المستخدم' : 'Account')}</span>
+                                                <span className="dropdown-user-email">{user?.email}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="dropdown-menu-divider" />
+
+                                        <Link 
+                                            to="/profile" 
+                                            className="dropdown-menu-action" 
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                        >
+                                            <User size={16} />
+                                            <span>{isRTL ? 'الملف الشخصي والحساب' : 'Profile & Account'}</span>
+                                        </Link>
+
+                                        {isAdmin && (
+                                            <Link 
+                                                to="/admin" 
+                                                className="dropdown-menu-action admin-action" 
+                                                onClick={() => setIsUserMenuOpen(false)}
+                                            >
+                                                <Settings size={16} />
+                                                <span>{isRTL ? 'لوحة تحكم المشرف (Admin)' : 'Admin Dashboard'}</span>
+                                            </Link>
+                                        )}
+
+                                        {(isVendor || user?.role === 'regional_admin' || Boolean(user?.shop_id)) && (
+                                            <Link 
+                                                to="/vendor" 
+                                                className="dropdown-menu-action vendor-action" 
+                                                onClick={() => setIsUserMenuOpen(false)}
+                                            >
+                                                <Store size={16} />
+                                                <span>{isRTL ? 'لوحة إدارة البائع والفروع' : 'Vendor Boutique Panel'}</span>
+                                            </Link>
+                                        )}
+
+                                        {(isVendor || isAdmin) && (
+                                            <Link 
+                                                to="/verify" 
+                                                className="dropdown-menu-action verify-action" 
+                                                onClick={() => setIsUserMenuOpen(false)}
+                                            >
+                                                <Scan size={16} />
+                                                <span>{isRTL ? 'نقطة مسح الاستلام (VIP Scanner)' : 'Click & Collect Scanner'}</span>
+                                            </Link>
+                                        )}
+
+                                        <div className="dropdown-menu-divider" />
+
+                                        <button 
+                                            type="button" 
+                                            className="dropdown-menu-action logout-action" 
+                                            onClick={() => { logout(); setIsUserMenuOpen(false); }}
+                                        >
+                                            <LogOut size={16} />
+                                            <span>{t('navbar.logout')}</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <Link to="/login" className="login-btn" title={isRTL ? 'تسجيل الدخول' : 'Login'}>
+                                <User size={18} />
+                                <span className="login-text">{isRTL ? 'دخول' : 'Login'}</span>
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
         </header>
