@@ -31,6 +31,7 @@ const luxuryAccords = [
 const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
     const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
+    const isSuperAdmin = user?.role === 'super_admin';
     const isRegionalAdmin = user?.role === 'regional_admin';
     const isRegionalAdminTerritoryMode = isRegionalAdmin && !shopId && !isVendorContext;
     const [showForm, setShowForm] = useState(false);
@@ -80,7 +81,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     const [filterShop, setFilterShop] = useState('all');
 
     React.useEffect(() => {
-        if (!shopId) { // Only fetch shop lists if we are running as global Super Admin
+        if (!shopId && !isVendorContext && isSuperAdmin) { // Only fetch shop lists if we are running as global Super Admin in main admin panel
             const fetchShops = async () => {
                 try {
                     const response = await api.get('/shops');
@@ -92,7 +93,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             };
             fetchShops();
         }
-    }, [shopId]);
+    }, [shopId, isVendorContext, isSuperAdmin]);
+
+    const defaultShopId = isVendorContext 
+        ? (shopId || user?.shop_id || user?.ownedShopIds?.[0] || '') 
+        : (shopId || 'core');
 
     const initialFormState = {
         name: '',
@@ -113,12 +118,22 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         stock: 10,
         sku: '',
         description: '',
-        shop_id: shopId || 'core',
+        shop_id: defaultShopId,
         pickup_available: true,
         attributes: {}
     };
 
     const [formData, setFormData] = useState(initialFormState);
+
+    // Keep shop_id synchronized to vendor boutique shop
+    React.useEffect(() => {
+        if (isVendorContext && defaultShopId) {
+            setFormData(prev => ({
+                ...prev,
+                shop_id: defaultShopId
+            }));
+        }
+    }, [shopId, defaultShopId, isVendorContext]);
     const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '' });
     const [customCatInput, setCustomCatInput] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -505,7 +520,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             try {
                 await addProduct({
                     ...prod,
-                    shop_id: shopId || 'core'
+                    shop_id: defaultShopId
                 });
                 successCount++;
             } catch (err) {
@@ -1119,7 +1134,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             });
         }
 
-        const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
+        const activeShopId = isVendorContext 
+            ? (shopId || user?.shop_id || user?.ownedShopIds?.[0] || null)
+            : (shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null));
         const filteredImages = formData.images.filter(url => url.trim() !== '');
         const productData = {
             ...formData,
@@ -1135,7 +1152,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             topNotes: formData.topNotes?.trim() || '',
             middleNotes: formData.middleNotes?.trim() || '',
             baseNotes: formData.baseNotes?.trim() || '',
-            shop_id: activeShopId !== null ? activeShopId : (formData.shop_id && formData.shop_id !== 'core' ? formData.shop_id : null),
+            shop_id: isVendorContext 
+                ? (activeShopId || user?.shop_id || null)
+                : (activeShopId !== null ? activeShopId : (formData.shop_id && formData.shop_id !== 'core' ? formData.shop_id : null)),
             attributes: formData.attributes || {}
         };
         // Pre-submission check: Prevent reducing total stock below currently active reserved quantity
@@ -1506,7 +1525,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                     category: ['perfume'],
                                                     type: 'EDP (Eau de Parfum)',
                                                     gender: 'unisex',
-                                                    shop_id: shopId || 'core'
+                                                    shop_id: defaultShopId
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
                                             }}
@@ -1568,7 +1587,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                     category: ['fashion', 'abaya'],
                                                     type: 'Abaya',
                                                     gender: 'women',
-                                                    shop_id: shopId || 'core'
+                                                    shop_id: defaultShopId
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
                                             }}
@@ -1630,7 +1649,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                     category: ['jewellery'],
                                                     type: 'Jewellery',
                                                     gender: 'unisex',
-                                                    shop_id: shopId || 'core'
+                                                    shop_id: defaultShopId
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
                                             }}
@@ -1692,7 +1711,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                     category: ['giftbox'],
                                                     type: 'Gift Set',
                                                     gender: 'unisex',
-                                                    shop_id: shopId || 'core'
+                                                    shop_id: defaultShopId
                                                 });
                                                 window.scrollTo({ top: 120, behavior: 'smooth' });
                                             }}
@@ -1877,7 +1896,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 </button>
                             </div>
 
-                            {!shopId && (
+                            {!isVendorContext && isSuperAdmin && !shopId && (
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
                                     <label>{isRTL ? 'إضافة إلى متجر' : 'Assign to Shop'}</label>
                                     <select 
@@ -1970,7 +1989,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                         </div>
 
                         {/* Section 1.5: Ownership (Super Admin Only) */}
-                        {!shopId && (
+                        {!isVendorContext && isSuperAdmin && !shopId && (
                             <div className="form-group" style={{ marginBottom: '20px' }}>
                                 <div className="form-section-title" style={{ marginTop: 0, marginBottom: '10px' }}>
                                     <Store size={16} /> {isRTL ? 'تخصيص المتجر' : 'Shop Assignment / Ownership'}
@@ -2540,7 +2559,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                         {/* Section 7: Final Options (Admin Only - not for vendors) */}
                         {showAdvanced && (
                             <>
-                                {!shopId && (
+                                {!isVendorContext && isSuperAdmin && !shopId && (
                                     <>
                                         <div className="premium-marking-section">
                                             <div className="marking-label-group">
