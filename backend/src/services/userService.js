@@ -1,62 +1,21 @@
 import { AppError } from '../middleware/errorHandler.js';
 import { uploadImageToStorage } from '../utils/storageUtils.js';
-import { supabase } from '../config/supabaseClient.js';
-import fs from 'fs';
-import path from 'path';
+import { getAvatarUrl, saveAvatarUrl } from './avatarService.js';
 
 export class UserService {
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
 
-    _getAvatarFallback(id) {
-        try {
-            const avatarFile = path.join(process.cwd(), 'backend', 'data', 'avatars', `${id}.json`);
-            if (fs.existsSync(avatarFile)) {
-                const data = JSON.parse(fs.readFileSync(avatarFile, 'utf8'));
-                if (data?.avatar_url !== undefined) {
-                    return data.avatar_url || null;
-                }
-            }
-        } catch (e) {
-            // Ignore error
-        }
-        return null;
-    }
-
-    _saveAvatarFallback(id, avatarUrl) {
-        try {
-            const avatarsDir = path.join(process.cwd(), 'backend', 'data', 'avatars');
-            if (!fs.existsSync(avatarsDir)) {
-                fs.mkdirSync(avatarsDir, { recursive: true });
-            }
-            const avatarFile = path.join(avatarsDir, `${id}.json`);
-            fs.writeFileSync(avatarFile, JSON.stringify({ avatar_url: avatarUrl || '', updated_at: new Date().toISOString() }), 'utf8');
-        } catch (e) {
-            console.warn('[UserService] Could not write avatar fallback file:', e.message);
-        }
-
-        // Dual persistence in Supabase backups table
-        try {
-            supabase.from('backups').upsert({
-                table_name: 'user_avatars',
-                record_id: id.toString(),
-                data: { avatar_url: avatarUrl || '', updated_at: new Date().toISOString() }
-            }, { onConflict: 'table_name,record_id' }).catch(() => {});
-        } catch (e) {
-            // Ignore background error
-        }
-    }
-
     async getAllUsers(filters = {}) {
         const users = await this.userRepository.findAll(filters);
-        return users.map(u => {
+        return Promise.all(users.map(async (u) => {
             const { password, password_hash, ...safeUser } = u;
             if (!safeUser.avatar_url) {
-                safeUser.avatar_url = this._getAvatarFallback(u.id);
+                safeUser.avatar_url = await getAvatarUrl(u.id);
             }
             return safeUser;
-        });
+        }));
     }
 
     async getUserProfile(id) {
@@ -65,7 +24,7 @@ export class UserService {
 
         const { password, password_hash, ...safeUser } = user;
         if (!safeUser.avatar_url) {
-            safeUser.avatar_url = this._getAvatarFallback(id);
+            safeUser.avatar_url = await getAvatarUrl(id);
         }
         return safeUser;
     }
@@ -81,9 +40,10 @@ export class UserService {
                 uploadedAvatar = await uploadImageToStorage(updates.avatar_url, `avatar_${id}`, 'avatars');
                 updates.avatar_url = uploadedAvatar;
             } else {
-                uploadedAvatar = updates.avatar_url;
+                uploadedAvatar = updates.avatar_url || '';
             }
-            this._saveAvatarFallback(id, updates.avatar_url);
+            // Persist avatar to Supabase backups store and memory cache
+            await saveAvatarUrl(id, uploadedAvatar);
         }
 
         try {

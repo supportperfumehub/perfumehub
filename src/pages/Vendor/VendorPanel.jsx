@@ -531,10 +531,10 @@ const VendorPanel = () => {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                    const targetShopId = effectiveShopId || shopData?.id || primaryShopId || myShops[0]?.id;
 
-                    if (effectiveShopId) {
-                        const res = await api.put(`/shops/${effectiveShopId}`, { 
+                    if (targetShopId) {
+                        const res = await api.put(`/shops/${targetShopId}`, { 
                             logo_url: compressedBase64,
                             images: [compressedBase64]
                         });
@@ -548,7 +548,7 @@ const VendorPanel = () => {
                             images: updatedImages
                         }));
 
-                        setMyShops(prev => prev.map(s => String(s.id) === String(effectiveShopId) ? { ...s, logo_url: updatedLogo, images: updatedImages } : s));
+                        setMyShops(prev => prev.map(s => String(s.id) === String(targetShopId) ? { ...s, logo_url: updatedLogo, images: updatedImages } : s));
 
                         showToast(isRTL ? 'تم حفظ وتحديث شعار المتجر بنجاح!' : 'Boutique logo updated and saved successfully!', 'success');
                     } else {
@@ -577,8 +577,9 @@ const VendorPanel = () => {
         if (!window.confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف شعار المتجر؟' : 'Are you sure you want to remove the boutique logo?')) return;
         setIsUploadingShopLogo(true);
         try {
-            if (effectiveShopId) {
-                const res = await api.put(`/shops/${effectiveShopId}`, { 
+            const targetShopId = effectiveShopId || shopData?.id || primaryShopId || myShops[0]?.id;
+            if (targetShopId) {
+                const res = await api.put(`/shops/${targetShopId}`, { 
                     logo_url: '',
                     images: []
                 });
@@ -588,7 +589,7 @@ const VendorPanel = () => {
                     logo_url: '',
                     images: []
                 }));
-                setMyShops(prev => prev.map(s => String(s.id) === String(effectiveShopId) ? { ...s, logo_url: '', images: [] } : s));
+                setMyShops(prev => prev.map(s => String(s.id) === String(targetShopId) ? { ...s, logo_url: '', images: [] } : s));
                 showToast(isRTL ? 'تم حذف شعار المتجر' : 'Boutique logo removed', 'info');
             } else {
                 setShopData(prev => ({ ...prev, logo_url: '', images: [] }));

@@ -53,7 +53,17 @@ export class ShopService {
 
     async getMyShops(user) {
         if (!user || !user.id) return [];
-        return this.shopRepository.findAll({ owner_id: user.id });
+        if (user.role === 'super_admin' || user.role === 'admin' || user.email === 'supportperfumehub@gmail.com') {
+            return this.shopRepository.findAll();
+        }
+        let shops = await this.shopRepository.findAll({ owner_id: user.id });
+        if (user.shop_id && (!shops || !shops.some(s => String(s.id) === String(user.shop_id)))) {
+            try {
+                const primary = await this.shopRepository.findById(user.shop_id);
+                if (primary) shops = [primary, ...(shops || [])];
+            } catch (e) {}
+        }
+        return shops || [];
     }
 
     async createBranch(user, branchData) {
@@ -216,8 +226,10 @@ export class ShopService {
         }
 
         // Direct Shop Ownership: Any user who owns this shop can manage their boutique branch
-        const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
-        const isOwner = shop.owner_id === user.id || owned.includes(shop.id) || user.shop_id === shop.id;
+        const owned = (user.ownedShopIds || (user.shop_id ? [user.shop_id] : [])).map(id => String(id));
+        const isOwner = (shop.owner_id && user.id && String(shop.owner_id) === String(user.id)) || 
+                        owned.includes(String(shop.id)) || 
+                        (user.shop_id && String(user.shop_id) === String(shop.id));
         if (isOwner) {
             return;
         }

@@ -1,5 +1,6 @@
 import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.js';
 import { supabase } from '../config/supabaseClient.js';
+import { getAvatarUrl } from '../services/avatarService.js';
 
 /**
  * Middleware to authenticate requests using JWT
@@ -39,6 +40,9 @@ export const authenticateUser = async (req, res, next) => {
 
         // Attach user to request
         req.user = user;
+        if (!req.user.avatar_url) {
+            req.user.avatar_url = await getAvatarUrl(user.id);
+        }
 
         // Regional Scoping
         if (user.role === 'regional_admin') {
@@ -54,8 +58,7 @@ export const authenticateUser = async (req, res, next) => {
             const { data: ownedShops } = await supabase
                 .from('shops')
                 .select('id, name')
-                .eq('owner_id', user.id)
-                .is('deleted_at', null);
+                .eq('owner_id', user.id);
             req.user.ownedShopIds = ownedShops ? ownedShops.map(s => s.id) : [];
             if (user.shop_id && !req.user.ownedShopIds.includes(user.shop_id)) {
                 req.user.ownedShopIds.push(user.shop_id);

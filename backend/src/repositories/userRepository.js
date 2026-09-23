@@ -265,10 +265,11 @@ export class UserRepository {
             const { data: ownedShops, error: shopErr } = await supabase
                 .from('shops')
                 .select('*')
-                .eq('owner_id', id)
-                .is('deleted_at', null);
+                .eq('owner_id', id);
 
-            if (shopErr) throw shopErr;
+            if (shopErr) {
+                console.warn('[UserRepository] Warning fetching owned shops:', shopErr.message);
+            }
 
             return {
                 ...user,
