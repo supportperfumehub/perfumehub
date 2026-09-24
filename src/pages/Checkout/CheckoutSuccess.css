@@ -1,150 +1,662 @@
+/* ══════════════════════════════════════════════════════════════
+   PerfumeHub Qatar - Luxury Checkout & Order Success Page
+   ══════════════════════════════════════════════════════════════ */
+
 .checkout-success-page {
-    position: fixed;
-    top: 0;
-    left: 0;
+    min-height: calc(100vh - 180px);
     width: 100%;
-    height: 100vh;
-    background-color: #000;
-    color: #fff;
+    background: radial-gradient(circle at 50% 15%, #131b2e 0%, #080c14 100%);
+    color: #f8fafc;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 20px;
-    text-align: center;
-    font-family: 'Playfair Display', serif;
-    overflow: hidden;
-}
-
-.success-content {
-    max-width: 600px;
-    animation: premiumFadeIn 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.success-icon-wrapper {
-    margin-bottom: 30px;
+    justify-content: flex-start;
+    padding: 50px 20px 80px;
+    box-sizing: border-box;
     position: relative;
+    overflow-x: hidden;
+}
+
+.checkout-success-page.rtl {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Luxury Receipt Card Container */
+.success-card {
+    max-width: 680px;
+    width: 100%;
+    background: linear-gradient(180deg, rgba(22, 28, 44, 0.95) 0%, rgba(13, 18, 30, 0.98) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 24px;
+    padding: 44px 36px;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.85), 0 0 40px rgba(212, 175, 55, 0.08);
+    backdrop-filter: blur(16px);
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+/* Pulsing Gold Checkmark Icon */
+.success-icon-wrapper {
+    margin: 0 auto 24px;
+    position: relative;
+    width: 90px;
+    height: 90px;
     display: flex;
+    align-items: center;
     justify-content: center;
 }
 
 .success-icon-bg {
     position: absolute;
-    width: 120px;
-    height: 120px;
-    background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0) 70%);
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.28) 0%, rgba(212, 175, 55, 0) 70%);
     border-radius: 50%;
-    animation: pulseGold 2s infinite;
+    animation: pulseGoldHalo 2.5s infinite ease-in-out;
 }
 
+.success-icon-inner {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: rgba(212, 175, 55, 0.12);
+    border: 2px solid rgba(212, 175, 55, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+}
+
+@keyframes pulseGoldHalo {
+    0% { transform: scale(0.9); opacity: 0.4; }
+    50% { transform: scale(1.25); opacity: 0.8; }
+    100% { transform: scale(0.9); opacity: 0.4; }
+}
+
+/* Headings & Dividers */
 .premium-title {
-    font-size: 3rem;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-size: 2.2rem;
     font-weight: 700;
     color: #D4AF37;
-    margin-bottom: 15px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    margin: 0 0 12px 0;
+    letter-spacing: 1px;
+    line-height: 1.3;
 }
 
 .premium-divider {
-    width: 100px;
+    width: 80px;
     height: 2px;
     background: linear-gradient(90deg, transparent, #D4AF37, transparent);
-    margin: 20px auto;
+    margin: 16px auto 20px;
 }
 
 .premium-message {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 25px;
-    font-family: 'Montserrat', sans-serif;
-    line-height: 1.8;
+    font-size: 1.05rem;
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin: 0 auto 28px;
+    max-width: 540px;
 }
 
-.order-id-box {
-    margin-top: 10px;
-    padding: 15px 30px;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    background: rgba(212, 175, 55, 0.05);
-    display: inline-block;
-}
-
-.order-id-label {
-    display: block;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    color: #D4AF37;
-    letter-spacing: 3px;
-    margin-bottom: 5px;
-}
-
-.order-id-value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: 1px;
-}
-
-.redirect-footer {
-    position: absolute;
-    bottom: 50px;
-    width: 100%;
-    left: 0;
-    display: flex;
+/* Order Reference Box with 1-Click Copy */
+.order-reference-box {
+    background: rgba(212, 175, 55, 0.06);
+    border: 1px dashed rgba(212, 175, 55, 0.4);
+    border-radius: 14px;
+    padding: 16px 24px;
+    display: inline-flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+    min-width: 280px;
+    box-sizing: border-box;
 }
 
-.redirect-text {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 15px;
+.order-reference-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #D4AF37;
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.order-reference-value-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.order-reference-code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 2px;
+}
+
+.copy-order-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.copy-order-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.5);
+    color: #D4AF37;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Priority WhatsApp Confirmation Card
+   ══════════════════════════════════════════════════════════════ */
+.whatsapp-confirmation-card {
+    background: linear-gradient(145deg, rgba(16, 44, 28, 0.75) 0%, rgba(10, 26, 18, 0.9) 100%);
+    border: 1px solid rgba(37, 211, 102, 0.4);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 28px;
+    text-align: center;
+    box-shadow: 0 12px 35px -5px rgba(37, 211, 102, 0.18), inset 0 0 20px rgba(37, 211, 102, 0.06);
+    box-sizing: border-box;
+}
+
+.whatsapp-card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    margin-bottom: 16px;
+}
+
+.rtl .whatsapp-card-header {
+    text-align: right;
+}
+
+.whatsapp-badge-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #25D366;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-card-title-group h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.whatsapp-card-title-group p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+}
+
+/* Countdown Notification Pill */
+.whatsapp-countdown-pill {
+    background: rgba(37, 211, 102, 0.12);
+    border: 1px solid rgba(37, 211, 102, 0.3);
+    border-radius: 30px;
+    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #4ade80;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.countdown-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #25D366;
+    box-shadow: 0 0 10px #25D366;
+    animation: pulseDot 1s infinite alternate;
+}
+
+@keyframes pulseDot {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 1; }
+}
+
+.cancel-countdown-link {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    text-decoration: underline;
+    font-size: 0.82rem;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s;
+}
+
+.cancel-countdown-link:hover {
+    color: #ffffff;
+}
+
+.whatsapp-action-row {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-whatsapp-primary {
+    background: linear-gradient(135deg, #25D366 0%, #1ea952 100%);
+    color: #ffffff !important;
+    text-decoration: none !important;
+    padding: 14px 32px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
+    transition: all 0.25s ease;
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-whatsapp-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(37, 211, 102, 0.5);
+    background: linear-gradient(135deg, #2fe06f 0%, #20b558 100%);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Digital VIP Pass Card (Click & Collect / Reservation)
+   ══════════════════════════════════════════════════════════════ */
+.vip-pass-card {
+    background: linear-gradient(145deg, #1e1b15 0%, #111111 100%);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 28px;
+    text-align: center;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+}
+
+.vip-pass-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #D4AF37;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+
+.vip-qr-wrapper {
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 14px;
+    display: inline-block;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.vip-qr-img {
+    width: 150px;
+    height: 150px;
+    display: block;
+}
+
+.vip-pin-box {
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px dashed rgba(212, 175, 55, 0.45);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    display: inline-block;
+    min-width: 220px;
+}
+
+.vip-pin-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
     letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
 }
 
-.progress-container {
-    width: 200px;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    position: relative;
-    overflow: hidden;
+.vip-pin-number {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #D4AF37;
+    letter-spacing: 4px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
 }
 
-.progress-bar {
+.vip-shop-info {
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Order Summary Breakdown
+   ══════════════════════════════════════════════════════════════ */
+.order-summary-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.rtl .order-summary-card {
+    text-align: right;
+}
+
+.order-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+}
+
+.order-summary-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    flex: 1;
+}
+
+.summary-items-count {
+    background: rgba(212, 175, 55, 0.15);
+    color: #D4AF37;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.order-summary-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.order-summary-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.summary-item-title-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-item-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.summary-item-meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.summary-item-price-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.summary-item-qty {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.summary-item-amount {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #D4AF37;
+}
+
+.order-summary-meta-box {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.meta-value-highlight {
+    color: #D4AF37;
+    font-weight: 600;
+}
+
+.meta-value.address {
+    color: #cbd5e1;
+    max-width: 320px;
+    text-align: right;
+    line-height: 1.4;
+}
+
+.rtl .meta-value.address {
+    text-align: left;
+}
+
+.total-highlight-row {
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+    padding-top: 8px;
+    margin-top: 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.meta-total-price {
+    font-size: 1.25rem;
+    color: #D4AF37;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Secondary Navigation Action Buttons
+   ══════════════════════════════════════════════════════════════ */
+.success-action-buttons-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.success-primary-nav-btn {
+    padding: 13px 26px;
+    font-size: 0.88rem;
+    letter-spacing: 1px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.success-secondary-nav-btn {
+    padding: 13px 22px;
+    font-size: 0.88rem;
+    letter-spacing: 1px;
+    border-radius: 10px;
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.success-secondary-nav-btn:hover {
+    color: #ffffff !important;
+    border-color: #D4AF37 !important;
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+/* Luxury Security / Authenticity Strip */
+.success-security-strip {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 18px;
+    line-height: 1.5;
+}
+
+/* Decorative Sparkles */
+.bg-sparkle {
     position: absolute;
-    height: 100%;
-    background: #D4AF37;
-    left: 0;
-    top: 0;
-    animation: loadingBar 5s linear forwards;
+    pointer-events: none;
+    z-index: 1;
 }
 
-@keyframes premiumFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
+.bg-sparkle.top-right {
+    top: 80px;
+    right: 8%;
+    opacity: 0.25;
+}
+
+.bg-sparkle.bottom-left {
+    bottom: 120px;
+    left: 8%;
+    opacity: 0.2;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Responsive Adjustments for Mobile & Tablets
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 680px) {
+    .checkout-success-page {
+        padding: 30px 14px 60px;
     }
-    to {
-        opacity: 1;
-        transform: scale(1);
+
+    .success-card {
+        padding: 30px 18px 24px;
+        border-radius: 18px;
     }
-}
 
-@keyframes pulseGold {
-    0% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.2); opacity: 0.2; }
-    100% { transform: scale(1); opacity: 0.5; }
-}
+    .premium-title {
+        font-size: 1.65rem;
+    }
 
-@keyframes loadingBar {
-    from { width: 0%; }
-    to { width: 100%; }
-}
+    .premium-message {
+        font-size: 0.92rem;
+        margin-bottom: 22px;
+    }
 
-@media (max-width: 768px) {
-    .premium-title { font-size: 2rem; }
-    .premium-message { font-size: 1rem; }
-    .order-id-value { font-size: 1.2rem; }
+    .order-reference-box {
+        width: 100%;
+        min-width: 0;
+        padding: 14px 16px;
+    }
+
+    .order-reference-code {
+        font-size: 1.3rem;
+    }
+
+    .whatsapp-confirmation-card {
+        padding: 18px 14px;
+    }
+
+    .whatsapp-card-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .rtl .whatsapp-card-header {
+        text-align: center;
+    }
+
+    .whatsapp-badge-icon {
+        margin: 0 auto;
+    }
+
+    .btn-whatsapp-primary {
+        width: 100%;
+        padding: 13px 18px;
+        font-size: 0.92rem;
+    }
+
+    .success-action-buttons-row {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .success-primary-nav-btn,
+    .success-secondary-nav-btn {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .meta-value.address {
+        max-width: 180px;
+    }
+
+    .bg-sparkle {
+        display: none;
+    }
 }

@@ -113,6 +113,16 @@ const Checkout = () => {
     const shippingCost = 0; // Complimentary Qatar delivery
     const total = cartTotalAfterDiscount + (isCartMode ? 0 : giftWrapCost) + shippingCost;
 
+    const formatQatarWhatsApp = (rawNumber) => {
+        const defaultConcierge = '97430301901';
+        if (!rawNumber) return defaultConcierge;
+        let clean = String(rawNumber).replace(/\D/g, '');
+        if (clean.startsWith('00974')) clean = clean.slice(2);
+        else if (clean.length === 8) clean = '974' + clean;
+        else if (!clean.startsWith('974') && clean.length > 0) clean = '974' + clean;
+        return clean || defaultConcierge;
+    };
+
     /* ── Dynamic WhatsApp Number Resolution ── */
     const resolveWhatsAppNumber = () => {
         const defaultConcierge = '97430301901';
@@ -120,7 +130,7 @@ const Checkout = () => {
         if (fulfillmentType === 'pickup' && pickupShopId) {
             const chosenShop = shops.find(s => String(s.id) === String(pickupShopId));
             if (chosenShop?.whatsapp_number) {
-                return chosenShop.whatsapp_number.replace(/\D/g, '');
+                return formatQatarWhatsApp(chosenShop.whatsapp_number);
             }
         }
 
@@ -129,7 +139,7 @@ const Checkout = () => {
             if (uniqueShopIds.length === 1) {
                 const singleShop = shops.find(s => String(s.id) === String(uniqueShopIds[0]));
                 if (singleShop?.whatsapp_number) {
-                    return singleShop.whatsapp_number.replace(/\D/g, '');
+                    return formatQatarWhatsApp(singleShop.whatsapp_number);
                 }
             }
             return defaultConcierge;
@@ -138,7 +148,7 @@ const Checkout = () => {
         // Single product mode
         const prodShopId = pickupShopId || singleProduct?.shop_id;
         const targetShop = shops.find(s => String(s.id) === String(prodShopId));
-        return targetShop?.whatsapp_number ? targetShop.whatsapp_number.replace(/\D/g, '') : defaultConcierge;
+        return targetShop?.whatsapp_number ? formatQatarWhatsApp(targetShop.whatsapp_number) : defaultConcierge;
     };
 
     /* ── Coupon Verification (Backend-enforced, zero PII exposure) ── */
@@ -209,12 +219,53 @@ const Checkout = () => {
                     pickup_time_end: endDate.toISOString()
                 });
                 
+                const reservationId = res.data?.id ? `RSV-${res.data.id}` : ('RSV-' + Date.now().toString().slice(-6));
+                const chosenShop = shops.find(s => String(s.id) === String(pickupShopId));
+                const targetWhatsApp = resolveWhatsAppNumber();
+
+                const resvMessage = isRTL
+                    ? `🎟️ *حجز جديد في بوتيك PerfumeHub Qatar: ${reservationId}*\n\n` +
+                      `👤 *العميل:* ${formData.fullName}\n` +
+                      `📱 *الهاتف:* ${formData.phone}\n` +
+                      `🏪 *البوتيك:* ${chosenShop?.name || 'Qatar Boutique'}\n` +
+                      `🛍️ *العطر:* ${singleProduct.name} (${singleProduct.brand}) x${singleQty}\n` +
+                      `📅 *موعد الاستلام:* ${new Date(pickupDateTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}\n\n` +
+                      `✅ *يرجى تأكيد الحجز وتجهيز العطر في البوتيك.*`
+                    : `🎟️ *Boutique Reservation on PerfumeHub Qatar: ${reservationId}*\n\n` +
+                      `👤 *Customer:* ${formData.fullName}\n` +
+                      `📱 *Phone:* ${formData.phone}\n` +
+                      `🏪 *Boutique:* ${chosenShop?.name || 'Qatar Boutique'}\n` +
+                      `🛍️ *Fragrance:* ${singleProduct.name} (${singleProduct.brand}) x${singleQty}\n` +
+                      `📅 *Pickup Time:* ${new Date(pickupDateTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}\n\n` +
+                      `✅ *Please confirm my boutique reservation.*`;
+
+                const resvWaUrl = `https://wa.me/${targetWhatsApp}?text=${encodeURIComponent(resvMessage)}`;
+
+                try {
+                    window.open(resvWaUrl, '_blank');
+                } catch (e) {}
+
                 setIsSubmitting(false);
                 navigate('/checkout-success', { 
                     state: { 
-                        orderId: 'RSV-' + Date.now(), 
+                        orderId: reservationId, 
                         isReservation: true,
-                        shop: shops.find(s => String(s.id) === String(pickupShopId))
+                        fulfillmentType: 'pickup',
+                        shop: chosenShop,
+                        pickupShop: chosenShop,
+                        items: [{
+                            id: singleProduct.id,
+                            name: singleProduct.name,
+                            brand: singleProduct.brand,
+                            quantity: singleQty,
+                            price: singleUnitPrice,
+                            size: singleSize
+                        }],
+                        total: singleUnitPrice * singleQty,
+                        whatsappUrl: resvWaUrl,
+                        whatsappNumber: targetWhatsApp,
+                        customerName: formData.fullName,
+                        phone: formData.phone
                     } 
                 });
             } catch (err) {
@@ -333,8 +384,10 @@ const Checkout = () => {
                   `*Selected Luxury Fragrances:*\n${itemsText}\n\n` +
                   `✅ *Please confirm my order preparation.*`;
 
-            const waUrl = `https://api.whatsapp.com/send?phone=${targetWhatsApp}&text=${encodeURIComponent(messageText)}`;
-            window.open(waUrl, '_blank');
+            const waUrl = `https://wa.me/${targetWhatsApp}?text=${encodeURIComponent(messageText)}`;
+            try {
+                window.open(waUrl, '_blank');
+            } catch (e) {}
 
             setIsSubmitting(false);
             navigate('/checkout-success', { 
@@ -344,7 +397,13 @@ const Checkout = () => {
                     fulfillmentType,
                     pickupShop: shops.find(s => String(s.id) === String(pickupShopId)),
                     items: itemsPayload,
-                    total
+                    total,
+                    whatsappUrl: waUrl,
+                    whatsappNumber: targetWhatsApp,
+                    customerName: formData.fullName,
+                    phone: formData.phone,
+                    shippingAddress,
+                    paymentMethod
                 } 
             });
         } else {
