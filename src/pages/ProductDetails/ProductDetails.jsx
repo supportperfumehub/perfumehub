@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -132,6 +133,25 @@ const ProductDetails = () => {
             setIsReviewModalOpen(true);
         }
     };
+
+    // Lock body scroll and handle ESC key when review modal is open
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setIsReviewModalOpen(false);
+            }
+        };
+
+        if (isReviewModalOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+            const originalOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            return () => {
+                window.removeEventListener('keydown', handleKeyDown);
+                document.body.style.overflow = originalOverflow;
+            };
+        }
+    }, [isReviewModalOpen]);
 
     const handleReviewSubmit = async (e) => {
         e.preventDefault();
@@ -1178,10 +1198,24 @@ const ProductDetails = () => {
             </section>
 
             {/* Verified Buyer Review Modal */}
-            {isReviewModalOpen && (
-                <div className="review-modal-overlay animate-fade-in" onClick={() => setIsReviewModalOpen(false)}>
-                    <div className="review-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="modal-close-btn" onClick={() => setIsReviewModalOpen(false)}>
+            {isReviewModalOpen && typeof document !== 'undefined' && createPortal(
+                <div 
+                    className="review-modal-overlay" 
+                    onClick={() => setIsReviewModalOpen(false)}
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div 
+                        className={`review-modal-content ${isRTL ? 'rtl' : ''}`}
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button 
+                            type="button"
+                            className="modal-close-btn" 
+                            onClick={() => setIsReviewModalOpen(false)}
+                            aria-label={isRTL ? 'إغلاق' : 'Close'}
+                        >
                             <X size={20} />
                         </button>
 
@@ -1362,7 +1396,8 @@ const ProductDetails = () => {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
