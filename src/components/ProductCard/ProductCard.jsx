@@ -14,15 +14,18 @@ const ImageSwiper = ({ images, name }) => {
     const imgArray = Array.isArray(images) ? images : [images];
     const hasMultiple = imgArray.length > 1;
 
-    const handleScroll = (e) => {
-        if (!hasMultiple) return;
-        const scrollLeft = e.target.scrollLeft;
-        const width = e.target.offsetWidth;
-        const newIndex = Math.round(scrollLeft / width);
-        if (newIndex !== current) {
-            setCurrent(newIndex);
-        }
-    };
+    if (!hasMultiple) {
+        return (
+            <img
+                src={imgArray[0] || 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'}
+                alt={name}
+                className="product-image"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'; }}
+            />
+        );
+    }
 
     const scrollTo = (index) => {
         if (scrollRef.current) {

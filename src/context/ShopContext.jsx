@@ -85,7 +85,7 @@ export const ShopProvider = ({ children }) => {
 
             const {
                 page = 1,
-                limit = 100,
+                limit = 48,
                 gender,
                 category,
                 brand,
@@ -269,13 +269,12 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    // Fetch products, shops, and discover campaigns immediately and in parallel, regardless of auth loading state
+    // Fetch products and discover campaigns immediately and in parallel, regardless of auth loading state
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchProducts();
-            fetchShops();
             fetchDiscoverCampaigns();
-        }, 100);
+        }, 30);
 
         // Hard safety net: if loading is still true after 10s (API timeout/down),
         // force it to false so pages stop showing skeleton and show empty/cached state
@@ -311,9 +310,27 @@ export const ShopProvider = ({ children }) => {
     }, [isAdmin]);
 
     useEffect(() => {
-        try {
-            localStorage.setItem('perfumehub_products', JSON.stringify(products));
-        } catch (_) {}
+        if (!products || products.length === 0) return;
+        const timer = setTimeout(() => {
+            try {
+                const preview = products.slice(0, 36).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    brand: p.brand,
+                    type: p.type,
+                    price: p.price,
+                    oldPrice: p.oldPrice || p.old_price,
+                    discount: p.discount,
+                    image: p.image,
+                    category: p.category,
+                    gender: p.gender,
+                    isFeatured: p.isFeatured,
+                    isNew: p.isNew
+                }));
+                localStorage.setItem('perfumehub_products', JSON.stringify(preview));
+            } catch (_) {}
+        }, 500);
+        return () => clearTimeout(timer);
     }, [products]);
 
     useEffect(() => {

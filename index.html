@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Google Fonts Preconnect & High-Performance Non-Blocking Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&family=Noto+Kufi+Arabic:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" />
     <meta name="description" content="Buy 100% authentic luxury perfumes in Qatar at PerfumeHub. Discover exclusive French & Arabic fragrances, Oud, Attar, and designer brands with same-day express delivery in Doha, Lusail & across Qatar. Pay Cash on Delivery or Card in QAR." />
     <meta name="keywords" content="perfume qatar, perfumes in qatar, buy perfume online qatar, perfume shop doha, online perfume store qatar, luxury fragrances qatar, arabic perfumes doha, oud qatar, attar qatar, niche perfumes qatar, french perfumes doha, same day perfume delivery qatar, perfumehub qatar, perfume hub trading, عطور قطر, عطورات الدوحة, متجر عطور قطر, شراء عطور قطر, عطور نيش قطر, عطور أصلية قطر, دهن العود قطر" />
     <meta name="author" content="PerfumeHub Qatar" />
@@ -125,39 +130,8 @@
     }
     </script>
 
-    <!-- Google Analytics (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXXXX');
-    </script>
-    <!-- End Google Analytics -->
-
-    <!-- Facebook Pixel Code -->
-    <script>
-      !function (f, b, e, v, n, t, s) {
-        if (f.fbq) return; n = f.fbq = function () {
-          n.callMethod ?
-            n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-        };
-        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-        n.queue = []; t = b.createElement(e); t.async = !0;
-        t.src = v; s = b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t, s)
-      }(window, document, 'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', 'FB-XXXXXXXXXX');
-      fbq('track', 'PageView');
-    </script>
-    <!-- End Facebook Pixel Code -->
   </head>
   <body>
-    <!-- Facebook Pixel (noscript) -->
-    <noscript><img height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=FB-XXXXXXXXXX&ev=PageView&noscript=1" /></noscript>
-    <!-- End Facebook Pixel (noscript) -->
     <div id="root"></div>
     <div id="modal-root"></div>
     <script type="module" src="/src/main.jsx"></script>

@@ -88,7 +88,6 @@ const Home = () => {
     const [showAllFashion, setShowAllFashion] = useState(false);
     const [showAllJewellery, setShowAllJewellery] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [shuffledFeatured, setShuffledFeatured] = useState([]);
     const [openFaq, setOpenFaq] = useState(null);
     const [homeReviews, setHomeReviews] = useState(INITIAL_PREVIEW_REVIEWS);
     const [reviewsStats, setReviewsStats] = useState({ rating: 4.9, count: 4, isPreview: true });
@@ -264,16 +263,6 @@ const Home = () => {
 
         return [scentGenieHeroSlide];
     }, [dbHeroBanners, products, discoverCampaigns, isRTL]);
-
-    useEffect(() => {
-        if (featuredProducts && featuredProducts.length > 0) {
-            setShuffledFeatured([...featuredProducts].sort(() => 0.5 - Math.random()));
-        } else if (products && products.length > 0) {
-            setShuffledFeatured([...products].slice(0, 6));
-        } else {
-            setShuffledFeatured([]);
-        }
-    }, [featuredProducts, products]);
 
     useEffect(() => {
         if (heroItems.length <= 1) return;
@@ -685,17 +674,19 @@ const Home = () => {
                 </div>
                 <div className={`products-grid-wrapper${showAllNewArrivals ? '' : ' collapsed'}`}>
                     <div className="products-grid">
-                        {newArrivals.map(product => (
+                        {(showAllNewArrivals ? newArrivals : newArrivals.slice(0, 8)).map(product => (
                             <ProductCard key={product.id} product={product} isRTL={isRTL} />
                         ))}
                     </div>
-                    {!showAllNewArrivals && <div className="products-grid-fade"></div>}
+                    {!showAllNewArrivals && newArrivals.length > 8 && <div className="products-grid-fade"></div>}
                 </div>
-                <div className="text-center section-view-more">
-                    <button className="btn btn-outline" onClick={() => setShowAllNewArrivals(prev => !prev)}>
-                        {showAllNewArrivals ? t('common.view_less') : t('common.view_more')}
-                    </button>
-                </div>
+                {newArrivals.length > 8 && (
+                    <div className="text-center section-view-more">
+                        <button className="btn btn-outline" onClick={() => setShowAllNewArrivals(prev => !prev)}>
+                            {showAllNewArrivals ? t('common.view_less') : t('common.view_more')}
+                        </button>
+                    </div>
+                )}
             </section>
 
             {/* Perfumes Section */}
@@ -709,24 +700,24 @@ const Home = () => {
                     </div>
                     <div className={`products-grid-wrapper${showAllPerfumes ? '' : ' collapsed'}`}>
                         <div className="products-grid">
-                            {perfumeProducts.map(product => (
+                            {(showAllPerfumes ? perfumeProducts : perfumeProducts.slice(0, 8)).map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))}
                         </div>
-                        {!showAllPerfumes && <div className="products-grid-fade"></div>}
+                        {!showAllPerfumes && perfumeProducts.length > 8 && <div className="products-grid-fade"></div>}
                     </div>
                     <div className="text-center section-view-more">
-                        <button className="btn btn-outline" onClick={() => setShowAllPerfumes(prev => !prev)}>
-                            {showAllPerfumes ? t('common.view_less') : t('common.view_more')}
-                        </button>
+                        {perfumeProducts.length > 8 && (
+                            <button className="btn btn-outline" onClick={() => setShowAllPerfumes(prev => !prev)}>
+                                {showAllPerfumes ? t('common.view_less') : t('common.view_more')}
+                            </button>
+                        )}
                         <Link to="/shop" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                             {t('common.view_all')}
                         </Link>
                     </div>
                 </section>
             )}
-
-
 
             {/* Fashion Section */}
             {fashionProducts.length > 0 && (
@@ -739,16 +730,18 @@ const Home = () => {
                     </div>
                     <div className={`products-grid-wrapper${showAllFashion ? '' : ' collapsed'}`}>
                         <div className="products-grid">
-                            {fashionProducts.map(product => (
+                            {(showAllFashion ? fashionProducts : fashionProducts.slice(0, 8)).map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))}
                         </div>
-                        {!showAllFashion && <div className="products-grid-fade"></div>}
+                        {!showAllFashion && fashionProducts.length > 8 && <div className="products-grid-fade"></div>}
                     </div>
                     <div className="text-center section-view-more">
-                        <button className="btn btn-outline" onClick={() => setShowAllFashion(prev => !prev)}>
-                            {showAllFashion ? t('common.view_less') : t('common.view_more')}
-                        </button>
+                        {fashionProducts.length > 8 && (
+                            <button className="btn btn-outline" onClick={() => setShowAllFashion(prev => !prev)}>
+                                {showAllFashion ? t('common.view_less') : t('common.view_more')}
+                            </button>
+                        )}
                         <Link to="/category/fashion" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                             {t('common.view_all')}
                         </Link>
@@ -767,16 +760,18 @@ const Home = () => {
                     </div>
                     <div className={`products-grid-wrapper${showAllJewellery ? '' : ' collapsed'}`}>
                         <div className="products-grid">
-                            {jewelleryProducts.map(product => (
+                            {(showAllJewellery ? jewelleryProducts : jewelleryProducts.slice(0, 8)).map(product => (
                                 <ProductCard key={product.id} product={product} isRTL={isRTL} />
                             ))}
                         </div>
-                        {!showAllJewellery && <div className="products-grid-fade"></div>}
+                        {!showAllJewellery && jewelleryProducts.length > 8 && <div className="products-grid-fade"></div>}
                     </div>
                     <div className="text-center section-view-more">
-                        <button className="btn btn-outline" onClick={() => setShowAllJewellery(prev => !prev)}>
-                            {showAllJewellery ? t('common.view_less') : t('common.view_more')}
-                        </button>
+                        {jewelleryProducts.length > 8 && (
+                            <button className="btn btn-outline" onClick={() => setShowAllJewellery(prev => !prev)}>
+                                {showAllJewellery ? t('common.view_less') : t('common.view_more')}
+                            </button>
+                        )}
                         <Link to="/category/jewellery" className="btn btn-outline" style={{ marginLeft: '12px' }}>
                             {t('common.view_all')}
                         </Link>

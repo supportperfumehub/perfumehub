@@ -114,50 +114,8 @@ router.get('/', async (req, res) => {
         const { data, count, error } = await withTimeout(query);
         if (error) throw error;
 
-        // Fetch boutique inventories for these products to attach authentic vendor attribution & inventory arrays
-        const productIds = (data || []).map(p => p.id);
-        const inventoryMap = {};
-        const allInventoriesMap = {};
-        if (productIds.length > 0) {
-            try {
-                const { data: invRows } = await supabase
-                    .from('vendor_inventory')
-                    .select('id, product_id, shop_id, price, stock, reserved_quantity, is_active, pickup_available, updated_at, shops(id, name, address)')
-                    .in('product_id', productIds);
-
-                (invRows || []).forEach(row => {
-                    if (!allInventoriesMap[row.product_id]) {
-                        allInventoriesMap[row.product_id] = [];
-                    }
-                    allInventoriesMap[row.product_id].push({
-                        id: row.id,
-                        shop_id: row.shop_id,
-                        price: Number(row.price),
-                        stock: Number(row.stock),
-                        reserved_quantity: Number(row.reserved_quantity || 0),
-                        is_active: row.is_active !== false,
-                        pickup_available: row.pickup_available !== false,
-                        shop_name: row.shops?.name,
-                        shop_address: row.shops?.address
-                    });
-
-                    if (row.is_active && Number(row.stock) > 0 && !inventoryMap[row.product_id]) {
-                        inventoryMap[row.product_id] = {
-                            shop_id: row.shop_id,
-                            vendor_name: row.shops?.name || 'PerfumeHub Boutique',
-                            vendor_address: row.shops?.address || 'Doha / Lusail',
-                            stock: Number(row.stock) || 0
-                        };
-                    }
-                });
-            } catch (e) {
-                console.warn('Catalog inventory lookup warning:', e.message);
-            }
-        }
-
-        // Lightweight Card DTO mapping with live vendor attribution and full inventories collection
+        // Lightweight Card DTO mapping directly from master products catalog
         const productsList = (data || []).map(p => {
-            const inv = inventoryMap[p.id];
             return {
                 id: p.id,
                 name: p.name,
@@ -181,14 +139,14 @@ router.get('/', async (req, res) => {
                 baseNotes: p.base_notes || '',
                 rating_avg: p.rating_avg !== undefined ? Number(p.rating_avg) : 4.8,
                 review_count: p.review_count !== undefined ? Number(p.review_count) : 12,
-                stock: p.stock !== undefined ? Number(p.stock) : (inv ? inv.stock : 10),
-                shop_id: p.shop_id || inv?.shop_id || null,
-                vendor_name: inv?.vendor_name || null,
-                vendor_address: inv?.vendor_address || null,
+                stock: p.stock !== undefined ? Number(p.stock) : 10,
+                shop_id: p.shop_id || null,
+                vendor_name: 'PerfumeHub',
+                vendor_address: 'Souq Al Jabor, Doha',
                 sku: p.sku || null,
                 description: p.description || null,
                 attributes: p.attributes || {},
-                inventories: allInventoriesMap[p.id] || []
+                inventories: []
             };
         });
 
