@@ -144,7 +144,7 @@ const Admin = () => {
         );
     }
 
-    if (!isSuperAdmin && !isAdmin) {
+    if (!isSuperAdmin) {
         return <Navigate to="/" replace />;
     }
 
@@ -216,25 +216,6 @@ const Admin = () => {
                     </div>
 
                     <div className="admin-topbar-controls">
-                        {/* Switch to Boutique Button for dual-role users */}
-                        {hasShop && (
-                            <Link to="/vendor" className="topbar-boutique-link" style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '8px 14px',
-                                background: 'rgba(212, 175, 55, 0.15)',
-                                border: '1px solid rgba(212, 175, 55, 0.4)',
-                                borderRadius: '10px',
-                                color: '#d4af37',
-                                textDecoration: 'none',
-                                fontSize: '0.84rem',
-                                fontWeight: '700'
-                            }} title={isRTL ? 'الذهاب إلى لوحة إدارة متجرك' : 'Switch to your Boutique Management Panel'}>
-                                <Store size={16} />
-                                <span>{isRTL ? 'لوحة متجري' : 'My Boutique'}</span>
-                            </Link>
-                        )}
                         {/* Active Territory Governance Badge & Switcher */}
                         <div className="active-territory-container">
                             <div className="territory-badge">

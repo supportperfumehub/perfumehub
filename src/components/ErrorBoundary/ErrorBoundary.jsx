@@ -122,6 +122,14 @@ class ErrorBoundary extends React.Component {
                         >
                             Reload Boutique
                         </button>
+                        {this.state.error && (
+                            <details style={{ marginTop: '20px', textAlign: 'left', background: '#0a0a0a', padding: '10px 14px', borderRadius: '8px', border: '1px solid #333', fontSize: '0.75rem', color: '#ef4444', overflowX: 'auto' }}>
+                                <summary style={{ cursor: 'pointer', color: '#94a3b8' }}>Technical error details</summary>
+                                <pre style={{ marginTop: '8px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                    {String(this.state.error?.message || this.state.error)}
+                                </pre>
+                            </details>
+                        )}
                     </div>
                 </div>
             );

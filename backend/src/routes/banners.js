@@ -200,11 +200,9 @@ const saveBannersToStorage = async (bannersList) => {
     return bannersList;
 };
 
-// 1. Get all banners (Public / Filterable - Cache-controlled for instant reactivity)
+// 1. Get all banners (Public / Filterable - Edge CDN cached with revalidation)
 router.get('/', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
     const { type, active } = req.query;
 
     try {

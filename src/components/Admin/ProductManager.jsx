@@ -31,7 +31,7 @@ const luxuryAccords = [
 const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
     const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
-    const isSuperAdmin = user?.role === 'super_admin';
+    const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
     const isRegionalAdmin = user?.role === 'regional_admin';
     const isRegionalAdminTerritoryMode = isRegionalAdmin && !shopId && !isVendorContext;
     const [showForm, setShowForm] = useState(false);
