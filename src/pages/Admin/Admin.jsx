@@ -63,8 +63,6 @@ const Admin = () => {
     const role = user?.role || 'customer'; 
 
     const isSuperAdmin = role === 'super_admin' || role === 'admin';
-    const isRegionalAdmin = role === 'regional_admin';
-    const hasShop = Boolean(user?.shop_id || isVendor);
 
     // Fetch assigned territories for this admin
     useEffect(() => {
@@ -209,7 +207,7 @@ const Admin = () => {
                         <h1>
                             {isRTL ? 'مرحباً، ' : 'Welcome back, '}
                             <span className="gold-gradient-text">
-                                {user?.name || (isSuperAdmin ? (isRTL ? 'المدير العام (SA)' : 'Super Admin (SA)') : (isRTL ? 'المدير الإقليمي (RA)' : 'Regional Admin (RA)'))}
+                                {user?.name || (isRTL ? 'المدير العام (SA)' : 'Super Admin (SA)')}
                             </span>
                         </h1>
                         <p>{isRTL ? 'إليك نظرة عامة على عمليات المتجر اليوم.' : "Here's what's happening with your store today."}</p>
