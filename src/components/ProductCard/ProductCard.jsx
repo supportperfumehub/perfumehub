@@ -27,6 +27,16 @@ const ImageSwiper = ({ images, name }) => {
         );
     }
 
+    const handleScroll = (e) => {
+        if (!hasMultiple) return;
+        const scrollLeft = e.target.scrollLeft;
+        const width = e.target.offsetWidth;
+        const newIndex = Math.round(scrollLeft / width);
+        if (newIndex !== current) {
+            setCurrent(newIndex);
+        }
+    };
+
     const scrollTo = (index) => {
         if (scrollRef.current) {
             const width = scrollRef.current.offsetWidth;
