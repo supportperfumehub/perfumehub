@@ -201,7 +201,7 @@ const Checkout = () => {
         setError('');
 
         if (orderData.isReservation) {
-            if (!formData.fullName || !formData.phone || !pickupShopId || !pickupDateTime) {
+            if (!formData.fullName || !formData.phone || !pickupDateTime) {
                 setError(t('checkout.error_required'));
                 return;
             }
@@ -212,7 +212,7 @@ const Checkout = () => {
 
             try {
                 const res = await api.post('/reservations', {
-                    shop_id: pickupShopId,
+                    shop_id: 1,
                     product_id: singleProduct.id,
                     quantity: singleQty,
                     pickup_time_start: startDate.toISOString(),
@@ -220,14 +220,14 @@ const Checkout = () => {
                 });
                 
                 const reservationId = res.data?.id ? `RSV-${res.data.id}` : ('RSV-' + Date.now().toString().slice(-6));
-                const chosenShop = shops.find(s => String(s.id) === String(pickupShopId));
+                const chosenShop = { name: isRTL ? 'بوتيك بيرفيوم هب الرئيسي' : 'PerfumeHub Flagship Boutique', address: 'Souq Al Jabor, Doha' };
                 const targetWhatsApp = resolveWhatsAppNumber();
 
                 const resvMessage = isRTL
                     ? `🎟️ *حجز جديد في بوتيك PerfumeHub Qatar: ${reservationId}*\n\n` +
                       `👤 *العميل:* ${formData.fullName}\n` +
                       `📱 *الهاتف:* ${formData.phone}\n` +
-                      `🏪 *البوتيك:* ${chosenShop?.name || 'Qatar Boutique'}\n` +
+                      `🏪 *البوتيك:* ${chosenShop.name}\n` +
                       `🛍️ *العطر:* ${singleProduct.name} (${singleProduct.brand}) x${singleQty}\n` +
                       `📅 *موعد الاستلام:* ${new Date(pickupDateTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}\n\n` +
                       `✅ *يرجى تأكيد الحجز وتجهيز العطر في البوتيك.*`
@@ -290,7 +290,7 @@ const Checkout = () => {
                 return;
             }
         } else {
-            if (!formData.fullName.trim() || !formData.phone.trim() || !pickupShopId) {
+            if (!formData.fullName.trim() || !formData.phone.trim()) {
                 setError(t('checkout.error_required'));
                 return;
             }
@@ -301,7 +301,7 @@ const Checkout = () => {
         // Build Qatar Shipping Address
         let shippingAddress = '';
         if (fulfillmentType === 'pickup') {
-            shippingAddress = `Store Pickup: ${shops.find(s => String(s.id) === String(pickupShopId))?.name || 'Selected Boutique'}`;
+            shippingAddress = isRTL ? 'استلام من البوتيك الرئيسي (سوق الجبر، الدوحة)' : 'Store Pickup: PerfumeHub Flagship Boutique (Souq Al Jabor, Doha)';
         } else {
             const unitPart = formData.unit?.trim() ? `, (${formData.unit.trim()})` : '';
             const landmarkPart = formData.landmark?.trim() ? ` [${isRTL ? 'أقرب معلم:' : 'Landmark:'} ${formData.landmark.trim()}]` : '';
@@ -533,57 +533,27 @@ const Checkout = () => {
                                 </div>
                             </div>
 
-                            {/* Boutique Selection for Pickup (Qatar Only) */}
+                            {/* Flagship Boutique Pickup (Qatar) */}
                             {(fulfillmentType === 'pickup' || orderData.isReservation) && (
-                                <div className="shop-select-group">
-                                    <label className="form-group-label">
-                                        <Store size={15} /> {isRTL ? 'اختر بوتيك الاستلام في قطر' : 'Select Boutique Location in Qatar'}
-                                    </label>
-                                    
-                                    <div className="custom-shop-dropdown">
-                                        <button
-                                            type="button"
-                                            className={`custom-shop-trigger ${isShopDropdownOpen ? 'open' : ''}`}
-                                            onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
-                                        >
-                                            <div className="selected-shop-info">
-                                                <MapPin size={16} className="shop-icon" />
-                                                <span className="selected-shop-name">
-                                                    {shops.find(s => String(s.id) === String(pickupShopId))?.name || (isRTL ? 'اختر الفرع' : 'Select Boutique')}
-                                                </span>
-                                                {shops.find(s => String(s.id) === String(pickupShopId))?.address && (
-                                                    <span className="selected-shop-addr">
-                                                        ({shops.find(s => String(s.id) === String(pickupShopId))?.address})
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <ChevronDown size={18} className={`chevron-icon ${isShopDropdownOpen ? 'rotated' : ''}`} />
-                                        </button>
-
-                                        {isShopDropdownOpen && (
-                                            <div className="custom-shop-options">
-                                                {shops.map(shop => {
-                                                    const isSelected = String(pickupShopId) === String(shop.id);
-                                                    return (
-                                                        <div
-                                                            key={shop.id}
-                                                            className={`shop-option-item ${isSelected ? 'selected' : ''}`}
-                                                            onClick={() => {
-                                                                setPickupShopId(shop.id);
-                                                                setIsShopDropdownOpen(false);
-                                                            }}
-                                                        >
-                                                            <div className="option-main-info">
-                                                                <span className="option-name">{shop.name}</span>
-                                                                <span className="option-address">{shop.address}</span>
-                                                            </div>
-                                                            {isSelected && <Check size={16} className="option-check-icon" />}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                <div className="flagship-pickup-card" style={{
+                                    padding: '18px 20px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(212, 175, 55, 0.06)',
+                                    border: '1px solid rgba(212, 175, 55, 0.3)',
+                                    marginBottom: '20px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                        <MapPin size={18} color="var(--color-gold, #d4af37)" />
+                                        <strong style={{ fontSize: '1rem', color: '#fff' }}>
+                                            {isRTL ? 'بوتيك بيرفيوم هب الرئيسي' : 'PerfumeHub Flagship Boutique'}
+                                        </strong>
                                     </div>
+                                    <p style={{ margin: '0 0 6px', fontSize: '0.88rem', color: '#cbd5e1' }}>
+                                        {isRTL ? 'سوق الجبر، الدوحة، قطر' : 'Souq Al Jabor, Doha, Qatar'}
+                                    </p>
+                                    <p style={{ margin: '0 0 4px', fontSize: '0.82rem', color: '#94a3b8' }}>
+                                        {isRTL ? 'أوقات العمل: يومياً من 10:00 صباحاً إلى 10:00 مساءً · هاتف/واتساب: +974 3030 1901' : 'Hours: Daily 10:00 AM – 10:00 PM · WhatsApp: +974 3030 1901'}
+                                    </p>
                                 </div>
                             )}
 

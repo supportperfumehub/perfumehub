@@ -31,71 +31,10 @@ router.get('/', authenticateUser, async (req, res) => {
             query = query.contains('shop_ids', [req.query.shop_id]);
         }
 
-        // Apply strict Customer, Regional Admin, or Vendor scoping
+        // Apply strict Customer scoping
         if (req.user.role === 'customer') {
             // Strictly bind query to authenticated customer's email (zero IDOR leakage)
             query = query.eq('email', req.user.email);
-        } else if (req.user.role === 'regional_admin') {
-            const { data: shops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', req.user.assignedRegionIds);
-            
-            const shopIds = shops ? shops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                query = query.overlaps('shop_ids', shopIds);
-            } else {
-                return res.json([]);
-            }
-        } else if (req.user.role === 'vendor') {
-            // Fetch all shops owned by this vendor
-            const { data: vendorShops } = await supabase
-                .from('shops')
-                .select('id, name')
-                .eq('owner_id', req.user.id);
-            
-            let ownedShopIds = vendorShops ? vendorShops.map(s => s.id) : [];
-            if (req.user.shop_id && !ownedShopIds.includes(req.user.shop_id)) {
-                ownedShopIds.push(req.user.shop_id);
-            }
-
-            if (ownedShopIds.length === 0) {
-                return res.json([]);
-            }
-
-            let targetShopIds = ownedShopIds;
-            if (req.query.shop_id && req.query.shop_id !== 'all') {
-                if (ownedShopIds.includes(req.query.shop_id)) {
-                    targetShopIds = [req.query.shop_id];
-                } else {
-                    return res.status(403).json({ error: 'Forbidden: You do not own this shop' });
-                }
-            }
-
-            // Fetch specific sub-orders for multi-vendor fulfillment
-            const { data: subOrders, error: subError } = await supabase
-                .from('sub_orders')
-                .select('*, orders(*)')
-                .in('shop_id', targetShopIds)
-                .order('created_at', { ascending: false });
-            
-            if (subError) throw subError;
-
-            const shopNameMap = {};
-            (vendorShops || []).forEach(s => { shopNameMap[s.id] = s.name; });
-
-            return res.json(subOrders.map(so => ({
-                ...so.orders,
-                id: so.parent_order_id,
-                sub_order_id: so.id,
-                shop_id: so.shop_id,
-                shop_name: shopNameMap[so.shop_id] || 'Branch',
-                status: so.status,
-                subtotal: so.subtotal,
-                total: so.total_amount,
-                tracking_number: so.tracking_number,
-                fulfillment_type: so.fulfillment_type
-            })));
         }
 
         const { data, error } = await withTimeout(query);
@@ -548,11 +487,10 @@ export const evaluateAndUpdateMasterOrderStatus = async (parentOrderId) => {
     }
 };
 
-// Update order status (Decoupled fulfillment)
-router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin', 'vendor']), async (req, res) => {
+// Update order status
+router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const { status, sub_order_id, shop_id } = req.body;
-    const admin = req.user;
+    const { status } = req.body;
 
     try {
         const { data: order, error: fetchError } = await supabase
@@ -563,89 +501,14 @@ router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional
         
         if (fetchError || !order) return res.status(404).json({ error: 'Order not found' });
 
-        if (admin && admin.role === 'regional_admin') {
-            const { data: adminShops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', admin.assignedRegionIds);
-            
-            const adminShopIds = adminShops ? adminShops.map(s => s.id) : [];
-            const hasAccess = Array.isArray(order.shop_ids) && order.shop_ids.some(sid => adminShopIds.includes(sid));
+        const { data, error } = await supabase
+            .from('orders')
+            .update({ status })
+            .eq('id', id)
+            .select();
 
-            if (!hasAccess) return res.status(403).json({ error: 'Forbidden: You do not have access to this order.' });
-            
-            // Regional admin updates master order and syncs sub_orders in their region
-            const { data, error } = await supabase
-                .from('orders')
-                .update({ status })
-                .eq('id', id)
-                .select();
-            if (error) throw error;
-
-            await supabase
-                .from('sub_orders')
-                .update({ status, updated_at: new Date().toISOString() })
-                .eq('parent_order_id', id)
-                .in('shop_id', adminShopIds);
-
-            return res.json({ message: 'Order status updated', order: data[0] });
-
-        } else if (admin && admin.role === 'vendor') {
-            // MULTI-BRANCH VENDOR GOVERNANCE:
-            // Vendors must ONLY update their own branch's record in sub_orders!
-            // Never overwrite the master orders.status directly.
-            const owned = admin.ownedShopIds || (admin.shop_id ? [admin.shop_id] : []);
-            if (owned.length === 0) {
-                return res.status(403).json({ error: 'Forbidden: No boutique assigned to your vendor account.' });
-            }
-
-            let subQuery = supabase
-                .from('sub_orders')
-                .select('*')
-                .eq('parent_order_id', id)
-                .in('shop_id', owned);
-
-            if (sub_order_id) {
-                subQuery = subQuery.eq('id', sub_order_id);
-            } else if (shop_id) {
-                subQuery = subQuery.eq('shop_id', shop_id);
-            }
-
-            const { data: vendorSubOrders, error: subFetchErr } = await subQuery;
-            if (subFetchErr || !vendorSubOrders || vendorSubOrders.length === 0) {
-                return res.status(403).json({ error: 'Forbidden: You do not own a boutique branch fulfilling this order.' });
-            }
-
-            const subOrderIds = vendorSubOrders.map(s => s.id);
-            const { data: updatedSubOrders, error: updateErr } = await supabase
-                .from('sub_orders')
-                .update({ status, updated_at: new Date().toISOString() })
-                .in('id', subOrderIds)
-                .select();
-
-            if (updateErr) throw updateErr;
-
-            // Automatically evaluate and update the master order status based on all sub-orders
-            const evaluatedMasterStatus = await evaluateAndUpdateMasterOrderStatus(id);
-
-            return res.json({ 
-                message: 'Boutique sub-order status updated successfully', 
-                sub_orders: updatedSubOrders,
-                evaluated_master_status: evaluatedMasterStatus,
-                order: { ...order, status: evaluatedMasterStatus || order.status }
-            });
-
-        } else {
-            // Super Admin
-            const { data, error } = await supabase
-                .from('orders')
-                .update({ status })
-                .eq('id', id)
-                .select();
-
-            if (error) throw error;
-            return res.json({ message: 'Order status updated', order: data[0] });
-        }
+        if (error) throw error;
+        return res.json({ message: 'Order status updated', order: data[0] });
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ error: 'Internal server error' });

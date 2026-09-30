@@ -25,12 +25,10 @@ const Layout = ({ isRTL, toggleLanguage }) => {
     }, [location.pathname]);
 
     const isAdminPath = location.pathname.startsWith('/admin');
-    const isVendorPath = (location.pathname.startsWith('/vendor') || location.pathname.startsWith('/vendor-panel')) && !location.pathname.startsWith('/vendor-signup');
-    const isVerifyPath = location.pathname.startsWith('/verify');
-    const isDashboardPath = isAdminPath || isVendorPath || isVerifyPath;
+    const isDashboardPath = isAdminPath;
 
     return (
-        <div className={`app-layout ${isDashboardPath ? 'admin-layout' : ''} ${isVendorPath ? 'vendor-panel-layout' : ''}`}>
+        <div className={`app-layout ${isDashboardPath ? 'admin-layout' : ''}`}>
             {isHomePage && <PromotionBar isRTL={isRTL} />}
             <Toast
                 message={toast.message}

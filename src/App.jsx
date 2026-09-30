@@ -17,9 +17,6 @@ const Login = lazy(() => import('./pages/Login/Login'));
 const ResetPassword = lazy(() => import('./pages/Login/ResetPassword'));
 const Wishlist = lazy(() => import('./pages/Wishlist/Wishlist'));
 const Admin = lazy(() => import('./pages/Admin/Admin'));
-const VerificationPortal = lazy(() => import('./pages/Admin/VerificationPortal'));
-const VendorPanel = lazy(() => import('./pages/Vendor/VendorPanel'));
-const VendorSignup = lazy(() => import('./pages/Vendor/VendorSignup'));
 const Checkout = lazy(() => import('./pages/Checkout/Checkout'));
 const CheckoutSuccess = lazy(() => import('./pages/Checkout/CheckoutSuccess'));
 const Profile = lazy(() => import('./pages/Profile/Profile'));
@@ -218,7 +215,7 @@ function App() {
 
         {/* Admin portal access */}
         <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-          <span>Administrator or Boutique Partner? </span>
+          <span>Administrator? </span>
           <a href="/login" style={{ color: '#d4af37', textDecoration: 'none', borderBottom: '1px solid rgba(212, 175, 55, 0.4)', paddingBottom: '2px' }}>
             Staff Login
           </a>
@@ -263,22 +260,6 @@ function App() {
               <Admin />
             </ProtectedRoute>
           } />
-          <Route path="vendor" element={
-            <ProtectedRoute isVendorRequired={true}>
-              <VendorPanel />
-            </ProtectedRoute>
-          } />
-          <Route path="vendor-panel" element={
-            <ProtectedRoute isVendorRequired={true}>
-              <VendorPanel />
-            </ProtectedRoute>
-          } />
-          <Route path="verify" element={
-            <ProtectedRoute isVendorRequired={true}>
-              <VerificationPortal />
-            </ProtectedRoute>
-          } />
-          <Route path="vendor-signup" element={<VendorSignup />} />
           <Route path="*" element={<Home />} />
         </Route>
       </Routes>

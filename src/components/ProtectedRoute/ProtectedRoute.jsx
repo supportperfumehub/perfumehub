@@ -3,8 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 
-const ProtectedRoute = ({ children, isAdminRequired = false, isVendorRequired = false }) => {
-    const { isAuthenticated, isAdmin, isVendor, loading } = useContext(AuthContext);
+const ProtectedRoute = ({ children, isAdminRequired = false }) => {
+    const { isAuthenticated, isAdmin, loading } = useContext(AuthContext);
     const { i18n } = useTranslation();
     const location = useLocation();
 
@@ -36,11 +36,6 @@ const ProtectedRoute = ({ children, isAdminRequired = false, isVendorRequired = 
 
     if (isAdminRequired && !isAdmin) {
         // Logged in but not an admin, redirect to home
-        return <Navigate to="/" replace />;
-    }
-
-    if (isVendorRequired && !isVendor && !isAdmin) {
-        // Logged in but neither vendor nor admin, redirect to home
         return <Navigate to="/" replace />;
     }
 

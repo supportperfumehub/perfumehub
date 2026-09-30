@@ -1413,20 +1413,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 <option value="price-desc">{isRTL ? 'السعر: من الأعلى' : 'Price: High to Low'}</option>
                             </select>
                             
-                            {!shopId && (
-                                <select 
-                                    className="form-control admin-sort-select" 
-                                    style={{ flex: 1, minWidth: '180px' }}
-                                    value={filterShop} 
-                                    onChange={(e) => setFilterShop(e.target.value)}
-                                >
-                                    <option value="all">{isRTL ? 'جميع المنتجات (نورث كلوب باريس + المتاجر)' : 'All Inventory (North Club Paris + Shops)'}</option>
-                                    <option value="own">{isRTL ? 'منتجات نورث كلوب باريس فقط' : 'North Club Paris Products'}</option>
-                                    {shopsData.map(shop => (
-                                        <option key={shop.id} value={shop.id}>{isRTL ? `متجر: ${shop.name}` : `Shop: ${shop.name}`}</option>
-                                    ))}
-                                </select>
-                            )}
+
                         </div>
                     )}
                     {!showForm && !isBindingCatalog && (
@@ -1896,26 +1883,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 </button>
                             </div>
 
-                            {!isVendorContext && isSuperAdmin && !shopId && (
-                                <div className="form-group" style={{ marginBottom: '15px' }}>
-                                    <label>{isRTL ? 'إضافة إلى متجر' : 'Assign to Shop'}</label>
-                                    <select 
-                                        name="shop_id" 
-                                        className="form-control" 
-                                        value={formData.shop_id || ''} 
-                                        onChange={handleInputChange}
-                                        required
-                                        style={{ border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)' }}
-                                    >
-                                        <option value="">{isRTL ? '-- اختر المتجر --' : '-- Select Shop --'}</option>
-                                        {shopsData.map(shop => (
-                                            <option key={shop.id} value={shop.id}>
-                                                {shop.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
+
 
                             <div className="form-row grid-2">
                                 <div className="form-group">
@@ -1988,33 +1956,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                             </div>
                         </div>
 
-                        {/* Section 1.5: Ownership (Super Admin Only) */}
-                        {!isVendorContext && isSuperAdmin && !shopId && (
-                            <div className="form-group" style={{ marginBottom: '20px' }}>
-                                <div className="form-section-title" style={{ marginTop: 0, marginBottom: '10px' }}>
-                                    <Store size={16} /> {isRTL ? 'تخصيص المتجر' : 'Shop Assignment / Ownership'}
-                                </div>
-                                <select 
-                                    name="shop_id" 
-                                    className="form-control" 
-                                    value={formData.shop_id || 'core'} 
-                                    onChange={handleInputChange}
-                                    style={{ border: '1px solid var(--color-gold)', background: 'rgba(200, 169, 81, 0.05)' }}
-                                >
-                                    <option value="core">{isRTL ? 'نورث كلوب باريس (المخزون الرئيسي)' : 'North Club Paris (Core Inventory)'}</option>
-                                    {shopsData.map(shop => (
-                                        <option key={shop.id} value={shop.id}>
-                                            {isRTL ? `منتج لـ: ${shop.name}` : `Assign to: ${shop.name}`}
-                                        </option>
-                                    ))}
-                                </select>
-                                <small style={{ color: '#94a3b8', display: 'block', marginTop: '6px' }}>
-                                    {isRTL 
-                                        ? 'حدد المتجر الذي يمتلك هذا المنتج. سيظهر في متجرهم وعلى صفحتهم الخاصة.' 
-                                        : 'Select the shop that owns this product. It will appear in their dashboard and shop page.'}
-                                </small>
-                            </div>
-                        )}
+
 
                         <div className="form-row grid-3">
                             <div className="form-group">

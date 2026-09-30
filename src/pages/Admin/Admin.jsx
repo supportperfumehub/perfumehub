@@ -7,21 +7,16 @@ import CouponsManager from '../../components/Admin/CouponsManager';
 import CustomersManager from '../../components/Admin/CustomersManager';
 import ReportsManager from '../../components/Admin/ReportsManager';
 import ArchiveManager from '../../components/Admin/ArchiveManager';
-import ShopsManager from '../../components/Admin/ShopsManager';
-import RegionsManager from '../../components/Admin/RegionsManager';
-import SubscriptionManager from '../../components/Admin/SubscriptionManager';
 import SettingsManager from '../../components/Admin/SettingsManager';
 import BannersManager from '../../components/Admin/BannersManager';
-import PayoutsManager from '../../components/Admin/PayoutsManager';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
-    Users, Store, BarChart2, DatabaseBackup, Globe, Home,
-    Sparkles, Sliders, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
-    Megaphone, MapPin, CalendarCheck, ShieldAlert, DollarSign
+    Users, BarChart2, DatabaseBackup, Home,
+    Sparkles, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
+    Megaphone, MapPin, CalendarCheck, ShieldAlert
 } from 'lucide-react';
 import DiscoveryManager from '../../components/Admin/DiscoveryManager';
 import DeviceManager from '../../components/Admin/DeviceManager';
-import RecommendationLab from '../../components/Admin/RecommendationLab';
 import ReservationManager from '../../components/Admin/ReservationManager';
 import AuditLogsManager from '../../components/Admin/AuditLogsManager';
 import { Link } from 'react-router-dom';
@@ -39,10 +34,10 @@ const DEFAULT_NOTIFICATIONS = [
 
 const Admin = () => {
     const { isRTL = false, user: outletUser = null } = useOutletContext() || {};
-    const { user: authUser, loading: authLoading, isVendor } = useContext(AuthContext);
+    const { user: authUser, loading: authLoading } = useContext(AuthContext);
     const user = authUser || outletUser;
 
-    const [activeTab, setActiveTab] = useState('shops');
+    const [activeTab, setActiveTab] = useState('products');
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const notificationRef = useRef(null);
 
@@ -149,34 +144,22 @@ const Admin = () => {
         );
     }
 
-    if (!isSuperAdmin && !isRegionalAdmin) {
+    if (!isSuperAdmin && !isAdmin) {
         return <Navigate to="/" replace />;
     }
 
     const tabs = [
-        { id: 'shops', label: isRTL ? 'المتاجر' : 'Shops', icon: <Store size={20} /> },
         { id: 'products', label: isRTL ? 'المنتجات' : 'Products', icon: <Package size={20} /> },
         { id: 'orders', label: isRTL ? 'إدارة الطلبات' : 'Orders', icon: <ShoppingCart size={20} /> },
         { id: 'reservations', label: isRTL ? 'الحجوزات والاستلام' : 'Click & Collect', icon: <CalendarCheck size={20} /> },
+        { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
+        { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
+        { id: 'banners', label: isRTL ? 'إدارة الإعلانات والبانرات' : 'Ads & Banners', icon: <Megaphone size={20} /> },
         { id: 'discovery', label: isRTL ? 'الاكتشاف والحملات' : 'Discovery & Campaigns', icon: <Sparkles size={20} /> },
-        // SA-Only tabs
-        ...(isSuperAdmin ? [
-            { id: 'payouts', label: isRTL ? 'المستحقات والتحويلات' : 'Payouts & Settlements', icon: <DollarSign size={20} /> },
-            { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
-            { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
-            { id: 'regions', label: isRTL ? 'المناطق والبلديات' : 'Regions & Zones', icon: <Globe size={20} /> },
-            { id: 'banners', label: isRTL ? 'إدارة الإعلانات والبانرات' : 'Ads & Banners', icon: <Megaphone size={20} /> },
-        ] : []),
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
-        // Platform Master Controls (Super Admin Only)
-        ...(isSuperAdmin ? [
-            { id: 'algorithm', label: isRTL ? 'مختبر الخوارزميات' : 'Algo Lab', icon: <Sliders size={20} /> },
-            { id: 'subscriptions', label: isRTL ? 'الاشتراكات' : 'Subscriptions', icon: <Ticket size={20} /> },
-            { id: 'audit', label: isRTL ? 'سجل التدقيق والأمان' : 'Security Audit', icon: <ShieldAlert size={20} /> },
-            { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> }
-        ] : []),
-        // Settings available to both Super Admin and Regional Admin
+        { id: 'audit', label: isRTL ? 'سجل التدقيق والأمان' : 'Security Audit', icon: <ShieldAlert size={20} /> },
+        { id: 'recovery', label: isRTL ? 'الاسترداد' : 'Recovery', icon: <DatabaseBackup size={20} /> },
         { id: 'settings', label: isRTL ? 'الإعدادات' : 'Settings', icon: <SettingsIcon size={20} /> }
     ];
 
@@ -188,7 +171,7 @@ const Admin = () => {
                     <h2>{isRTL ? 'لوحة القيادة' : 'Dashboard'}</h2>
                     <div className="sidebar-header-right">
                         <span className="role-badge">
-                            {isSuperAdmin ? 'SA' : isRegionalAdmin ? 'RA' : (user?.name || 'Admin')}
+                            {isSuperAdmin ? 'SA' : (user?.name || 'Admin')}
                         </span>
                         <Link to="/" className="mobile-storefront-link" title={isRTL ? 'المتجر الرئيسي' : 'Storefront'}>
                             <Home size={16} />
@@ -408,22 +391,17 @@ const Admin = () => {
                 </header>
 
                 <div className="main-content-wrapper">
-                    {activeTab === 'shops' && <ShopsManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
                     {activeTab === 'products' && <ProductManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
                     {activeTab === 'orders' && <OrderManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
                     {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
+                    {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
+                    {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
+                    {activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
                     {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {isSuperAdmin && activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                     {activeTab === 'reports' && <ReportsManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {isSuperAdmin && activeTab === 'regions' && <RegionsManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
                     {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'payouts' && <PayoutsManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'algorithm' && <RecommendationLab isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'subscriptions' && <SubscriptionManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'audit' && <AuditLogsManager isRTL={isRTL} />}
-                    {isSuperAdmin && activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
+                    {activeTab === 'audit' && <AuditLogsManager isRTL={isRTL} />}
+                    {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
                     {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
                 </div>
             </main>

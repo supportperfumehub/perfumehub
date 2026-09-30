@@ -337,38 +337,20 @@ const ProductDetails = () => {
         : product.discount;
 
     const handleAddToCart = () => {
-        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
-        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
-        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
-
         addToCart({
             ...product, 
-            price: displayPrice,
-            inventory_id: selectedInventoryId, 
-            shop_id: shopId,
-            vendor_name: vendorName,
-            vendor_address: vendorAddress
-        }, quantity, isGiftWrapped, selectedSize, displayPrice, shopId, selectedInventoryId, vendorName, vendorAddress);
+            price: displayPrice
+        }, quantity, isGiftWrapped, selectedSize, displayPrice);
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2000);
     };
 
     const handleBuyNow = () => {
-        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
-        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
-        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
-
         navigate('/checkout', { 
             state: { 
                 product: { 
                     ...product, 
-                    price: displayPrice,
-                    inventory_id: selectedInventoryId, 
-                    shop_id: shopId,
-                    vendor_name: vendorName,
-                    vendor_address: vendorAddress
+                    price: displayPrice
                 }, 
                 quantity, 
                 isGiftWrapped, 
@@ -380,20 +362,11 @@ const ProductDetails = () => {
     };
 
     const handleReserve = () => {
-        const vendorRec = recommendedVendors.find(v => v.inventory_id === selectedInventoryId);
-        const vendorName = selectedInventory?.shops?.name || vendorRec?.shop_name || selectedInventory?.shop_name || product.shop_name || 'PerfumeHub Boutique';
-        const vendorAddress = selectedInventory?.shops?.address || selectedInventory?.shop_address || 'Doha / Lusail';
-        const shopId = selectedInventory?.shop_id || vendorRec?.s_id || product.shop_id || (product?.inventories && product.inventories[0]?.shop_id) || null;
-
         navigate('/checkout', { 
             state: { 
                 product: { 
                     ...product, 
-                    price: displayPrice,
-                    inventory_id: selectedInventoryId, 
-                    shop_id: shopId,
-                    vendor_name: vendorName,
-                    vendor_address: vendorAddress
+                    price: displayPrice
                 }, 
                 quantity, 
                 isGiftWrapped, 
@@ -975,71 +948,6 @@ const ProductDetails = () => {
                             </div>
                         );
                     })()
-                )}
-
-                {/* Section: Nearby Boutique Selection Accordion */}
-                {recommendedVendors.length > 0 && (
-                    <div className="shop-selection-accordion premium-card animate-fade-in" style={{ padding: '24px 28px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                            <h4 style={{ fontSize: '1.1rem', color: 'var(--color-black)', margin: 0, fontWeight: '700', fontFamily: "var(--font-heading, 'Playfair Display', serif)" }}>
-                                {isRTL ? 'أفضل عروض البوتيكات القريبة:' : 'Nearby Boutique Availability:'}
-                            </h4>
-                            {recommendedVendors.length > 1 && (
-                                <button 
-                                    className="btn-link" 
-                                    onClick={() => setIsVendorsExpanded(!isVendorsExpanded)}
-                                    style={{ background: 'none', border: 'none', color: 'var(--color-gold-dark)', fontWeight: '600', cursor: 'pointer' }}
-                                >
-                                    {isVendorsExpanded ? (isRTL ? 'إخفاء' : 'View Less') : (isRTL ? `عرض ${recommendedVendors.length - 1} عروض أخرى` : `View ${recommendedVendors.length - 1} other offers`)}
-                                </button>
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {recommendedVendors
-                                .filter((_, idx) => isVendorsExpanded || idx === 0)
-                                .map((vendor) => {
-                                    const isSelected = vendor.inventory_id === selectedInventoryId;
-                                    
-                                    return (
-                                        <label key={vendor.inventory_id} style={{ display: 'flex', alignItems: 'center', padding: '12px', border: isSelected ? '2px solid var(--color-gold)' : '1px solid rgba(0,0,0,0.08)', borderRadius: 'var(--radius-md)', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.05)' : '#fff', transition: 'all var(--transition-fast)' }}>
-                                            <input 
-                                                type="radio" 
-                                                name="shopSelection" 
-                                                checked={isSelected} 
-                                                onChange={() => setSelectedInventoryId(vendor.inventory_id)}
-                                                style={{ marginRight: '12px', width: '18px', height: '18px', accentColor: 'var(--color-gold)' }}
-                                            />
-                                            <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <span style={{ fontWeight: isSelected ? '700' : '500', fontSize: '0.95rem', color: 'var(--color-black)' }}>
-                                                        {vendor.shop_name} <span style={{color: 'var(--color-text-light)', fontSize: '0.85rem', fontWeight: '400'}}>({vendor.dist_km.toFixed(1)} km)</span>
-                                                    </span>
-                                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                                        {vendor.badges.map((badge, idx) => {
-                                                            let badgeClass = 'best-price';
-                                                            if(badge.includes('Premium')) badgeClass = 'premium';
-                                                            if(badge.includes('Nearest')) badgeClass = 'nearest';
-                                                            return <span key={idx} className={`ui-badge ${badgeClass}`}>{badge}</span>;
-                                                        })}
-                                                    </div>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.85rem' }}>
-                                                    <span style={{ fontWeight: '600', color: 'var(--color-black)' }}>{vendor.price} {vendor.currency}</span>
-                                                    <span style={{ color: '#2E7D32', fontWeight: '500' }}>{t('product.in_stock')}</span>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    );
-                                })}
-                        </div>
-                        {!userLocation && (
-                            <button className="btn-link" onClick={detectLocation} style={{ marginTop: '12px', fontSize: '0.85rem', padding: '0', background: 'none', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <MapPin size={14} />
-                                {isRTL ? 'اكتشف المتجر الأقرب إليك' : 'Allow location to find nearest shop'}
-                            </button>
-                        )}
-                    </div>
                 )}
 
             </div>

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Newsletter from '../../components/Newsletter/Newsletter';
-import NearestShopFinder from '../../components/NearestShopFinder/NearestShopFinder';
 import TrustBadges from '../../components/TrustBadges/TrustBadges';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
@@ -655,76 +654,6 @@ const Home = () => {
                     </div>
                 </section>
             ) : null}
-
-            {/* Nearest Shop Finder */}
-            <div className="container section">
-                <NearestShopFinder isRTL={isRTL} />
-            </div>
-
-            {/* Premium Boutiques */}
-            <section className="section container reveal premium-boutiques-section">
-                <div className="section-header">
-                    <h2 className="section-title" style={{ fontSize: '1.5rem' }}>{isRTL ? 'متاجر مميزة' : 'Premium Boutiques'}</h2>
-                    <span className="ui-badge premium" style={{ marginLeft: isRTL ? '0' : '10px', marginRight: isRTL ? '10px' : '0' }}>Trusted</span>
-                </div>
-                <div className="premium-boutiques-scroll">
-                    {shops.length > 0 ? (
-                        (() => {
-                            const activeShops = shops.filter(s => s.status?.toUpperCase() === 'ACTIVE');
-                            const featuredShops = activeShops.filter(s => s.is_recommended || s.is_featured);
-                            const displayShops = featuredShops.length > 0 ? featuredShops : activeShops;
-
-                            if (displayShops.length === 0) {
-                                return (
-                                    <div style={{ padding: '20px', color: '#666', fontStyle: 'italic' }}>
-                                        {isRTL ? 'لا توجد متاجر نشطة حالياً' : 'No active boutiques available.'}
-                                    </div>
-                                );
-                            }
-
-                            return displayShops.map((shop) => (
-                                <div key={shop.id} className="premium-card boutique-card animate-fade-in">
-                                    <div 
-                                        className="boutique-image-container" 
-                                        style={{ 
-                                            backgroundImage: `url(${shop.images?.[0] || shop.logo_url || 'https://placehold.co/400x400/1a1a1a/d4af37?text=' + encodeURIComponent(shop.name)})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            backgroundRepeat: 'no-repeat',
-                                            height: '150px',
-                                            backgroundColor: '#1a1a1a',
-                                            borderRadius: '12px 12px 0 0'
-                                        }}
-                                    ></div>
-                                    <div className="boutique-info">
-                                        <h4 style={{ margin: 0 }}>{shop.name}</h4>
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px' }}>
-                                            <Link to={`/shop?shop_id=${shop.id}`} className="boutique-visit-btn">
-                                                {isRTL ? 'زيارة' : 'Visit'}
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            ));
-                        })()
-                    ) : loading ? (
-                        [1, 2, 3, 4].map(idx => (
-                            <div key={idx} className="boutique-card-skeleton">
-                                <div className="skeleton skeleton-image" style={{ height: '140px', marginBottom: '16px' }}></div>
-                                <div className="skeleton skeleton-line short" style={{ marginBottom: '8px' }}></div>
-                                <div className="skeleton skeleton-line medium" style={{ marginBottom: '12px' }}></div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
-                                    <div className="skeleton" style={{ width: '70px', height: '28px', borderRadius: '4px' }}></div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div style={{ padding: '20px', color: '#666', fontStyle: 'italic' }}>
-                            {isRTL ? 'لا توجد متاجر نشطة حالياً' : 'No active boutiques available.'}
-                        </div>
-                    )}
-                </div>
-            </section>
 
             {loading && (
                 <section className="section container">

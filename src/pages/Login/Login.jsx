@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useOutletContext, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Store, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { ShopContext } from '../../context/ShopContext';
 import './Login.css';
@@ -15,7 +15,6 @@ const Login = () => {
     const [isResetSent, setIsResetSent] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
-    const [isVendorLogin, setIsVendorLogin] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,7 +26,6 @@ const Login = () => {
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
-        setIsVendorLogin(false);
         setIsForgotPassword(false);
         setError('');
         setIsResetSent(false);
@@ -49,9 +47,9 @@ const Login = () => {
     React.useEffect(() => {
         if (user) {
             const role = user.role;
-            const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
+            const isAdminRole = role === 'super_admin' || role === 'admin';
             const origin = location.state?.from?.pathname
-                || (isAdminRole ? '/admin' : (role === 'vendor' || user.shop_id ? '/vendor' : '/'));
+                || (isAdminRole ? '/admin' : '/');
             navigate(origin, { replace: true });
         }
     }, [user, navigate, location.state]);
@@ -89,9 +87,9 @@ const Login = () => {
                 if (result.success) {
                     showToast(isRTL ? "تم تسجيل الدخول بنجاح!" : "Login successful!", 'success');
                     const role = result.user?.role;
-                    const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
+                    const isAdminRole = role === 'super_admin' || role === 'admin';
                     const origin = location.state?.from?.pathname
-                        || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
+                        || (isAdminRole ? '/admin' : '/');
                     navigate(origin);
                 } else {
                     setError(result.message);
@@ -131,9 +129,9 @@ const Login = () => {
                         localStorage.removeItem('remembered_email');
                     }
 
-                    const isAdminRole = role === 'super_admin' || role === 'admin' || role === 'regional_admin';
+                    const isAdminRole = role === 'super_admin' || role === 'admin';
                     const origin = location.state?.from?.pathname
-                        || (isAdminRole ? '/admin' : (role === 'vendor' || result.user?.shop_id ? '/vendor' : '/'));
+                        || (isAdminRole ? '/admin' : '/');
                     navigate(origin);
                 } else {
                     setError(result.message);
@@ -186,8 +184,8 @@ const Login = () => {
                     </h1>
                     <p className="login-subtitle animate-slide-up" style={{ animationDelay: '0.1s' }}>
                         {isRTL
-                            ? (isVendorLogin ? 'تسجيل دخول البائع للمتابعة إلى لوحة التحكم' : (isLogin ? 'سجل الدخول للمتابعة إلى حسابك' : 'ابدأ رحلتك في عالم الفخامة'))
-                            : (isVendorLogin ? 'Sign in to your vendor dashboard to continue' : (isLogin ? 'Sign in to your premium account' : 'Discover a world of luxury'))}
+                            ? (isLogin ? 'سجل الدخول للمتابعة إلى حسابك' : 'ابدأ رحلتك في عالم الفخامة')
+                            : (isLogin ? 'Sign in to your premium account' : 'Discover a world of luxury')}
                     </p>
                 </div>
 
@@ -384,40 +382,7 @@ const Login = () => {
                     <span>{isRTL ? 'المتابعة باستخدام جوجل' : 'Continue with Google'}</span>
                 </button>
 
-                {/* Vendor CTA */}
-                <div className="vendor-cta animate-slide-up" style={{ animationDelay: '0.35s' }}>
-                    <div className="vendor-cta-inner">
-                        <Store size={16} className="vendor-cta-icon" />
-                        <span>{isRTL ? 'هل أنت صاحب متجر؟' : 'Are you a shop owner?'}</span>
-                    </div>
-                    <div className="vendor-cta-links">
-                        {user && (user.role === 'vendor' || user.role === 'admin') ? (
-                            <Link to="/vendor" className="vendor-link vendor-link-highlight">
-                                {isRTL ? 'لوحة التحكم' : 'Vendor Dashboard'}
-                            </Link>
-                        ) : (
-                            <>
-                                <button 
-                                    type="button"
-                                    className="vendor-link"
-                                    onClick={() => {
-                                        setIsLogin(true);
-                                        setIsVendorLogin(true);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                >
-                                    {isRTL ? 'تسجيل دخول البائع' : 'Vendor Login'}
-                                </button>
-                                <span className="vendor-divider">·</span>
-                                <Link to="/vendor-signup" className="vendor-link vendor-link-highlight">
-                                    {isRTL ? 'سجّل متجرك' : 'Register Your Shop'}
-                                </Link>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                <div className="login-footer text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                <div className="login-footer text-center animate-slide-up" style={{ animationDelay: '0.35s' }}>
                      <p className="copyright">&copy; {new Date().getFullYear()} PerfumeHub Luxury</p>
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, Store, Scan, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Menu, X, Globe, User, Heart, Settings, LogOut, ChevronDown } from 'lucide-react';
 import logo from '../../assets/logo_transparent.webp';
 import SearchBar from '../SearchBar/SearchBar';
 import { AuthContext } from '../../context/AuthContext';
@@ -15,7 +15,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [expandedDropdown, setExpandedDropdown] = useState(null);
     const location = useLocation();
-    const { user, isAuthenticated, isAdmin, isVendor, logout } = useContext(AuthContext);
+    const { user, isAuthenticated, isAdmin, logout } = useContext(AuthContext);
     const { getCartCount } = useContext(CartContext);
     const { wishlistItems } = useContext(WishlistContext);
 
@@ -30,12 +30,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
 
         if (email === 'admin@perfumehub.com' || role === 'super_admin' || name.includes('super admin')) {
             return 'SA';
-        }
-        if (role === 'regional_admin' || name.includes('regional admin')) {
-            return 'RA';
-        }
-        if (user.shop_id || role === 'vendor' || isVendor || name.includes('vendor')) {
-            return isRTL ? 'بائع' : 'Vendor';
         }
         if (role === 'admin') {
             return isRTL ? 'مشرف' : 'Admin';
@@ -219,18 +213,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                         <span>{t('navbar.admin_dashboard')}</span>
                                     </Link>
                                 )}
-                                {(isVendor || user?.role === 'regional_admin' || Boolean(user?.shop_id)) && (
-                                    <Link to="/vendor" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-                                        <Store size={18} />
-                                        <span>{isRTL ? 'لوحة البائع' : 'Vendor Panel'}</span>
-                                    </Link>
-                                )}
-                                {(isVendor || isAdmin) && (
-                                    <Link to="/verify" className="mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-                                        <Scan size={18} />
-                                        <span>{isRTL ? 'التحقق من الحجز' : 'Verify Reservation'}</span>
-                                    </Link>
-                                )}
                                 <button className="mobile-nav-link" onClick={() => { logout(); setIsMobileMenuOpen(false); }}>
                                     <LogOut size={18} />
                                     <span>{t('navbar.logout')}</span>
@@ -324,28 +306,6 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
                                             >
                                                 <Settings size={16} />
                                                 <span>{isRTL ? 'لوحة تحكم المشرف (Admin)' : 'Admin Dashboard'}</span>
-                                            </Link>
-                                        )}
-
-                                        {(isVendor || user?.role === 'regional_admin' || Boolean(user?.shop_id)) && (
-                                            <Link 
-                                                to="/vendor" 
-                                                className="dropdown-menu-action vendor-action" 
-                                                onClick={() => setIsUserMenuOpen(false)}
-                                            >
-                                                <Store size={16} />
-                                                <span>{isRTL ? 'لوحة إدارة البائع والفروع' : 'Vendor Boutique Panel'}</span>
-                                            </Link>
-                                        )}
-
-                                        {(isVendor || isAdmin) && (
-                                            <Link 
-                                                to="/verify" 
-                                                className="dropdown-menu-action verify-action" 
-                                                onClick={() => setIsUserMenuOpen(false)}
-                                            >
-                                                <Scan size={16} />
-                                                <span>{isRTL ? 'نقطة مسح الاستلام (VIP Scanner)' : 'Click & Collect Scanner'}</span>
                                             </Link>
                                         )}
 
