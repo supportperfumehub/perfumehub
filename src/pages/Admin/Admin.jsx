@@ -195,25 +195,6 @@ const Admin = () => {
 
                 {/* Sidebar Footer (Desktop only) */}
                 <div className="sidebar-footer">
-                    {hasShop && (
-                        <Link to="/vendor" className="nav-item switch-boutique-btn" style={{
-                            textDecoration: 'none',
-                            color: '#000',
-                            background: 'linear-gradient(135deg, #d4af37 0%, #f3e8b2 50%, #b8860b 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '10px 14px',
-                            borderRadius: '10px',
-                            fontWeight: '700',
-                            fontSize: '0.85rem',
-                            marginBottom: '10px',
-                            boxShadow: '0 4px 12px rgba(212, 175, 55, 0.25)'
-                        }}>
-                            <Store size={18} color="#000" />
-                            <span className="nav-label">{isRTL ? 'لوحة متجري (Vendor)' : 'My Boutique (Vendor Panel)'}</span>
-                        </Link>
-                    )}
                     <Link to="/" className="nav-item" style={{ textDecoration: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
                         <Home size={20} />
                         <span className="nav-label">{isRTL ? 'المتجر الرئيسي' : 'Storefront'}</span>

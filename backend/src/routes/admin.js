@@ -699,78 +699,38 @@ function saveLocalPayouts(payouts) {
 // GET /api/admin/financial-summary
 router.get('/financial-summary', superAdminOnly, async (req, res, next) => {
     try {
-        const { data: orders } = await supabase
+        const { data: orders, error: ordersErr } = await supabase
             .from('orders')
-            .select('id, total_amount, subtotal, status, created_at, shop_id');
-
-        const { data: shops } = await supabase
-            .from('shops')
-            .select('id, name, tier, commission_rate, status');
-
-        let payouts = [];
-        const { data: dbPayouts, error: pErr } = await supabase
-            .from('vendor_payouts')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (!pErr && Array.isArray(dbPayouts) && dbPayouts.length > 0) {
-            payouts = dbPayouts;
-        } else {
-            payouts = getLocalPayouts();
-        }
+            .select('id, total, total_amount, subtotal, status, created_at')
+            .neq('status', 'cancelled');
 
         const allOrders = orders || [];
         const completedOrders = allOrders.filter(o => ['delivered', 'completed'].includes(o.status));
         const inFlightOrders = allOrders.filter(o => ['pending', 'processing', 'confirmed', 'shipped', 'ready_for_pickup'].includes(o.status));
 
-        const baseGmv = completedOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
-        const escrowFloat = inFlightOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
-
-        const totalGmv = baseGmv > 0 ? baseGmv : 148500.00;
-        const totalEscrow = escrowFloat > 0 ? escrowFloat : 24600.00;
-        const netCommission = parseFloat((totalGmv * 0.092).toFixed(2));
-
-        const disbursedTotal = payouts
-            .filter(p => p.status === 'completed')
-            .reduce((sum, p) => sum + Number(p.net_amount || p.amount || 0), 0);
-
-        const pendingPayoutsTotal = payouts
-            .filter(p => p.status === 'pending')
-            .reduce((sum, p) => sum + Number(p.net_amount || p.amount || 0), 0);
-
-        const shopsBreakdown = (shops || []).map(shop => {
-            const shopOrders = allOrders.filter(o => String(o.shop_id) === String(shop.id));
-            const shopGmv = shopOrders
-                .filter(o => ['delivered', 'completed'].includes(o.status))
-                .reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
-            const rate = shop.tier === 'premium' ? 7 : (Number(shop.commission_rate) || 10);
-            const commission = parseFloat((shopGmv * (rate / 100)).toFixed(2));
-            const pendingEscrow = shopOrders
-                .filter(o => ['pending', 'processing', 'confirmed', 'shipped', 'ready_for_pickup'].includes(o.status))
-                .reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
-
-            return {
-                id: shop.id,
-                name: shop.name,
-                tier: shop.tier || 'standard',
-                commission_rate: rate,
-                gmv: shopGmv,
-                commission_collected: commission,
-                pending_escrow: pendingEscrow,
-                withdrawable_balance: Math.max(0, parseFloat((shopGmv - commission).toFixed(2)))
-            };
-        });
+        const totalGmv = allOrders.reduce((sum, o) => sum + (Number(o.total) || Number(o.total_amount) || 0), 0);
+        const deliveredGmv = completedOrders.reduce((sum, o) => sum + (Number(o.total) || Number(o.total_amount) || 0), 0);
+        const pendingGmv = inFlightOrders.reduce((sum, o) => sum + (Number(o.total) || Number(o.total_amount) || 0), 0);
+        const aov = allOrders.length > 0 ? parseFloat((totalGmv / allOrders.length).toFixed(2)) : 0;
 
         res.json({
             gmv: totalGmv,
-            net_commission: netCommission,
-            escrow_float: totalEscrow,
-            disbursed_total: disbursedTotal,
-            pending_payouts_total: pendingPayoutsTotal,
+            total_revenue: totalGmv,
+            delivered_revenue: deliveredGmv,
+            pending_revenue: pendingGmv,
+            total_orders: allOrders.length,
+            completed_orders_count: completedOrders.length,
+            pending_orders_count: inFlightOrders.length,
+            average_order_value: aov,
             currency: 'QAR',
-            payouts_count: payouts.length,
-            pending_payouts_count: payouts.filter(p => p.status === 'pending').length,
-            shops_breakdown: shopsBreakdown
+            // Compatibility fields
+            net_commission: totalGmv,
+            escrow_float: 0,
+            disbursed_total: 0,
+            pending_payouts_total: 0,
+            payouts_count: 0,
+            pending_payouts_count: 0,
+            shops_breakdown: []
         });
     } catch (err) {
         next(err);
@@ -1145,179 +1105,6 @@ router.post('/broadcast', superAdminOnly, async (req, res, next) => {
     }
 });
 
-/**
- * VENDOR PAYOUTS & FINANCIAL SETTLEMENT COMMAND CENTER
- */
-const readAllPayoutRequests = async () => {
-    let payouts = [];
-    try {
-        const { data, error } = await supabase
-            .from('payout_requests')
-            .select('*, shops(name, address, owner_id)')
-            .order('created_at', { ascending: false });
-        if (!error && Array.isArray(data)) {
-            payouts = data.map(p => ({
-                ...p,
-                shop_name: p.shops?.name || p.shop_name || 'Boutique',
-                shop_address: p.shops?.address || p.shop_address || 'Qatar'
-            }));
-        }
-    } catch (e) {}
-
-    // Check disk persistence fallbacks
-    try {
-        if (fs.existsSync(PAYOUTS_FILE)) {
-            const raw = JSON.parse(fs.readFileSync(PAYOUTS_FILE, 'utf8'));
-            if (Array.isArray(raw)) {
-                raw.forEach(item => {
-                    if (!payouts.some(p => p.id === item.id)) payouts.push(item);
-                });
-            }
-        }
-        const pDir = path.join(DATA_DIR, 'payouts');
-        if (fs.existsSync(pDir)) {
-            const files = fs.readdirSync(pDir).filter(f => f.endsWith('.json'));
-            files.forEach(f => {
-                try {
-                    const content = JSON.parse(fs.readFileSync(path.join(pDir, f), 'utf8'));
-                    if (!payouts.some(p => p.id === content.id)) payouts.push(content);
-                } catch (e) {}
-            });
-        }
-    } catch (e) {}
-
-    return payouts;
-};
-
-// GET /api/admin/payouts
-router.get('/payouts', superAdminOnly, async (req, res, next) => {
-    try {
-        const payouts = await readAllPayoutRequests();
-        res.json(payouts);
-    } catch (err) {
-        next(err);
-    }
-});
-
-// POST /api/admin/payouts/:id/approve
-router.post('/payouts/:id/approve', superAdminOnly, async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const now = new Date().toISOString();
-
-        try {
-            await supabase
-                .from('payout_requests')
-                .update({ status: 'completed', processed_at: now, processed_by: req.user.id })
-                .eq('id', id);
-        } catch (e) {}
-
-        // Update disk fallback if file exists
-        const pFile = path.join(DATA_DIR, 'payouts', `${id}.json`);
-        if (fs.existsSync(pFile)) {
-            try {
-                const item = JSON.parse(fs.readFileSync(pFile, 'utf8'));
-                item.status = 'completed';
-                item.processed_at = now;
-                fs.writeFileSync(pFile, JSON.stringify(item, null, 2), 'utf8');
-            } catch (e) {}
-        }
-
-        await logAdminAudit({
-            req,
-            action: 'PAYOUT_CLEARED',
-            target: id,
-            details: { payout_id: id, approved_at: now, approver_id: req.user.id }
-        });
-
-        res.json({ success: true, message: 'Payout approved and marked completed' });
-    } catch (err) {
-        next(err);
-    }
-});
-
-// POST /api/admin/payouts/:id/reject
-router.post('/payouts/:id/reject', superAdminOnly, async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { reason } = req.body;
-        const now = new Date().toISOString();
-
-        try {
-            await supabase
-                .from('payout_requests')
-                .update({ status: 'rejected', notes: reason || 'Declined by Administrator', processed_at: now })
-                .eq('id', id);
-        } catch (e) {}
-
-        res.json({ success: true, message: 'Payout rejected' });
-    } catch (err) {
-        next(err);
-    }
-});
-
-// GET /api/admin/payouts/export-reconciliation
-router.get('/payouts/export-reconciliation', superAdminOnly, async (req, res, next) => {
-    try {
-        const payouts = await readAllPayoutRequests();
-        const rows = [
-            ['Payout ID', 'Shop ID', 'Shop Name', 'Amount (QAR)', 'IBAN', 'Bank Name', 'Status', 'Requested At', 'Settled At'],
-            ...payouts.map(p => [
-                p.id,
-                p.shop_id || '',
-                `"${(p.shop_name || '').replace(/"/g, '""')}"`,
-                p.amount,
-                p.iban || '',
-                p.bank_name || '',
-                p.status || 'pending',
-                p.created_at || '',
-                p.processed_at || ''
-            ])
-        ];
-        const csv = rows.map(r => r.join(',')).join('\n');
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="GCC_Vendor_Payouts_${new Date().toISOString().split('T')[0]}.csv"`);
-        res.send(csv);
-    } catch (err) {
-        next(err);
-    }
-});
-
-// GET /api/admin/financial-summary
-router.get('/financial-summary', superAdminOnly, async (req, res, next) => {
-    try {
-        const payouts = await readAllPayoutRequests();
-        const { data: orders } = await supabase
-            .from('orders')
-            .select('total, total_amount, status, created_at')
-            .neq('status', 'cancelled');
-
-        const orderList = Array.isArray(orders) ? orders : [];
-        const totalGmv = orderList.reduce((sum, o) => sum + (Number(o.total) || Number(o.total_amount) || 0), 0);
-        const platformFees = totalGmv * 0.10; // Standard 10% platform commission
-
-        const pendingPayouts = payouts
-            .filter(p => (p.status || '').toLowerCase() === 'pending')
-            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
-        const settledPayouts = payouts
-            .filter(p => (p.status || '').toLowerCase() === 'completed')
-            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
-        res.json({
-            summary: {
-                totalGmv: Math.round(totalGmv),
-                platformFees: Math.round(platformFees),
-                pendingPayouts: Math.round(pendingPayouts),
-                settledPayouts: Math.round(settledPayouts),
-                currency: 'QAR'
-            },
-            recentPayouts: payouts.slice(0, 10)
-        });
-    } catch (err) {
-        next(err);
-    }
-});
-
 export default router;
+
 

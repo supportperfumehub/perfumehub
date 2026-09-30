@@ -44,27 +44,10 @@ export const authenticateUser = async (req, res, next) => {
             req.user.avatar_url = await getAvatarUrl(user.id);
         }
 
-        // Regional Scoping
-        if (user.role === 'regional_admin') {
-            const { data: mappings } = await supabase
-                .from('admin_region_mapping')
-                .select('region_id')
-                .eq('admin_id', user.id);
-            req.user.assignedRegionIds = mappings ? mappings.map(m => m.region_id) : [];
-        }
-
-        // Vendor Multi-Branch Scoping (Single Source of Truth: shops.owner_id)
-        if (user.role === 'vendor' || user.role === 'regional_admin' || user.role === 'super_admin' || user.shop_id) {
-            const { data: ownedShops } = await supabase
-                .from('shops')
-                .select('id, name')
-                .eq('owner_id', user.id);
-            req.user.ownedShopIds = ownedShops ? ownedShops.map(s => s.id) : [];
-            if (user.shop_id && !req.user.ownedShopIds.includes(user.shop_id)) {
-                req.user.ownedShopIds.push(user.shop_id);
-            }
-            req.user.shop_id = req.user.ownedShopIds[0] || user.shop_id || null;
-        }
+        // Single Store Scoping (PerfumeHub Master Platform)
+        req.user.assignedRegionIds = [];
+        req.user.ownedShopIds = [];
+        req.user.shop_id = user.shop_id || null;
 
         next();
     } catch (err) {

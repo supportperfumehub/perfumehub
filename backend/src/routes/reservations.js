@@ -30,54 +30,9 @@ router.get('/', authenticateUser, async (req, res) => {
         // If customer, show only their reservations
         if (user.role === 'customer') {
             query = query.eq('customer_id', user.id);
-        } else if (user.role === 'vendor') {
-            const { data: vendorShops } = await supabase
-                .from('shops')
-                .select('id')
-                .eq('owner_id', user.id);
-            
-            let ownedShopIds = vendorShops ? vendorShops.map(s => s.id) : [];
-            if (user.shop_id && !ownedShopIds.includes(user.shop_id)) {
-                ownedShopIds.push(user.shop_id);
-            }
-
-            if (ownedShopIds.length === 0) return res.json([]);
-
-            if (req.query.shop_id && req.query.shop_id !== 'all') {
-                if (ownedShopIds.includes(req.query.shop_id)) {
-                    query = query.eq('shop_id', req.query.shop_id);
-                } else {
-                    return res.status(403).json({ error: 'Forbidden: You do not own this shop' });
-                }
-            } else {
-                query = query.in('shop_id', ownedShopIds);
-            }
-        } else if (user.role === 'regional_admin') {
-            const assigned = user.assignedRegionIds || [];
-            if (assigned.length === 0) return res.json([]);
-            
-            const { data: regionalShops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', assigned);
-
-            const shopIds = (regionalShops || []).map(s => s.id);
-            if (shopIds.length === 0) return res.json([]);
-
-            if (req.query.shop_id && req.query.shop_id !== 'all') {
-                if (shopIds.includes(req.query.shop_id)) {
-                    query = query.eq('shop_id', req.query.shop_id);
-                } else {
-                    return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-                }
-            } else {
-                query = query.in('shop_id', shopIds);
-            }
-        } else if (user.role === 'super_admin' || user.role === 'admin') {
-            // Super Admins can filter by any shop
-            if (req.query.shop_id && req.query.shop_id !== 'all') {
-                query = query.eq('shop_id', req.query.shop_id);
-            }
+        } else if (req.query.shop_id && req.query.shop_id !== 'all') {
+            // Admin can filter by boutique if requested
+            query = query.eq('shop_id', req.query.shop_id);
         }
 
         const { data, error } = await query;
@@ -150,29 +105,11 @@ router.post('/', authenticateUser, async (req, res) => {
     }
 });
 
-// Vendor confirms reservation
-router.post('/:id/confirm', authenticateUser, verifyRole(['vendor', 'super_admin', 'regional_admin']), async (req, res) => {
+// Admin confirms reservation
+router.post('/:id/confirm', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const user = req.user;
 
     try {
-        // Verify ownership
-        if (user.role === 'vendor') {
-            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
-            if (!hasAccess) {
-                return res.status(403).json({ error: 'Forbidden' });
-            }
-        } else if (user.role === 'regional_admin') {
-            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            if (!resv) return res.status(404).json({ error: 'Reservation not found' });
-            
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
-            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
-
         const { data, error } = await supabase
             .from('reservations')
             .update({ status: 'confirmed', updated_at: new Date().toISOString() })
@@ -190,28 +127,11 @@ router.post('/:id/confirm', authenticateUser, verifyRole(['vendor', 'super_admin
     }
 });
 
-// Complete reservation (Customer picked up)
-router.post('/:id/complete', authenticateUser, verifyRole(['vendor', 'super_admin', 'regional_admin']), async (req, res) => {
+// Complete reservation (Customer picked up at Boutique)
+router.post('/:id/complete', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
-    const user = req.user;
 
     try {
-        if (user.role === 'vendor') {
-            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
-            if (!hasAccess) {
-                return res.status(403).json({ error: 'Forbidden' });
-            }
-        } else if (user.role === 'regional_admin') {
-            const { data: resv } = await supabase.from('reservations').select('shop_id').eq('id', id).single();
-            if (!resv) return res.status(404).json({ error: 'Reservation not found' });
-            
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
-            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
-
         const { data, error } = await supabase.rpc('complete_reservation', {
             p_reservation_id: id
         });
@@ -234,18 +154,8 @@ router.post('/:id/cancel', authenticateUser, async (req, res) => {
         const { data: resv } = await supabase.from('reservations').select('customer_id, shop_id').eq('id', id).single();
         if (!resv) return res.status(404).json({ error: 'Not found' });
 
-        // Customers can cancel their own, vendors can cancel their shop's
+        // Customers can cancel their own, Admins can cancel any
         if (user.role === 'customer' && resv.customer_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
-        if (user.role === 'vendor') {
-            const hasAccess = await checkVendorShopAccess(user, resv?.shop_id);
-            if (!hasAccess) return res.status(403).json({ error: 'Forbidden' });
-        }
-        if (user.role === 'regional_admin') {
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', resv.shop_id).single();
-            if (!shop || !user.assignedRegionIds.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
 
         const { data, error } = await supabase.rpc('cancel_reservation', {
             p_reservation_id: id,
@@ -261,15 +171,14 @@ router.post('/:id/cancel', authenticateUser, async (req, res) => {
     }
 });
 
-// Verify reservation by code (for Shop Staff)
-router.post('/verify', authenticateUser, verifyRole(['vendor', 'super_admin', 'regional_admin']), async (req, res) => {
+// Verify reservation by code (for Flagship Boutique Staff / Admin)
+router.post('/verify', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { code } = req.body;
-    const user = req.user;
 
     if (!code) return res.status(400).json({ error: 'Code is required.' });
 
     try {
-        let query = supabase
+        const { data, error } = await supabase
             .from('reservations')
             .select(`
                 *,
@@ -279,30 +188,6 @@ router.post('/verify', authenticateUser, verifyRole(['vendor', 'super_admin', 'r
             .eq('verification_code', code)
             .in('status', ['pending', 'confirmed'])
             .maybeSingle();
-
-        // If vendor, restrict to their owned shops
-        if (user.role === 'vendor') {
-            const owned = user.ownedShopIds || (user.shop_id ? [user.shop_id] : []);
-            if (owned.length > 0) {
-                query = query.in('shop_id', owned);
-            } else {
-                return res.status(403).json({ error: 'Forbidden: You have no registered boutique branches.' });
-            }
-        } else if (user.role === 'regional_admin') {
-            const { data: shops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', user.assignedRegionIds);
-            
-            const shopIds = shops ? shops.map(s => s.id) : [];
-            if (shopIds.length > 0) {
-                query = query.in('shop_id', shopIds);
-            } else {
-                return res.status(403).json({ error: 'Forbidden: You have no shops in your assigned regions.' });
-            }
-        }
-
-        const { data, error } = await query;
 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: 'Valid reservation not found with this code.' });
@@ -316,6 +201,7 @@ router.post('/verify', authenticateUser, verifyRole(['vendor', 'super_admin', 'r
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 // Cron Endpoint to expire reservations
 router.post('/cron/expire', async (req, res) => {

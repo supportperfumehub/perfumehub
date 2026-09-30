@@ -88,110 +88,52 @@ router.post('/',
             };
         });
 
-        // --- 1. Fulfillment & Price Validation ---
+        // --- 1. Fulfillment & Direct Catalog Validation ---
         if (fulfillment_type === 'pickup' && !pickup_shop_id) {
             return res.status(400).json({ error: 'pickup_shop_id is required for reserve in shop orders.' });
         }
 
-        const shopIdsSet = new Set();
+        if (!normalizedItems || normalizedItems.length === 0) {
+            return res.status(400).json({ error: 'Order must contain items.' });
+        }
+
+        const productIds = normalizedItems.map(i => i.product_id).filter(Boolean);
+        const { data: dbProducts, error: prodFetchErr } = await supabase
+            .from('products')
+            .select('id, name, price, stock')
+            .in('id', productIds);
+
+        if (prodFetchErr) {
+            console.error('Failed to verify products:', prodFetchErr);
+            return res.status(500).json({ error: 'Failed to verify product catalog.' });
+        }
+
+        const productMap = new Map((dbProducts || []).map(p => [String(p.id), p]));
         let calculatedSubtotal = 0;
 
-        if (normalizedItems.length > 0) {
-            for (const item of normalizedItems) {
-                let shopId = item.shop_id;
-                const productId = item.product_id;
-
-                // Dynamic inventory resolution:
-                // If shopId is missing, unassigned, or invalid, find an active boutique holding stock for this product
-                let dbInv = null;
-                if (shopId) {
-                    const { data: invFound } = await supabase
-                        .from('vendor_inventory')
-                        .select('id, price, stock, shop_id')
-                        .eq('product_id', productId)
-                        .eq('shop_id', shopId)
-                        .maybeSingle();
-                    dbInv = invFound;
-                }
-
-                if (!dbInv && fulfillment_type !== 'pickup') {
-                    // Fallback to the first active boutique with available stock
-                    const { data: fallbackInv } = await supabase
-                        .from('vendor_inventory')
-                        .select('id, price, stock, shop_id')
-                        .eq('product_id', productId)
-                        .eq('is_active', true)
-                        .gt('stock', 0)
-                        .order('price', { ascending: true })
-                        .limit(1)
-                        .maybeSingle();
-
-                    if (fallbackInv) {
-                        dbInv = fallbackInv;
-                        shopId = fallbackInv.shop_id;
-                        item.shop_id = fallbackInv.shop_id;
-                    }
-                }
-
-                if (!shopId) {
-                    // If still no boutique found, grab the first active flagship boutique
-                    const { data: flagshipShop } = await supabase
-                        .from('shops')
-                        .select('id')
-                        .eq('status', 'active')
-                        .limit(1)
-                        .maybeSingle();
-                    if (flagshipShop) {
-                        shopId = flagshipShop.id;
-                        item.shop_id = flagshipShop.id;
-                        // Ensure an inventory record exists for seamless checkout
-                        const { data: createdInv } = await supabase
-                            .from('vendor_inventory')
-                            .upsert([{
-                                product_id: productId,
-                                shop_id: flagshipShop.id,
-                                price: item.price || 0,
-                                stock: 100,
-                                is_active: true
-                            }], { onConflict: 'product_id, shop_id' })
-                            .select()
-                            .single();
-                        dbInv = createdInv;
-                    } else {
-                        return res.status(400).json({ error: `Product ${productId} is currently unassigned to any boutique.` });
-                    }
-                }
-
-                shopIdsSet.add(shopId);
-
-                // For pickup, strictly enforce against the single pickup shop
-                if (fulfillment_type === 'pickup' && String(shopId) !== String(pickup_shop_id)) {
-                    return res.status(400).json({ error: 'Mixed cart detected. Reserve in shop must only contain items from the selected pickup shop.' });
-                }
-
-                // Verify price from DB (first vendor_inventory, fallback to products)
-                let unitPrice = 0;
-                if (dbInv && dbInv.price) {
-                    unitPrice = parseFloat(dbInv.price);
-                } else {
-                    const { data: dbProd } = await supabase
-                        .from('products')
-                        .select('price')
-                        .eq('id', productId)
-                        .maybeSingle();
-                    if (!dbProd) {
-                        return res.status(400).json({ error: `Product ${productId} is not available.` });
-                    }
-                    unitPrice = parseFloat(dbProd.price);
-                }
-
-                const itemPrice = unitPrice + (item.isGiftWrapped ? 10 : 0);
-                calculatedSubtotal += itemPrice * (item.quantity || 1);
+        for (const item of normalizedItems) {
+            const dbProd = productMap.get(String(item.product_id));
+            if (!dbProd) {
+                return res.status(400).json({ error: `Product ${item.product_id} is no longer available in the catalog.` });
             }
-        } else {
-             return res.status(400).json({ error: 'Order must contain items.' });
+
+            // Verify stock availability directly on master catalog
+            if (dbProd.stock !== null && dbProd.stock !== undefined) {
+                const availableStock = Number(dbProd.stock);
+                if (availableStock < (item.quantity || 1)) {
+                    return res.status(400).json({
+                        error: `Insufficient stock for "${dbProd.name}". Available: ${availableStock}, Requested: ${item.quantity || 1}`
+                    });
+                }
+            }
+
+            const unitPrice = parseFloat(dbProd.price || 0);
+            item.price = unitPrice;
+            const itemPrice = unitPrice + (item.isGiftWrapped ? 10 : 0);
+            calculatedSubtotal += itemPrice * (item.quantity || 1);
         }
-        const shop_ids = Array.from(shopIdsSet);
+
+        const shop_ids = pickup_shop_id ? [pickup_shop_id] : [1];
 
         // Apply discount if coupon is specified with Zero-Trust checks
         let calculatedDiscountAmount = 0;
@@ -240,148 +182,67 @@ router.post('/',
             });
         }
 
-        // --- 2. Atomic Order Placement & Inventory Reservation (ACID RPC) ---
-        const orderPayload = {
-            customerName,
-            email: email ? email.toLowerCase() : null,
-            phone: phone ? phone.trim() : null,
-            total,
-            shippingAddress: fulfillment_type === 'pickup' ? null : shippingAddress,
-            paymentMethod,
-            fulfillment_type,
-            pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
-            items: normalizedItems,
-            shop_ids: shop_ids
-        };
+        // --- 2. Master Order Placement (Direct Luxury PerfumeHub E-Commerce) ---
+        // Determine explicit next order id to prevent sequence duplicate key collisions
+        const { data: maxRow } = await supabase
+            .from('orders')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+        const nextOrderId = (maxRow && maxRow[0] ? Number(maxRow[0].id) : 0) + 1;
 
-        let newOrderId;
-        let usedAtomicRpc = false;
+        const { data: orderData, error: orderInsertErr } = await supabase
+            .from('orders')
+            .insert([{
+                id: nextOrderId,
+                customer_name: customerName,
+                email: email ? email.toLowerCase() : null,
+                phone: phone ? phone.trim() : null,
+                total,
+                shipping_address: fulfillment_type === 'pickup' ? null : shippingAddress,
+                payment_method: paymentMethod,
+                items: normalizedItems,
+                shop_ids: shop_ids,
+                fulfillment_type,
+                pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
+                status: fulfillment_type === 'pickup' ? 'reserved' : 'pending'
+            }])
+            .select();
 
-        try {
-            const { data: rpcResult, error: rpcError } = await supabase.rpc('place_order_atomic', { 
-                p_order_payload: orderPayload 
-            });
+        if (orderInsertErr) throw orderInsertErr;
+        const newOrderId = orderData[0].id;
 
-            if (!rpcError && rpcResult) {
-                if (rpcResult.success === false) {
-                    return res.status(400).json({ error: rpcResult.error || 'Failed to place order atomically' });
-                }
-                newOrderId = rpcResult.order_id;
-                usedAtomicRpc = true;
-            }
-        } catch (rpcEx) {
-            console.warn('Atomic order RPC failed to execute, transitioning to transactional handler:', rpcEx.message);
-        }
+        // Decrement product master stock and record order line items
+        for (const item of normalizedItems) {
+            const dbProd = productMap.get(String(item.product_id));
 
-        // Transactional Fallback: Pre-flight stock verification to ensure zero partial decrements
-        if (!usedAtomicRpc) {
-            for (const item of normalizedItems) {
-                const { data: inv } = await supabase
-                    .from('vendor_inventory')
-                    .select('id, stock, reserved_quantity, price')
-                    .eq('product_id', item.product_id)
-                    .eq('shop_id', item.shop_id)
-                    .maybeSingle();
-
-                if (!inv) {
-                    return res.status(400).json({ 
-                        error: `Inventory record not found for product ${item.product_id} at boutique.` 
-                    });
-                }
-
-                const available = (Number(inv.stock) || 0) - (Number(inv.reserved_quantity) || 0);
-                if (available < (item.quantity || 1)) {
-                    return res.status(400).json({ 
-                        error: `Insufficient stock for product ${item.product_id} at selected boutique. Available: ${available}, Requested: ${item.quantity || 1}` 
-                    });
-                }
+            // Relational order line item
+            try {
+                await supabase.from('order_items').insert([{
+                    order_id: newOrderId,
+                    product_id: item.product_id,
+                    shop_id: pickup_shop_id || 1,
+                    quantity: item.quantity,
+                    unit_price: item.price || 0,
+                    size: item.size || null,
+                    is_gift_wrapped: Boolean(item.isGiftWrapped)
+                }]);
+            } catch (oiErr) {
+                console.warn('Relational order_items insert notice:', oiErr.message);
             }
 
-            // Determine explicit next order id to ensure sequence desync does not trigger orders_pkey duplicate key error
-            const { data: maxRow } = await supabase
-                .from('orders')
-                .select('id')
-                .order('id', { ascending: false })
-                .limit(1);
-            const nextOrderId = (maxRow && maxRow[0] ? Number(maxRow[0].id) : 0) + 1;
-
-            // All item stocks are confirmed available — insert master order
-            const { data: orderData, error: orderInsertErr } = await supabase
-                .from('orders')
-                .insert([{
-                    id: nextOrderId,
-                    customer_name: customerName,
-                    email: email ? email.toLowerCase() : null,
-                    phone: phone ? phone.trim() : null,
-                    total,
-                    shipping_address: fulfillment_type === 'pickup' ? null : shippingAddress,
-                    payment_method: paymentMethod,
-                    items: normalizedItems,
-                    shop_ids: shop_ids,
-                    fulfillment_type,
-                    pickup_shop_id: fulfillment_type === 'pickup' ? pickup_shop_id : null,
-                    status: fulfillment_type === 'pickup' ? 'reserved' : 'pending'
-                }])
-                .select();
-
-            if (orderInsertErr) throw orderInsertErr;
-            newOrderId = orderData[0].id;
-
-            // Decrement inventory, write immutable inventory audit logs, and populate relational order_items
-            for (const item of normalizedItems) {
-                const { data: inv } = await supabase
-                    .from('vendor_inventory')
-                    .select('id, stock, price')
-                    .eq('product_id', item.product_id)
-                    .eq('shop_id', item.shop_id)
-                    .single();
-
-                if (inv) {
-                    const prevStock = Number(inv.stock) || 0;
-                    const newStock = Math.max(0, prevStock - item.quantity);
-
-                    await supabase
-                        .from('vendor_inventory')
-                        .update({ stock: newStock, updated_at: new Date().toISOString() })
-                        .eq('id', inv.id);
-
-                    // Record immutable inventory audit ledger
-                    try {
-                        await supabase.from('inventory_logs').insert([{
-                            inventory_id: inv.id,
-                            shop_id: item.shop_id,
-                            product_id: item.product_id,
-                            previous_stock: prevStock,
-                            new_stock: newStock,
-                            delta: -item.quantity,
-                            change_type: 'order_sale',
-                            reference_id: String(newOrderId)
-                        }]);
-                    } catch (logErr) {
-                        console.warn('Inventory log insertion skipped:', logErr.message);
-                    }
-                }
-
-                // Insert relational line item into order_items
+            // Direct stock decrement on master catalog product
+            if (dbProd && dbProd.stock !== null && dbProd.stock !== undefined) {
                 try {
-                    await supabase.from('order_items').insert([{
-                        order_id: newOrderId,
-                        product_id: item.product_id,
-                        shop_id: item.shop_id,
-                        quantity: item.quantity,
-                        unit_price: item.price || inv?.price || 0,
-                        size: item.size || null,
-                        is_gift_wrapped: Boolean(item.isGiftWrapped)
-                    }]);
-                } catch (oiErr) {
-                    console.warn('Relational order_items insert skipped:', oiErr.message);
+                    const currentStock = Number(dbProd.stock) || 0;
+                    const newStock = Math.max(0, currentStock - (item.quantity || 1));
+                    await supabase
+                        .from('products')
+                        .update({ stock: newStock })
+                        .eq('id', item.product_id);
+                } catch (stkErr) {
+                    console.warn('Direct product stock decrement notice:', stkErr.message);
                 }
-            }
-
-            // Split into sub-orders
-            const { error: rpcError } = await supabase.rpc('split_order_to_vendors', { p_order_id: newOrderId });
-            if (rpcError) {
-                console.error('Order split RPC failed:', rpcError);
             }
         }
 

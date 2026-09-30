@@ -223,7 +223,7 @@ router.get('/:id', async (req, res) => {
 // Create product (Global Master Catalog & Regional Inventory)
 router.post('/', 
     authenticateUser, 
-    verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), 
+    verifyRole(['super_admin', 'admin']), 
     validateBase64Image('image'),
     [
         body('name').notEmpty().withMessage('Product name is required'),
@@ -346,8 +346,8 @@ router.post('/',
     }
 });
 
-// Update product (Global Catalog & Regional Boutique Management)
-router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), async (req, res) => {
+// Update product (Global Catalog & PerfumeHub Inventory)
+router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { 
         name, brand, type, size, isNew, isFeatured,
@@ -474,8 +474,8 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'region
     }
 });
 
-// Delete product (Soft Delete / Archive - Super Admin, Regional Territory Governance & Boutique Inventory Removal)
-router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin', 'vendor']), async (req, res) => {
+// Delete product (Soft Delete / Archive - Super Admin Master Catalog)
+router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async (req, res) => {
     const { id } = req.params;
 
     try {
