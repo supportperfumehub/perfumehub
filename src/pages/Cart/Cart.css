@@ -205,6 +205,10 @@ html[dir="rtl"] .cart-title {
     letter-spacing: 0.02em;
 }
 
+.cart-item-price-current.price-sale {
+    color: #e53935 !important;
+}
+
 /* Cart Summary Sidebar */
 .cart-summary {
     background: #fff;

@@ -176,8 +176,8 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                         </div>
 
                         {/* Price Row */}
-                        <div className="quickview-price-row">
-                            <span className="quickview-price">
+                        <div className={`quickview-price-row ${(product.oldPrice && Number(product.oldPrice) > currentPrice) || product.discount > 0 ? 'has-discount' : ''}`}>
+                            <span className={`quickview-price ${(product.oldPrice && Number(product.oldPrice) > currentPrice) || product.discount > 0 ? 'price-sale' : ''}`}>
                                 {Math.round(currentPrice)} {isRTL ? 'ر.ق' : 'QAR'}
                             </span>
                             {product.oldPrice && Number(product.oldPrice) > currentPrice && (

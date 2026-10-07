@@ -555,10 +555,10 @@ const ProductDetails = () => {
 
                     <div className="price-section">
                         <div className="luxury-price-cluster">
-                            <div className="price-primary-row">
-                                <div className="offer-price-wrap">
-                                    <span className="price-amount-large">{Math.round(displayPrice)}</span>
-                                    <span className="price-currency-unit">{t('common.currency')}</span>
+                            <div className={`price-primary-row ${(displayOldPrice && displayOldPrice > displayPrice) || displayDiscount > 0 ? 'has-discount' : ''}`}>
+                                <div className={`offer-price-wrap ${(displayOldPrice && displayOldPrice > displayPrice) || displayDiscount > 0 ? 'is-on-sale' : ''}`}>
+                                    <span className={`price-amount-large ${(displayOldPrice && displayOldPrice > displayPrice) || displayDiscount > 0 ? 'price-sale' : ''}`}>{Math.round(displayPrice)}</span>
+                                    <span className={`price-currency-unit ${(displayOldPrice && displayOldPrice > displayPrice) || displayDiscount > 0 ? 'price-sale' : ''}`}>{t('common.currency')}</span>
                                 </div>
                                 {displayOldPrice && displayOldPrice > displayPrice && (
                                     <div className="original-price-wrap">

@@ -277,6 +277,11 @@
     color: #f8fafc;
 }
 
+.quickview-price.price-sale,
+.quickview-price-row.has-discount .quickview-price {
+    color: #e53935 !important;
+}
+
 .quickview-old-price {
     font-size: 1.05rem;
     color: #64748b;

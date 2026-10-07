@@ -137,7 +137,7 @@ const Cart = () => {
                                                 <button onClick={() => updateQuantity(item.product.id, item.isGiftWrapped, item.selectedSize, item.quantity + 1)} disabled={item.quantity >= (item.product.stock !== undefined ? item.product.stock : 10)}>+</button>
                                             </div>
                                             <div className="cart-item-price">
-                                                <span className="cart-item-price-current">
+                                                <span className={`cart-item-price-current ${(item.product?.discount > 0 || (item.product?.oldPrice && Number(item.product.oldPrice) > Number(item.selectedPrice || item.product.price))) ? 'price-sale' : ''}`}>
                                                     {formatPrice((parseFloat(item.selectedPrice || item.product.price) + (item.isGiftWrapped ? 10 : 0)) * item.quantity, currency, isRTL)}
                                                 </span>
                                             </div>

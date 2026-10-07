@@ -404,9 +404,10 @@
     font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif) !important;
 }
 
-/* Sale price – bold with prominent dark look */
-.product-price.price-sale {
-    color: #0a0a0a !important;
+/* Sale price – prominent offer price in red */
+.product-price.price-sale,
+.product-price-row.has-discount .product-price {
+    color: #e53935 !important;
     font-size: 1.28rem !important;
     font-weight: 800 !important;
 }
@@ -591,10 +592,11 @@
         color: #0a0a0a !important;
     }
 
-    .product-price.price-sale {
+    .product-price.price-sale,
+    .product-price-row.has-discount .product-price {
         font-size: 1.15rem !important;
         font-weight: 800 !important;
-        color: #0a0a0a !important;
+        color: #e53935 !important;
     }
 
     .product-old-price {

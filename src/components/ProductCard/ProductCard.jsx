@@ -200,8 +200,8 @@ const ProductCard = ({ product, isRTL }) => {
                         <span>{String(product.topNotes).split(/[,/•|\n]+/).slice(0, 2).map(s => s.trim()).filter(Boolean).join(' • ')}</span>
                     </div>
                 )}
-                <div className={`product-price-row ${product.discount > 0 ? 'has-discount' : ''}`}>
-                    <span className={`product-price ${product.discount > 0 ? 'price-sale' : ''}`}>
+                <div className={`product-price-row ${(product.discount > 0 || (product.oldPrice && Number(product.oldPrice) > Number(product.price))) ? 'has-discount' : ''}`}>
+                    <span className={`product-price ${(product.discount > 0 || (product.oldPrice && Number(product.oldPrice) > Number(product.price))) ? 'price-sale' : ''}`}>
                         {Math.round(product.price)} {t('common.currency')}
                     </span>
                     {product.oldPrice && Number(product.oldPrice) !== Number(product.price) ? (

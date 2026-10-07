@@ -482,7 +482,7 @@ const Home = () => {
                                                 {item.description && <p className="featured-slide-desc" dir="auto">{item.description}</p>}
                                                 {item.price !== undefined && (
                                                     <div className="featured-slide-price-row has-discount" style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '6px' }}>
-                                                        <span className="featured-slide-price price-sale" style={{ fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc' }}>
+                                                        <span className="featured-slide-price price-sale" style={{ fontSize: '1.4rem', fontWeight: '800', color: '#e53935' }}>
                                                             {item.price} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
                                                         </span>
                                                         {item.oldPrice && Number(item.oldPrice) > Number(item.price) && (

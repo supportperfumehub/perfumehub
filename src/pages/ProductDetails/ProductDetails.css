@@ -403,6 +403,18 @@
     line-height: 1;
 }
 
+.price-amount-large.price-sale,
+.offer-price-wrap.is-on-sale .price-amount-large,
+.price-primary-row.has-discount .price-amount-large {
+    color: #e53935 !important;
+}
+
+.price-currency-unit.price-sale,
+.offer-price-wrap.is-on-sale .price-currency-unit,
+.price-primary-row.has-discount .price-currency-unit {
+    color: #e53935 !important;
+}
+
 [dir="rtl"] .price-amount-large {
     font-family: var(--font-arabic-body, 'Noto Kufi Arabic', sans-serif);
 }
