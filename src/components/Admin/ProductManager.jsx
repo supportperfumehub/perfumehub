@@ -391,7 +391,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     };
 
     const downloadCsvTemplate = () => {
-        const headers = 'name,brand,type,price,old_price,stock,gender,top_notes,middle_notes,base_notes,description,description_ar,categories\n';
+        const headers = 'name,brand,type,price,old_price,stock,gender,image,top_notes,middle_notes,base_notes,description,description_ar,categories\n';
         const sampleRows = [
             '"Royal Oud Imperial","North Club Paris","EDP (Eau de Parfum)",750,950,25,"unisex","Calabrian Bergamot, Pink Pepper","Cambodian Agarwood, Bulgarian Rose","Smoky Amber, Mysore Sandalwood","An exquisite blend of aged Cambodian oud and velvety damascena rose.","مزيج ساحر من العود الكمبودي المعتق والورد الدمشقي المخملي مع لمسات عنبرية فاخرة.","perfume,luxury,arabic,woody"',
             '"Velvet Amber Silk","North Club Paris","Parfum",880,1100,18,"women","Sicilian Mandarin, Neroli","Amber Resin, Jasmine Sambac","Madagascar Vanilla, White Musk","Sumptuous golden amber infused with radiant white florals.","عنبر ذهبي ساحر مع نفحات الياسمين الملكي والفانيليا الفاخرة.","perfume,luxury,oriental,sweet"'
@@ -435,6 +435,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                 const descIdx = headers.indexOf('description');
                 const descArIdx = headers.indexOf('descriptionar');
                 const catsIdx = headers.indexOf('categories');
+                const imgIdx = headers.indexOf('image') !== -1 ? headers.indexOf('image') : (headers.indexOf('imageurl') !== -1 ? headers.indexOf('imageurl') : headers.indexOf('images'));
 
                 if (nameIdx === -1 || brandIdx === -1 || priceIdx === -1) {
                     alert(isRTL ? 'الملف يفتقر للأعمدة الإلزامية: name, brand, price' : 'CSV missing mandatory columns: name, brand, price');
@@ -461,6 +462,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                     const description = descIdx !== -1 ? cols[descIdx] : '';
                     const description_ar = descArIdx !== -1 ? cols[descArIdx] : '';
                     const rawCats = catsIdx !== -1 && cols[catsIdx] ? cols[catsIdx].split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : ['perfume'];
+                    const parsedImage = (imgIdx !== -1 && cols[imgIdx]) ? cols[imgIdx].trim() : '';
 
                     const cleanBrand = brand.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 2) || 'PH';
                     const cleanName = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 2) || 'PR';
@@ -490,7 +492,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                             description,
                             sku: autoSku,
                             category: rawCats,
-                            images: [''],
+                            images: parsedImage ? [parsedImage] : [''],
                             attributes: {
                                 description_ar
                             }
@@ -2687,17 +2689,32 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                     <tr key={product.id}>
                                         <td>
                                             <div style={{ width: '50px', height: '50px', position: 'relative' }}>
-                                                <img 
-                                                    src={Array.isArray(product.image) ? product.image[0] : product.image} 
-                                                    alt={product.name} 
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextSibling.style.display = 'flex';
+                                                {(Array.isArray(product.image) ? product.image[0] : product.image) ? (
+                                                    <img 
+                                                        src={Array.isArray(product.image) ? product.image[0] : product.image} 
+                                                        alt={product.name} 
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div 
+                                                    className="admin-img-placeholder" 
+                                                    style={{ 
+                                                        display: (Array.isArray(product.image) ? product.image[0] : product.image) ? 'none' : 'flex', 
+                                                        width: '100%', 
+                                                        height: '100%',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        background: '#1e293b',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid rgba(255, 255, 255, 0.08)'
                                                     }}
-                                                />
-                                                <div className="admin-img-placeholder" style={{ display: 'none', width: '100%', height: '100%' }}>
-                                                    <ImageOff size={20} />
+                                                    title={isRTL ? 'لا توجد صورة للمنتج' : 'No product image available'}
+                                                >
+                                                    <ImageOff size={18} color="#64748b" />
                                                 </div>
                                             </div>
                                         </td>

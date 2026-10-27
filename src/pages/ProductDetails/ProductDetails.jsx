@@ -304,7 +304,7 @@ const ProductDetails = () => {
 
     if (!product) return <div className="container section text-center" style={{ paddingTop: '150px' }}>Loading...</div>;
 
-    const productImageUrl = Array.isArray(product.image) ? product.image[activeImageIdx] : product.image;
+    const productImageUrl = (Array.isArray(product.image) ? product.image[activeImageIdx] : product.image) || 'https://placehold.co/600x750/1a1a1a/d4af37?text=PerfumeHub+Luxury';
     const metaDescription = product.description
         ? product.description.substring(0, 155)
         : t('product.meta_desc', { name: product.name, brand: product.brand });
