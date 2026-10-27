@@ -28,7 +28,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
         const name = (user.name || '').toLowerCase();
         const email = (user.email || '').toLowerCase();
 
-        if (email === 'supportperfumehub@gmail.com' || email === 'admin@perfumehub.com' || role === 'super_admin' || name.includes('super admin')) {
+        if (email === 'supportperfumehub@gmail.com' || role === 'super_admin' || name.includes('super admin')) {
             return 'SA';
         }
         if (role === 'admin') {
