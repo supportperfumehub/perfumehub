@@ -396,7 +396,7 @@ const ProductDetails = () => {
         },
         "sku": productSku || `PH-QA-${product.id}`,
         "category": product.category || "Perfume",
-        "offers": {
+        offers: {
             "@type": "Offer",
             "url": productCanonical,
             "priceCurrency": activeRegion?.currency_code || "QAR",
@@ -409,7 +409,20 @@ const ProductDetails = () => {
                 "name": "PerfumeHub Qatar",
                 "url": "https://perfumehubqa.com/"
             }
-        }
+        },
+        ...((reviewsData?.totalReviews > 0) ? {
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": Number(reviewsData.averageRating || 5.0).toFixed(1),
+                "reviewCount": reviewsData.totalReviews
+            }
+        } : (product.rating_avg && product.review_count > 0 ? {
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": Number(product.rating_avg).toFixed(1),
+                "reviewCount": Number(product.review_count)
+            }
+        } : {}))
     };
 
     const breadcrumbLd = {

@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
 
 -- 3. SETUP DEFAULT ROLES (IF NOT EXISTS)
 -- Ensure 'super_admin' exists for your main admin
-UPDATE customers SET role = 'super_admin' WHERE email = 'admin@perfumehub.com';
+UPDATE customers SET role = 'super_admin' WHERE email IN ('supportperfumehub@gmail.com', 'admin@perfumehub.com');
 
 -- 4. CONSTRAINTS & PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);

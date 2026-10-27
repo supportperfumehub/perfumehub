@@ -28,5 +28,7 @@ User-agent: Googlebot-Image
 Allow: /assets/
 Allow: /favicon.png
 
-# Sitemaps
+# Sitemaps & Merchant Product Feeds
 Sitemap: https://perfumehubqa.com/sitemap.xml
+Allow: /sitemap.xml
+Allow: /google-merchant-feed.xml

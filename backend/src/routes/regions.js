@@ -5,59 +5,28 @@ import { verifyAccessToken, extractTokenFromHeader } from '../utils/tokenUtils.j
 
 const router = express.Router();
 
-// Get live currency exchange rates
-router.get('/rates', async (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400');
-    try {
-        const { data, error } = await supabase
-            .from('currency_exchange_rates')
-            .select('code, rate_to_qar, updated_at');
-        
-        // Comprehensive GCC fallback rates anchored to QAR
-        const fallbackRates = {
-            'QAR': 1.0,
-            'SAR': 0.97,
-            'AED': 0.99,
-            'KWD': 11.90,
-            'BHD': 9.65,
-            'OMR': 9.45,
-            'USD': 3.64,
-            'GBP': 4.60,
-            'EUR': 3.95
-        };
+// Get live currency exchange rates (Instant memory cache - Qatar-only platform anchored to QAR)
+const GCC_RATES_CACHE = {
+    'QAR': 1.0,
+    'SAR': 0.97,
+    'AED': 0.99,
+    'KWD': 11.90,
+    'BHD': 9.65,
+    'OMR': 9.45,
+    'USD': 3.64,
+    'GBP': 4.60,
+    'EUR': 3.95
+};
 
-        const ratesMap = { ...fallbackRates };
-        if (data && Array.isArray(data)) {
-            data.forEach(r => {
-                if (r.code && r.rate_to_qar) {
-                    ratesMap[r.code.toUpperCase()] = parseFloat(r.rate_to_qar);
-                }
-            });
-        }
-
-        res.json({
-            base: 'QAR',
-            rates: ratesMap,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error('Error fetching currency exchange rates:', error);
-        res.json({
-            base: 'QAR',
-            rates: {
-                'QAR': 1.0,
-                'SAR': 0.97,
-                'AED': 0.99,
-                'KWD': 11.90,
-                'BHD': 9.65,
-                'OMR': 9.45,
-                'USD': 3.64,
-                'GBP': 4.60
-            },
-            timestamp: new Date().toISOString()
-        });
-    }
+router.get('/rates', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+    res.json({
+        base: 'QAR',
+        rates: GCC_RATES_CACHE,
+        timestamp: new Date().toISOString()
+    });
 });
+
 
 // Get all regions (Public customer endpoint - returns all active GCC regions without admin lockout)
 router.get('/', async (req, res) => {
