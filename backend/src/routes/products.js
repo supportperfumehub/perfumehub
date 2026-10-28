@@ -30,7 +30,9 @@ router.get('/', async (req, res) => {
 
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 50));
+        const reqLimit = parseInt(req.query.limit, 10);
+        const isFetchAll = req.query.all === 'true' || reqLimit > 1000;
+        const limit = isFetchAll ? (reqLimit || 10000) : Math.min(1000, Math.max(1, reqLimit || 50));
         const offset = (page - 1) * limit;
 
         const catalogFields = 'id, name, brand, type, size, price, old_price, discount, is_new, is_featured, image, category, gender, notes, stock, top_notes, middle_notes, base_notes, created_at, shop_id, sku, description, attributes';
@@ -109,10 +111,41 @@ router.get('/', async (req, res) => {
             query = query.order('created_at', { ascending: false });
         }
 
-        query = query.range(offset, offset + limit - 1);
+        const targetLimit = isFetchAll ? Math.min(1000, limit) : limit;
+        query = query.range(offset, offset + targetLimit - 1);
 
-        const { data, count, error } = await withTimeout(query);
+        const { data: initialData, count, error } = await withTimeout(query);
         if (error) throw error;
+
+        let data = [...(initialData || [])];
+        if (isFetchAll && count && count > data.length && limit > data.length) {
+            let curOffset = offset + data.length;
+            const maxToFetch = Math.min(count, offset + limit);
+            while (curOffset < maxToFetch) {
+                const nextChunkSize = Math.min(1000, maxToFetch - curOffset);
+                let chunkQuery = supabase
+                    .from('products')
+                    .select(catalogFields);
+                const hasDel = await checkDeletedAtColumn();
+                if (hasDel) chunkQuery = chunkQuery.is('deleted_at', null);
+                if (req.query.gender) {
+                    const g = req.query.gender.toLowerCase();
+                    if (g === 'men' || g === 'women') chunkQuery = chunkQuery.or(`gender.eq.${g},gender.eq.unisex`);
+                    else if (g !== 'all') chunkQuery = chunkQuery.eq('gender', g);
+                }
+                if (req.query.category) chunkQuery = chunkQuery.contains('category', [req.query.category]);
+                if (req.query.brand) chunkQuery = chunkQuery.eq('brand', req.query.brand);
+                if (sort === 'price-asc') chunkQuery = chunkQuery.order('price', { ascending: true });
+                else if (sort === 'price-desc') chunkQuery = chunkQuery.order('price', { ascending: false });
+                else chunkQuery = chunkQuery.order('created_at', { ascending: false });
+
+                chunkQuery = chunkQuery.range(curOffset, curOffset + nextChunkSize - 1);
+                const { data: chunkData, error: chunkErr } = await withTimeout(chunkQuery);
+                if (chunkErr || !chunkData || chunkData.length === 0) break;
+                data.push(...chunkData);
+                curOffset += chunkData.length;
+            }
+        }
 
         // Lightweight Card DTO mapping directly from master products catalog
         const productsList = (data || []).map(p => {

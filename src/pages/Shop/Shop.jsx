@@ -298,8 +298,10 @@ const Shop = () => {
         // Search Query
         if (searchQuery.trim() !== '') {
             result = result.filter(p =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.description.toLowerCase().includes(searchQuery.toLowerCase())
+                (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (p.brand && p.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (p.sku && String(p.sku).toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
 

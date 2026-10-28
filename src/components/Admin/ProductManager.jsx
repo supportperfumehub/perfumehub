@@ -29,7 +29,13 @@ const luxuryAccords = [
 ];
 
 const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
-    const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory } = useContext(ShopContext);
+    const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory, fetchProducts } = useContext(ShopContext);
+
+    React.useEffect(() => {
+        if (typeof fetchProducts === 'function') {
+            fetchProducts({ limit: 5000 });
+        }
+    }, []);
     const { user } = useContext(AuthContext);
     const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
     const isRegionalAdmin = user?.role === 'regional_admin';

@@ -171,9 +171,16 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                         <span className="quickview-brand">{product.brand || 'Luxury Fragrance'}</span>
 
                         <h2 className="quickview-title">{product.name}</h2>
-                        <div className="quickview-concentration">
-                            {product.type || 'Eau de Parfum'}
-                        </div>
+                        {product.type && (
+                            <div className="quickview-concentration">
+                                {product.type}
+                            </div>
+                        )}
+                        {product.sku && (
+                            <div className="quickview-sku" style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 8px' }}>
+                                {isRTL ? 'رمز المنتج: ' : 'Product Code: '}<span style={{ fontFamily: 'monospace', color: '#d4af37' }}>{product.sku}</span>
+                            </div>
+                        )}
 
                         {/* Price Row */}
                         <div className={`quickview-price-row ${(product.oldPrice && Number(product.oldPrice) > currentPrice) || product.discount > 0 ? 'has-discount' : ''}`}>

@@ -194,7 +194,11 @@ const ProductCard = ({ product, isRTL }) => {
                 <h3 className="product-name">
                     <Link to={`/product/${product.id}`}>{product.name}</Link>
                 </h3>
-                <p className="product-type">{product.type} - {Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size}</p>
+                <p className="product-type">
+                    {product.type ? `${product.type} • ` : ''}
+                    {Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size}
+                    {product.sku && <span className="product-card-code" style={{ opacity: 0.75, marginInlineStart: '6px', fontSize: '0.75rem' }}>({product.sku})</span>}
+                </p>
                 {product.topNotes && (
                     <div className="card-notes-preview">
                         <span>{String(product.topNotes).split(/[,/•|\n]+/).slice(0, 2).map(s => s.trim()).filter(Boolean).join(' • ')}</span>

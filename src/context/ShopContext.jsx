@@ -85,7 +85,7 @@ export const ShopProvider = ({ children }) => {
 
             const {
                 page = 1,
-                limit = 48,
+                limit = 5000,
                 gender,
                 category,
                 brand,

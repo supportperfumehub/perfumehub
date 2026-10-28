@@ -546,8 +546,8 @@ const ProductDetails = () => {
                     </div>
                     <h1 className="product-name">{product.name}</h1>
                     <p className="product-type-large" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span>{product.type}</span>
-                        {selectedSize && <span>• {selectedSize}</span>}
+                        {product.type && <span>{product.type}</span>}
+                        {selectedSize && <span>{product.type ? '• ' : ''}{selectedSize}</span>}
                         {productSku && (
                             <span className="product-sku-tag" style={{ 
                                 fontSize: '0.75rem', 
