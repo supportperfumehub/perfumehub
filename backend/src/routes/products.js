@@ -25,8 +25,16 @@ const checkDeletedAtColumn = async () => {
 
 // Get global products catalog (High-performance server-side pagination & edge CDN caching)
 router.get('/', async (req, res) => {
-    // Multi-tier Edge CDN caching for storefront; bypass immediately on cache-bust / admin requests
-    if (req.query._t || req.headers['cache-control']?.includes('no-cache') || req.query.admin === 'true') {
+    const reqLimit = parseInt(req.query.limit, 10);
+    const isFetchAll = req.query.all === 'true' || reqLimit > 1000;
+    const isBypassCache = req.query._t || 
+                          req.headers['cache-control']?.includes('no-cache') || 
+                          req.query.admin === 'true' || 
+                          isFetchAll || 
+                          Boolean(req.headers.authorization);
+
+    // Multi-tier Edge CDN caching for storefront; bypass immediately on cache-bust / admin / full catalog requests
+    if (isBypassCache) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -36,8 +44,6 @@ router.get('/', async (req, res) => {
 
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const reqLimit = parseInt(req.query.limit, 10);
-        const isFetchAll = req.query.all === 'true' || reqLimit > 1000;
         const limit = isFetchAll ? (reqLimit || 10000) : Math.min(1000, Math.max(1, reqLimit || 50));
         const offset = (page - 1) * limit;
 
@@ -453,6 +459,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
             if (imageUrls !== undefined) {
                 updatePayload.image = imageUrls;
             }
+            updatePayload.updated_at = new Date().toISOString();
 
             if (price !== undefined) updatePayload.price = Number(price);
             if (oldPrice !== undefined) updatePayload.old_price = oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;

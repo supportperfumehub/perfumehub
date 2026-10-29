@@ -33,7 +33,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
 
     React.useEffect(() => {
         if (typeof fetchProducts === 'function') {
-            fetchProducts({ limit: 5000 });
+            fetchProducts({ limit: 5000, forceRefresh: true, admin: true });
         }
     }, []);
     const { user } = useContext(AuthContext);

@@ -108,6 +108,10 @@ export const ShopProvider = ({ children }) => {
             if (sort && sort !== 'default') params.sort = sort;
             if (shop_id) params.shop_id = shop_id;
 
+            if (options.admin) {
+                params.admin = 'true';
+            }
+
             if (forceRefresh) {
                 params._t = Date.now();
             }
@@ -409,8 +413,8 @@ export const ShopProvider = ({ children }) => {
                 }));
 
                 showToast('Product added successfully', 'success');
-                // Refresh catalog with higher limit to ensure full synchronization without discarding memory state
-                await fetchProducts({ limit: 100, forceRefresh: true });
+                // Refresh catalog with full limit to ensure full synchronization without discarding memory state
+                await fetchProducts({ limit: 5000, forceRefresh: true, admin: true });
                 return newId;
             }
         } catch (error) {
@@ -511,7 +515,7 @@ export const ShopProvider = ({ children }) => {
                 });
             }
 
-            await fetchProducts({ forceRefresh: true }); // refresh products to pull new inventory values with cache buster
+            await fetchProducts({ limit: 5000, forceRefresh: true, admin: true }); // refresh products to pull new inventory values with cache buster
             return true;
         } catch (error) {
             setProducts(previousProducts);
@@ -524,7 +528,7 @@ export const ShopProvider = ({ children }) => {
         try {
             await api.post('/inventory', payload);
             showToast('Inventory bound successfully', 'success');
-            await fetchProducts({ forceRefresh: true }); // refresh products to pull new bindings
+            await fetchProducts({ limit: 5000, forceRefresh: true, admin: true }); // refresh products to pull new bindings
             return true;
         } catch (error) {
             showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
@@ -554,7 +558,7 @@ export const ShopProvider = ({ children }) => {
                 return updated;
             });
 
-            await fetchProducts({ forceRefresh: true });
+            await fetchProducts({ limit: 5000, forceRefresh: true, admin: true });
             return true;
         } catch (error) {
             showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
@@ -600,7 +604,7 @@ export const ShopProvider = ({ children }) => {
             const res = await api.delete(url);
             const msg = res.data?.message || (shopIdParam ? 'Product removed from boutique inventory' : 'Product deleted successfully');
             showToast(msg, 'success');
-            await fetchProducts({ forceRefresh: true });
+            await fetchProducts({ limit: 5000, forceRefresh: true, admin: true });
             await fetchBackups();
             return true;
         } catch (error) {
