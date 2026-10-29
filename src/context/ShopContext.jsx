@@ -94,7 +94,8 @@ export const ShopProvider = ({ children }) => {
                 max_price,
                 sort,
                 shop_id,
-                append = false
+                append = false,
+                forceRefresh = false
             } = options;
 
             const params = { page, limit };
@@ -107,7 +108,14 @@ export const ShopProvider = ({ children }) => {
             if (sort && sort !== 'default') params.sort = sort;
             if (shop_id) params.shop_id = shop_id;
 
-            const response = await api.get('/products', { params });
+            if (forceRefresh) {
+                params._t = Date.now();
+            }
+
+            const response = await api.get('/products', {
+                params,
+                headers: forceRefresh ? { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : {}
+            });
             const rawData = response.data;
             const rawProducts = Array.isArray(rawData) ? rawData : (rawData?.products || []);
             const pageMeta = rawData?.pagination || {
@@ -402,7 +410,7 @@ export const ShopProvider = ({ children }) => {
 
                 showToast('Product added successfully', 'success');
                 // Refresh catalog with higher limit to ensure full synchronization without discarding memory state
-                await fetchProducts({ limit: 100 });
+                await fetchProducts({ limit: 100, forceRefresh: true });
                 return newId;
             }
         } catch (error) {
@@ -430,7 +438,12 @@ export const ShopProvider = ({ children }) => {
             return p;
         });
         setProducts(updatedList);
-        localStorage.setItem('perfumehub_products', JSON.stringify(updatedList));
+        try {
+            // Avoid caching huge base64 payloads to localStorage during optimistic phase
+            if (!JSON.stringify(updatedProduct.image || '').startsWith('"data:')) {
+                localStorage.setItem('perfumehub_products', JSON.stringify(updatedList));
+            }
+        } catch (_) {}
 
         try {
             const product = products.find(p => p.id === id);
@@ -442,6 +455,8 @@ export const ShopProvider = ({ children }) => {
                 ? product?.inventories?.find(inv => String(inv.shop_id) === String(targetShopId)) 
                 : null;
 
+            let savedProduct = null;
+
             if (targetInventory) {
                 await api.put(`/inventory/${targetInventory.id}`, {
                     price: Number(updatedProduct.price),
@@ -450,7 +465,8 @@ export const ShopProvider = ({ children }) => {
                     pickup_available: updatedProduct.pickup_available !== undefined ? updatedProduct.pickup_available : true
                 });
                 if (!isVendor) {
-                    await api.put(`/products/${id}`, updatedProduct);
+                    const res = await api.put(`/products/${id}`, updatedProduct);
+                    savedProduct = res.data?.product;
                 }
                 showToast('Shop inventory updated successfully', 'success');
             } else if (targetShopId) {
@@ -463,17 +479,44 @@ export const ShopProvider = ({ children }) => {
                     pickup_available: true
                 });
                 if (!isVendor) {
-                    await api.put(`/products/${id}`, updatedProduct);
+                    const res = await api.put(`/products/${id}`, updatedProduct);
+                    savedProduct = res.data?.product;
                 }
                 showToast('Shop inventory created and updated successfully', 'success');
             } else {
-                await api.put(`/products/${id}`, updatedProduct);
+                const res = await api.put(`/products/${id}`, updatedProduct);
+                savedProduct = res.data?.product;
                 showToast('Product updated successfully', 'success');
             }
-            await fetchProducts(); // refresh products to pull new inventory values with cache buster
+
+            // Immediately merge the persisted product (with permanent WebP URLs)
+            if (savedProduct) {
+                let images = [];
+                if (Array.isArray(savedProduct.image)) {
+                    images = savedProduct.image.map(img => typeof img === 'string' ? img.trim() : img).filter(Boolean);
+                } else if (typeof savedProduct.image === 'string' && savedProduct.image) {
+                    images = [savedProduct.image.trim()];
+                }
+
+                setProducts(prev => {
+                    const next = prev.map(p => p.id === id ? {
+                        ...p,
+                        ...savedProduct,
+                        image: images
+                    } : p);
+                    try {
+                        localStorage.setItem('perfumehub_products', JSON.stringify(next));
+                    } catch (_) {}
+                    return next;
+                });
+            }
+
+            await fetchProducts({ forceRefresh: true }); // refresh products to pull new inventory values with cache buster
+            return true;
         } catch (error) {
             setProducts(previousProducts);
             showToast(`Update failed: ${error.response?.data?.error || error.message}`, 'error');
+            return false;
         }
     };
 
@@ -481,7 +524,7 @@ export const ShopProvider = ({ children }) => {
         try {
             await api.post('/inventory', payload);
             showToast('Inventory bound successfully', 'success');
-            await fetchProducts(); // refresh products to pull new bindings
+            await fetchProducts({ forceRefresh: true }); // refresh products to pull new bindings
             return true;
         } catch (error) {
             showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
@@ -511,7 +554,7 @@ export const ShopProvider = ({ children }) => {
                 return updated;
             });
 
-            await fetchProducts();
+            await fetchProducts({ forceRefresh: true });
             return true;
         } catch (error) {
             showToast(`Failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`, 'error');
@@ -557,7 +600,7 @@ export const ShopProvider = ({ children }) => {
             const res = await api.delete(url);
             const msg = res.data?.message || (shopIdParam ? 'Product removed from boutique inventory' : 'Product deleted successfully');
             showToast(msg, 'success');
-            await fetchProducts();
+            await fetchProducts({ forceRefresh: true });
             await fetchBackups();
             return true;
         } catch (error) {

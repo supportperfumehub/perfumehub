@@ -1145,11 +1145,12 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         const activeShopId = isVendorContext 
             ? (shopId || user?.shop_id || user?.ownedShopIds?.[0] || null)
             : (shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null));
-        const filteredImages = formData.images.filter(url => url.trim() !== '');
+        const filteredImages = (formData.images || [])
+            .filter(url => url && typeof url === 'string' && url.trim() !== '');
         const productData = {
             ...formData,
             size: updatedSizes,
-            image: filteredImages.length === 1 ? filteredImages[0] : filteredImages,
+            image: filteredImages,
             isFeatured: formData.isFeatured,
             price: basePrice,
             oldPrice: baseOldPrice,

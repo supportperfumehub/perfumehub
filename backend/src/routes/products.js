@@ -25,8 +25,14 @@ const checkDeletedAtColumn = async () => {
 
 // Get global products catalog (High-performance server-side pagination & edge CDN caching)
 router.get('/', async (req, res) => {
-    // Multi-tier Edge CDN caching: 60s browser, 300s edge, 24h stale-while-revalidate
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    // Multi-tier Edge CDN caching for storefront; bypass immediately on cache-bust / admin requests
+    if (req.query._t || req.headers['cache-control']?.includes('no-cache') || req.query.admin === 'true') {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    } else {
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    }
 
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -274,11 +280,11 @@ router.post('/',
 
     try {
         // Upload images to Supabase Storage and get permanent URLs
-        let imageUrls = image;
-        if (Array.isArray(image)) {
-            imageUrls = await Promise.all(image.map(img => uploadImageToStorage(img, name)));
-        } else if (image) {
-            imageUrls = await uploadImageToStorage(image, name);
+        let imageUrls = [];
+        const rawImages = Array.isArray(image) ? image : (image ? [image] : []);
+        if (rawImages.length > 0) {
+            const uploaded = await Promise.all(rawImages.map(img => uploadImageToStorage(img, name, 'products')));
+            imageUrls = uploaded.filter(Boolean);
         }
 
         const finalPrice = price !== undefined ? Number(price) : 0;
@@ -419,21 +425,22 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
         const isMasterOwner = existingProd.shop_id && targetShopId && String(existingProd.shop_id) === String(targetShopId);
         const canUpdateMaster = req.user.role === 'super_admin' || req.user.role === 'admin' || isMasterOwner || (!targetShopId && req.user.role === 'regional_admin');
 
+        let updatedMasterProd = null;
         if (canUpdateMaster) {
             let existingImages = [];
             if (Array.isArray(existingProd?.image)) existingImages = existingProd.image;
             else if (existingProd?.image) existingImages = [existingProd.image];
 
-            let imageUrls = image;
+            let imageUrls = undefined;
             if (image !== undefined) {
                 const newImageArr = Array.isArray(image) ? image : (image ? [image] : []);
-                const synced = await syncImagesStorage(existingImages, newImageArr, name || 'product', 'products');
-                imageUrls = Array.isArray(image) ? synced : (synced[0] || null);
+                const synced = await syncImagesStorage(existingImages, newImageArr, name || existingProd?.name || 'product', 'products');
+                imageUrls = Array.isArray(synced) ? synced : (synced ? [synced] : []);
             }
 
             const updatePayload = {
                 name, brand, type, size,
-                is_new: isNew, is_featured: isFeatured, image: imageUrls, category, gender,
+                is_new: isNew, is_featured: isFeatured, category, gender,
                 description, sku: sku || null,
                 notes: notes || undefined, vibes: vibes || undefined, occasions: occasions || undefined,
                 reason: reason !== undefined ? reason : undefined, seasons: seasons || undefined,
@@ -442,6 +449,10 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
                 base_notes: baseNotes !== undefined ? baseNotes : undefined,
                 attributes: attributes !== undefined ? attributes : undefined
             };
+
+            if (imageUrls !== undefined) {
+                updatePayload.image = imageUrls;
+            }
 
             if (price !== undefined) updatePayload.price = Number(price);
             if (oldPrice !== undefined) updatePayload.old_price = oldPrice !== null && oldPrice !== '' ? Number(oldPrice) : null;
@@ -480,13 +491,14 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
                 }
             });
 
-            const { error } = await supabase
+            const { data: updatedData, error } = await supabase
                 .from('products')
                 .update(updatePayload)
                 .eq('id', id)
                 .select();
 
             if (error) throw error;
+            updatedMasterProd = updatedData?.[0] || null;
         }
 
         // Audit logging
@@ -500,7 +512,7 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
             details: { boutique_sync: !!targetShopId }
         }).catch(e => console.error('Audit log warning:', e.message));
 
-        res.json({ message: 'Product updated successfully' });
+        res.json({ message: 'Product updated successfully', product: updatedMasterProd });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ error: 'Internal server error' });

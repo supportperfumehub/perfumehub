@@ -40,11 +40,12 @@ export async function uploadImageToStorage(base64OrUrl, prefix = 'image', folder
     }
 
     try {
-        const matches = base64OrUrl.match(/^data:([a-zA-Z0-9+/.-]+);base64,(.+)$/);
+        const trimmed = base64OrUrl.trim();
+        const matches = trimmed.match(/^data:([a-zA-Z0-9+/.-]+)(?:;[a-zA-Z0-9=._-]+)*;base64,([\s\S]+)$/);
         if (!matches) return base64OrUrl;
 
         const mimeType = matches[1];
-        const base64Data = matches[2];
+        const base64Data = matches[2].replace(/\s+/g, '');
         const buffer = Buffer.from(base64Data, 'base64');
         
         const cleanPrefix = (prefix || 'item')

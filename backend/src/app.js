@@ -18,15 +18,15 @@ const corsOptions = {
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'x-user-id', 'X-Requested-With', 'Accept', 'Authorization', 'x-refresh-token'],
+    allowedHeaders: ['Content-Type', 'x-user-id', 'X-Requested-With', 'Accept', 'Authorization', 'x-refresh-token', 'Cache-Control', 'Pragma'],
     preflightContinue: false,
     optionsSuccessStatus: 204
 };
 app.use(cors(corsOptions));
 app.use(cookieParser());
 
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Request Logger (Development / Diagnostics)
 if (!config.server.isProduction) {
