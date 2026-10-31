@@ -31,14 +31,26 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
 
     const parsedSizes = rawSizes.map(s => {
         if (typeof s === 'object' && s !== null) {
+            const vPrice = s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : (Number(product?.price) || 0);
+            const vOldPrice = s.oldPrice !== undefined && s.oldPrice !== null && s.oldPrice !== '' ? Number(s.oldPrice) : null;
+            let vDiscount = s.discount !== undefined && s.discount !== null ? Number(s.discount) : 0;
+            if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
+                vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
+            }
             return {
                 name: s.name || s.size || '100ml',
-                price: Number(s.price) || Number(product?.price) || 0
+                price: vPrice,
+                oldPrice: vOldPrice,
+                discount: vDiscount
             };
         }
+        const bPrice = Number(product?.price) || 0;
+        const bOldPrice = product?.oldPrice && Number(product.oldPrice) > bPrice ? Number(product.oldPrice) : null;
         return {
             name: String(s),
-            price: Number(product?.price) || 0
+            price: bPrice,
+            oldPrice: bOldPrice,
+            discount: bOldPrice ? Math.round((1 - bPrice / bOldPrice) * 100) : (Number(product?.discount) || 0)
         };
     });
 
@@ -73,11 +85,13 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
 
     // Calculate active price based on selected size if defined
     const activeSizeObj = parsedSizes.find(s => s.name === selectedSize);
-    const currentPrice = activeSizeObj?.price || Number(product.price) || 0;
+    const currentPrice = activeSizeObj ? activeSizeObj.price : (Number(product.price) || 0);
+    const currentOldPrice = activeSizeObj?.oldPrice ? activeSizeObj.oldPrice : (product.oldPrice && Number(product.oldPrice) > currentPrice ? Number(product.oldPrice) : null);
+    const currentDiscount = activeSizeObj?.discount ? activeSizeObj.discount : (currentOldPrice && currentOldPrice > currentPrice ? Math.round((1 - currentPrice / currentOldPrice) * 100) : (Number(product.discount) || 0));
 
     const handleAddToCart = () => {
         if (product.stock === 0) return;
-        addToCart(product, quantity, false, selectedSize);
+        addToCart(product, quantity, false, selectedSize, currentPrice);
         setAdded(true);
         setTimeout(() => setAdded(false), 2200);
     };
@@ -183,13 +197,18 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                         )}
 
                         {/* Price Row */}
-                        <div className={`quickview-price-row ${(product.oldPrice && Number(product.oldPrice) > currentPrice) || product.discount > 0 ? 'has-discount' : ''}`}>
-                            <span className={`quickview-price ${(product.oldPrice && Number(product.oldPrice) > currentPrice) || product.discount > 0 ? 'price-sale' : ''}`}>
+                        <div className={`quickview-price-row ${(currentOldPrice && currentOldPrice > currentPrice) || currentDiscount > 0 ? 'has-discount' : ''}`}>
+                            <span className={`quickview-price ${(currentOldPrice && currentOldPrice > currentPrice) || currentDiscount > 0 ? 'price-sale' : ''}`}>
                                 {Math.round(currentPrice)} {isRTL ? 'ر.ق' : 'QAR'}
                             </span>
-                            {product.oldPrice && Number(product.oldPrice) > currentPrice && (
+                            {currentOldPrice && currentOldPrice > currentPrice && (
                                 <span className="quickview-old-price">
-                                    {Math.round(product.oldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                    {Math.round(currentOldPrice)} {isRTL ? 'ر.ق' : 'QAR'}
+                                </span>
+                            )}
+                            {currentDiscount > 0 && (
+                                <span className="luxury-discount-pill" style={{ marginInlineStart: '6px', fontSize: '0.75rem', padding: '2px 6px', background: '#ef4444', color: '#fff', borderRadius: '4px', fontWeight: 'bold' }}>
+                                    {currentDiscount}% OFF
                                 </span>
                             )}
                             {product.stock === 0 ? (

@@ -315,26 +315,41 @@ const ProductDetails = () => {
     
     // Fallbacks
     const productSku = product.sku || (product.id ? `PH-${product.id}-24` : '');
-    let displayPrice = product.price;
-    let orderStock = product.stock;
     
-    const selectedInventory = product.inventories?.find(i => i.id === selectedInventoryId);
-    const isReservationAvailable = selectedInventory ? selectedInventory.pickup_available !== false : false;
-    if (selectedInventory) {
-        displayPrice = selectedInventory.price;
-        orderStock = selectedInventory.stock;
-    } else if (selectedVariant && typeof selectedVariant === 'object') {
-        displayPrice = selectedVariant.price;
-    }
-    
-    let displayOldPrice = product.oldPrice;
-    if (selectedVariant && typeof selectedVariant === 'object' && selectedVariant.oldPrice) {
-        displayOldPrice = selectedVariant.oldPrice;
+    // Authoritative pricing: Variant-specific pricing takes highest priority
+    let displayPrice = Number(product.price) || 0;
+    let displayOldPrice = (product.oldPrice !== null && product.oldPrice !== undefined && Number(product.oldPrice) > displayPrice)
+        ? Number(product.oldPrice)
+        : null;
+    let displayDiscount = Number(product.discount) || 0;
+
+    if (selectedVariant && typeof selectedVariant === 'object') {
+        if (selectedVariant.price !== undefined && selectedVariant.price !== null && selectedVariant.price !== '') {
+            displayPrice = Number(selectedVariant.price);
+        }
+        if (selectedVariant.oldPrice !== undefined && selectedVariant.oldPrice !== null && selectedVariant.oldPrice !== '') {
+            displayOldPrice = Number(selectedVariant.oldPrice);
+        } else {
+            // Variant does not have an oldPrice — clear oldPrice so it doesn't display a mismatched crossed-out price
+            displayOldPrice = null;
+        }
+
+        if (selectedVariant.discount !== undefined && selectedVariant.discount !== null && selectedVariant.discount !== '') {
+            displayDiscount = Number(selectedVariant.discount);
+        } else if (displayOldPrice && displayOldPrice > displayPrice) {
+            displayDiscount = Math.round((1 - displayPrice / displayOldPrice) * 100);
+        } else {
+            displayDiscount = 0;
+        }
+    } else if (displayOldPrice && displayOldPrice > displayPrice) {
+        displayDiscount = Math.round((1 - displayPrice / displayOldPrice) * 100);
     }
 
-    const displayDiscount = displayOldPrice && displayOldPrice > displayPrice 
-        ? Math.round((1 - displayPrice / displayOldPrice) * 100)
-        : product.discount;
+    const selectedInventory = product.inventories?.find(i => i.id === selectedInventoryId);
+    const isReservationAvailable = selectedInventory ? selectedInventory.pickup_available !== false : false;
+    const orderStock = selectedInventory?.stock !== undefined 
+        ? selectedInventory.stock 
+        : (product.stock !== undefined ? product.stock : 10);
 
     const handleAddToCart = () => {
         addToCart({
@@ -1175,7 +1190,7 @@ const ProductDetails = () => {
                                     <button 
                                         className="btn btn-gold gate-action-btn"
                                         onClick={() => {
-                                            addToCart(product, quantity, isGiftWrapped, selectedSize);
+                                            addToCart(product, quantity, isGiftWrapped, selectedSize, displayPrice);
                                             setIsReviewModalOpen(false);
                                         }}
                                     >

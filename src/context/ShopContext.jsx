@@ -144,6 +144,7 @@ export const ShopProvider = ({ children }) => {
                     price: Number(p.price) || 0,
                     stock: p.stock !== undefined ? Number(p.stock) : 10,
                     oldPrice: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : (p.oldPrice ? Number(p.oldPrice) : null),
+                    discount: p.discount !== undefined && p.discount !== null ? Number(p.discount) : 0,
                     type: p.type,
                     isNew: p.is_new ?? p.isNew ?? false,
                     isFeatured: p.is_featured ?? p.isFeatured ?? false,

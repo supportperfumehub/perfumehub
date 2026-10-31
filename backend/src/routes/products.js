@@ -216,7 +216,18 @@ router.get('/', async (req, res) => {
 
 // Get single product (Cached)
 router.get('/:id', async (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    const isBypassCache = req.query._t || 
+                          req.headers['cache-control']?.includes('no-cache') || 
+                          req.query.admin === 'true' || 
+                          Boolean(req.headers.authorization);
+
+    if (isBypassCache) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    } else {
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    }
     try {
         let singleQuery = supabase
             .from('products')
@@ -479,12 +490,21 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
                 // Synchronize size variant price if size exists
                 if (Array.isArray(updatePayload.size) && updatePayload.size.length > 0) {
                     updatePayload.size = updatePayload.size.map((sz, idx) => {
-                        if (idx === 0 || updatePayload.size.length === 1) {
-                            return typeof sz === 'object'
-                                ? { ...sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount }
-                                : { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
+                        if (typeof sz === 'string') {
+                            return { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
                         }
-                        return sz;
+                        const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : finalP;
+                        const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : updatePayload.old_price;
+                        let vDiscount = sz.discount !== undefined && sz.discount !== null && sz.discount !== '' ? Number(sz.discount) : 0;
+                        if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
+                            vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
+                        }
+                        return {
+                            name: sz.name || 'Default',
+                            price: vPrice,
+                            oldPrice: vOldPrice,
+                            discount: vDiscount
+                        };
                     });
                 }
             } else if (discount !== undefined) {

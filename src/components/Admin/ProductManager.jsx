@@ -286,6 +286,16 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         }));
     };
 
+    const moveSize = (index, direction) => {
+        const newSizes = [...(formData.size || [])];
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= newSizes.length) return;
+        const temp = newSizes[index];
+        newSizes[index] = newSizes[targetIndex];
+        newSizes[targetIndex] = temp;
+        setFormData(prev => ({ ...prev, size: newSizes }));
+    };
+
     const handleCategoryToggle = (categoryValue) => {
         setFormData(prev => {
             const currentCategories = prev.category || [];
@@ -1133,12 +1143,21 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         let updatedSizes = Array.isArray(formData.size) ? [...formData.size] : [];
         if (updatedSizes.length > 0) {
             updatedSizes = updatedSizes.map((sz, idx) => {
-                if (idx === 0 || updatedSizes.length === 1) {
-                    return typeof sz === 'object'
-                        ? { ...sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount }
-                        : { name: sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount };
+                if (typeof sz === 'string') {
+                    return { name: sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount };
                 }
-                return sz;
+                const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : basePrice;
+                const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : baseOldPrice;
+                let vDiscount = sz.discount !== undefined && sz.discount !== null && sz.discount !== '' ? Number(sz.discount) : 0;
+                if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
+                    vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
+                }
+                return {
+                    name: sz.name || 'Default',
+                    price: vPrice,
+                    oldPrice: vOldPrice,
+                    discount: vDiscount
+                };
             });
         }
 
@@ -1152,7 +1171,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             size: updatedSizes,
             image: filteredImages,
             isFeatured: formData.isFeatured,
-            price: basePrice,
+            price: basePrice > 0 ? basePrice : (Number(updatedSizes[0]?.price) || 0),
             oldPrice: baseOldPrice,
             discount: baseDiscount,
             stock: formData.stock !== undefined ? Number(formData.stock) : 0,
@@ -1203,7 +1222,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             
         const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
         const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
-        const initialPrice = shopInventory ? shopInventory.price : product.price;
+        const initialPrice = Number(product.price) || 0;
         const initialStock = shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10);
         const initialReserved = Number(shopInventory?.reserved_quantity || 0);
         const initialPickup = shopInventory 
@@ -2276,7 +2295,29 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                     {s.oldPrice && <span className="variant-old-price">{s.oldPrice} QAR</span>}
                                                     {s.discount > 0 && <span className="variant-discount-badge">{s.discount}% OFF</span>}
                                                 </div>
-                                                <X size={14} className="remove-variant-icon" onClick={() => removeSizeTag(idx)} />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {idx > 0 && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => moveSize(idx, -1)} 
+                                                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px 4px', fontSize: '0.8rem' }} 
+                                                            title={isRTL ? 'تحريك للأعلى' : 'Move up (set as earlier)'}
+                                                        >
+                                                            ▲
+                                                        </button>
+                                                    )}
+                                                    {idx < formData.size.length - 1 && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => moveSize(idx, 1)} 
+                                                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px 4px', fontSize: '0.8rem' }} 
+                                                            title={isRTL ? 'تحريك للأسفل' : 'Move down'}
+                                                        >
+                                                            ▼
+                                                        </button>
+                                                    )}
+                                                    <X size={14} className="remove-variant-icon" onClick={() => removeSizeTag(idx)} />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -2675,9 +2716,9 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                     ? territoryInvs.reduce((sum, inv) => sum + (Number(inv.stock) || 0), 0)
                                     : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
 
-                                const displayPrice = shopInventory ? shopInventory.price : product.price;
-                                const displayOldPrice = shopInventory ? null : product.oldPrice;
-                                const displayDiscount = shopInventory ? 0 : product.discount;
+                                const displayPrice = Number(product.price) || 0;
+                                const displayOldPrice = product.oldPrice ? Number(product.oldPrice) : null;
+                                const displayDiscount = product.discount || (displayOldPrice && displayOldPrice > displayPrice ? Math.round((1 - displayPrice / displayOldPrice) * 100) : 0);
                                 const displayStock = isRegionalAdminTerritoryMode ? territoryStock : (shopInventory ? shopInventory.stock : (product.stock !== undefined ? product.stock : 10));
 
                                 // Price anomaly benchmark comparison for regional governance
