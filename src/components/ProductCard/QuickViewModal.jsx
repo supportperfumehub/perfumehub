@@ -42,7 +42,8 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                 name: s.name || s.size || '100ml',
                 price: vPrice,
                 oldPrice: vOldPrice,
-                discount: vDiscount
+                discount: vDiscount,
+                stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : (product?.stock !== undefined ? Number(product?.stock) : 10)
             };
         }
         const bPrice = Number(product?.price) || 0;
@@ -51,7 +52,8 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
             name: String(s),
             price: bPrice,
             oldPrice: bOldPrice,
-            discount: bOldPrice ? Math.round((1 - bPrice / bOldPrice) * 100) : (Number(product?.discount) || 0)
+            discount: bOldPrice ? Math.round((1 - bPrice / bOldPrice) * 100) : (Number(product?.discount) || 0),
+            stock: product?.stock !== undefined ? Number(product?.stock) : 10
         };
     });
 
@@ -94,9 +96,12 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
     const currentPrice = activeSizeObj ? activeSizeObj.price : (Number(product.price) || 0);
     const currentOldPrice = activeSizeObj?.oldPrice ? activeSizeObj.oldPrice : (product.oldPrice && Number(product.oldPrice) > currentPrice ? Number(product.oldPrice) : null);
     const currentDiscount = activeSizeObj?.discount ? activeSizeObj.discount : (currentOldPrice && currentOldPrice > currentPrice ? Math.round((1 - currentPrice / currentOldPrice) * 100) : (Number(product.discount) || 0));
+    const currentStock = (activeSizeObj && activeSizeObj.stock !== undefined && activeSizeObj.stock !== null)
+        ? Number(activeSizeObj.stock)
+        : (product.stock !== undefined ? Number(product.stock) : 10);
 
     const handleAddToCart = () => {
-        if (product.stock === 0) return;
+        if (currentStock === 0) return;
         addToCart(product, quantity, false, selectedSize, currentPrice);
         setAdded(true);
         setTimeout(() => setAdded(false), 2200);
@@ -217,7 +222,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                     {currentDiscount}% OFF
                                 </span>
                             )}
-                            {product.stock === 0 ? (
+                            {currentStock === 0 ? (
                                 <span className="stock-status out">
                                     {isRTL ? 'نفد من المخزون' : 'Out of Stock'}
                                 </span>
@@ -292,7 +297,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                 <button 
                                     type="button" 
                                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                                    disabled={quantity <= 1 || product.stock === 0}
+                                    disabled={quantity <= 1 || currentStock === 0}
                                     aria-label="Decrease quantity"
                                 >
                                     <Minus size={14} />
@@ -301,7 +306,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                 <button 
                                     type="button" 
                                     onClick={() => setQuantity(prev => prev + 1)}
-                                    disabled={product.stock === 0}
+                                    disabled={quantity >= currentStock || currentStock === 0}
                                     aria-label="Increase quantity"
                                 >
                                     <Plus size={14} />
@@ -312,7 +317,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                 type="button"
                                 className={`quickview-add-cart-btn ${added ? 'added' : ''}`}
                                 onClick={handleAddToCart}
-                                disabled={product.stock === 0}
+                                disabled={currentStock === 0}
                             >
                                 {added ? (
                                     <>
@@ -322,7 +327,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                 ) : (
                                     <>
                                         <ShoppingCart size={18} />
-                                        <span>{product.stock === 0 ? (isRTL ? 'نفد المخزون' : 'Sold Out') : (isRTL ? 'إضافة إلى سلة الشراء' : 'Add to Shopping Bag')}</span>
+                                        <span>{currentStock === 0 ? (isRTL ? 'نفد المخزون' : 'Sold Out') : (isRTL ? 'إضافة إلى سلة الشراء' : 'Add to Shopping Bag')}</span>
                                     </>
                                 )}
                             </button>

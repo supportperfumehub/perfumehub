@@ -354,9 +354,14 @@ const ProductDetails = () => {
 
     const selectedInventory = product.inventories?.find(i => i.id === selectedInventoryId);
     const isReservationAvailable = selectedInventory ? selectedInventory.pickup_available !== false : false;
-    const orderStock = selectedInventory?.stock !== undefined 
-        ? selectedInventory.stock 
-        : (product.stock !== undefined ? product.stock : 10);
+    const variantStock = (selectedVariant && typeof selectedVariant === 'object' && selectedVariant.stock !== undefined && selectedVariant.stock !== null && selectedVariant.stock !== '')
+        ? Number(selectedVariant.stock)
+        : null;
+    const orderStock = variantStock !== null
+        ? variantStock
+        : (selectedInventory?.stock !== undefined 
+            ? selectedInventory.stock 
+            : (product.stock !== undefined ? product.stock : 10));
 
     const handleAddToCart = () => {
         addToCart({
@@ -632,6 +637,10 @@ const ProductDetails = () => {
                                     const sDiscount = typeof s === 'object' && s.discount 
                                         ? Number(s.discount) 
                                         : (sOld && sOld > sPrice ? Math.round((1 - sPrice / sOld) * 100) : 0);
+                                    const sStock = (typeof s === 'object' && s.stock !== undefined && s.stock !== null && s.stock !== '')
+                                        ? Number(s.stock)
+                                        : null;
+                                    const isOutOfStock = sStock !== null && sStock === 0;
                                     const isSelected = selectedSize === sName;
                                     return (
                                         <button
@@ -641,18 +650,32 @@ const ProductDetails = () => {
                                                 padding: '8px 16px',
                                                 border: `1px solid ${isSelected ? 'var(--primary, #000)' : '#ccc'}`,
                                                 backgroundColor: isSelected ? 'var(--primary, #000)' : 'transparent',
-                                                color: isSelected ? '#fff' : 'inherit',
+                                                color: isSelected ? '#fff' : (isOutOfStock ? '#94a3b8' : 'inherit'),
                                                 borderRadius: '4px',
                                                 cursor: 'pointer',
                                                 transition: 'all 0.2s',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '6px'
+                                                gap: '6px',
+                                                opacity: isOutOfStock && !isSelected ? 0.65 : 1
                                             }}
                                             className={isSelected ? 'active' : ''}
+                                            title={isOutOfStock ? (isRTL ? 'نفد هذا المقاس' : 'Out of stock') : ''}
                                         >
-                                            <span>{sName}</span>
-                                            {sDiscount > 0 && (
+                                            <span style={{ textDecoration: isOutOfStock ? 'line-through' : 'none' }}>{sName}</span>
+                                            {isOutOfStock && (
+                                                <span style={{
+                                                    fontSize: '0.68rem',
+                                                    padding: '1px 5px',
+                                                    borderRadius: '3px',
+                                                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(239, 68, 68, 0.15)',
+                                                    color: isSelected ? '#fff' : '#ef4444',
+                                                    fontWeight: '700'
+                                                }}>
+                                                    {isRTL ? 'نفد' : 'Out'}
+                                                </span>
+                                            )}
+                                            {sDiscount > 0 && !isOutOfStock && (
                                                 <span style={{
                                                     fontSize: '0.72rem',
                                                     padding: '2px 5px',
