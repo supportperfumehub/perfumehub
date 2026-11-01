@@ -165,6 +165,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '', stock: '' });
     const [customCatInput, setCustomCatInput] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [isAttributesExpanded, setIsAttributesExpanded] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const isEditingLinkedCatalog = editingId && shopId && String(formData.shop_id) !== String(shopId);
 
@@ -856,25 +857,73 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             deptColor = '#f59e0b';
         }
 
+        const hasFilledAttributes = Boolean(
+            formData.topNotes || 
+            formData.middleNotes || 
+            formData.baseNotes || 
+            (attributes && Object.values(attributes).some(v => v && String(v).trim() !== '')) ||
+            (Array.isArray(formData.notes) && formData.notes.length > 0)
+        );
+
         return (
             <div 
                 className="form-column-attributes animate-fade-in" 
                 style={{ 
                     marginTop: '20px', 
-                    padding: '20px', 
+                    padding: isAttributesExpanded ? '20px' : '14px 20px', 
                     background: 'rgba(255, 255, 255, 0.02)', 
                     border: `1px solid ${deptColor}44`, 
                     borderRadius: '14px', 
                     marginBottom: '20px',
-                    boxShadow: `0 4px 20px rgba(0,0,0,0.2), inset 0 0 20px ${deptColor}08`
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.2), inset 0 0 20px ${deptColor}08`,
+                    transition: 'all 0.25s ease'
                 }}
             >
-                <div className="form-section-title" style={{ marginTop: 0, color: deptColor, display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '12px', marginBottom: '18px', fontSize: '1rem', fontWeight: '700' }}>
-                    {deptIcon}
-                    <span>{deptTitle}</span>
+                <div 
+                    onClick={() => setIsAttributesExpanded(!isAttributesExpanded)}
+                    style={{ 
+                        marginTop: 0, 
+                        color: deptColor, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        borderBottom: isAttributesExpanded ? '1px solid rgba(255,255,255,0.07)' : 'none', 
+                        paddingBottom: isAttributesExpanded ? '14px' : '0px', 
+                        marginBottom: isAttributesExpanded ? '18px' : '0px', 
+                        fontSize: '1rem', 
+                        fontWeight: '700' 
+                    }}
+                    title={isAttributesExpanded ? (isRTL ? 'تصغير القسم' : 'Click to compact section') : (isRTL ? 'توسيع وتعديل المواصفات' : 'Click to extend and edit specifications')}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {deptIcon}
+                        <span>{deptTitle}</span>
+                        {!isAttributesExpanded && hasFilledAttributes && (
+                            <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '12px', background: `${deptColor}22`, color: deptColor, border: `1px solid ${deptColor}44`, fontWeight: 600 }}>
+                                {isRTL ? 'محددة' : 'Configured'}
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {isAttributesExpanded ? (isRTL ? 'تصغير' : 'Compact') : (isRTL ? 'توسيع' : 'Extend')}
+                        </span>
+                        <ChevronDown 
+                            size={18} 
+                            style={{ 
+                                transform: isAttributesExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                                transition: 'transform 0.25s ease',
+                                color: deptColor 
+                            }} 
+                        />
+                    </div>
                 </div>
                 
-                {isPerfume && (
+                {isAttributesExpanded && (
+                    <div className="animate-fade-in">
+                        {isPerfume && (
                     <>
                         <div className="form-row grid-3" style={{ gap: '15px', marginBottom: '15px' }}>
                             <div className="form-group">
@@ -1197,6 +1246,8 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                         </div>
                     </>
                 )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -1353,6 +1404,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         });
         setEditingId(product.id);
         setIsSkuAuto(false); // Set to false when editing existing product to prevent accidental changes
+        setIsAttributesExpanded(false);
         setShowForm(true);
         window.scrollTo(0, 0);
     };
@@ -1434,6 +1486,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         setIsBindingCatalog(false);
         setSelectedCatalogProduct(null);
         setShowAddChoiceModal(false);
+        setIsAttributesExpanded(false);
     };
 
     const handleCatalogSelect = (product) => {
