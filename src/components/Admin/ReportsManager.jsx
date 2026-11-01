@@ -28,71 +28,18 @@ const isTraditionalOud = (item) => {
     );
 };
 
-const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
-    const { orders, products, shops, updateProduct } = useContext(ShopContext);
+const ReportsManager = ({ isRTL }) => {
+    const { orders = [], products, shops, updateProduct } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
-    const isRegionalAdmin = user?.role === 'regional_admin';
-    const adminRegionIds = useMemo(() => {
-        return user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
-    }, [user?.assignedRegionIds, adminRegions]);
 
-    // Territory currency & metadata
-    const activeRegionObj = useMemo(() => {
-        if (activeTerritoryId && activeTerritoryId !== 'all') {
-            return (adminRegions || []).find(r => String(r.id) === String(activeTerritoryId));
-        }
-        if (isRegionalAdmin && adminRegions?.length) {
-            return adminRegions[0];
-        }
-        return null;
-    }, [activeTerritoryId, adminRegions, isRegionalAdmin]);
-
-    const territoryCurrency = activeRegionObj?.currency_code || 'QAR';
-    const territoryName = activeRegionObj ? activeRegionObj.name : (isRegionalAdmin ? (isRTL ? 'الإقليم المخصص' : 'Assigned Territory') : (isRTL ? 'جميع المناطق' : 'All Regions'));
-
-    // Filter shops and orders to active territory
-    const territoryShops = useMemo(() => {
-        if (!shops || shops.length === 0) return [];
-        return shops.filter(s => {
-            if (isRegionalAdmin) {
-                if (activeTerritoryId && activeTerritoryId !== 'all') {
-                    return String(s.region_id) === String(activeTerritoryId);
-                }
-                return adminRegionIds.map(String).includes(String(s.region_id));
-            }
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return String(s.region_id) === String(activeTerritoryId);
-            }
-            return true;
-        });
-    }, [shops, isRegionalAdmin, activeTerritoryId, adminRegionIds]);
-
-    const territoryShopIds = useMemo(() => new Set(territoryShops.map(s => String(s.id))), [territoryShops]);
-
-    const territoryOrders = useMemo(() => {
-        if (!isRegionalAdmin && (!activeTerritoryId || activeTerritoryId === 'all')) {
-            return orders || [];
-        }
-        return (orders || []).filter(order => {
-            if (order.shop_id && territoryShopIds.has(String(order.shop_id))) return true;
-            if (order.pickup_shop_id && territoryShopIds.has(String(order.pickup_shop_id))) return true;
-            if (order.shop_ids && Array.isArray(order.shop_ids)) {
-                if (order.shop_ids.some(id => territoryShopIds.has(String(id)))) return true;
-            }
-            if (order.items && Array.isArray(order.items)) {
-                return order.items.some(item => {
-                    const sId = item.shop_id || (item.product && item.product.shop_id);
-                    return sId && territoryShopIds.has(String(sId));
-                });
-            }
-            return false;
-        });
-    }, [orders, territoryShopIds, isRegionalAdmin, activeTerritoryId]);
+    const currency = 'QAR';
+    const allOrders = orders || [];
+    const allShops = shops || [];
 
     const [activeDrillDown, setActiveDrillDown] = useState(null);
     const [editingStock, setEditingStock] = useState({}); // { productId: value }
     const [stockSearchTerm, setStockSearchTerm] = useState('');
-    const activeOrders = territoryOrders.filter(o => o.status?.toLowerCase() !== 'cancelled');
+    const activeOrders = allOrders.filter(o => o.status?.toLowerCase() !== 'cancelled');
     
     const totalRevenue = activeOrders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
     const totalOrders = activeOrders.length;
@@ -125,7 +72,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
     // Date helper for filtering orders
     const getOrdersInLastDays = (days) => {
         const threshold = new Date(Date.now() - days * 86400000);
-        return territoryOrders.filter(order => new Date(order.date || order.created_at) >= threshold);
+        return allOrders.filter(order => new Date(order.date || order.created_at) >= threshold);
     };
 
     const orders30Days = getOrdersInLastDays(30);
@@ -149,7 +96,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
     const trending7Days = getProductSales(orders7Days);
 
     // Recent orders for the activity feed
-    const recentOrders = [...territoryOrders].reverse().slice(0, 5);
+    const recentOrders = [...allOrders].reverse().slice(0, 5);
 
     // French Designer vs Traditional Oud Comparison
     const fragranceComparison = useMemo(() => {
@@ -207,10 +154,10 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
         };
     }, [activeOrders]);
 
-    // Top Performing Boutiques in Territory
+    // Top Performing Boutiques
     const topBoutiques = useMemo(() => {
         const stats = {};
-        territoryShops.forEach(shop => {
+        allShops.forEach(shop => {
             stats[shop.id] = {
                 id: shop.id,
                 name: shop.name,
@@ -231,7 +178,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
         return Object.values(stats)
             .sort((a, b) => b.revenue - a.revenue)
             .slice(0, 5);
-    }, [territoryShops, activeOrders]);
+    }, [allShops, activeOrders]);
 
     // Click & Collect (Pickup) vs Home Delivery Ratio
     const fulfillmentStats = useMemo(() => {
@@ -282,7 +229,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                     </div>
                     <div>
                         <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'إجمالي الإيرادات' : 'Total Revenue'}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalRevenue.toLocaleString()} {territoryCurrency}</h3>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{totalRevenue.toLocaleString()} {currency}</h3>
                     </div>
                 </div>
 
@@ -342,7 +289,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                     </div>
                     <div>
                         <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em', fontWeight: '500' }}>{isRTL ? 'مبيعات اليوم' : "Today's Sales"}</p>
-                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{todaySales} ({todayRevenue.toLocaleString()} {territoryCurrency})</h3>
+                        <h3 style={{ margin: '5px 0 0', fontSize: '1.5em', color: '#f8fafc' }}>{todaySales} ({todayRevenue.toLocaleString()} {currency})</h3>
                     </div>
                 </div>
 
@@ -382,7 +329,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                 </div>
             </div>
 
-            {/* Dedicated Territory Intelligence Dashboard Grid */}
+            {/* Fragrance Intelligence Dashboard Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '30px' }}>
                 {/* 1. French Designer vs Traditional Oud Market Breakdown */}
                 <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -393,9 +340,6 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                                 {isRTL ? 'حصة العطور: المصممين الفرنسيين مقابل العود التراثي' : 'French Designer vs. Traditional Oud'}
                             </h3>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#c8a951', background: 'rgba(200, 169, 81, 0.15)', padding: '3px 8px', borderRadius: '6px', fontWeight: '600' }}>
-                            {territoryName}
-                        </span>
                     </div>
 
                     {/* Progress distribution bar */}
@@ -409,15 +353,15 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                             <div style={{ width: `${fragranceComparison.oudPercent}%`, background: 'linear-gradient(90deg, #c8a951, #eab308)', transition: 'width 0.5s' }} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
-                            <span>{fragranceComparison.frenchSales.toLocaleString()} {territoryCurrency} ({fragranceComparison.frenchQty} {isRTL ? 'قنينة' : 'units'})</span>
-                            <span>{fragranceComparison.oudSales.toLocaleString()} {territoryCurrency} ({fragranceComparison.oudQty} {isRTL ? 'قنينة' : 'units'})</span>
+                            <span>{fragranceComparison.frenchSales.toLocaleString()} {currency} ({fragranceComparison.frenchQty} {isRTL ? 'قنينة' : 'units'})</span>
+                            <span>{fragranceComparison.oudSales.toLocaleString()} {currency} ({fragranceComparison.oudQty} {isRTL ? 'قنينة' : 'units'})</span>
                         </div>
                     </div>
 
                     {/* Top 5 Best-Selling Fragrances with category tags */}
                     <div style={{ marginTop: '16px' }}>
                         <h4 style={{ color: '#94a3b8', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 10px 0' }}>
-                            {isRTL ? 'أفضل 5 عطور مبيعاً في الإقليم' : 'Top 5 Fragrances in Territory'}
+                            {isRTL ? 'أفضل 5 عطور مبيعاً' : 'Top 5 Fragrances'}
                         </h4>
                         {fragranceComparison.topFragrances.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -448,7 +392,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                                 ))}
                             </div>
                         ) : (
-                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>{isRTL ? 'لا توجد مبيعات مسجلة في هذا الإقليم' : 'No sales recorded in this territory'}</p>
+                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>{isRTL ? 'لا توجد مبيعات مسجلة حتى الآن' : 'No sales recorded yet'}</p>
                         )}
                     </div>
                 </div>
@@ -508,11 +452,11 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Store size={18} color="#c8a951" />
                                 <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1rem' }}>
-                                    {isRTL ? 'أفضل البوتيكات أداءً في الإقليم' : 'Top Performing Boutiques in Territory'}
+                                    {isRTL ? 'أفضل البوتيكات والفروع' : 'Top Performing Boutiques'}
                                 </h3>
                             </div>
                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                {territoryShops.length} {isRTL ? 'بوتيك نشط' : 'Active Boutiques'}
+                                {allShops.length} {isRTL ? 'بوتيك نشط' : 'Active Boutiques'}
                             </span>
                         </div>
 
@@ -530,14 +474,14 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                                             </div>
                                         </div>
                                         <strong style={{ color: '#c8a951', fontSize: '0.9rem' }}>
-                                            {shop.revenue.toLocaleString()} {territoryCurrency}
+                                            {shop.revenue.toLocaleString()} {currency}
                                         </strong>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>
-                                {isRTL ? 'لا توجد بيانات بوتيكات في هذا الإقليم' : 'No boutique sales recorded in this territory'}
+                                {isRTL ? 'لا توجد بيانات بوتيكات مسجلة' : 'No boutique sales recorded yet'}
                             </p>
                         )}
                     </div>
@@ -668,11 +612,11 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {territoryOrders.map(order => (
+                                        {allOrders.map(order => (
                                             <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
                                                 <td style={{ padding: '10px' }}>{order.id}</td>
                                                 <td style={{ padding: '10px' }}>{order.date || order.created_at}</td>
-                                                <td style={{ padding: '10px', fontWeight: 'bold' }}>{order.total} {territoryCurrency}</td>
+                                                <td style={{ padding: '10px', fontWeight: 'bold' }}>{order.total} {currency}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -680,14 +624,14 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                             )}
                             {activeDrillDown === 'orders' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {territoryOrders.map(order => (
+                                    {allOrders.map(order => (
                                         <div key={order.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                                                 <strong>{order.id}</strong>
                                                 <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.8em', backgroundColor: order.status === 'Processing' ? '#e6f7ff' : '#f6ffed', color: order.status === 'Processing' ? '#1890ff' : '#52c41a' }}>{order.status}</span>
                                             </div>
                                             <div style={{ fontSize: '0.9em', color: '#666' }}>{order.customerName || order.customer_name} • {order.date || order.created_at}</div>
-                                            <div style={{ marginTop: '5px', fontWeight: 'bold' }}>{order.total} {territoryCurrency}</div>
+                                            <div style={{ marginTop: '5px', fontWeight: 'bold' }}>{order.total} {currency}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -702,7 +646,7 @@ const ReportsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
                                                     <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.8em', backgroundColor: '#e6f7ff', color: '#1890ff' }}>{order.status}</span>
                                                 </div>
                                                 <div style={{ fontSize: '0.9em', color: '#666' }}>{order.customerName || order.customer_name} • {order.date || order.created_at}</div>
-                                                <div style={{ marginTop: '5px', fontWeight: 'bold' }}>{order.total} {territoryCurrency}</div>
+                                                <div style={{ marginTop: '5px', fontWeight: 'bold' }}>{order.total} {currency}</div>
                                             </div>
                                         ))
                                     ) : (

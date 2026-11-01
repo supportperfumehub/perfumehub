@@ -1,26 +1,48 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useOutletContext, Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import ProductManager from '../../components/Admin/ProductManager';
-import OrderManager from '../../components/Admin/OrderManager';
-import CouponsManager from '../../components/Admin/CouponsManager';
-import CustomersManager from '../../components/Admin/CustomersManager';
-import ReportsManager from '../../components/Admin/ReportsManager';
-import ArchiveManager from '../../components/Admin/ArchiveManager';
-import SettingsManager from '../../components/Admin/SettingsManager';
-import BannersManager from '../../components/Admin/BannersManager';
+import { lazy, Suspense } from 'react';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, BarChart2, DatabaseBackup, Home,
     Sparkles, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
-    Megaphone, MapPin, CalendarCheck, ShieldAlert
+    Megaphone, CalendarCheck, ShieldAlert, Loader2
 } from 'lucide-react';
-import DiscoveryManager from '../../components/Admin/DiscoveryManager';
-import DeviceManager from '../../components/Admin/DeviceManager';
-import ReservationManager from '../../components/Admin/ReservationManager';
-import AuditLogsManager from '../../components/Admin/AuditLogsManager';
+
+// Lazy-loaded administrative submodules for instant SA dashboard loading
+const ProductManager = lazy(() => import('../../components/Admin/ProductManager'));
+const OrderManager = lazy(() => import('../../components/Admin/OrderManager'));
+const CouponsManager = lazy(() => import('../../components/Admin/CouponsManager'));
+const CustomersManager = lazy(() => import('../../components/Admin/CustomersManager'));
+const ReportsManager = lazy(() => import('../../components/Admin/ReportsManager'));
+const ArchiveManager = lazy(() => import('../../components/Admin/ArchiveManager'));
+const SettingsManager = lazy(() => import('../../components/Admin/SettingsManager'));
+const BannersManager = lazy(() => import('../../components/Admin/BannersManager'));
+const DiscoveryManager = lazy(() => import('../../components/Admin/DiscoveryManager'));
+const DeviceManager = lazy(() => import('../../components/Admin/DeviceManager'));
+const ReservationManager = lazy(() => import('../../components/Admin/ReservationManager'));
+const AuditLogsManager = lazy(() => import('../../components/Admin/AuditLogsManager'));
+
+const AdminTabLoader = ({ isRTL }) => (
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '380px',
+        color: '#d4af37',
+        gap: '14px',
+        backgroundColor: '#121212',
+        borderRadius: '14px',
+        border: '1px solid rgba(212, 175, 55, 0.15)'
+    }}>
+        <Loader2 size={36} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: '0.95rem', fontWeight: '600', letterSpacing: '0.5px', color: '#e2e8f0' }}>
+            {isRTL ? 'جاري تحميل لوحة التحكم...' : 'Loading Module...'}
+        </span>
+    </div>
+);
 import { Link } from 'react-router-dom';
-import api from '../../utils/api_v1_0_2';
 import './Admin.css';
 
 const DEFAULT_NOTIFICATIONS = [
@@ -41,11 +63,14 @@ const Admin = () => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const notificationRef = useRef(null);
 
-    // Administrative Territory Governance State
-    const [adminRegions, setAdminRegions] = useState([]);
-    const [selectedTerritoryId, setSelectedTerritoryId] = useState(() => {
-        return localStorage.getItem('perfumehub_admin_active_territory') || 'all';
-    });
+    // Clean up any legacy territory preferences
+    useEffect(() => {
+        try {
+            localStorage.removeItem('perfumehub_admin_active_territory');
+        } catch (err) {
+            // ignore
+        }
+    }, []);
 
     const [notifications, setNotifications] = useState(() => {
         try {
@@ -63,30 +88,6 @@ const Admin = () => {
     const role = user?.role || 'customer'; 
 
     const isSuperAdmin = role === 'super_admin' || role === 'admin';
-
-    // Fetch assigned territories for this admin
-    useEffect(() => {
-        const fetchAdminRegions = async () => {
-            try {
-                const res = await api.get('/admin/my-regions');
-                const data = Array.isArray(res.data) ? res.data : [];
-                setAdminRegions(data);
-                
-                // If single territory assigned, auto-select it if not set
-                if (data.length === 1 && selectedTerritoryId === 'all') {
-                    const singleId = String(data[0].id);
-                    setSelectedTerritoryId(singleId);
-                    localStorage.setItem('perfumehub_admin_active_territory', singleId);
-                }
-            } catch (err) {
-                console.error('Failed to fetch administrative territories:', err);
-            }
-        };
-
-        if (user?.id) {
-            fetchAdminRegions();
-        }
-    }, [user?.id]);
 
     // Sync notifications to localStorage
     useEffect(() => {
@@ -214,69 +215,6 @@ const Admin = () => {
                     </div>
 
                     <div className="admin-topbar-controls">
-                        {/* Active Territory Governance Badge & Switcher */}
-                        <div className="active-territory-container">
-                            <div className="territory-badge">
-                                <MapPin size={16} className="territory-pin-icon" />
-                                <div className="territory-text-group">
-                                    <span className="territory-label">{isRTL ? 'الإقليم الإداري النشط' : 'Active Territory'}</span>
-                                    <select
-                                        className="territory-select"
-                                        value={selectedTerritoryId}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setSelectedTerritoryId(val);
-                                            localStorage.setItem('perfumehub_admin_active_territory', val);
-                                        }}
-                                        aria-label={isRTL ? 'تحديد الإقليم الإداري' : 'Select Administrative Territory'}
-                                    >
-                                        {(isSuperAdmin || adminRegions.length > 1) && (
-                                            <option value="all">
-                                                {isRTL ? '🌐 كافة الأقاليم الموكلة' : '🌐 All Authorized Territories'}
-                                            </option>
-                                        )}
-                                        {adminRegions.map(reg => (
-                                            <option key={reg.id} value={reg.id}>
-                                                📍 {reg.name} ({reg.code || reg.currency_code})
-                                            </option>
-                                        ))}
-                                        {adminRegions.length === 0 && (
-                                            <option value="all">{isRTL ? 'جاري التحميل...' : 'Loading Territories...'}</option>
-                                        )}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Interactive Quick Municipality Pills for Rapid Territory Governance */}
-                            {adminRegions.length > 1 && (
-                                <div className="municipality-pills-row">
-                                    <button
-                                        type="button"
-                                        className={`muni-pill ${selectedTerritoryId === 'all' ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setSelectedTerritoryId('all');
-                                            localStorage.setItem('perfumehub_admin_active_territory', 'all');
-                                        }}
-                                    >
-                                        {isRTL ? 'الكل' : 'All'}
-                                    </button>
-                                    {adminRegions.slice(0, 5).map(reg => (
-                                        <button
-                                            key={reg.id}
-                                            type="button"
-                                            className={`muni-pill ${String(selectedTerritoryId) === String(reg.id) ? 'active' : ''}`}
-                                            onClick={() => {
-                                                setSelectedTerritoryId(String(reg.id));
-                                                localStorage.setItem('perfumehub_admin_active_territory', String(reg.id));
-                                            }}
-                                        >
-                                            {reg.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        
                         {/* Admin Panel Notification Dropdown */}
                         <div className="admin-notification-wrapper" ref={notificationRef}>
                             <button 
@@ -351,18 +289,20 @@ const Admin = () => {
                 </header>
 
                 <div className="main-content-wrapper">
-                    {activeTab === 'products' && <ProductManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {activeTab === 'orders' && <OrderManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
-                    {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
-                    {activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
-                    {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {activeTab === 'reports' && <ReportsManager isRTL={isRTL} activeTerritoryId={selectedTerritoryId} adminRegions={adminRegions} />}
-                    {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
-                    {activeTab === 'audit' && <AuditLogsManager isRTL={isRTL} />}
-                    {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
-                    {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
+                    <Suspense fallback={<AdminTabLoader isRTL={isRTL} />}>
+                        {activeTab === 'products' && <ProductManager isRTL={isRTL} />}
+                        {activeTab === 'orders' && <OrderManager isRTL={isRTL} />}
+                        {activeTab === 'reservations' && <ReservationManager isRTL={isRTL} />}
+                        {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
+                        {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
+                        {activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
+                        {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
+                        {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
+                        {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
+                        {activeTab === 'audit' && <AuditLogsManager isRTL={isRTL} />}
+                        {activeTab === 'recovery' && <ArchiveManager isRTL={isRTL} />}
+                        {activeTab === 'settings' && <SettingsManager isRTL={isRTL} user={user} />}
+                    </Suspense>
                 </div>
             </main>
         </div>

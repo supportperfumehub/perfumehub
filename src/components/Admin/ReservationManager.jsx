@@ -3,10 +3,9 @@ import { AuthContext } from '../../context/AuthContext';
 import { ShopContext } from '../../context/ShopContext';
 import { Clock, CheckCircle, XCircle, PackageCheck, AlertCircle, RefreshCw, CalendarCheck, Search, MessageSquare, Store } from 'lucide-react';
 
-const ReservationManager = ({ shopId, isRTL, activeTerritoryId, adminRegions }) => {
+const ReservationManager = ({ shopId, isRTL }) => {
     const { user } = useContext(AuthContext);
     const { shops } = useContext(ShopContext);
-    const isRegionalAdmin = user?.role === 'regional_admin';
 
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,28 +13,6 @@ const ReservationManager = ({ shopId, isRTL, activeTerritoryId, adminRegions }) 
     const [statusFilter, setStatusFilter] = useState('all');
     const [actionLoading, setActionLoading] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-
-    const adminRegionIds = useMemo(() => {
-        return user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
-    }, [user?.assignedRegionIds, adminRegions]);
-
-    // Active territory shop IDs set
-    const territoryShopIds = useMemo(() => {
-        if (!shops || shops.length === 0) return null;
-        const filtered = shops.filter(s => {
-            if (isRegionalAdmin) {
-                if (activeTerritoryId && activeTerritoryId !== 'all') {
-                    return String(s.region_id) === String(activeTerritoryId);
-                }
-                return adminRegionIds.map(String).includes(String(s.region_id));
-            }
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return String(s.region_id) === String(activeTerritoryId);
-            }
-            return true;
-        });
-        return new Set(filtered.map(s => String(s.id)));
-    }, [shops, isRegionalAdmin, activeTerritoryId, adminRegionIds]);
 
     const fetchReservations = async () => {
         try {
@@ -143,12 +120,9 @@ const ReservationManager = ({ shopId, isRTL, activeTerritoryId, adminRegions }) 
     const scopedReservations = useMemo(() => {
         return reservations.filter(r => {
             if (shopId) return String(r.shop_id) === String(shopId);
-            if (territoryShopIds && r.shop_id) {
-                return territoryShopIds.has(String(r.shop_id));
-            }
             return true;
         });
-    }, [reservations, shopId, territoryShopIds]);
+    }, [reservations, shopId]);
 
     const filteredReservations = useMemo(() => {
         return scopedReservations.filter(r => {

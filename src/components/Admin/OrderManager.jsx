@@ -54,13 +54,9 @@ const BarcodeSvg = ({ value = 'ORD-0000' }) => {
     );
 };
 
-const OrderManager = ({ isRTL, shopId, activeTerritoryId, adminRegions }) => {
+const OrderManager = ({ isRTL, shopId }) => {
     const { orders, shops, updateOrderStatus } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
-    const isRegionalAdmin = user?.role === 'regional_admin';
-    const adminRegionIds = useMemo(() => {
-        return user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
-    }, [user?.assignedRegionIds, adminRegions]);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -96,24 +92,6 @@ const OrderManager = ({ isRTL, shopId, activeTerritoryId, adminRegions }) => {
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
     };
-
-    // Active territory shop IDs set
-    const territoryShopIds = useMemo(() => {
-        if (!shops || shops.length === 0) return null;
-        const filtered = shops.filter(s => {
-            if (isRegionalAdmin) {
-                if (activeTerritoryId && activeTerritoryId !== 'all') {
-                    return String(s.region_id) === String(activeTerritoryId);
-                }
-                return adminRegionIds.map(String).includes(String(s.region_id));
-            }
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return String(s.region_id) === String(activeTerritoryId);
-            }
-            return true;
-        });
-        return new Set(filtered.map(s => String(s.id)));
-    }, [shops, isRegionalAdmin, activeTerritoryId, adminRegionIds]);
 
     // ── Helper: Status Translation & Styling ──
     const getStatusClass = (status) => {
@@ -178,20 +156,6 @@ const OrderManager = ({ isRTL, shopId, activeTerritoryId, adminRegions }) => {
                     );
                 }
                 return false;
-            });
-        } else if (territoryShopIds) {
-            relevantOrders = relevantOrders.filter(order => {
-                if (order.shop_id && territoryShopIds.has(String(order.shop_id))) return true;
-                if (order.pickup_shop_id && territoryShopIds.has(String(order.pickup_shop_id))) return true;
-                if (order.shop_ids && Array.isArray(order.shop_ids)) {
-                    if (order.shop_ids.some(id => territoryShopIds.has(String(id)))) return true;
-                }
-                if (order.items && Array.isArray(order.items)) {
-                    return order.items.some(item => {
-                        const sId = item.shop_id || (item.product && item.product.shop_id);
-                        return sId && territoryShopIds.has(String(sId));
-                    });
-                }
             });
         }
 

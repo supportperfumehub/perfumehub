@@ -28,7 +28,7 @@ const luxuryAccords = [
     { en: 'Smoky', ar: 'دخاني / بخور' }
 ];
 
-const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
+const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) => {
     const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory, fetchProducts, showToast } = useContext(ShopContext);
 
     React.useEffect(() => {
@@ -1524,12 +1524,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     };
     const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
 
-    const relevantShops = React.useMemo(() => {
-        if (activeTerritoryId && activeTerritoryId !== 'all') {
-            return shopsData.filter(s => String(s.region_id) === String(activeTerritoryId));
-        }
-        return shopsData;
-    }, [shopsData, activeTerritoryId]);
+    const relevantShops = shopsData;
 
     const shopFilteredProducts = safeProducts.filter(product => {
         if (activeShopId) {

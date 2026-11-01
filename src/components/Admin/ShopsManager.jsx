@@ -21,13 +21,9 @@ export const isPending = (status) => (status || '').toUpperCase() === 'PENDING';
 export const isSuspended = (status) => (status || '').toUpperCase() === 'SUSPENDED';
 export const isRejected = (status) => (status || '').toUpperCase() === 'REJECTED';
 
-const ShopsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
+const ShopsManager = ({ isRTL }) => {
     const { products, orders, showToast } = useContext(ShopContext);
     const { user } = useContext(AuthContext);
-    const isRegionalAdmin = user?.role === 'regional_admin';
-    const adminRegionIds = useMemo(() => {
-        return user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
-    }, [user?.assignedRegionIds, adminRegions]);
 
     const [shops, setShops] = useState([]);
     const [regions, setRegions] = useState([]);
@@ -513,20 +509,7 @@ const ShopsManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
         }
     };
 
-    const territoryShops = useMemo(() => {
-        return shops.filter(s => {
-            if (isRegionalAdmin) {
-                if (activeTerritoryId && activeTerritoryId !== 'all') {
-                    return String(s.region_id) === String(activeTerritoryId);
-                }
-                return adminRegionIds.map(String).includes(String(s.region_id));
-            }
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return String(s.region_id) === String(activeTerritoryId);
-            }
-            return true;
-        });
-    }, [shops, isRegionalAdmin, activeTerritoryId, adminRegionIds]);
+    const territoryShops = shops;
 
     const sortedShops = useMemo(() => {
         return [...territoryShops].sort((a, b) => {

@@ -255,10 +255,8 @@ const CULTURAL_EVENTS = [
     }
 ];
 
-const DiscoveryManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
+const DiscoveryManager = ({ isRTL }) => {
     const { user } = useContext(AuthContext);
-    const isRegionalAdmin = user?.role === 'regional_admin';
-    const adminRegionIds = user?.assignedRegionIds || (adminRegions || []).map(r => r.id);
 
     const [shops, setShops] = useState([]);
     const [campaigns, setCampaigns] = useState([]);
@@ -521,26 +519,19 @@ const DiscoveryManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
     const clearAllCampaigns = async () => {
         setConfirmModal({
             isOpen: true,
-            title: isRegionalAdmin 
-                ? (isRTL ? 'مسح حملات إقليمك المعتمد' : 'CLEAR TERRITORY CAMPAIGNS')
-                : (isRTL ? 'مسح كافة حملات الاكتشاف' : 'CLEAR ALL DISCOVERY CAMPAIGNS'),
+            title: isRTL ? 'مسح كافة حملات الاكتشاف' : 'CLEAR ALL DISCOVERY CAMPAIGNS',
             message: (
                 <span>
-                    {isRegionalAdmin 
-                        ? (isRTL 
-                            ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف التابعة لمتاجر إقليمك فقط؟ الحملات في الأقاليم الأخرى ستبقى كما هي.' 
-                            : 'Are you sure you want to clear discover campaigns in your assigned territory? Other GCC territories will remain unaffected.')
-                        : (isRTL 
-                            ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف على مستوى المنصة بالكامل؟' 
-                            : 'Are you sure you want to clear ALL discovery campaigns platform-wide?')}
+                    {isRTL 
+                        ? 'هل أنت متأكد من مسح جميع حملات الاكتشاف على مستوى المتجر؟' 
+                        : 'Are you sure you want to clear ALL discovery campaigns?'}
                 </span>
             ),
-            confirmText: isRegionalAdmin ? (isRTL ? 'مسح حملات الإقليم' : 'CLEAR REGIONAL') : (isRTL ? 'مسح الكل' : 'CLEAR ALL'),
+            confirmText: isRTL ? 'مسح الكل' : 'CLEAR ALL',
             cancelText: isRTL ? 'إلغاء' : 'CANCEL',
             onConfirm: async () => {
                 try {
-                    const endpoint = isRegionalAdmin ? '/admin/discover-campaigns/clear-regional' : '/admin/discover-campaigns/clear-all';
-                    await api.delete(endpoint);
+                    await api.delete('/admin/discover-campaigns/clear-all');
                     fetchData();
                     window.dispatchEvent(new Event('discover-campaigns-updated'));
                 } catch (err) {
@@ -554,43 +545,17 @@ const DiscoveryManager = ({ isRTL, activeTerritoryId, adminRegions }) => {
         });
     };
 
-    const effectiveRegion = (activeTerritoryId && activeTerritoryId !== 'all') 
-        ? activeTerritoryId 
-        : selectedRegion;
-
-    const availableShops = shops.filter(shop => {
-        if (isRegionalAdmin) {
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return String(shop.region_id) === String(activeTerritoryId);
-            }
-            return adminRegionIds.map(String).includes(String(shop.region_id));
-        }
-        if (activeTerritoryId && activeTerritoryId !== 'all') {
-            return String(shop.region_id) === String(activeTerritoryId);
-        }
-        return true;
-    });
+    const effectiveRegion = selectedRegion;
+    const availableShops = shops;
 
     const filteredCampaigns = campaigns.filter(c => {
-        const shopReg = c.shop_region_id || c.region_id;
-        if (isRegionalAdmin) {
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                return Number(shopReg) === Number(activeTerritoryId);
-            }
-            return adminRegionIds.map(Number).includes(Number(shopReg));
-        }
         if (effectiveRegion === 'all') return true;
+        const shopReg = c.shop_region_id || c.region_id;
         return Number(shopReg) === Number(effectiveRegion);
     });
 
     const filteredShops = shops.filter(s => {
-        if (isRegionalAdmin) {
-            if (activeTerritoryId && activeTerritoryId !== 'all') {
-                if (Number(s.region_id) !== Number(activeTerritoryId)) return false;
-            } else if (!adminRegionIds.map(Number).includes(Number(s.region_id))) {
-                return false;
-            }
-        } else if (effectiveRegion !== 'all' && Number(s.region_id) !== Number(effectiveRegion)) {
+        if (effectiveRegion !== 'all' && Number(s.region_id) !== Number(effectiveRegion)) {
             return false;
         }
         if (filter === 'featured' && !s.is_featured) return false;

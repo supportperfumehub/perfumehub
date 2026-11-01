@@ -110,46 +110,22 @@ router.put('/algorithm-config/:id', superAdminOnly, async (req, res, next) => {
 // GET /api/admin/my-regions
 router.get('/my-regions', authenticateUser, async (req, res, next) => {
     try {
-        const user = req.user;
-        if (!user) return res.status(401).json({ error: 'Authentication required' });
-
-        if (user.role === 'super_admin' || user.role === 'admin') {
-            const { data, error } = await supabase.from('regions').select('*').order('name');
-            if (error) throw error;
-            return res.json(data || []);
-        }
-
-        if (user.role === 'regional_admin') {
-            const assigned = user.assignedRegionIds || [];
-            if (assigned.length === 0) return res.json([]);
-            const { data, error } = await supabase.from('regions').select('*').in('id', assigned).order('name');
-            if (error) throw error;
-            return res.json(data || []);
-        }
-
-        return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+        return res.json([]);
     } catch (err) {
         next(err);
     }
 });
 
-const adminOrRegionalAdmin = [authenticateUser, verifyRole(['super_admin', 'admin', 'regional_admin'])];
+const adminOnly = [authenticateUser, verifyRole(['super_admin', 'admin'])];
 
 // GET /api/admin/shops (with discovery fields)
-router.get('/shops', adminOrRegionalAdmin, async (req, res, next) => {
+router.get('/shops', adminOnly, async (req, res, next) => {
     try {
-        let query = supabase
+        const { data, error } = await supabase
             .from('shops')
             .select('id, name, is_featured, manual_boost_multiplier, rating_avg, review_count, status, region_id')
             .order('name');
         
-        if (req.user.role === 'regional_admin') {
-            const assigned = req.user.assignedRegionIds || [];
-            if (assigned.length === 0) return res.json([]);
-            query = query.in('region_id', assigned);
-        }
-        
-        const { data, error } = await query;
         if (error) throw error;
         res.json(data);
     } catch (err) {
@@ -158,17 +134,10 @@ router.get('/shops', adminOrRegionalAdmin, async (req, res, next) => {
 });
 
 // PATCH /api/admin/shops/:id/feature
-router.patch('/shops/:id/feature', adminOrRegionalAdmin, async (req, res, next) => {
+router.patch('/shops/:id/feature', adminOnly, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { is_featured } = req.body;
-
-        if (req.user.role === 'regional_admin') {
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', id).single();
-            if (!shop || !req.user.assignedRegionIds?.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
 
         const { data, error } = await supabase
             .from('shops')
@@ -185,17 +154,10 @@ router.patch('/shops/:id/feature', adminOrRegionalAdmin, async (req, res, next) 
 });
 
 // PATCH /api/admin/shops/:id/boost
-router.patch('/shops/:id/boost', adminOrRegionalAdmin, async (req, res, next) => {
+router.patch('/shops/:id/boost', adminOnly, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { manual_boost_multiplier } = req.body;
-
-        if (req.user.role === 'regional_admin') {
-            const { data: shop } = await supabase.from('shops').select('region_id').eq('id', id).single();
-            if (!shop || !req.user.assignedRegionIds?.includes(shop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
 
         const { data, error } = await supabase
             .from('shops')
@@ -216,11 +178,9 @@ router.patch('/shops/:id/boost', adminOrRegionalAdmin, async (req, res, next) =>
  */
 
 // GET /api/admin/discover-campaigns
-router.get('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) => {
+router.get('/discover-campaigns', adminOnly, async (req, res, next) => {
     try {
-        const regionId = req.query.region_id ? parseInt(req.query.region_id) : (req.user?.role === 'regional_admin' ? req.user.region_id : null);
-
-        // Joining with shops and products to get names and shop region
+        // Joining with shops and products to get names
         const { data, error } = await supabase
             .from('discover_campaigns')
             .select('*, shops(id, name, region_id), products(name)')
@@ -229,16 +189,12 @@ router.get('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) =
         if (error) throw error;
         
         // Flatten the shop and product names for easier frontend consumption
-        let flattened = (data || []).map(c => ({
+        const flattened = (data || []).map(c => ({
             ...c,
             shop_name: c.shops?.name || 'Unknown Shop',
             shop_region_id: c.shops?.region_id || null,
             product_name: c.products?.name || null
         }));
-
-        if (regionId) {
-            flattened = flattened.filter(c => Number(c.shop_region_id) === Number(regionId) || Number(c.region_id) === Number(regionId));
-        }
         
         res.json(flattened);
     } catch (err) {
@@ -259,7 +215,7 @@ const normalizeEndDate = (d) => {
 };
 
 // POST /api/admin/discover-campaigns
-router.post('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) => {
+router.post('/discover-campaigns', adminOnly, async (req, res, next) => {
     const { shop_id, placement_slot, start_date, end_date, product_id } = req.body;
 
     if (!shop_id || !placement_slot || !end_date) {
@@ -267,14 +223,6 @@ router.post('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) 
     }
 
     try {
-        // Scoping check for regional admins
-        if (req.user.role === 'regional_admin') {
-            const { data: targetShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
-            if (!targetShop || !req.user.assignedRegionIds?.includes(targetShop.region_id)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
-
         const { data, error } = await supabase
             .from('discover_campaigns')
             .insert([{
@@ -306,32 +254,11 @@ router.post('/discover-campaigns', adminOrRegionalAdmin, async (req, res, next) 
 });
 
 // PUT /api/admin/discover-campaigns/:id
-router.put('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, next) => {
+router.put('/discover-campaigns/:id', adminOnly, async (req, res, next) => {
     const { id } = req.params;
     const { shop_id, placement_slot, start_date, end_date, product_id, active } = req.body;
 
     try {
-        if (req.user.role === 'regional_admin') {
-            const { data: existingCamp } = await supabase
-                .from('discover_campaigns')
-                .select('*, shops(region_id)')
-                .eq('id', id)
-                .single();
-            if (!existingCamp) return res.status(404).json({ error: 'Campaign not found.' });
-
-            const campRegionId = existingCamp.shops?.region_id;
-            if (!campRegionId || !req.user.assignedRegionIds?.includes(campRegionId)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-
-            if (shop_id && shop_id !== existingCamp.shop_id) {
-                const { data: newShop } = await supabase.from('shops').select('region_id').eq('id', shop_id).single();
-                if (!newShop || !req.user.assignedRegionIds?.includes(newShop.region_id)) {
-                    return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-                }
-            }
-        }
-
         const updateData = {};
         if (shop_id !== undefined) updateData.shop_id = shop_id;
         if (placement_slot !== undefined) updateData.placement_slot = placement_slot;
@@ -365,18 +292,9 @@ router.put('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, nex
     }
 });
 
-// DELETE /api/admin/discover-campaigns/clear-all (Strictly super_admin only)
-router.delete('/discover-campaigns/clear-all', authenticateUser, async (req, res, next) => {
+// DELETE /api/admin/discover-campaigns/clear-all (Strictly admin only)
+router.delete('/discover-campaigns/clear-all', adminOnly, async (req, res, next) => {
     try {
-        if (req.user.role === 'regional_admin') {
-            return res.status(403).json({ 
-                error: 'Forbidden: Global campaign wipe is restricted strictly to Super Administrators.' 
-            });
-        }
-        if (req.user.role !== 'super_admin' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
-        }
-
         const { error } = await supabase
             .from('discover_campaigns')
             .delete()
@@ -389,67 +307,26 @@ router.delete('/discover-campaigns/clear-all', authenticateUser, async (req, res
     }
 });
 
-// DELETE /api/admin/discover-campaigns/clear-regional (Scoped to assigned territory)
-router.delete('/discover-campaigns/clear-regional', adminOrRegionalAdmin, async (req, res, next) => {
+// DELETE /api/admin/discover-campaigns/clear-regional (Legacy alias for clear-all)
+router.delete('/discover-campaigns/clear-regional', adminOnly, async (req, res, next) => {
     try {
-        let targetRegionIds = req.user.assignedRegionIds;
-
-        if (req.user.role === 'super_admin' || req.user.role === 'admin') {
-            if (req.query.region_id) {
-                targetRegionIds = [parseInt(req.query.region_id)];
-            }
-        }
-
-        if (!targetRegionIds || targetRegionIds.length === 0) {
-            return res.json({ success: true, message: 'No territory assigned' });
-        }
-
-        const { data: regionalShops, error: shopErr } = await supabase
-            .from('shops')
-            .select('id')
-            .in('region_id', targetRegionIds);
-
-        if (shopErr) throw shopErr;
-
-        const shopIds = (regionalShops || []).map(s => s.id);
-        if (shopIds.length === 0) {
-            return res.json({ success: true, message: 'No campaigns found in your assigned territory.' });
-        }
-
         const { error } = await supabase
             .from('discover_campaigns')
             .delete()
-            .in('shop_id', shopIds);
+            .filter('id', 'not.is', null);
 
         if (error) throw error;
-        res.json({ success: true, message: 'Regional discover campaigns cleared successfully', affectedShops: shopIds.length });
+        res.json({ success: true, message: 'All discover campaigns cleared successfully' });
     } catch (err) {
         next(err);
     }
 });
 
 // DELETE /api/admin/discover-campaigns/:id
-router.delete('/discover-campaigns/:id', adminOrRegionalAdmin, async (req, res, next) => {
+router.delete('/discover-campaigns/:id', adminOnly, async (req, res, next) => {
     const { id } = req.params;
 
     try {
-        if (req.user.role === 'regional_admin') {
-            const { data: camp, error: fetchErr } = await supabase
-                .from('discover_campaigns')
-                .select('*, shops(region_id)')
-                .eq('id', id)
-                .single();
-
-            if (fetchErr || !camp) {
-                return res.status(404).json({ error: 'Campaign not found.' });
-            }
-
-            const campaignRegionId = camp.shops?.region_id;
-            if (!campaignRegionId || !req.user.assignedRegionIds?.includes(campaignRegionId)) {
-                return res.status(403).json({ error: 'Access Denied: You do not have administrative authority over this geographic territory.' });
-            }
-        }
-
         const { error } = await supabase
             .from('discover_campaigns')
             .delete()

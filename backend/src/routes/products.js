@@ -686,37 +686,6 @@ router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), as
             });
         }
 
-        // If invoked by Regional Admin without boutique context (Territory Catalog Governance in /admin):
-        // strictly unbind/deactivate from regional boutique inventory across the territory
-        if (req.user.role === 'regional_admin') {
-            const assignedRegionIds = req.user.assignedRegionIds || [];
-            if (assignedRegionIds.length === 0) {
-                return res.status(403).json({ 
-                    error: 'Access Denied: You do not have administrative authority over this geographic territory.' 
-                });
-            }
-
-            const { data: regionalShops } = await supabase
-                .from('shops')
-                .select('id')
-                .in('region_id', assignedRegionIds);
-
-            const shopIds = (regionalShops || []).map(s => s.id);
-            if (shopIds.length > 0) {
-                await supabase
-                    .from('vendor_inventory')
-                    .update({ is_active: false, updated_at: new Date().toISOString() })
-                    .eq('product_id', id)
-                    .in('shop_id', shopIds);
-            }
-
-            return res.json({ 
-                success: true, 
-                action: 'regional_deactivated',
-                message: 'Product unpinned and deactivated across your regional boutique inventory. Global master catalog preserved.' 
-            });
-        }
-
         // Restrict global master catalog deletion strictly to super_admin / admin
         if (req.user.role !== 'super_admin' && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Forbidden: Insufficient permissions to delete global master product' });
