@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { getBestVariant } from '../utils/productUtils';
 
 export const CartContext = createContext();
 
@@ -26,8 +27,9 @@ export const CartProvider = ({ children }) => {
 
     const addToCart = (product, quantity = 1, isGiftWrapped = false, selectedSize = null, selectedPrice = null, shopId = null, inventoryId = null, vendorName = null, vendorAddress = null) => {
         setCartItems(prevItems => {
-            const sizeToUse = selectedSize || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
-            const priceToUse = selectedPrice !== null && selectedPrice !== undefined ? selectedPrice : product.price;
+            const best = getBestVariant(product);
+            const sizeToUse = selectedSize || best.displaySizeName || (Array.isArray(product.size) ? (typeof product.size[0] === 'object' ? product.size[0].name : product.size[0]) : product.size);
+            const priceToUse = selectedPrice !== null && selectedPrice !== undefined ? selectedPrice : (best.displayPrice || product.price);
             const finalShopId = shopId || product.shop_id || (product.inventories && product.inventories[0]?.shop_id) || null;
             const finalInventoryId = inventoryId || product.inventory_id || (product.inventories && product.inventories[0]?.id) || null;
             const finalVendorName = vendorName || product.vendor_name || product.shop_name || 'PerfumeHub Luxury Boutique';

@@ -8,6 +8,7 @@ import {
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
 import './QuickViewModal.css';
+import { getBestVariant } from '../../utils/productUtils';
 
 const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
     const [mounted, setMounted] = useState(false);
@@ -56,7 +57,12 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
 
     useEffect(() => {
         if (parsedSizes.length > 0) {
-            setSelectedSize(parsedSizes[0].name);
+            const best = getBestVariant(product);
+            const bestName = best.bestVariant?.name;
+            const initialSize = (bestName && parsedSizes.some(s => s.name === bestName))
+                ? bestName
+                : parsedSizes[0].name;
+            setSelectedSize(initialSize);
         }
     }, [product]);
 

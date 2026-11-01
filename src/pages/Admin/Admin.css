@@ -624,7 +624,7 @@
 /* Variant Management */
 .variant-input-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr auto;
     gap: 8px;
     align-items: end;
     margin-bottom: 15px;

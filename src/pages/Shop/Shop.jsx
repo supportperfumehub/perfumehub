@@ -6,6 +6,7 @@ import { LuxurySkeletonCard } from '../../components/UI/LuxurySkeletonGrid';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
+import { getBestVariant } from '../../utils/productUtils';
 import './Shop.css';
 
 // Import category banners
@@ -307,10 +308,10 @@ const Shop = () => {
 
         // Price Filter
         if (minPrice !== '') {
-            result = result.filter(p => p.price >= Number(minPrice));
+            result = result.filter(p => (getBestVariant(p).displayPrice) >= Number(minPrice));
         }
         if (maxPrice !== '') {
-            result = result.filter(p => p.price <= Number(maxPrice));
+            result = result.filter(p => (getBestVariant(p).displayPrice) <= Number(maxPrice));
         }
 
         // Gender Filter (Explicit override if not all)
@@ -355,9 +356,9 @@ const Shop = () => {
 
         // Sort products
         if (sortType === 'price-asc') {
-            result.sort((a, b) => a.price - b.price);
+            result.sort((a, b) => (getBestVariant(a).displayPrice) - (getBestVariant(b).displayPrice));
         } else if (sortType === 'price-desc') {
-            result.sort((a, b) => b.price - a.price);
+            result.sort((a, b) => (getBestVariant(b).displayPrice) - (getBestVariant(a).displayPrice));
         } else if (sortType === 'newest') {
             result.sort((a, b) => b.id - a.id); // Assuming higher ID is newer
         }

@@ -1,10 +1,11 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShoppingCart, Heart, Check, ChevronLeft, ChevronRight, MapPin, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { WishlistContext } from '../../context/WishlistContext';
 import QuickViewModal from './QuickViewModal';
+import { getBestVariant } from '../../utils/productUtils';
 import './ProductCard.css';
 
 /* ─── Mini Image Swiper ─── */
@@ -103,6 +104,16 @@ const ProductCard = ({ product, isRTL }) => {
     const [addedToCart, setAddedToCart] = useState(false);
     const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
+    const {
+        bestVariant,
+        hasMultipleVariants,
+        displayPrice,
+        displayOldPrice,
+        displayDiscount,
+        displaySavings,
+        displaySizeName
+    } = useMemo(() => getBestVariant(product), [product]);
+
     const handleToggleWishlist = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -113,14 +124,14 @@ const ProductCard = ({ product, isRTL }) => {
         e.preventDefault();
         e.stopPropagation();
         if (product.stock === 0) return;
-        addToCart(product, 1, false);
+        addToCart(product, 1, false, bestVariant?.name, displayPrice);
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2000);
     };
 
     return (
         <div className="product-card animate-fade-in">
-            <Link to={`/product/${product.id}`} className="product-image-container">
+            <Link to={`/product/${product.id}`} state={{ selectedSize: bestVariant?.name }} className="product-image-container">
                 {/* Swipeable image gallery */}
                 <ImageSwiper images={product.image} name={product.name} />
 
@@ -151,14 +162,14 @@ const ProductCard = ({ product, isRTL }) => {
                     </button>
                 </div>
 
-                {product.isNew && (product.discount === 0 || !product.discount) ? (
+                {product.isNew && (displayDiscount === 0 || !displayDiscount) ? (
                     <span className="product-badge premium-badge">
                         {t('product.new')}
                     </span>
                 ) : null}
-                {product.discount > 0 ? (
+                {displayDiscount > 0 ? (
                     <span className="product-badge sale-badge">
-                        {isRTL ? `${t('product.sale')} ${product.discount}%` : `${product.discount}% OFF`}
+                        {isRTL ? `${t('product.sale')} ${displayDiscount}%` : `${displayDiscount}% OFF`}
                     </span>
                 ) : null}
                 {product.stock === 0 ? (
@@ -192,7 +203,7 @@ const ProductCard = ({ product, isRTL }) => {
                     )}
                 </div>
                 <h3 className="product-name">
-                    <Link to={`/product/${product.id}`}>{product.name}</Link>
+                    <Link to={`/product/${product.id}`} state={{ selectedSize: bestVariant?.name }}>{product.name}</Link>
                 </h3>
                 <p className="product-type">
                     {product.type ? `${product.type} • ` : ''}
@@ -208,16 +219,17 @@ const ProductCard = ({ product, isRTL }) => {
                         <span>{String(product.topNotes).split(/[,/•|\n]+/).slice(0, 2).map(s => s.trim()).filter(Boolean).join(' • ')}</span>
                     </div>
                 )}
-                <div className={`product-price-row ${(product.discount > 0 || (product.oldPrice && Number(product.oldPrice) > Number(product.price))) ? 'has-discount' : ''}`}>
-                    <span className={`product-price ${(product.discount > 0 || (product.oldPrice && Number(product.oldPrice) > Number(product.price))) ? 'price-sale' : ''}`}>
-                        {Math.round(product.price)} {t('common.currency')}
+                <div className={`product-price-row ${(displayDiscount > 0 || (displayOldPrice && Number(displayOldPrice) > Number(displayPrice))) ? 'has-discount' : ''}`}>
+                    <span className={`product-price ${(displayDiscount > 0 || (displayOldPrice && Number(displayOldPrice) > Number(displayPrice))) ? 'price-sale' : ''}`}>
+                        {Math.round(displayPrice)} {t('common.currency')}
                     </span>
-                    {product.oldPrice && Number(product.oldPrice) !== Number(product.price) ? (
-                        <span className="product-old-price">{Math.round(product.oldPrice)} {t('common.currency')}</span>
+                    {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
+                        <span className="product-old-price">{Math.round(displayOldPrice)} {t('common.currency')}</span>
                     ) : null}
-                    {product.discount > 0 && product.oldPrice && Number(product.oldPrice) !== Number(product.price) ? (
+                    {displayDiscount > 0 && displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
                         <span className="product-savings-pill">
-                            {t('product.save')} {(product.oldPrice - product.price).toFixed(0)} {t('common.currency')}
+                            {t('product.save')} {Math.round(displaySavings)} {t('common.currency')}
+                            {hasMultipleVariants && displaySizeName ? ` • ${displaySizeName}` : ''}
                         </span>
                     ) : null}
                 </div>

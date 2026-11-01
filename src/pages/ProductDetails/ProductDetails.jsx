@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { useParams, Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { ShopContext } from '../../context/ShopContext';
@@ -13,6 +13,7 @@ import { PrimaryCTA, ReserveCTA } from '../../components/UI/Atoms';
 import { getLocationWithFallback } from '../../utils/geolocation';
 import TrustBadges from '../../components/TrustBadges/TrustBadges';
 import api from '../../utils/api_v1_0_2';
+import { getBestVariant } from '../../utils/productUtils';
 import './ProductDetails.css';
 
 // Haversine formula to calculate distance between two lat/lng pairs in km
@@ -32,6 +33,7 @@ const ProductDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { isRTL = false } = useOutletContext() || {};
     const { products: mockProducts, placeOrder } = useContext(ShopContext);
     const { addToCart } = useContext(CartContext);
@@ -284,10 +286,15 @@ const ProductDetails = () => {
 
             setProduct(currentProduct);
 
-            // Default to the first variant if available
-            const defaultSize = Array.isArray(currentProduct.size) && currentProduct.size.length > 0 
-                ? (typeof currentProduct.size[0] === 'object' ? currentProduct.size[0].name : currentProduct.size[0])
-                : currentProduct.size;
+            // Default to the most discounted variant (or passed state variant)
+            const preselectedSize = location?.state?.selectedSize;
+            const best = getBestVariant(currentProduct);
+            const sizeExists = (name) => Array.isArray(currentProduct.size) && currentProduct.size.some(s => (typeof s === 'object' ? s.name : s) === name);
+            const defaultSize = (preselectedSize && sizeExists(preselectedSize))
+                ? preselectedSize
+                : (best.bestVariant?.name || (Array.isArray(currentProduct.size) && currentProduct.size.length > 0 
+                    ? (typeof currentProduct.size[0] === 'object' ? currentProduct.size[0].name : currentProduct.size[0])
+                    : currentProduct.size));
             setSelectedSize(defaultSize);
 
             // Default to cheapest active inventory
@@ -618,24 +625,48 @@ const ProductDetails = () => {
                         <div className="size-selector" style={{ marginBottom: '20px' }}>
                             <h4 style={{ marginBottom: '10px', fontSize: '1rem', color: 'var(--text-secondary)' }}>{t('product.select_size')}</h4>
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                {product.size.map((s, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setSelectedSize(typeof s === 'object' ? s.name : s)}
-                                        style={{
-                                            padding: '8px 16px',
-                                            border: `1px solid ${selectedSize === (typeof s === 'object' ? s.name : s) ? 'var(--primary, #000)' : '#ccc'}`,
-                                            backgroundColor: selectedSize === (typeof s === 'object' ? s.name : s) ? 'var(--primary, #000)' : 'transparent',
-                                            color: selectedSize === (typeof s === 'object' ? s.name : s) ? '#fff' : 'inherit',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                        }}
-                                        className={selectedSize === (typeof s === 'object' ? s.name : s) ? 'active' : ''}
-                                    >
-                                        {typeof s === 'object' ? s.name : s}
-                                    </button>
-                                ))}
+                                {product.size.map((s, idx) => {
+                                    const sName = typeof s === 'object' ? s.name : s;
+                                    const sPrice = typeof s === 'object' && s.price ? Number(s.price) : Number(product.price);
+                                    const sOld = typeof s === 'object' && s.oldPrice ? Number(s.oldPrice) : null;
+                                    const sDiscount = typeof s === 'object' && s.discount 
+                                        ? Number(s.discount) 
+                                        : (sOld && sOld > sPrice ? Math.round((1 - sPrice / sOld) * 100) : 0);
+                                    const isSelected = selectedSize === sName;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setSelectedSize(sName)}
+                                            style={{
+                                                padding: '8px 16px',
+                                                border: `1px solid ${isSelected ? 'var(--primary, #000)' : '#ccc'}`,
+                                                backgroundColor: isSelected ? 'var(--primary, #000)' : 'transparent',
+                                                color: isSelected ? '#fff' : 'inherit',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                            className={isSelected ? 'active' : ''}
+                                        >
+                                            <span>{sName}</span>
+                                            {sDiscount > 0 && (
+                                                <span style={{
+                                                    fontSize: '0.72rem',
+                                                    padding: '2px 5px',
+                                                    borderRadius: '3px',
+                                                    backgroundColor: isSelected ? '#fff' : '#e53935',
+                                                    color: isSelected ? '#e53935' : '#fff',
+                                                    fontWeight: '700'
+                                                }}>
+                                                    {sDiscount}% OFF
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

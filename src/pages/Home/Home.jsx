@@ -9,6 +9,7 @@ import TrustBadges from '../../components/TrustBadges/TrustBadges';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import api from '../../utils/api_v1_0_2';
+import { getBestVariant } from '../../utils/productUtils';
 import brandStoryImg from '../../assets/logo_no_border.webp';
 import northClubLogo from '../../assets/north_club_logo.webp';
 import aiAdvisorBg from '../../assets/ai_advisor_banner_bg_1773366093433.webp';
@@ -516,11 +517,12 @@ const Home = () => {
                                 const isProductAd = isShopCampaign && item.product_id;
                                 const slideOpacity = isProductAd ? 1 : (isShopCampaign ? 0.3 : 1);
 
-                                const displayPrice = activeProd.price !== undefined ? activeProd.price : item.price;
-                                const displayOldPrice = activeProd.oldPrice !== undefined ? activeProd.oldPrice : (activeProd.old_price !== undefined ? activeProd.old_price : (item.oldPrice || item.old_price));
+                                const bestProdVariant = getBestVariant(activeProd);
+                                const displayPrice = bestProdVariant.displayPrice !== undefined && bestProdVariant.displayPrice > 0 ? bestProdVariant.displayPrice : (activeProd.price !== undefined ? activeProd.price : item.price);
+                                const displayOldPrice = bestProdVariant.displayOldPrice !== undefined && bestProdVariant.displayOldPrice !== null ? bestProdVariant.displayOldPrice : (activeProd.oldPrice !== undefined ? activeProd.oldPrice : (activeProd.old_price !== undefined ? activeProd.old_price : (item.oldPrice || item.old_price)));
                                 const displayDiscount = displayOldPrice && Number(displayOldPrice) > Number(displayPrice)
                                     ? Math.round((1 - Number(displayPrice) / Number(displayOldPrice)) * 100)
-                                    : (activeProd.discount !== undefined ? activeProd.discount : item.discount);
+                                    : (bestProdVariant.displayDiscount > 0 ? bestProdVariant.displayDiscount : (activeProd.discount !== undefined ? activeProd.discount : item.discount));
 
                                 return (
                                     <div key={item.id} className="featured-slide">

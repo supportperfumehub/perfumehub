@@ -100,7 +100,7 @@ router.post('/',
         const productIds = normalizedItems.map(i => i.product_id).filter(Boolean);
         const { data: dbProducts, error: prodFetchErr } = await supabase
             .from('products')
-            .select('id, name, price, stock')
+            .select('id, name, price, stock, size')
             .in('id', productIds);
 
         if (prodFetchErr) {
@@ -117,14 +117,19 @@ router.post('/',
                 return res.status(400).json({ error: `Product ${item.product_id} is no longer available in the catalog.` });
             }
 
-            // Verify stock availability directly on master catalog
-            if (dbProd.stock !== null && dbProd.stock !== undefined) {
-                const availableStock = Number(dbProd.stock);
-                if (availableStock < (item.quantity || 1)) {
-                    return res.status(400).json({
-                        error: `Insufficient stock for "${dbProd.name}". Available: ${availableStock}, Requested: ${item.quantity || 1}`
-                    });
+            // Verify stock availability: check variant stock if size specified, otherwise master catalog stock
+            let availableStock = (dbProd.stock !== null && dbProd.stock !== undefined) ? Number(dbProd.stock) : Infinity;
+            if (item.size && Array.isArray(dbProd.size)) {
+                const targetSizeObj = dbProd.size.find(s => (typeof s === 'object' ? s.name : s) === item.size);
+                if (targetSizeObj && typeof targetSizeObj === 'object' && targetSizeObj.stock !== undefined && targetSizeObj.stock !== null) {
+                    availableStock = Number(targetSizeObj.stock);
                 }
+            }
+
+            if (availableStock < (item.quantity || 1)) {
+                return res.status(400).json({
+                    error: `Insufficient stock for "${dbProd.name}${item.size ? ` (${item.size})` : ''}". Available: ${availableStock}, Requested: ${item.quantity || 1}`
+                });
             }
 
             const unitPrice = parseFloat(dbProd.price || 0);

@@ -162,7 +162,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             }));
         }
     }, [shopId, defaultShopId, isVendorContext]);
-    const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '' });
+    const [variantData, setVariantData] = useState({ name: '', price: '', oldPrice: '', discount: '', stock: '' });
     const [customCatInput, setCustomCatInput] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
@@ -286,26 +286,77 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
 
     const addSizeTag = () => {
         if (variantData.name.trim() && variantData.price) {
+            const variantStock = variantData.stock !== '' && variantData.stock !== undefined && variantData.stock !== null
+                ? Number(variantData.stock)
+                : (formData.stock !== undefined ? Number(formData.stock) : 10);
+
             const newVariant = {
                 name: variantData.name.trim(),
                 price: Number(variantData.price),
                 oldPrice: variantData.oldPrice ? Number(variantData.oldPrice) : null,
-                discount: variantData.discount ? Number(variantData.discount) : 0
+                discount: variantData.discount ? Number(variantData.discount) : 0,
+                stock: variantStock
             };
             
-            setFormData(prev => ({
-                ...prev,
-                size: [...prev.size, newVariant]
-            }));
-            setVariantData({ name: '', price: '', oldPrice: '', discount: '' });
+            setFormData(prev => {
+                const nextSizes = [...(prev.size || []), newVariant];
+                const hasVariantStocks = nextSizes.some(s => s.stock !== undefined && s.stock !== '');
+                const totalStock = hasVariantStocks
+                    ? nextSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0)
+                    : prev.stock;
+
+                return {
+                    ...prev,
+                    size: nextSizes,
+                    stock: totalStock
+                };
+            });
+            setVariantData({ name: '', price: '', oldPrice: '', discount: '', stock: '' });
         }
     };
 
+    const updateSizeField = (index, field, value) => {
+        setFormData(prev => {
+            const newSizes = [...(prev.size || [])];
+            if (!newSizes[index]) return prev;
+
+            const parsed = (field === 'stock' || field === 'price' || field === 'oldPrice' || field === 'discount')
+                ? (value === '' ? '' : Number(value))
+                : value;
+
+            newSizes[index] = {
+                ...newSizes[index],
+                [field]: parsed
+            };
+
+            let totalStock = prev.stock;
+            if (field === 'stock') {
+                const sumStocks = newSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0);
+                totalStock = sumStocks;
+            }
+
+            return {
+                ...prev,
+                size: newSizes,
+                ...(field === 'stock' ? { stock: totalStock } : {})
+            };
+        });
+    };
+
     const removeSizeTag = (indexToRemove) => {
-        setFormData(prev => ({
-            ...prev,
-            size: prev.size.filter((_, idx) => idx !== indexToRemove)
-        }));
+        setFormData(prev => {
+            const nextSizes = prev.size.filter((_, idx) => idx !== indexToRemove);
+            const hasVariantStocks = nextSizes.some(s => s.stock !== undefined && s.stock !== '');
+            const totalStock = hasVariantStocks
+                ? nextSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0)
+                : prev.stock;
+
+            return {
+                ...prev,
+                size: nextSizes,
+                ...(hasVariantStocks ? { stock: totalStock } : {})
+            };
+        });
     };
 
     const moveSize = (index, direction) => {
@@ -1166,7 +1217,13 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         if (updatedSizes.length > 0) {
             updatedSizes = updatedSizes.map((sz, idx) => {
                 if (typeof sz === 'string') {
-                    return { name: sz, price: basePrice, oldPrice: baseOldPrice, discount: baseDiscount };
+                    return { 
+                        name: sz, 
+                        price: basePrice, 
+                        oldPrice: baseOldPrice, 
+                        discount: baseDiscount,
+                        stock: formData.stock !== undefined ? Number(formData.stock) : 0
+                    };
                 }
                 const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : basePrice;
                 const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : baseOldPrice;
@@ -1174,14 +1231,23 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                 if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
                     vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
                 }
+                const vStock = (sz.stock !== undefined && sz.stock !== null && sz.stock !== '')
+                    ? Number(sz.stock)
+                    : (formData.stock !== undefined ? Number(formData.stock) : 0);
                 return {
                     name: sz.name || 'Default',
                     price: vPrice,
                     oldPrice: vOldPrice,
-                    discount: vDiscount
+                    discount: vDiscount,
+                    stock: vStock
                 };
             });
         }
+
+        const hasVariantStocks = updatedSizes.some(s => s.stock !== undefined && s.stock !== '');
+        const computedStock = hasVariantStocks
+            ? updatedSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0)
+            : (formData.stock !== undefined ? Number(formData.stock) : 0);
 
         const activeShopId = isVendorContext 
             ? (shopId || user?.shop_id || user?.ownedShopIds?.[0] || null)
@@ -1196,7 +1262,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             price: basePrice > 0 ? basePrice : (Number(updatedSizes[0]?.price) || 0),
             oldPrice: baseOldPrice,
             discount: baseDiscount,
-            stock: formData.stock !== undefined ? Number(formData.stock) : 0,
+            stock: computedStock,
             sku: formData.sku?.trim() || '',
             description: formData.description?.trim() || '',
             topNotes: formData.topNotes?.trim() || '',
@@ -1239,7 +1305,22 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             : (product.image ? [product.image] : ['']);
         
         const sanitizedSizes = Array.isArray(product.size) 
-            ? product.size.map(s => typeof s === 'string' ? { name: s, price: product.price, oldPrice: product.oldPrice } : s)
+            ? product.size.map(s => {
+                if (typeof s === 'string') {
+                    return { 
+                        name: s, 
+                        price: product.price, 
+                        oldPrice: product.oldPrice,
+                        stock: product.stock !== undefined ? Number(product.stock) : 10
+                    };
+                }
+                return {
+                    ...s,
+                    stock: s.stock !== undefined && s.stock !== null && s.stock !== ''
+                        ? Number(s.stock)
+                        : (product.stock !== undefined ? Number(product.stock) : 10)
+                };
+            })
             : [];
             
         const activeShopId = shopId || (filterShop !== 'all' && filterShop !== 'own' ? filterShop : null);
@@ -2304,10 +2385,11 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                             onClick={() => {
                                                 const existingPrice = formData.price || '';
                                                 const existingOldPrice = formData.oldPrice || '';
+                                                const existingStock = formData.stock !== undefined ? formData.stock : 10;
                                                 if (formData.size.some(s => s.name === preset)) return;
                                                 setFormData(prev => ({
                                                     ...prev,
-                                                    size: [...prev.size, { name: preset, price: existingPrice, oldPrice: existingOldPrice }]
+                                                    size: [...prev.size, { name: preset, price: existingPrice, oldPrice: existingOldPrice, stock: existingStock }]
                                                 }));
                                             }}
                                         >
@@ -2344,7 +2426,19 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                         <label>{isRTL ? 'خصم %' : 'Disc %'}</label>
                                         <input type="number" name="discount" className="form-control" value={variantData.discount} onChange={handleVariantInputChange} />
                                     </div>
-                                    <button type="button" className="btn btn-gold add-variant-btn" onClick={addSizeTag}>
+                                    <div className="form-group">
+                                        <label>{isRTL ? 'المخزون' : 'Stock'}</label>
+                                        <input 
+                                            type="number" 
+                                            name="stock" 
+                                            min="0"
+                                            className="form-control" 
+                                            value={variantData.stock} 
+                                            onChange={handleVariantInputChange} 
+                                            placeholder={formData.stock !== undefined ? String(formData.stock) : '10'} 
+                                        />
+                                    </div>
+                                    <button type="button" className="btn btn-gold add-variant-btn" onClick={addSizeTag} title={isRTL ? 'إضافة الحجم' : 'Add Variant'}>
                                         <Plus size={16} />
                                     </button>
                                 </div>
@@ -2352,12 +2446,43 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 {formData.size.length > 0 && (
                                     <div className="variant-list">
                                         {formData.size.map((s, idx) => (
-                                            <div key={idx} className="variant-list-item">
-                                                <div className="variant-info">
-                                                    <span className="variant-name">{s.name}</span>
-                                                    <span className="variant-price">{s.price} QAR</span>
-                                                    {s.oldPrice && <span className="variant-old-price">{s.oldPrice} QAR</span>}
+                                            <div key={idx} className="variant-list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                                                <div className="variant-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                                    <span className="variant-name" style={{ fontWeight: 700, minWidth: '45px', color: '#f8fafc' }}>{s.name}</span>
+                                                    <span className="variant-price" style={{ color: '#c8a951', fontWeight: 600 }}>{s.price} QAR</span>
+                                                    {s.oldPrice && <span className="variant-old-price" style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.8rem' }}>{s.oldPrice} QAR</span>}
                                                     {s.discount > 0 && <span className="variant-discount-badge">{s.discount}% OFF</span>}
+
+                                                    {/* Individual Stock Control per variant */}
+                                                    <div className="variant-stock-control" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 23, 42, 0.7)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(200, 169, 81, 0.3)' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                                                            {isRTL ? 'المخزون:' : 'Stock:'}
+                                                        </span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="0"
+                                                            className="form-control"
+                                                            style={{
+                                                                width: '70px',
+                                                                height: '26px',
+                                                                padding: '2px 6px',
+                                                                fontSize: '0.85rem',
+                                                                textAlign: 'center',
+                                                                background: '#0f172a',
+                                                                border: '1px solid rgba(200, 169, 81, 0.5)',
+                                                                borderRadius: '4px',
+                                                                color: '#f8fafc',
+                                                                fontWeight: 700
+                                                            }}
+                                                            value={s.stock !== undefined && s.stock !== null ? s.stock : ''}
+                                                            placeholder={formData.stock !== undefined ? String(formData.stock) : '0'}
+                                                            onChange={(e) => updateSizeField(idx, 'stock', e.target.value)}
+                                                            title={isRTL ? 'تعديل مخزون هذا الحجم الفردي' : 'Update stock for this individual variant'}
+                                                        />
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                            {isRTL ? 'قطعة' : 'units'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     {idx > 0 && (
@@ -2982,6 +3107,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                                             }}>
                                                                 ⚠️ {isRTL ? 'مخزون منخفض' : 'Low Stock'}
                                                             </span>
+                                                        )}
+                                                        {Array.isArray(product.size) && product.size.length > 0 && product.size.some(s => typeof s === 'object' && s.stock !== undefined) && (
+                                                            <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                                                                {product.size.map((sz, i) => (
+                                                                    <span key={i} style={{ fontSize: '0.68rem', background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: '3px', color: '#94a3b8' }}>
+                                                                        {typeof sz === 'object' ? sz.name : sz}: <b style={{ color: Number(sz?.stock) > 0 ? '#38bdf8' : '#ef4444' }}>{typeof sz === 'object' && sz.stock !== undefined ? sz.stock : '-'}</b>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 );

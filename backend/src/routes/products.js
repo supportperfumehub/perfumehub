@@ -314,12 +314,31 @@ router.post('/',
         let formattedSizes = Array.isArray(size) ? size : (typeof size === 'string' && size ? [size] : []);
         if (formattedSizes.length > 0) {
             formattedSizes = formattedSizes.map((sz, idx) => {
-                if (idx === 0 || formattedSizes.length === 1) {
-                    return typeof sz === 'object'
-                        ? { ...sz, price: finalPrice, oldPrice: finalOldPrice, discount: finalDiscount }
-                        : { name: sz, price: finalPrice, oldPrice: finalOldPrice, discount: finalDiscount };
+                if (typeof sz === 'string') {
+                    return { 
+                        name: sz, 
+                        price: finalPrice, 
+                        oldPrice: finalOldPrice, 
+                        discount: finalDiscount,
+                        stock: stock !== undefined ? Number(stock) : 10
+                    };
                 }
-                return sz;
+                const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : finalPrice;
+                const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : finalOldPrice;
+                let vDiscount = sz.discount !== undefined && sz.discount !== null && sz.discount !== '' ? Number(sz.discount) : 0;
+                if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
+                    vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
+                }
+                const vStock = (sz.stock !== undefined && sz.stock !== null && sz.stock !== '')
+                    ? Number(sz.stock)
+                    : (stock !== undefined ? Number(stock) : 10);
+                return {
+                    name: sz.name || 'Default',
+                    price: vPrice,
+                    oldPrice: vOldPrice,
+                    discount: vDiscount,
+                    stock: vStock
+                };
             });
         }
 
@@ -491,7 +510,13 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
                 if (Array.isArray(updatePayload.size) && updatePayload.size.length > 0) {
                     updatePayload.size = updatePayload.size.map((sz, idx) => {
                         if (typeof sz === 'string') {
-                            return { name: sz, price: finalP, oldPrice: updatePayload.old_price, discount: updatePayload.discount };
+                            return { 
+                                name: sz, 
+                                price: finalP, 
+                                oldPrice: updatePayload.old_price, 
+                                discount: updatePayload.discount,
+                                stock: updatePayload.stock !== undefined ? Number(updatePayload.stock) : 10
+                            };
                         }
                         const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : finalP;
                         const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : updatePayload.old_price;
@@ -499,11 +524,15 @@ router.put('/:id', authenticateUser, verifyRole(['super_admin', 'admin']), async
                         if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
                             vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
                         }
+                        const vStock = (sz.stock !== undefined && sz.stock !== null && sz.stock !== '')
+                            ? Number(sz.stock)
+                            : (updatePayload.stock !== undefined ? Number(updatePayload.stock) : 10);
                         return {
                             name: sz.name || 'Default',
                             price: vPrice,
                             oldPrice: vOldPrice,
-                            discount: vDiscount
+                            discount: vDiscount,
+                            stock: vStock
                         };
                     });
                 }
