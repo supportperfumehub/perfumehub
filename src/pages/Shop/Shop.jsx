@@ -6,7 +6,7 @@ import { LuxurySkeletonCard } from '../../components/UI/LuxurySkeletonGrid';
 import { ShopContext } from '../../context/ShopContext';
 import { RegionContext } from '../../context/RegionContext';
 import { SlidersHorizontal, Search, X, RotateCcw } from 'lucide-react';
-import { getBestVariant } from '../../utils/productUtils';
+import { getBestVariant, sortStockedFirst } from '../../utils/productUtils';
 import './Shop.css';
 
 // Import category banners
@@ -354,15 +354,17 @@ const Shop = () => {
             });
         }
 
-        // Sort products
+        // Sort products: Stocked products ALWAYS first, out-of-stock ALWAYS last
+        let secondaryComparator = null;
         if (sortType === 'price-asc') {
-            result.sort((a, b) => (getBestVariant(a).displayPrice) - (getBestVariant(b).displayPrice));
+            secondaryComparator = (a, b) => (getBestVariant(a).displayPrice) - (getBestVariant(b).displayPrice);
         } else if (sortType === 'price-desc') {
-            result.sort((a, b) => (getBestVariant(b).displayPrice) - (getBestVariant(a).displayPrice));
+            secondaryComparator = (a, b) => (getBestVariant(b).displayPrice) - (getBestVariant(a).displayPrice);
         } else if (sortType === 'newest') {
-            result.sort((a, b) => b.id - a.id); // Assuming higher ID is newer
+            secondaryComparator = (a, b) => b.id - a.id; // Assuming higher ID is newer
         }
 
+        result = sortStockedFirst(result, secondaryComparator);
         setProducts(result);
         setVisibleCount(20); // Reset visible count when filters change
     }, [type, shopIdFilter, selectedBrands, selectedSizes, selectedColors, selectedMaterials, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts, activeSubcategory]);

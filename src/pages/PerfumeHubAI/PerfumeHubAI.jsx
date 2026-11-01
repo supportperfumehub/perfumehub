@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShopContext } from '../../context/ShopContext';
 import ProductCard from '../../components/ProductCard/ProductCard';
+import { sortStockedFirst, isProductInStock } from '../../utils/productUtils';
 import './PerfumeHubAI.css';
 import { Sparkles, ArrowRight, ArrowLeft, RefreshCw, Zap, Moon, Sun, ShoppingBag, MapPin, Copy, Check, MessageCircle } from 'lucide-react';
 
@@ -233,7 +234,12 @@ const PerfumeHubAI = () => {
                 };
             })
             .filter(Boolean)
-            .sort((a, b) => b.score - a.score);
+            .sort((a, b) => {
+                const aStocked = isProductInStock(a.product) ? 1 : 0;
+                const bStocked = isProductInStock(b.product) ? 1 : 0;
+                if (bStocked !== aStocked) return bStocked - aStocked;
+                return b.score - a.score;
+            });
 
             const topRecs = scored.slice(0, 4).map(x => x.product);
 

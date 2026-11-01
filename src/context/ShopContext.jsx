@@ -3,6 +3,7 @@ import { mockProducts } from '../data/mockData';
 import { AuthContext } from './AuthContext';
 import { RegionContext } from './RegionContext';
 import api from '../utils/api_v1_0_2';
+import { sortStockedFirst } from '../utils/productUtils';
 
 export const ShopContext = createContext();
 
@@ -164,20 +165,22 @@ export const ShopProvider = ({ children }) => {
             // Filter out any products locally deleted in this session
             const freshProducts = mappedProducts.filter(p => !deletedProductIdsRef.current.has(String(p.id)));
 
+            const sortedFresh = sortStockedFirst(freshProducts);
+
             if (append) {
                 setProducts(prev => {
                     const existingIds = new Set(prev.map(i => i.id));
-                    const filteredNew = freshProducts.filter(i => !existingIds.has(i.id));
-                    const combined = [...prev, ...filteredNew].filter(p => !deletedProductIdsRef.current.has(String(p.id)));
+                    const filteredNew = sortedFresh.filter(i => !existingIds.has(i.id));
+                    const combined = sortStockedFirst([...prev, ...filteredNew].filter(p => !deletedProductIdsRef.current.has(String(p.id))));
                     try {
                         localStorage.setItem('perfumehub_products', JSON.stringify(combined));
                     } catch (_) {}
                     return combined;
                 });
             } else {
-                setProducts(freshProducts);
+                setProducts(sortedFresh);
                 try {
-                    localStorage.setItem('perfumehub_products', JSON.stringify(freshProducts));
+                    localStorage.setItem('perfumehub_products', JSON.stringify(sortedFresh));
                 } catch (_) {}
             }
 
@@ -668,10 +671,10 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    // Products categorization
+    // Products categorization: Stocked products ALWAYS first, out-of-stock ALWAYS last
     const safeProducts = Array.isArray(products) ? products : [];
-    const featuredProducts = safeProducts.filter(p => p?.isFeatured);
-    const newArrivals = safeProducts.filter(p => p?.isNew);
+    const featuredProducts = sortStockedFirst(safeProducts.filter(p => p?.isFeatured));
+    const newArrivals = sortStockedFirst(safeProducts.filter(p => p?.isNew));
 
     const FASHION_TAGS = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
     const JEWELLERY_TAGS = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
@@ -690,24 +693,24 @@ export const ShopProvider = ({ children }) => {
         return [];
     };
 
-    const fashionProducts = safeProducts.filter(p => {
+    const fashionProducts = sortStockedFirst(safeProducts.filter(p => {
         const cats = getProductCats(p);
         return cats.some(c => FASHION_TAGS.includes(c)) || p?.gender === 'fashion';
-    });
-    const jewelleryProducts = safeProducts.filter(p => {
+    }));
+    const jewelleryProducts = sortStockedFirst(safeProducts.filter(p => {
         const cats = getProductCats(p);
         return cats.some(c => JEWELLERY_TAGS.includes(c));
-    });
-    const giftBoxProducts = safeProducts.filter(p => {
+    }));
+    const giftBoxProducts = sortStockedFirst(safeProducts.filter(p => {
         const cats = getProductCats(p);
         return cats.some(c => GIFTBOX_TAGS.includes(c));
-    });
-    const perfumeProducts = safeProducts.filter(p => {
+    }));
+    const perfumeProducts = sortStockedFirst(safeProducts.filter(p => {
         const cats = getProductCats(p);
         return !cats.some(c => FASHION_TAGS.includes(c)) &&
                !cats.some(c => JEWELLERY_TAGS.includes(c)) &&
                !cats.some(c => GIFTBOX_TAGS.includes(c));
-    });
+    }));
 
     // Order Functions
     const updateOrderStatus = async (orderId, status, extra = {}) => {

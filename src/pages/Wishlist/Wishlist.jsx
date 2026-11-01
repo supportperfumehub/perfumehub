@@ -3,6 +3,7 @@ import { useOutletContext, Link } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import { WishlistContext } from '../../context/WishlistContext';
 import { HeartCrack } from 'lucide-react';
+import { sortStockedFirst } from '../../utils/productUtils';
 import './Wishlist.css';
 
 const Wishlist = () => {
@@ -30,7 +31,7 @@ const Wishlist = () => {
             <div className="container wishlist-container section reveal">
                 {wishlistItems.length > 0 ? (
                     <div className="products-grid">
-                        {wishlistItems.map(product => (
+                        {sortStockedFirst(wishlistItems).map(product => (
                             <div key={product.id} className="wishlist-item-wrapper relative">
                                 <ProductCard product={product} isRTL={isRTL} />
                             </div>

@@ -195,6 +195,15 @@ router.get('/', async (req, res) => {
             };
         });
 
+        // Always show stocked products first, out of stock last for customers
+        if (!req.query.admin) {
+            productsList.sort((a, b) => {
+                const aStocked = Number(a.stock) > 0 ? 1 : 0;
+                const bStocked = Number(b.stock) > 0 ? 1 : 0;
+                return bStocked - aStocked;
+            });
+        }
+
         res.json({
             products: productsList,
             pagination: {

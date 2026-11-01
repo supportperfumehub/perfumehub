@@ -194,3 +194,70 @@ export const getVariantByName = (product, sizeName) => {
     const matched = variants.find(v => String(v.name).toLowerCase() === String(sizeName).toLowerCase());
     return matched || getBestVariant(product).bestVariant;
 };
+
+/**
+ * Determines whether a product is currently in stock.
+ * Checks main stock, inventory records, and variant stocks.
+ *
+ * @param {Object} product
+ * @returns {boolean} true if in-stock (> 0), false if out of stock (<= 0)
+ */
+export const isProductInStock = (product) => {
+    if (!product) return false;
+
+    // 1. Check inventories if present
+    if (Array.isArray(product.inventories) && product.inventories.length > 0) {
+        const hasInventoryStock = product.inventories.some(inv => Number(inv.stock) > 0);
+        if (hasInventoryStock) return true;
+    }
+
+    // 2. Check variants if present
+    if (Array.isArray(product.size) && product.size.length > 0) {
+        const hasExplicitVariantStock = product.size.some(s => 
+            typeof s === 'object' && s !== null && s.stock !== undefined && s.stock !== null && s.stock !== '' && Number(s.stock) > 0
+        );
+        if (hasExplicitVariantStock) return true;
+    }
+
+    // 3. Base stock check
+    if (product.stock !== undefined && product.stock !== null && product.stock !== '') {
+        return Number(product.stock) > 0;
+    }
+
+    // Default: in-stock
+    return true;
+};
+
+/**
+ * Comparator to partition stocked products first (-1) and out-of-stock products last (1).
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @returns {number}
+ */
+export const compareStockStatus = (a, b) => {
+    const aStocked = isProductInStock(a);
+    const bStocked = isProductInStock(b);
+    if (aStocked === bStocked) return 0;
+    return aStocked ? -1 : 1;
+};
+
+/**
+ * Stable sorting function ensuring in-stock products appear first,
+ * and out-of-stock products always appear last.
+ *
+ * @param {Array<Object>} products
+ * @param {Function} [secondaryComparator]
+ * @returns {Array<Object>}
+ */
+export const sortStockedFirst = (products, secondaryComparator) => {
+    if (!Array.isArray(products) || products.length === 0) return [];
+    return [...products].sort((a, b) => {
+        const stockDiff = compareStockStatus(a, b);
+        if (stockDiff !== 0) return stockDiff;
+        if (typeof secondaryComparator === 'function') {
+            return secondaryComparator(a, b);
+        }
+        return 0;
+    });
+};
