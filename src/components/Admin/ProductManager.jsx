@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
-import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package, AlertTriangle, ShieldCheck, Upload, FileSpreadsheet, Download, CheckCircle, GripVertical } from 'lucide-react';
+import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package, AlertTriangle, ShieldCheck, Upload, FileSpreadsheet, Download, CheckCircle, GripVertical, RefreshCw } from 'lucide-react';
 import ConfirmModal from '../Common/ConfirmModal';
 import api from '../../utils/api_v1_0_2';
 
@@ -29,7 +29,7 @@ const luxuryAccords = [
 ];
 
 const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminRegions, isVendorContext = false }) => {
-    const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory, fetchProducts } = useContext(ShopContext);
+    const { products, addProduct, updateProduct, deleteProduct, addInventory, deleteInventory, fetchProducts, showToast } = useContext(ShopContext);
 
     React.useEffect(() => {
         if (typeof fetchProducts === 'function') {
@@ -82,6 +82,28 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
         productId: null, 
         productName: '' 
     });
+
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefreshCatalog = async () => {
+        if (isRefreshing) return;
+        try {
+            setIsRefreshing(true);
+            if (typeof fetchProducts === 'function') {
+                await fetchProducts({ limit: 5000, forceRefresh: true, admin: true });
+            }
+            if (showToast) {
+                showToast(isRTL ? 'تم تحديث قائمة المنتجات بنجاح' : 'Product catalog refreshed successfully', 'success');
+            }
+        } catch (err) {
+            console.error('Refresh catalog error:', err);
+            if (showToast) {
+                showToast(isRTL ? 'فشل تحديث المنتجات' : 'Failed to refresh product catalog', 'error');
+            }
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     const [shopsData, setShopsData] = useState([]);
     const [filterShop, setFilterShop] = useState('all');
@@ -1289,21 +1311,35 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     };
 
     const confirmDelete = async () => {
+        const { productId, inventoryId, isOwner, isLinkedItem } = confirmModal;
         const targetShopId = shopId || (isVendorContext ? user?.shop_id : null);
+
+        // Immediately close the confirmation modal so it vanishes the instant user approves
+        setConfirmModal({
+            isOpen: false,
+            productId: null,
+            productName: '',
+            inventoryId: null,
+            isLinkedItem: false,
+            isOwner: false
+        });
+
+        if (!productId && !inventoryId) return;
+
         try {
-            if (confirmModal.isOwner) {
+            if (isOwner) {
                 // The vendor created and owns this boutique product: delete it!
-                await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
-            } else if (confirmModal.inventoryId && targetShopId) {
+                await deleteProduct(productId, { shop_id: targetShopId });
+            } else if (inventoryId && targetShopId) {
                 // Shared catalog item: remove from boutique shelf
-                await deleteInventory(confirmModal.inventoryId);
-            } else if (targetShopId && confirmModal.productId) {
-                await deleteProduct(confirmModal.productId, { shop_id: targetShopId });
-            } else if (confirmModal.productId) {
-                await deleteProduct(confirmModal.productId);
+                await deleteInventory(inventoryId);
+            } else if (targetShopId && productId) {
+                await deleteProduct(productId, { shop_id: targetShopId });
+            } else if (productId) {
+                await deleteProduct(productId);
             }
-        } finally {
-            setConfirmModal({ isOpen: false, productId: null, productName: '', inventoryId: null, isLinkedItem: false, isOwner: false });
+        } catch (err) {
+            console.error('Delete error in ProductManager:', err);
         }
     };
 
@@ -1446,6 +1482,34 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                     )}
                     {!showForm && !isBindingCatalog && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <button 
+                                type="button" 
+                                className="btn btn-outline" 
+                                onClick={handleRefreshCatalog}
+                                disabled={isRefreshing}
+                                style={{
+                                    height: '42px',
+                                    padding: '0 16px', 
+                                    fontSize: '0.85rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: 'rgba(30, 41, 59, 0.9)',
+                                    border: '1px solid rgba(200, 169, 81, 0.4)',
+                                    color: '#ffffff',
+                                    borderRadius: '10px',
+                                    cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                title={isRTL ? 'تحديث قائمة المنتجات' : 'Refresh Products Catalog'}
+                            >
+                                <RefreshCw size={16} color="#c8a951" className={isRefreshing ? 'spin' : ''} />
+                                <span style={{ fontWeight: '700', color: '#ffffff', letterSpacing: '0.4px' }}>
+                                    {isRefreshing ? (isRTL ? 'جاري التحديث...' : 'Refreshing...') : (isRTL ? 'تحديث' : 'Refresh')}
+                                </span>
+                            </button>
+
                             <button 
                                 type="button" 
                                 className="btn" 
