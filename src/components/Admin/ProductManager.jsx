@@ -1204,50 +1204,52 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        const basePrice = Number(formData.price) || 0;
-        const baseOldPrice = formData.oldPrice ? Number(formData.oldPrice) : null;
-        let baseDiscount = formData.discount ? Number(formData.discount) : 0;
-        if (baseOldPrice && baseOldPrice > basePrice) {
-            baseDiscount = Math.round((1 - basePrice / baseOldPrice) * 100);
-        } else {
-            baseDiscount = 0;
-        }
-
         let updatedSizes = Array.isArray(formData.size) ? [...formData.size] : [];
-        if (updatedSizes.length > 0) {
-            updatedSizes = updatedSizes.map((sz, idx) => {
-                if (typeof sz === 'string') {
-                    return { 
-                        name: sz, 
-                        price: basePrice, 
-                        oldPrice: baseOldPrice, 
-                        discount: baseDiscount,
-                        stock: formData.stock !== undefined ? Number(formData.stock) : 0
-                    };
-                }
-                const vPrice = sz.price !== undefined && sz.price !== null && sz.price !== '' ? Number(sz.price) : basePrice;
-                const vOldPrice = sz.oldPrice !== undefined && sz.oldPrice !== null && sz.oldPrice !== '' ? Number(sz.oldPrice) : baseOldPrice;
-                let vDiscount = sz.discount !== undefined && sz.discount !== null && sz.discount !== '' ? Number(sz.discount) : 0;
-                if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
-                    vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
-                }
-                const vStock = (sz.stock !== undefined && sz.stock !== null && sz.stock !== '')
-                    ? Number(sz.stock)
-                    : (formData.stock !== undefined ? Number(formData.stock) : 0);
-                return {
-                    name: sz.name || 'Default',
-                    price: vPrice,
-                    oldPrice: vOldPrice,
-                    discount: vDiscount,
-                    stock: vStock
-                };
-            });
+
+        // If user typed into variantData without clicking the plus button, automatically capture it
+        if (updatedSizes.length === 0 && variantData.price) {
+            updatedSizes = [{
+                name: variantData.name.trim() || 'Standard',
+                price: Number(variantData.price),
+                oldPrice: variantData.oldPrice ? Number(variantData.oldPrice) : null,
+                discount: variantData.discount ? Number(variantData.discount) : 0,
+                stock: variantData.stock !== '' ? Number(variantData.stock) : 10
+            }];
         }
 
-        const hasVariantStocks = updatedSizes.some(s => s.stock !== undefined && s.stock !== '');
-        const computedStock = hasVariantStocks
-            ? updatedSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0)
-            : (formData.stock !== undefined ? Number(formData.stock) : 0);
+        if (updatedSizes.length === 0) {
+            alert(isRTL ? 'الرجاء إضافة حجم وسعر واحد على الأقل للمنتج' : 'Please add at least one size & price variant for this product');
+            return;
+        }
+
+        updatedSizes = updatedSizes.map((sz) => {
+            if (typeof sz === 'string') {
+                return { name: sz, price: 0, oldPrice: null, discount: 0, stock: 10 };
+            }
+            const vPrice = Number(sz.price) || 0;
+            const vOldPrice = (sz.oldPrice !== null && sz.oldPrice !== undefined && sz.oldPrice !== '') ? Number(sz.oldPrice) : null;
+            let vDiscount = sz.discount !== undefined && sz.discount !== null && sz.discount !== '' ? Number(sz.discount) : 0;
+            if (!vDiscount && vOldPrice && vOldPrice > vPrice) {
+                vDiscount = Math.round((1 - vPrice / vOldPrice) * 100);
+            }
+            const vStock = (sz.stock !== undefined && sz.stock !== null && sz.stock !== '')
+                ? Number(sz.stock)
+                : 10;
+            return {
+                name: sz.name || 'Default',
+                price: vPrice,
+                oldPrice: vOldPrice,
+                discount: vDiscount,
+                stock: vStock
+            };
+        });
+
+        // Derive authoritative master pricing and total stock directly from the variants
+        const primaryVariant = updatedSizes[0];
+        const basePrice = primaryVariant ? primaryVariant.price : 0;
+        const baseOldPrice = primaryVariant ? primaryVariant.oldPrice : null;
+        const baseDiscount = primaryVariant ? primaryVariant.discount : 0;
+        const computedStock = updatedSizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0);
 
         const activeShopId = isVendorContext 
             ? (shopId || user?.shop_id || user?.ownedShopIds?.[0] || null)
@@ -1259,7 +1261,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
             size: updatedSizes,
             image: filteredImages,
             isFeatured: formData.isFeatured,
-            price: basePrice > 0 ? basePrice : (Number(updatedSizes[0]?.price) || 0),
+            price: basePrice,
             oldPrice: baseOldPrice,
             discount: baseDiscount,
             stock: computedStock,
@@ -2327,50 +2329,17 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                 </div>
                             </div>
                         ) : (
-                            <div className="form-row-dual">
-                            {/* Section 3: Pricing & Inventory */}
-                            <div className="form-column">
+                            <div className="form-column" style={{ width: '100%', margin: '15px 0' }}>
                                 <div className="form-section-title">
-                                    <Plus size={16} /> {isRTL ? 'الأسعار والمخزون' : 'Pricing & Inventory'}
+                                    <Plus size={16} /> {isRTL ? 'إدارة الأحجام والأسعار والمخزون' : 'Size, Price & Stock Variants'}
                                 </div>
-                                <div className="form-row grid-2" style={{ gap: '10px' }}>
-                                    <div className="form-group">
-                                        <label>
-                                            {isRTL ? 'السعر (ر.ق)' : 'Selling Price (QAR)'}
-                                        </label>
-                                        <input type="number" name="price" className="form-control" value={formData.price} onChange={handleInputChange} required min="1" step="0.5" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>
-                                            {isRTL ? 'السعر القديم (ر.ق)' : 'Old Price (QAR)'}
-                                        </label>
-                                        <input type="number" name="oldPrice" className="form-control" value={formData.oldPrice || ''} onChange={handleInputChange} min="0" step="0.5" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>
-                                            {isRTL ? 'الخصم %' : 'Discount %'}
-                                        </label>
-                                        <input type="number" name="discount" className="form-control" value={formData.discount || ''} onChange={handleInputChange} min="0" max="100" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>{isRTL ? 'المخزون' : 'Stock'}</label>
-                                        <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} required min={Number(formData.reservedStock || 0)} />
-                                        {Number(formData.reservedStock || 0) > 0 && (
-                                            <small style={{ color: '#f59e0b', display: 'block', marginTop: '4px', fontSize: '0.75rem' }}>
-                                                🔒 {isRTL 
-                                                    ? `محجوز حالياً: ${formData.reservedStock} قطعة. الحد الأدنى للمخزون هو ${formData.reservedStock}.` 
-                                                    : `Active Reserved: ${formData.reservedStock} units. Minimum stock allowed: ${formData.reservedStock}.`}
-                                            </small>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Section 5: Variants */}
-                            <div className="form-column">
-                                <div className="form-section-title">
-                                    <Plus size={16} /> {isRTL ? 'إدارة الأحجام والأسعار (Variants)' : 'Size & Price Variants'}
-                                </div>
+                                {Number(formData.reservedStock || 0) > 0 && (
+                                    <small style={{ color: '#f59e0b', display: 'block', marginBottom: '12px', fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                                        🔒 {isRTL 
+                                            ? `محجوز حالياً: ${formData.reservedStock} قطعة للاستلام في المتجر. الحد الأدنى لإجمالي المخزون هو ${formData.reservedStock}.` 
+                                            : `Active In-Store Reservations: ${formData.reservedStock} units. Minimum total stock allowed across variants: ${formData.reservedStock}.`}
+                                    </small>
+                                )}
                                 
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '15px' }}>
                                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
@@ -2383,13 +2352,13 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                             className="category-pill"
                                             style={{ padding: '4px 10px', fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
                                             onClick={() => {
-                                                const existingPrice = formData.price || '';
-                                                const existingOldPrice = formData.oldPrice || '';
-                                                const existingStock = formData.stock !== undefined ? formData.stock : 10;
                                                 if (formData.size.some(s => s.name === preset)) return;
+                                                const defaultP = formData.size[0]?.price || '';
+                                                const defaultOldP = formData.size[0]?.oldPrice || '';
+                                                const defaultStk = formData.size[0]?.stock !== undefined ? formData.size[0]?.stock : 10;
                                                 setFormData(prev => ({
                                                     ...prev,
-                                                    size: [...prev.size, { name: preset, price: existingPrice, oldPrice: existingOldPrice, stock: existingStock }]
+                                                    size: [...prev.size, { name: preset, price: defaultP, oldPrice: defaultOldP, stock: defaultStk }]
                                                 }));
                                             }}
                                         >
@@ -2512,7 +2481,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader, activeTerritoryId, adminReg
                                     </div>
                                 )}
                             </div>
-                        </div>
                         )}
 
                         {!isEditingLinkedCatalog && (
