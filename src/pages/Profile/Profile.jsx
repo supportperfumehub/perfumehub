@@ -447,14 +447,6 @@ const Profile = () => {
                         </div>
                         
                         {/* Role Based CTA Buttons */}
-                        {user && user.role === 'customer' && (
-                            <div className="profile-action-box">
-                                <Link to="/vendor-signup" className="btn btn-profile-outline">
-                                    <Store size={17} />
-                                    <span>{isRTL ? 'كن بائعاً معنا' : 'Become a Partner Vendor'}</span>
-                                </Link>
-                            </div>
-                        )}
                         {user && (user.role === 'super_admin' || user.role === 'admin') && (
                             <div className="profile-action-box">
                                 <Link to="/admin" className="btn btn-profile-gold">

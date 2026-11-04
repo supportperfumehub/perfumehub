@@ -35,7 +35,6 @@ const privateCache = (req, res, next) => {
 router.get('/', edgeCacheShops, shopController.getAllShops);
 router.get('/nearest', edgeCacheGeo, shopController.getNearest);
 router.get('/nearest-for-product', edgeCacheGeo, shopController.getNearestForProduct);
-router.post('/manual', shopController.registerManual);
 
 /**
  * Admin Routes
@@ -45,13 +44,14 @@ router.put('/:id/status', authenticateUser, verifyRole(['super_admin', 'regional
 router.put('/:id/approve', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), privateCache, shopController.approve);
 router.put('/:id/reject', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), privateCache, shopController.reject);
 router.delete('/:id', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), privateCache, shopController.deleteShop);
+router.post('/manual', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.registerManual);
+router.post('/', authenticateUser, verifyRole(['super_admin', 'regional_admin', 'admin']), shopController.register);
 
 /**
  * Vendor/Shared Routes (Private No-Store)
  */
 router.get('/my-shops', authenticateUser, verifyRole(['vendor', 'super_admin', 'admin', 'regional_admin']), privateCache, shopController.getMyShops);
 router.post('/create-branch', authenticateUser, verifyRole(['vendor', 'super_admin', 'admin']), shopController.createBranch);
-router.post('/', authenticateUser, shopController.register);
 router.get('/:id/settings', authenticateUser, verifyRole(['vendor', 'super_admin', 'admin', 'regional_admin']), privateCache, shopController.getSettings);
 router.put('/:id/settings', authenticateUser, verifyRole(['vendor', 'super_admin', 'admin', 'regional_admin']), shopController.updateSettings);
 router.get('/:id/financials', authenticateUser, verifyRole(['vendor', 'super_admin', 'admin', 'regional_admin']), privateCache, shopController.getFinancials);
