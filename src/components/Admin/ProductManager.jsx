@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import { Edit, Trash2, Plus, X, ImagePlus, Search, ImageOff, Store, ChevronDown, Sparkles, Shirt, Diamond, Gift, Package, AlertTriangle, ShieldCheck, Upload, FileSpreadsheet, Download, CheckCircle, GripVertical, RefreshCw } from 'lucide-react';
@@ -11,6 +11,76 @@ const typeCodes = {
     'EDT (Eau de Toilette)': 'ET',
     'EDC (Eau de Cologne)': 'EC',
     'Eau Fraîche': 'EF'
+};
+
+const BRAND_ALIASES = {
+    'ysl': ['yves saint laurent'],
+    'yves saint laurent': ['ysl'],
+    'v&r': ['viktor & rolf', 'viktor and rolf'],
+    'viktor & rolf': ['v&r', 'viktor and rolf'],
+    'jpg': ['jean paul gaultier'],
+    'jean paul gaultier': ['jpg'],
+    'tf': ['tom ford'],
+    'tom ford': ['tf'],
+    'ch': ['carolina herrera'],
+    'carolina herrera': ['ch'],
+    'd&g': ['dolce & gabbana', 'dolce and gabbana'],
+    'dolce & gabbana': ['d&g', 'dolce and gabbana'],
+    'mfk': ['maison francis kurkdjian'],
+    'maison francis kurkdjian': ['mfk'],
+    'pdm': ['parfums de marly'],
+    'parfums de marly': ['pdm']
+};
+
+const buildSearchCorpus = (product) => {
+    if (!product) return '';
+    const brandLower = (product.brand || '').toLowerCase();
+    let aliasStr = (BRAND_ALIASES[brandLower] || []).join(' ');
+    for (const [key, val] of Object.entries(BRAND_ALIASES)) {
+        if (brandLower.includes(key)) {
+            aliasStr += ' ' + val.join(' ');
+        }
+    }
+
+    const sizeStr = Array.isArray(product.size) 
+        ? product.size.map(s => typeof s === 'object' ? (s?.name || '') : s).join(' ') 
+        : (product.size || '');
+
+    let attrStr = '';
+    if (typeof product.attributes === 'string') {
+        attrStr = product.attributes;
+    } else if (product.attributes && typeof product.attributes === 'object') {
+        attrStr = Object.values(product.attributes).map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ');
+    }
+
+    const notesStr = [
+        product.topNotes || product.top_notes || '',
+        product.middleNotes || product.middle_notes || '',
+        product.baseNotes || product.base_notes || '',
+        Array.isArray(product.notes) ? product.notes.join(' ') : (product.notes || '')
+    ].filter(Boolean).join(' ');
+
+    return [
+        product.name || '',
+        product.brand || '',
+        aliasStr,
+        product.sku || '',
+        String(product.id || ''),
+        sizeStr,
+        product.gender || '',
+        Array.isArray(product.category) ? product.category.join(' ') : (product.category || ''),
+        product.description || '',
+        attrStr,
+        notesStr
+    ].filter(Boolean).join(' ').toLowerCase();
+};
+
+const matchProductSearch = (product, searchTerm) => {
+    if (!searchTerm || !searchTerm.trim()) return true;
+    const tokens = searchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return true;
+    const corpus = buildSearchCorpus(product);
+    return tokens.every(token => corpus.includes(token));
 };
 
 const luxuryAccords = [
@@ -74,6 +144,22 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
     }, [isBindingCatalog]);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(1);
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, sortBy]);
+
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [sortBy, setSortBy] = useState('default');
     const [isSkuAuto, setIsSkuAuto] = useState(true);
@@ -1526,24 +1612,34 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
 
     const relevantShops = shopsData;
 
-    const shopFilteredProducts = safeProducts.filter(product => {
-        if (activeShopId) {
-            const isOwned = String(product.shop_id) === String(activeShopId);
-            const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(activeShopId) && (inv.is_active !== false));
-            if (!isOwned && !isLinked) return false;
-        } else if (!shopId && filterShop === 'own') {
-            if (product.shop_id && product.shop_id !== 'core') return false;
-        }
-        return true;
-    });
+    const shopFilteredProducts = useMemo(() => {
+        return safeProducts.filter(product => {
+            if (activeShopId) {
+                const isOwned = String(product.shop_id) === String(activeShopId);
+                const isLinked = product.inventories && product.inventories.some(inv => String(inv.shop_id) === String(activeShopId) && (inv.is_active !== false));
+                if (!isOwned && !isLinked) return false;
+            } else if (!shopId && filterShop === 'own') {
+                if (product.shop_id && product.shop_id !== 'core') return false;
+            }
+            return true;
+        });
+    }, [safeProducts, activeShopId, shopId, filterShop]);
 
-    const getCategoryCounts = () => {
+    // Fast multi-token search filtering
+    const searchFilteredProducts = useMemo(() => {
+        const query = debouncedSearch.trim();
+        if (!query) return shopFilteredProducts;
+        return shopFilteredProducts.filter(product => matchProductSearch(product, query));
+    }, [shopFilteredProducts, debouncedSearch]);
+
+    // Category counts dynamically computed from search-matching products
+    const categoryCounts = useMemo(() => {
         const counts = { all: 0, perfume: 0, fashion: 0, abaya: 0, giftbox: 0, jewellery: 0 };
         const fashionTags = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
         const jewTags = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
         const giftTags = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
 
-        shopFilteredProducts.forEach(product => {
+        searchFilteredProducts.forEach(product => {
             counts.all++;
             const cats = Array.isArray(product.category) 
                 ? product.category.map(c => String(c).toLowerCase()) 
@@ -1556,24 +1652,70 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
 
             if (isAbaya) {
                 counts.abaya++;
-            }
-            if (isFashion && !isAbaya) {
+            } else if (isFashion) {
                 counts.fashion++;
-            }
-            if (isJewellery) {
+            } else if (isJewellery) {
                 counts.jewellery++;
-            }
-            if (isGiftbox) {
+            } else if (isGiftbox) {
                 counts.giftbox++;
-            }
-            if (!isFashion && !isJewellery && !isGiftbox && !isAbaya) {
+            } else {
                 counts.perfume++;
             }
         });
         return counts;
-    };
+    }, [searchFilteredProducts]);
 
-    const categoryCounts = getCategoryCounts();
+    // Filter by selected category & sort
+    const finalFilteredProducts = useMemo(() => {
+        const fashionTags = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
+        const jewTags = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
+        const giftTags = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
+
+        return searchFilteredProducts
+            .map((p, index) => ({ ...p, originalIndex: index }))
+            .filter(product => {
+                if (selectedCategory === 'all') return true;
+                const cats = Array.isArray(product.category) 
+                    ? product.category.map(c => String(c).toLowerCase()) 
+                    : (product.category ? [String(product.category).toLowerCase()] : []);
+
+                const isAbaya = cats.includes('abaya') || (product.name && product.name.toLowerCase().includes('abaya'));
+                const isFashion = cats.some(c => fashionTags.includes(c)) || product.gender === 'fashion';
+                const isJewellery = cats.some(c => jewTags.includes(c));
+                const isGiftbox = cats.some(c => giftTags.includes(c));
+
+                if (selectedCategory === 'perfume') {
+                    return !isFashion && !isJewellery && !isGiftbox && !isAbaya;
+                } else if (selectedCategory === 'abaya') {
+                    return isAbaya;
+                } else if (selectedCategory === 'fashion') {
+                    return isFashion && !isAbaya;
+                } else if (selectedCategory === 'giftbox') {
+                    return isGiftbox;
+                } else if (selectedCategory === 'jewellery') {
+                    return isJewellery;
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                if (sortBy === 'newest') return b.originalIndex - a.originalIndex;
+                if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+                if (sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+                if (sortBy === 'price-asc') return (Number(a.price) || 0) - (Number(b.price) || 0);
+                if (sortBy === 'price-desc') return (Number(b.price) || 0) - (Number(a.price) || 0);
+                if (sortBy === 'stock-asc') return (Number(a.stock) || 0) - (Number(b.stock) || 0);
+                if (sortBy === 'stock-desc') return (Number(b.stock) || 0) - (Number(a.stock) || 0);
+                return a.originalIndex - b.originalIndex;
+            });
+    }, [searchFilteredProducts, selectedCategory, sortBy]);
+
+    const totalItems = finalFilteredProducts.length;
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+    const paginatedProducts = useMemo(() => {
+        if (pageSize === 'all') return finalFilteredProducts;
+        const start = (currentPage - 1) * pageSize;
+        return finalFilteredProducts.slice(start, start + pageSize);
+    }, [finalFilteredProducts, currentPage, pageSize]);
 
     return (
         <div className="manager-content">
@@ -1583,17 +1725,45 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
                 <div className="manager-header-actions">
                     {!showForm && (
                         <div className="header-controls-group">
-                            <div className="admin-search-container">
+                            <div className="admin-search-container" style={{ position: 'relative' }}>
                                 <div className="admin-search-icon">
                                     <Search size={18} />
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder={isRTL ? 'ابحث عن منتج...' : 'Search product...'}
+                                    placeholder={isRTL ? 'ابحث بالاسم، الماركة، الحجم، SKU أو الرمز...' : 'Search by name, brand, size, SKU, ID...'}
                                     className="form-control admin-search-input"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        className="admin-search-clear-btn"
+                                        onClick={() => setSearchTerm('')}
+                                        title={isRTL ? 'مسح البحث' : 'Clear search'}
+                                        style={{
+                                            position: 'absolute',
+                                            [isRTL ? 'left' : 'right']: '14px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            background: 'rgba(255, 255, 255, 0.12)',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '22px',
+                                            height: '22px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#94a3b8',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            zIndex: 2
+                                        }}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
                             </div>
                             <select 
                                 className="form-control admin-sort-select" 
@@ -2844,6 +3014,51 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
                 </div>
             )}
 
+            {/* Active Search Notification Banner */}
+            {debouncedSearch.trim() && (
+                <div className="admin-search-active-pill" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    marginBottom: '14px',
+                    color: '#e2e8f0',
+                    fontSize: '0.88rem'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Search size={16} color="#38bdf8" />
+                        <span>
+                            {isRTL 
+                                ? `تم العثور على ${finalFilteredProducts.length} منتج يطابق "${searchTerm}"` 
+                                : `Found ${finalFilteredProducts.length} ${finalFilteredProducts.length === 1 ? 'product' : 'products'} matching "${searchTerm}"`}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setSearchTerm('')}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: 'none',
+                            color: '#38bdf8',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        <X size={14} />
+                        <span>{isRTL ? 'إلغاء البحث' : 'Clear Search'}</span>
+                    </button>
+                </div>
+            )}
+
             <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
@@ -2862,52 +3077,7 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
                         </tr>
                     </thead>
                     <tbody>
-                        {[...shopFilteredProducts]
-                            .map((p, index) => ({ ...p, originalIndex: index }))
-                            .filter(product => {
-                                // Category filter
-                                if (selectedCategory !== 'all') {
-                                    const cats = Array.isArray(product.category) 
-                                        ? product.category.map(c => String(c).toLowerCase()) 
-                                        : (product.category ? [String(product.category).toLowerCase()] : []);
-                                    const fashionTags = ['fashion', 'abaya', 'clothing', 'apparel', 'accessories', 'bags', 'bag', 'shoes', 'eyewear'];
-                                    const jewTags = ['jewellery', 'jewelry', 'watches', 'watch', 'rings', 'ring', 'necklaces', 'necklace', 'earrings', 'earring', 'bracelets', 'bracelet'];
-                                    const giftTags = ['giftbox', 'gift-box', 'gift box', 'gifts', 'gift'];
-
-                                    const isAbaya = cats.includes('abaya') || (product.name && product.name.toLowerCase().includes('abaya'));
-                                    const isFashion = cats.some(c => fashionTags.includes(c)) || product.gender === 'fashion';
-                                    const isJewellery = cats.some(c => jewTags.includes(c));
-                                    const isGiftbox = cats.some(c => giftTags.includes(c));
-
-                                    if (selectedCategory === 'perfume') {
-                                        if (isFashion || isJewellery || isGiftbox || isAbaya) return false;
-                                    } else if (selectedCategory === 'abaya') {
-                                        if (!isAbaya) return false;
-                                    } else if (selectedCategory === 'fashion') {
-                                        if (!isFashion || isAbaya) return false;
-                                    } else if (selectedCategory === 'giftbox') {
-                                        if (!isGiftbox) return false;
-                                    } else if (selectedCategory === 'jewellery') {
-                                        if (!isJewellery) return false;
-                                    }
-                                }
-
-                                return (product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                       (product.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                       (product.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                       String(product.id) === searchTerm.trim();
-                            })
-                            .sort((a, b) => {
-                                if (sortBy === 'newest') return b.originalIndex - a.originalIndex;
-                                if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
-                                if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
-                                if (sortBy === 'price-asc') return a.price - b.price;
-                                if (sortBy === 'price-desc') return b.price - a.price;
-                                if (sortBy === 'stock-asc') return (a.stock || 0) - (b.stock || 0);
-                                if (sortBy === 'stock-desc') return (b.stock || 0) - (a.stock || 0);
-                                return a.originalIndex - b.originalIndex; // default
-                            })
-                            .map(product => {
+                        {paginatedProducts.map(product => {
                                 const shopInventory = activeShopId ? product.inventories?.find(inv => String(inv.shop_id) === String(activeShopId)) : null;
 
                                 // Territory-scoped inventory calculations
@@ -3207,14 +3377,158 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
                                     </tr>
                                 );
                             })}
-                        {products.length === 0 && (
+                        {paginatedProducts.length === 0 && (
                             <tr>
-                                <td colSpan="7" className="text-center">{isRTL ? 'لا توجد منتجات' : 'No products found'}</td>
+                                <td colSpan="7" style={{ textAlign: 'center', padding: '48px 20px' }}>
+                                    <div style={{ color: '#f8fafc', fontSize: '1.05rem', fontWeight: '600', marginBottom: '8px' }}>
+                                        {debouncedSearch 
+                                            ? (isRTL ? `لا توجد نتائج تطابق "${searchTerm}"` : `No products found matching "${searchTerm}"`)
+                                            : (isRTL ? 'لا توجد منتجات في هذه الفئة' : 'No products found in this category')}
+                                    </div>
+                                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 16px 0' }}>
+                                        {debouncedSearch 
+                                            ? (isRTL ? 'جرّب البحث باسم الماركة، الحجم، أو رقم SKU مختلف' : 'Try searching by brand name, volume (e.g. 50ml), or product SKU') 
+                                            : (isRTL ? 'جرّب اختيار فئة أخرى أو إضافة منتجات جديدة' : 'Try selecting another category or adding new products')}
+                                    </p>
+                                    {debouncedSearch && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline"
+                                            onClick={() => setSearchTerm('')}
+                                            style={{ fontSize: '0.85rem', padding: '8px 18px', borderRadius: '8px', color: 'var(--color-gold)', borderColor: 'var(--color-gold)' }}
+                                        >
+                                            {isRTL ? 'مسح البحث وعرض كل المنتجات' : 'Clear Search & Show All'}
+                                        </button>
+                                    )}
+                                </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalItems > 0 && (
+                <div className="admin-table-pagination" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '16px 4px 8px 4px',
+                    fontSize: '0.85rem',
+                    color: '#94a3b8'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <span>
+                            {isRTL 
+                                ? `عرض ${pageSize === 'all' ? `1 - ${totalItems}` : `${Math.min((currentPage - 1) * pageSize + 1, totalItems)} - ${Math.min(currentPage * pageSize, totalItems)}`} من أصل ${totalItems} منتج` 
+                                : `Showing ${pageSize === 'all' ? `1 - ${totalItems}` : `${Math.min((currentPage - 1) * pageSize + 1, totalItems)} - ${Math.min(currentPage * pageSize, totalItems)}`} of ${totalItems} products`}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.8rem' }}>{isRTL ? 'لكل صفحة:' : 'Per page:'}</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                    const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                                    setPageSize(val);
+                                    setCurrentPage(1);
+                                }}
+                                style={{
+                                    background: 'rgba(30, 41, 59, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    color: '#f8fafc',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                                <option value={200}>200</option>
+                                <option value="all">{isRTL ? 'الكل' : 'All'}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="btn btn-outline"
+                                style={{
+                                    padding: '4px 10px',
+                                    fontSize: '0.8rem',
+                                    borderRadius: '6px',
+                                    opacity: currentPage === 1 ? 0.4 : 1,
+                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {isRTL ? 'السابق' : 'Previous'}
+                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                                    .reduce((acc, page, idx, arr) => {
+                                        if (idx > 0 && page - arr[idx - 1] > 1) {
+                                            acc.push('ellipsis-' + page);
+                                        }
+                                        acc.push(page);
+                                        return acc;
+                                    }, [])
+                                    .map(item => {
+                                        if (typeof item === 'string' && item.startsWith('ellipsis')) {
+                                            return <span key={item} style={{ padding: '0 4px', color: '#64748b' }}>...</span>;
+                                        }
+                                        const page = item;
+                                        const isActive = page === currentPage;
+                                        return (
+                                            <button
+                                                key={page}
+                                                type="button"
+                                                onClick={() => setCurrentPage(page)}
+                                                style={{
+                                                    minWidth: '28px',
+                                                    height: '28px',
+                                                    padding: '0 6px',
+                                                    borderRadius: '6px',
+                                                    border: isActive ? '1px solid var(--color-gold)' : '1px solid rgba(255,255,255,0.1)',
+                                                    background: isActive ? 'var(--color-gold)' : 'rgba(30, 41, 59, 0.6)',
+                                                    color: isActive ? '#000' : '#e2e8f0',
+                                                    fontWeight: isActive ? '700' : '400',
+                                                    fontSize: '0.8rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {page}
+                                            </button>
+                                        );
+                                    })}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="btn btn-outline"
+                                style={{
+                                    padding: '4px 10px',
+                                    fontSize: '0.8rem',
+                                    borderRadius: '6px',
+                                    opacity: currentPage === totalPages ? 0.4 : 1,
+                                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {isRTL ? 'التالي' : 'Next'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Batch CSV Catalog Import Modal */}
             {showCsvModal && (
