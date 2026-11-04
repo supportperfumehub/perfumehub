@@ -147,6 +147,15 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(50);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [sortBy, setSortBy] = useState('default');
+    const [isSkuAuto, setIsSkuAuto] = useState(true);
+    const [confirmModal, setConfirmModal] = useState({ 
+        isOpen: false, 
+        productId: null, 
+        productName: '' 
+    });
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -159,17 +168,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
     useEffect(() => {
         setCurrentPage(1);
     }, [selectedCategory, sortBy]);
-
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [sortBy, setSortBy] = useState('default');
-    const [isSkuAuto, setIsSkuAuto] = useState(true);
-    const [confirmModal, setConfirmModal] = useState({ 
-        isOpen: false, 
-        productId: null, 
-        productName: '' 
-    });
-
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefreshCatalog = async () => {
         if (isRefreshing) return;
@@ -3148,19 +3146,6 @@ const ProductManager = ({ isRTL, shopId, hideHeader, isVendorContext = false }) 
                                                     ? product.size.map(s => typeof s === 'object' ? s.name : s).join(', ') 
                                                     : product.size}
                                             </small>
-                                            {!shopId && (
-                                                <div style={{ marginTop: '6px' }}>
-                                                    {product.shop_id ? (
-                                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--color-gold)', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                            {shopsData.find(s => String(s.id) === String(product.shop_id))?.name || 'Vendor'}
-                                                        </span>
-                                                    ) : (
-                                                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: '#334155', color: '#fff', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                              {isRTL ? 'نورث كلوب باريس' : 'North Club Paris'}
-                                                          </span>
-                                                    )}
-                                                </div>
-                                            )}
                                         </td>
                                         <td>{product.brand}</td>
                                         <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: '16px' }}>
