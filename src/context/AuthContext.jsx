@@ -111,8 +111,10 @@ export const AuthProvider = ({ children }) => {
             if (response.data?.success) {
                 applyBackendAuth(response.data);
                 if (typeof window !== 'undefined') {
+                    const returnUrl = localStorage.getItem('perfumehub_oauth_return_url') || sessionStorage.getItem('perfumehub_oauth_return_url');
+                    localStorage.removeItem('perfumehub_oauth_pending');
                     sessionStorage.removeItem('perfumehub_oauth_pending');
-                    const returnUrl = sessionStorage.getItem('perfumehub_oauth_return_url');
+                    localStorage.removeItem('perfumehub_oauth_return_url');
                     sessionStorage.removeItem('perfumehub_oauth_return_url');
 
                     // Clean the OAuth query/hash params from address bar
@@ -147,7 +149,12 @@ export const AuthProvider = ({ children }) => {
             const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
             const authCode = urlParams?.get('code');
             const hasAccessTokenHash = typeof window !== 'undefined' && window.location.hash?.includes('access_token');
-            const isOAuthPending = typeof window !== 'undefined' && sessionStorage.getItem('perfumehub_oauth_pending') === 'true';
+            const isOAuthPending = typeof window !== 'undefined' && (
+                sessionStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                localStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                Boolean(authCode) ||
+                hasAccessTokenHash
+            );
             const isOAuthRedirect = Boolean(authCode || hasAccessTokenHash || isOAuthPending);
 
             // 1. Handle active OAuth callback redirect
@@ -182,7 +189,19 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
-            // 2. Standard backend session refresh (only if active session exists in storage)
+            // 2. Check if Supabase already holds a valid OAuth session
+            if (supabase?.auth?.getSession) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
+                    if (session?.access_token && !savedUser) {
+                        const synced = await syncSupabaseSessionWithBackend(session);
+                        if (synced) return;
+                    }
+                } catch (_) {}
+            }
+
+            // 3. Standard backend session refresh (only if active session exists in storage)
             const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
             const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
 
@@ -317,13 +336,19 @@ export const AuthProvider = ({ children }) => {
         const syncGoogleLogin = () => {
             if (!supabase?.auth?.onAuthStateChange) return { unsubscribe: () => {} };
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                const isOAuthPending = typeof window !== 'undefined' && (
-                    sessionStorage.getItem('perfumehub_oauth_pending') === 'true' ||
-                    window.location.hash?.includes('access_token') ||
-                    window.location.search?.includes('code=')
-                );
-                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.access_token && isOAuthPending) {
-                    await syncSupabaseSessionWithBackend(session);
+                console.log('[Auth] Supabase onAuthStateChange:', event, Boolean(session?.access_token));
+                if (session?.access_token) {
+                    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
+                    const isOAuthPending = typeof window !== 'undefined' && (
+                        sessionStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                        localStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                        window.location.hash?.includes('access_token') ||
+                        window.location.search?.includes('code=')
+                    );
+                    // Sync whenever user is not yet logged into backend, or when OAuth sign in completes
+                    if (!savedUser || event === 'SIGNED_IN' || isOAuthPending) {
+                        await syncSupabaseSessionWithBackend(session);
+                    }
                 }
             });
             return subscription;
@@ -457,9 +482,11 @@ export const AuthProvider = ({ children }) => {
             console.log('Initiating Google Login...');
             oauthSyncDoneRef.current = false;
             if (typeof window !== 'undefined') {
+                localStorage.setItem('perfumehub_oauth_pending', 'true');
                 sessionStorage.setItem('perfumehub_oauth_pending', 'true');
                 const currentPath = window.location.pathname + window.location.search;
                 if (currentPath !== '/login') {
+                    localStorage.setItem('perfumehub_oauth_return_url', currentPath);
                     sessionStorage.setItem('perfumehub_oauth_return_url', currentPath);
                 }
             }
@@ -474,7 +501,9 @@ export const AuthProvider = ({ children }) => {
             });
             if (error) {
                 if (typeof window !== 'undefined') {
+                    localStorage.removeItem('perfumehub_oauth_pending');
                     sessionStorage.removeItem('perfumehub_oauth_pending');
+                    localStorage.removeItem('perfumehub_oauth_return_url');
                     sessionStorage.removeItem('perfumehub_oauth_return_url');
                 }
                 console.error('Supabase OAuth Error:', error);
