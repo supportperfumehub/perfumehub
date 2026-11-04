@@ -1,10 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import api, { setAccessToken } from '../utils/api_v1_0_2';
 import { supabase } from '../utils/supabaseClient';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+    const oauthSyncDoneRef = useRef(false);
     const [user, setUser] = useState(() => {
         try {
             const saved = localStorage.getItem('perfumehub_user');
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }) => {
         setIsVendor(vendorFlag);
 
         // Clean up OAuth fragment or query code from address bar
-        if (typeof window !== 'undefined' && (window.location.hash || window.location.search.includes('code='))) {
+        if (typeof window !== 'undefined' && (window.location.hash || window.location.search?.includes('code='))) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
@@ -66,6 +67,7 @@ export const AuthProvider = ({ children }) => {
      * Purge all local client tokens, Supabase sessions, and auth storage
      */
     const clearAllClientAuth = useCallback(async () => {
+        oauthSyncDoneRef.current = false;
         try {
             if (supabase?.auth?.signOut) {
                 await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
@@ -98,32 +100,86 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     /**
+     * Idempotently sync Supabase session with PerfumeHub backend
+     */
+    const syncSupabaseSessionWithBackend = useCallback(async (session) => {
+        if (!session?.access_token || oauthSyncDoneRef.current) return false;
+        oauthSyncDoneRef.current = true;
+        try {
+            console.log('[Auth] Syncing Google OAuth session with backend...');
+            const response = await api.post('/auth/google', { token: session.access_token });
+            if (response.data?.success) {
+                applyBackendAuth(response.data);
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('perfumehub_oauth_pending');
+                    const returnUrl = sessionStorage.getItem('perfumehub_oauth_return_url');
+                    sessionStorage.removeItem('perfumehub_oauth_return_url');
+
+                    // Clean the OAuth query/hash params from address bar
+                    if (window.location.search?.includes('code=') || window.location.hash?.includes('access_token')) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+
+                    if (returnUrl && returnUrl !== '/login' && returnUrl !== window.location.pathname) {
+                        window.location.href = returnUrl;
+                    }
+                }
+                setLoading(false);
+                return true;
+            }
+        } catch (err) {
+            console.error('[Auth] Failed to sync Google OAuth session with backend:', err.response?.data || err.message);
+            oauthSyncDoneRef.current = false;
+        } finally {
+            setLoading(false);
+        }
+        return false;
+    }, [applyBackendAuth]);
+
+    /**
      * Initialize Auth:
-     * 1. If actively returning from an OAuth redirect (URL contains access_token or code=), exchange with backend.
+     * 1. If actively returning from an OAuth redirect (URL contains access_token, code=, or oauth_pending), exchange with backend.
      * 2. Otherwise, use backend session refresh (/auth/refresh via HttpOnly cookie or backup token).
      * 3. Supabase getSession is only used as a fallback when no backend session exists.
      */
     const initAuth = useCallback(async () => {
         try {
-            const isOAuthRedirect = typeof window !== 'undefined' && 
-                (window.location.hash?.includes('access_token') || window.location.search?.includes('code='));
+            const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+            const authCode = urlParams?.get('code');
+            const hasAccessTokenHash = typeof window !== 'undefined' && window.location.hash?.includes('access_token');
+            const isOAuthPending = typeof window !== 'undefined' && sessionStorage.getItem('perfumehub_oauth_pending') === 'true';
+            const isOAuthRedirect = Boolean(authCode || hasAccessTokenHash || isOAuthPending);
 
             // 1. Handle active OAuth callback redirect
-            if (isOAuthRedirect && supabase?.auth?.getSession) {
+            if (isOAuthRedirect && supabase?.auth) {
                 try {
+                    // Attempt explicit PKCE code exchange if code parameter is present in URL
+                    if (authCode && typeof supabase.auth.exchangeCodeForSession === 'function') {
+                        try {
+                            const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
+                            if (!error && data?.session?.access_token) {
+                                const synced = await syncSupabaseSessionWithBackend(data.session);
+                                if (synced) return;
+                            }
+                        } catch (exErr) {
+                            console.warn('[Auth] Code exchange note:', exErr.message);
+                        }
+                    }
+
+                    // Check existing or background-exchanged session
                     const { data: { session } } = await supabase.auth.getSession();
                     if (session?.access_token) {
-                        console.log('[Auth] Active Google OAuth redirect detected, syncing with backend...');
-                        const response = await api.post('/auth/google', { token: session.access_token });
-                        if (response.data.success) {
-                            applyBackendAuth(response.data);
-                            setLoading(false);
-                            return;
-                        }
+                        const synced = await syncSupabaseSessionWithBackend(session);
+                        if (synced) return;
                     }
                 } catch (oauthErr) {
                     console.warn('[Auth] OAuth redirect exchange note:', oauthErr.message);
                 }
+
+                // If this is an OAuth redirect, NEVER clear tokens or cancel auth.
+                // Supabase's onAuthStateChange listener is concurrently handling the callback.
+                console.log('[Auth] OAuth redirect active — awaiting Supabase onAuthStateChange confirmation...');
+                return;
             }
 
             // 2. Standard backend session refresh (only if active session exists in storage)
@@ -152,7 +208,6 @@ export const AuthProvider = ({ children }) => {
                     return;
                 }
                 // If network/server error (>= 500 or offline), retain offline saved user from localStorage
-                const savedUser = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_user') : null;
                 if (savedUser && (!refreshErr.response || refreshErr.response.status >= 500)) {
                     try {
                         const parsed = JSON.parse(savedUser);
@@ -171,9 +226,16 @@ export const AuthProvider = ({ children }) => {
             console.log('Session init note:', error.message || 'No active session');
             await clearAllClientAuth();
         } finally {
-            setLoading(false);
+            const isPendingOAuth = typeof window !== 'undefined' && (
+                sessionStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                window.location.search?.includes('code=') ||
+                window.location.hash?.includes('access_token')
+            );
+            if (!isPendingOAuth || oauthSyncDoneRef.current) {
+                setLoading(false);
+            }
         }
-    }, [applyBackendAuth, clearAllClientAuth]);
+    }, [applyBackendAuth, clearAllClientAuth, syncSupabaseSessionWithBackend]);
 
     useEffect(() => {
         if (user) {
@@ -190,6 +252,9 @@ export const AuthProvider = ({ children }) => {
 
         // Safety net: if auth check hangs after 6s, force loading=false so pages don't get stuck
         const authKillSwitch = setTimeout(() => {
+            if (typeof window !== 'undefined' && !oauthSyncDoneRef.current) {
+                sessionStorage.removeItem('perfumehub_oauth_pending');
+            }
             setLoading(prev => {
                 if (prev) {
                     console.warn('[AuthContext] Auth loading kill-switch fired — forcing loading=false');
@@ -248,22 +313,17 @@ export const AuthProvider = ({ children }) => {
         };
         window.addEventListener('storage', handleStorageChange);
 
-        // Listen for explicit Supabase OAuth SIGNED_IN event (only when user actively completes OAuth flow)
+        // Listen for Supabase OAuth session changes
         const syncGoogleLogin = () => {
             if (!supabase?.auth?.onAuthStateChange) return { unsubscribe: () => {} };
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                // Strictly only on SIGNED_IN event during an active redirect (prevents background cached token sync)
-                const isRedirect = typeof window !== 'undefined' &&
-                    (window.location.hash?.includes('access_token') || window.location.search?.includes('code='));
-                if (event === 'SIGNED_IN' && session?.access_token && isRedirect) {
-                    try {
-                        const response = await api.post('/auth/google', { token: session.access_token });
-                        if (response.data.success) {
-                            applyBackendAuth(response.data);
-                        }
-                    } catch (error) {
-                        console.error('Failed to sync Google login with backend:', error);
-                    }
+                const isOAuthPending = typeof window !== 'undefined' && (
+                    sessionStorage.getItem('perfumehub_oauth_pending') === 'true' ||
+                    window.location.hash?.includes('access_token') ||
+                    window.location.search?.includes('code=')
+                );
+                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.access_token && isOAuthPending) {
+                    await syncSupabaseSessionWithBackend(session);
                 }
             });
             return subscription;
@@ -278,7 +338,7 @@ export const AuthProvider = ({ children }) => {
             window.removeEventListener('storage', handleStorageChange);
             subscription?.unsubscribe();
         };
-    }, [initAuth, applyBackendAuth]);
+    }, [initAuth, applyBackendAuth, syncSupabaseSessionWithBackend]);
 
     useEffect(() => {
         try {
@@ -361,6 +421,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('perfumehub_oauth_pending');
+            sessionStorage.removeItem('perfumehub_oauth_return_url');
+        }
+        oauthSyncDoneRef.current = false;
         try {
             const backupToken = typeof window !== 'undefined' ? localStorage.getItem('perfumehub_refresh_token') : null;
             await api.post('/auth/logout', { refreshToken: backupToken }).catch(() => {});
@@ -390,6 +455,14 @@ export const AuthProvider = ({ children }) => {
     const loginWithGoogle = async () => {
         try {
             console.log('Initiating Google Login...');
+            oauthSyncDoneRef.current = false;
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('perfumehub_oauth_pending', 'true');
+                const currentPath = window.location.pathname + window.location.search;
+                if (currentPath !== '/login') {
+                    sessionStorage.setItem('perfumehub_oauth_return_url', currentPath);
+                }
+            }
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -400,6 +473,10 @@ export const AuthProvider = ({ children }) => {
                 }
             });
             if (error) {
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('perfumehub_oauth_pending');
+                    sessionStorage.removeItem('perfumehub_oauth_return_url');
+                }
                 console.error('Supabase OAuth Error:', error);
                 throw error;
             }

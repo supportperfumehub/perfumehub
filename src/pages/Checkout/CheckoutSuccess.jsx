@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import { useLocation, useNavigate, useOutletContext, Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { 
@@ -15,6 +16,7 @@ const WhatsAppIcon = () => (
 );
 
 const CheckoutSuccess = () => {
+    const { user } = useContext(AuthContext);
     const location = useLocation();
     const navigate = useNavigate();
     const outletCtx = useOutletContext();
@@ -314,23 +316,45 @@ const CheckoutSuccess = () => {
 
                 {/* Secondary Navigation Buttons */}
                 <div className="success-action-buttons-row">
-                    <button 
-                        type="button"
-                        className="btn btn-gold success-primary-nav-btn" 
-                        onClick={() => navigate('/profile')}
-                    >
-                        <span>{isRTL ? 'عرض في حسابي' : 'VIEW IN MY ORDERS'}</span>
-                        <ArrowRight size={16} />
-                    </button>
+                    {user ? (
+                        <button 
+                            type="button"
+                            className="btn btn-gold success-primary-nav-btn" 
+                            onClick={() => navigate('/profile')}
+                        >
+                            <span>{isRTL ? 'عرض في حسابي' : 'VIEW IN MY ORDERS'}</span>
+                            <ArrowRight size={16} />
+                        </button>
+                    ) : (
+                        <button 
+                            type="button"
+                            className="btn btn-gold success-primary-nav-btn" 
+                            onClick={() => navigate(`/track-order?orderId=${encodeURIComponent(orderId)}${customerPhone ? `&identifier=${encodeURIComponent(customerPhone)}` : ''}`)}
+                        >
+                            <Package size={16} />
+                            <span>{isRTL ? 'تتبع مسار الطلب' : 'TRACK YOUR ORDER'}</span>
+                            <ArrowRight size={16} />
+                        </button>
+                    )}
 
-                    <button 
-                        type="button"
-                        className="btn btn-outline success-secondary-nav-btn" 
-                        onClick={() => navigate(`/track-order?orderId=${encodeURIComponent(orderId)}${customerPhone ? `&identifier=${encodeURIComponent(customerPhone)}` : ''}`)}
-                    >
-                        <Package size={16} />
-                        <span>{isRTL ? 'تتبع مسار الطلب' : 'TRACK ORDER'}</span>
-                    </button>
+                    {user ? (
+                        <button 
+                            type="button"
+                            className="btn btn-outline success-secondary-nav-btn" 
+                            onClick={() => navigate(`/track-order?orderId=${encodeURIComponent(orderId)}${customerPhone ? `&identifier=${encodeURIComponent(customerPhone)}` : ''}`)}
+                        >
+                            <Package size={16} />
+                            <span>{isRTL ? 'تتبع مسار الطلب' : 'TRACK ORDER'}</span>
+                        </button>
+                    ) : (
+                        <button 
+                            type="button"
+                            className="btn btn-outline success-secondary-nav-btn" 
+                            onClick={() => navigate('/login', { state: { from: { pathname: '/profile' } } })}
+                        >
+                            <span>{isRTL ? 'تسجيل الدخول لحفظ الطلب' : 'SIGN IN TO SAVE ORDER'}</span>
+                        </button>
+                    )}
 
                     <button 
                         type="button"

@@ -247,6 +247,7 @@ function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="checkout-success" element={<CheckoutSuccess />} />
+          <Route path="checkout/success" element={<CheckoutSuccess />} />
           <Route path="login" element={<Login />} />
           <Route path="reset-password/:token" element={<ResetPassword />} />
           <Route path="wishlist" element={<Wishlist />} />

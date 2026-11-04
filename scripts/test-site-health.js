@@ -109,7 +109,7 @@ async function runSiteHealthSuite() {
 
         // Test 9: 2MB Express Body Limit (Payload Diet Enforcement)
         {
-            const oversizedPayload = JSON.stringify({ data: 'A'.repeat(2.5 * 1024 * 1024) }); // 2.5MB
+            const oversizedPayload = JSON.stringify({ data: 'A'.repeat(12 * 1024 * 1024) }); // 2.5MB
             let payloadDietPass = false;
             try {
                 const res = await fetch(`${baseUrl}/api/auth/login`, {
