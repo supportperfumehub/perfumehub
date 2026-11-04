@@ -1,5 +1,6 @@
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: 'c:/Users/LENOVO/OneDrive/Documents/perfumehub/.env' });
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

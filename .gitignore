@@ -37,3 +37,7 @@ scratch/
 .vercel/
 backend/data/
 
+
+# Scripts archive & scratch data
+scripts/archive/
+scripts/*.csv
