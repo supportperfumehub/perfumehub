@@ -5,7 +5,7 @@ import { CartContext } from '../../context/CartContext';
 import { ShopContext } from '../../context/ShopContext';
 import { AuthContext } from '../../context/AuthContext';
 import { RegionContext } from '../../context/RegionContext';
-import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag, Gift, Store } from 'lucide-react';
+import { ShoppingBag, Trash2, ShieldCheck, Truck, Tag, Gift } from 'lucide-react';
 import './Cart.css';
 
 const Cart = () => {
@@ -119,10 +119,6 @@ const Cart = () => {
                                             </button>
                                         </div>
                                         <p className="cart-item-brand text-muted">{item.product.brand}</p>
-                                        <div className="cart-item-vendor">
-                                            <Store size={12} />
-                                            <span>{isRTL ? 'تنفيذ من: ' : 'Fulfilled by: '}<strong>{item.vendor_name || 'PerfumeHub Flagship Boutique'}</strong> {isRTL ? '(الدوحة / لوسيل)' : '(Doha / Lusail)'}</span>
-                                        </div>
                                         {item.isGiftWrapped && (
                                             <div className="gift-badge">
                                                 <Gift size={12} className="gift-badge-icon" />

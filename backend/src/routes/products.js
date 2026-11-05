@@ -186,8 +186,6 @@ router.get('/', async (req, res) => {
                 review_count: p.review_count !== undefined ? Number(p.review_count) : 12,
                 stock: p.stock !== undefined ? Number(p.stock) : 10,
                 shop_id: p.shop_id || null,
-                vendor_name: 'PerfumeHub',
-                vendor_address: 'Souq Al Jabor, Doha',
                 sku: p.sku || null,
                 description: p.description || null,
                 attributes: p.attributes || {},

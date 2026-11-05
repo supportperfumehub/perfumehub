@@ -32,8 +32,6 @@ export const CartProvider = ({ children }) => {
             const priceToUse = selectedPrice !== null && selectedPrice !== undefined ? selectedPrice : (best.displayPrice || product.price);
             const finalShopId = shopId || product.shop_id || (product.inventories && product.inventories[0]?.shop_id) || null;
             const finalInventoryId = inventoryId || product.inventory_id || (product.inventories && product.inventories[0]?.id) || null;
-            const finalVendorName = vendorName || product.vendor_name || product.shop_name || 'PerfumeHub Luxury Boutique';
-            const finalVendorAddress = vendorAddress || product.vendor_address || product.shop_address || 'Doha / Lusail';
 
             const existingItemIndex = prevItems.findIndex(
                 item => item.product.id === product.id && 
@@ -58,8 +56,6 @@ export const CartProvider = ({ children }) => {
                     selectedPrice: priceToUse,
                     shop_id: finalShopId,
                     inventory_id: finalInventoryId,
-                    vendor_name: finalVendorName,
-                    vendor_address: finalVendorAddress
                 }];
             }
         });
