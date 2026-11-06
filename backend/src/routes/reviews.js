@@ -196,8 +196,8 @@ router.get('/top', async (req, res) => {
             averageRating = Number((sum / totalRealCount).toFixed(1));
         }
 
-        // Disable static caching so random selection rotates dynamically
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        // Edge CDN caching with background revalidation (rotates periodically without blocking page loads)
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
 
         return res.json({
             success: true,

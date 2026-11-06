@@ -476,68 +476,47 @@
 
 .mobile-toggle {
     display: none;
-    background: transparent;
-    border: 1.5px solid transparent;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: inherit;
     cursor: pointer;
     position: relative;
     z-index: 1002;
-    padding: 6px;
+    padding: 7px;
     border-radius: 10px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s ease;
 }
 
-/* Breathing Attention Effect for Mobile 3-Line Menu Button */
+.navbar.light-nav .mobile-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: var(--color-black, #111) !important;
+}
+
+.mobile-toggle:hover {
+    border-color: var(--color-gold, #d4af37);
+    color: var(--color-gold, #d4af37) !important;
+}
+
 .mobile-toggle.is-breathing {
-    animation: menuBreathingPulse 1.9s ease-in-out infinite;
-    background: rgba(212, 175, 55, 0.14) !important;
-    border: 1.5px solid rgba(212, 175, 55, 0.8) !important;
-    color: #d4af37 !important;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.navbar.light-nav .mobile-toggle.is-breathing {
-    color: #b48a33 !important;
-    background: rgba(212, 175, 55, 0.16) !important;
-    border-color: rgba(212, 175, 55, 0.85) !important;
-}
-
-.mobile-toggle.is-breathing svg {
-    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.85));
-    animation: menuIconPulse 1.9s ease-in-out infinite;
+.mobile-toggle.is-breathing::after {
+    display: none !important;
 }
 
 /* Active Open State for Mobile Toggle (when drawer is open) */
 .mobile-toggle.is-open {
     color: var(--color-gold, #d4af37) !important;
-    background: rgba(212, 175, 55, 0.15) !important;
-    border: 1.5px solid rgba(212, 175, 55, 0.6) !important;
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+    background: rgba(212, 175, 55, 0.14) !important;
+    border: 1px solid rgba(212, 175, 55, 0.5) !important;
     transform: rotate(90deg);
 }
 
 .mobile-toggle.is-open svg {
-    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.7));
-}
-
-/* Subtle glowing beacon dot on top-right of the toggle */
-.mobile-toggle.is-breathing::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    background: #eab308;
-    border: 1.5px solid #000;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #facc15;
-    animation: beaconPulse 1.9s ease-in-out infinite;
-    pointer-events: none;
-}
-
-[dir="rtl"] .mobile-toggle.is-breathing::after {
-    right: auto;
-    left: -2px;
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.6));
 }
 
 @keyframes menuBreathingPulse {

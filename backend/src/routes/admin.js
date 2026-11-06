@@ -33,6 +33,7 @@ router.use((req, res, next) => {
 
 // GET /api/admin/settings/public (Public for holding page & maintenance bypass check)
 router.get('/settings/public', async (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
     try {
         const { data } = await supabase
             .from('system_settings')

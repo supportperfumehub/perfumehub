@@ -8,25 +8,12 @@ const router = express.Router();
 // Get active discover campaigns (Zero N+1 Query Architecture, Edge CDN Cached)
 router.get('/', async (req, res) => {
     // Edge CDN Caching: 30s browser, 120s edge, 10m stale-while-revalidate
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=600, stale-while-revalidate=86400');
 
     try {
         const regionId = req.query.region_id ? parseInt(req.query.region_id, 10) : null;
 
-        // 1. Primary Strategy: Single optimized PostgreSQL RPC query
-        try {
-            const { data: rpcSlides, error: rpcError } = await withTimeout(
-                supabase.rpc('get_active_discovery_slides', { p_region_id: regionId })
-            );
-
-            if (!rpcError && Array.isArray(rpcSlides) && rpcSlides.length > 0) {
-                return res.json(rpcSlides);
-            }
-        } catch (rpcErr) {
-            // If RPC is not defined in DB, proceed to single-batch fallback
-        }
-
-        // 2. High-Performance Single-Batch Fallback (Zero N+1 Queries)
+        // High-Performance Single-Batch Query
         const nowIso = new Date().toISOString();
         const { data: campaigns, error } = await withTimeout(supabase
             .from('discover_campaigns')

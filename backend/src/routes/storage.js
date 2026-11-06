@@ -84,10 +84,10 @@ router.post('/upload', authenticateUser, uploadMiddleware.single('file'), async 
         const thumbBuffer = await optimizeImageBuffer(req.file.buffer, { width: 400, height: 400, quality: 80 });
         const thumbPath = `${folder}/thumbnails/${prefix}_${uniqueId}_thumb.webp`;
 
-        // Upload both to Supabase Storage
+        // Upload both to Supabase Storage with long-term Edge CDN caching
         const [heroUpload, thumbUpload] = await Promise.all([
-            supabase.storage.from(BUCKET_NAME).upload(heroPath, heroBuffer, { contentType: 'image/webp', upsert: true }),
-            supabase.storage.from(BUCKET_NAME).upload(thumbPath, thumbBuffer, { contentType: 'image/webp', upsert: true })
+            supabase.storage.from(BUCKET_NAME).upload(heroPath, heroBuffer, { contentType: 'image/webp', cacheControl: '31536000', upsert: true }),
+            supabase.storage.from(BUCKET_NAME).upload(thumbPath, thumbBuffer, { contentType: 'image/webp', cacheControl: '31536000', upsert: true })
         ]);
 
         if (heroUpload.error) throw heroUpload.error;

@@ -729,8 +729,8 @@ const Checkout = () => {
                                             <img src={Array.isArray(item.product.image) ? item.product.image[0] : item.product.image} alt={item.product.name} />
                                             <div className="summary-product-info">
                                                 <h4>{item.product.name}</h4>
-                                                <p>{item.product.brand}{item.selectedSize ? ` • ${typeof item.selectedSize === 'object' ? item.selectedSize.name : item.selectedSize}` : ''}</p>
-                                                <p style={{ fontSize: '0.85rem' }}>
+                                                <p className="summary-product-variant">{item.product.brand}{item.selectedSize ? ` • ${typeof item.selectedSize === 'object' ? item.selectedSize.name : item.selectedSize}` : ''}</p>
+                                                <p className="summary-product-price">
                                                     {t('checkout.qty')} {item.quantity} × {formatPrice(item.selectedPrice || item.product.price, currency, isRTL)}
                                                 </p>
                                             </div>
@@ -741,8 +741,8 @@ const Checkout = () => {
                                         <img src={Array.isArray(singleProduct.image) ? singleProduct.image[0] : singleProduct.image} alt={singleProduct.name} />
                                         <div className="summary-product-info">
                                             <h4>{singleProduct.name}</h4>
-                                            <p>{singleProduct.brand} • {singleSize || (Array.isArray(singleProduct.size) ? (typeof singleProduct.size[0] === 'object' ? singleProduct.size[0].name : singleProduct.size[0]) : singleProduct.size)}</p>
-                                            <p style={{ fontSize: '0.85rem' }}>
+                                            <p className="summary-product-variant">{singleProduct.brand} • {singleSize || (Array.isArray(singleProduct.size) ? (typeof singleProduct.size[0] === 'object' ? singleProduct.size[0].name : singleProduct.size[0]) : singleProduct.size)}</p>
+                                            <p className="summary-product-price">
                                                 {t('checkout.qty')} {singleQty} × {formatPrice(singleUnitPrice, currency, isRTL)}
                                             </p>
                                         </div>

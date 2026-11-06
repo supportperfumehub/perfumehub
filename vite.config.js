@@ -33,9 +33,6 @@ export default defineConfig({
             }
             return 'vendor-core';
           }
-          if (id.includes('/src/components/Admin/') || id.includes('/src/pages/Admin/') || id.includes('\\src\\components\\Admin\\') || id.includes('\\src\\pages\\Admin\\')) {
-            return 'admin-core';
-          }
         }
       }
     },
@@ -52,4 +49,3 @@ export default defineConfig({
     },
   },
 })
-// Build Timestamp: 1777537910000

@@ -73,6 +73,7 @@ export async function uploadImageToStorage(base64OrUrl, prefix = 'image', folder
             .from(BUCKET_NAME)
             .upload(fileName, uploadBuffer, {
                 contentType: uploadMime,
+                cacheControl: '31536000',
                 upsert: true
             });
 

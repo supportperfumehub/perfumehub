@@ -126,7 +126,7 @@ const Navbar = ({ isRTL, toggleLanguage }) => {
 
                 {/* Mobile Menu Toggle with Permanent Breathing Attention Effect */}
                 <button 
-                    className={`mobile-toggle ${isMobileMenuOpen ? 'is-open' : 'is-breathing'}`} 
+                    className={`mobile-toggle ${isMobileMenuOpen ? 'is-open' : ''}`} 
                     onClick={() => setIsMobileMenuOpen(prev => !prev)}
                     aria-label={isMobileMenuOpen ? (isRTL ? 'إغلاق القائمة' : 'Close Menu') : (isRTL ? 'فتح القائمة الرئيسية' : 'Open Main Navigation Menu')}
                     title={isRTL ? 'القائمة الرئيسية' : 'Menu'}
