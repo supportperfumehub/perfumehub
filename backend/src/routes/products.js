@@ -147,6 +147,15 @@ router.get('/', async (req, res) => {
                 }
                 if (req.query.category) chunkQuery = chunkQuery.contains('category', [req.query.category]);
                 if (req.query.brand) chunkQuery = chunkQuery.eq('brand', req.query.brand);
+                if (req.query.shop_id) chunkQuery = chunkQuery.eq('shop_id', req.query.shop_id);
+                if (req.query.search) {
+                    const cleanSearch = req.query.search.trim();
+                    if (cleanSearch) {
+                        chunkQuery = chunkQuery.or(`name.ilike.%${cleanSearch}%,brand.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%`);
+                    }
+                }
+                if (req.query.min_price) chunkQuery = chunkQuery.gte('price', Number(req.query.min_price));
+                if (req.query.max_price) chunkQuery = chunkQuery.lte('price', Number(req.query.max_price));
                 if (sort === 'price-asc') chunkQuery = chunkQuery.order('price', { ascending: true });
                 else if (sort === 'price-desc') chunkQuery = chunkQuery.order('price', { ascending: false });
                 else chunkQuery = chunkQuery.order('created_at', { ascending: false });

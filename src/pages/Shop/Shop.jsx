@@ -366,7 +366,7 @@ const Shop = () => {
 
         result = sortStockedFirst(result, secondaryComparator);
         setProducts(result);
-        setVisibleCount(20); // Reset visible count when filters change
+        setVisibleCount(24); // Reset visible count when filters change
     }, [type, shopIdFilter, selectedBrands, selectedSizes, selectedColors, selectedMaterials, sortType, searchQuery, minPrice, maxPrice, activeGender, mockProducts, activeSubcategory]);
 
     useEffect(() => {
@@ -387,31 +387,9 @@ const Shop = () => {
         }
     };
 
-    const handleLoadMore = async () => {
+    const handleLoadMore = () => {
         if (visibleCount < products.length) {
-            setVisibleCount(prev => prev + 24);
-            return;
-        }
-        if (pagination?.hasMore && fetchProducts) {
-            setIsLoadingMore(true);
-            try {
-                await fetchProducts({
-                    page: (pagination.page || 1) + 1,
-                    limit: 24,
-                    gender: activeGender !== 'all' ? activeGender : (type === 'men' || type === 'women' ? type : undefined),
-                    category: categoryQuery || (type && !['men', 'women'].includes(type) ? type : undefined),
-                    search: searchQuery.trim() || undefined,
-                    min_price: minPrice || undefined,
-                    max_price: maxPrice || undefined,
-                    sort: sortType !== 'default' ? sortType : undefined,
-                    append: true
-                });
-                setVisibleCount(prev => prev + 24);
-            } catch (err) {
-                console.error('Failed to load more products:', err);
-            } finally {
-                setIsLoadingMore(false);
-            }
+            setVisibleCount(prev => Math.min(prev + 24, products.length));
         }
     };
 
@@ -1016,8 +994,12 @@ const Shop = () => {
                     <div className="shop-controls">
                         <span>
                             {isRTL
-                                ? `عرض ${products.length} من المنتجات`
-                                : `Showing ${products.length} products`}
+                                ? (products.length <= visibleCount 
+                                    ? `عرض جميع المنتجات (${products.length})`
+                                    : `عرض ${visibleCount} من ${products.length} منتج`)
+                                : (products.length <= visibleCount 
+                                    ? `Showing all ${products.length} products`
+                                    : `Showing ${visibleCount} of ${products.length} products`)}
                         </span>
                         <select className="sort-select" value={sortType} onChange={(e) => setSortType(e.target.value)}>
                             <option value="default">{isRTL ? 'الترتيب الافتراضي' : 'Default Sorting'}</option>
@@ -1043,22 +1025,38 @@ const Shop = () => {
                         )}
                     </div>
 
-                    {(visibleCount < products.length || pagination?.hasMore) && (
-                        <div className="load-more-container animate-fade-in" style={{ textAlign: 'center', marginTop: '40px', marginBottom: '30px' }}>
-                            <button 
-                                className="load-more-btn" 
-                                onClick={handleLoadMore}
-                                disabled={isLoadingMore}
-                                style={{ minWidth: '240px', padding: '12px 30px', borderRadius: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                            >
-                                <span>
-                                    {isLoadingMore 
-                                        ? (isRTL ? 'جاري تحميل العطور...' : 'Loading Fragrances...') 
-                                        : (isRTL ? 'عرض المزيد من العطور الفاخرة' : 'Load More Fragrances')}
+                    {products.length > 0 && (
+                        visibleCount < products.length ? (
+                            <div className="load-more-container animate-fade-in" style={{ textAlign: 'center', marginTop: '40px', marginBottom: '30px' }}>
+                                <button 
+                                    type="button"
+                                    className="load-more-btn" 
+                                    onClick={handleLoadMore}
+                                    style={{ minWidth: '240px', padding: '12px 30px', borderRadius: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                                >
+                                    <span>
+                                        {isRTL ? 'عرض المزيد من العطور الفاخرة' : 'Load More Fragrances'}
+                                    </span>
+                                    <RotateCcw size={18} className="load-more-icon" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="no-more-products-notice animate-fade-in">
+                                <div className="no-more-divider">
+                                    <span className="no-more-icon">✦</span>
+                                </div>
+                                <p className="no-more-text">
+                                    {isRTL
+                                        ? `لقد شاهدت جميع العطور المختارة (${products.length} من ${products.length})`
+                                        : `You have viewed all ${products.length} luxury fragrance${products.length === 1 ? '' : 's'}`}
+                                </p>
+                                <span className="no-more-subtext">
+                                    {isRTL 
+                                        ? 'جميع الخيارات الفاخرة معروضة بالكامل • عطور أصلية ١٠٠٪ بتوصيل سريع في قطر'
+                                        : 'End of collection • 100% authentic luxury fragrances with express Qatar delivery'}
                                 </span>
-                                <RotateCcw size={18} className={`load-more-icon ${isLoadingMore ? 'animate-spin' : ''}`} />
-                            </button>
-                        </div>
+                            </div>
+                        )
                     )}
                 </div>
             </div>

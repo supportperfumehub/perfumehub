@@ -86,7 +86,7 @@ export const ShopProvider = ({ children }) => {
 
             const {
                 page = 1,
-                limit = 24,
+                limit = 5000,
                 gender,
                 category,
                 brand,
@@ -288,11 +288,7 @@ export const ShopProvider = ({ children }) => {
     // Fetch products and discover campaigns immediately and in parallel, regardless of auth loading state
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (isAdmin) {
-                fetchProducts({ limit: 5000, admin: true });
-            } else {
-                fetchProducts({ limit: 24 });
-            }
+            fetchProducts({ limit: 5000, admin: Boolean(isAdmin), forceRefresh: true });
             fetchDiscoverCampaigns();
         }, 30);
 

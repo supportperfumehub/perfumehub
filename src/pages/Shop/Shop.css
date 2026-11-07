@@ -746,3 +746,60 @@
         letter-spacing: 1px;
     }
 }
+
+/* Luxury End-of-Catalog Notice */
+.no-more-products-notice {
+    text-align: center;
+    margin: 50px auto 35px;
+    padding: 24px 20px;
+    max-width: 580px;
+}
+
+.no-more-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    position: relative;
+}
+
+.no-more-divider::before,
+.no-more-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200, 169, 81, 0.45), transparent);
+}
+
+.no-more-icon {
+    margin: 0 16px;
+    color: var(--color-gold, #c8a951);
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+}
+
+.no-more-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    font-family: var(--font-heading, 'Playfair Display', serif);
+}
+
+[data-theme="dark"] .no-more-text,
+.dark-theme .no-more-text {
+    color: #f8fafc;
+}
+
+.no-more-subtext {
+    font-size: 0.85rem;
+    color: #64748b;
+    display: block;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .no-more-subtext,
+.dark-theme .no-more-subtext {
+    color: #94a3b8;
+}
