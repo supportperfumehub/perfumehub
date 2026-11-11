@@ -48,14 +48,6 @@ export const ShopProvider = ({ children }) => {
         }
     });
     const [backups, setBackups] = useState([]);
-    const [discoverCampaigns, setDiscoverCampaigns] = useState(() => {
-        try {
-            const saved = localStorage.getItem('perfumehub_discover_campaigns');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
     const [shops, setShops] = useState([]);
 
     // In-memory orders for authenticated customer (Zero localStorage leakage of PII)
@@ -262,34 +254,11 @@ export const ShopProvider = ({ children }) => {
         }
     };
 
-    const fetchDiscoverCampaigns = async () => {
-        try {
-            const regionParam = activeRegion?.id ? `?region_id=${activeRegion.id}` : '';
-            const response = await api.get(`/discover${regionParam}`);
-            let list = response.data;
-            if ((!Array.isArray(list) || list.length === 0) && activeRegion?.id) {
-                try {
-                    const fallbackRes = await api.get('/discover');
-                    if (Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
-                        list = fallbackRes.data;
-                    }
-                } catch (fbErr) {
-                    console.error('Fallback discover fetch error:', fbErr);
-                }
-            }
-            if (Array.isArray(list)) {
-                setDiscoverCampaigns(list);
-            }
-        } catch (error) {
-            console.error('Error fetching discover campaigns:', error);
-        }
-    };
 
-    // Fetch products and discover campaigns immediately and in parallel, regardless of auth loading state
+    // Fetch products immediately, regardless of auth loading state
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchProducts({ limit: 5000, admin: Boolean(isAdmin), forceRefresh: true });
-            fetchDiscoverCampaigns();
         }, 30);
 
         // Hard safety net: if loading is still true after 10s (API timeout/down),
@@ -357,11 +326,6 @@ export const ShopProvider = ({ children }) => {
         } catch (e) {}
     }, []);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem('perfumehub_discover_campaigns', JSON.stringify(discoverCampaigns));
-        } catch (_) {}
-    }, [discoverCampaigns]);
 
     // Toast Function
     const showToast = (message, type = 'success') => {
@@ -892,7 +856,6 @@ export const ShopProvider = ({ children }) => {
         jewelleryProducts,
         giftBoxProducts,
         perfumeProducts,
-        discoverCampaigns,
         shops,
         addProduct,
         updateProduct,

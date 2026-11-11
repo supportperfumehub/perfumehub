@@ -76,18 +76,7 @@ async function runSiteHealthSuite() {
             record('Inventory (Phase 1)', 'GET /api/inventory?product_id=1', pass, `Scoped rows returned: ${Array.isArray(data) ? data.length : 0}`, latency);
         }
 
-        // Test 6: Zero N+1 Discover Slide Aggregation
-        {
-            const t0 = performance.now();
-            const res = await fetch(`${baseUrl}/api/discover`);
-            const latency = Math.round(performance.now() - t0);
-            const cacheControl = res.headers.get('cache-control') || '';
-            const body = await res.json();
-            const pass = res.status === 200 && cacheControl.includes('public');
-            record('Discover (Phase 3)', 'GET /api/discover (Zero N+1)', pass, `Slides: ${Array.isArray(body) ? body.length : 'N/A'}, CDN: ${cacheControl}`, latency);
-        }
-
-        // Test 7: Dedicated Banners Table & CDN Cache
+        // Test 6: Dedicated Banners Table & CDN Cache
         {
             const t0 = performance.now();
             const res = await fetch(`${baseUrl}/api/banners`);

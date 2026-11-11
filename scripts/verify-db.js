@@ -21,10 +21,8 @@ async function verifyDatabase() {
         { name: 'coupons', label: 'Discount Coupons' },
         { name: 'regions', label: 'Geographic Regions' },
         { name: 'countries', label: 'Supported Countries' },
-        { name: 'admin_region_mapping', label: 'Regional Admin Links' },
         { name: 'subscription_plans', label: 'Subscription Plans' },
         { name: 'subscriptions', label: 'Vendor Subscriptions' },
-        { name: 'discover_campaigns', label: 'Discover Campaigns' },
         { name: 'banners', label: 'Promotional Banners' },
         { name: 'shipping_rules', label: 'Shipping Rules' },
         { name: 'backups', label: 'Soft-Delete Archives' }

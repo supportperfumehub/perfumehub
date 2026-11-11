@@ -5,7 +5,7 @@ import { lazy, Suspense } from 'react';
 import { 
     LayoutDashboard, ShoppingCart, Ticket, 
     Users, BarChart2, DatabaseBackup, Home,
-    Sparkles, Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
+    Package, Bell, BellOff, Trash2, Smartphone, Settings as SettingsIcon,
     Megaphone, CalendarCheck, ShieldAlert, Loader2
 } from 'lucide-react';
 
@@ -18,7 +18,6 @@ const ReportsManager = lazy(() => import('../../components/Admin/ReportsManager'
 const ArchiveManager = lazy(() => import('../../components/Admin/ArchiveManager'));
 const SettingsManager = lazy(() => import('../../components/Admin/SettingsManager'));
 const BannersManager = lazy(() => import('../../components/Admin/BannersManager'));
-const DiscoveryManager = lazy(() => import('../../components/Admin/DiscoveryManager'));
 const DeviceManager = lazy(() => import('../../components/Admin/DeviceManager'));
 const ReservationManager = lazy(() => import('../../components/Admin/ReservationManager'));
 const AuditLogsManager = lazy(() => import('../../components/Admin/AuditLogsManager'));
@@ -154,7 +153,6 @@ const Admin = () => {
         { id: 'customers', label: isRTL ? 'العملاء' : 'Customers', icon: <Users size={20} /> },
         { id: 'coupons', label: isRTL ? 'الكوبونات' : 'Coupons', icon: <Ticket size={20} /> },
         { id: 'banners', label: isRTL ? 'إدارة الإعلانات والبانرات' : 'Ads & Banners', icon: <Megaphone size={20} /> },
-        { id: 'discovery', label: isRTL ? 'الاكتشاف والحملات' : 'Discovery & Campaigns', icon: <Sparkles size={20} /> },
         { id: 'reports', label: isRTL ? 'التقارير' : 'Reports', icon: <BarChart2 size={20} /> },
         { id: 'devices', label: isRTL ? 'إدارة الأجهزة' : 'Manage Devices', icon: <Smartphone size={20} /> },
         { id: 'audit', label: isRTL ? 'سجل التدقيق والأمان' : 'Security Audit', icon: <ShieldAlert size={20} /> },
@@ -296,7 +294,6 @@ const Admin = () => {
                         {activeTab === 'customers' && <CustomersManager isRTL={isRTL} />}
                         {activeTab === 'coupons' && <CouponsManager isRTL={isRTL} />}
                         {activeTab === 'banners' && <BannersManager isRTL={isRTL} />}
-                        {activeTab === 'discovery' && <DiscoveryManager isRTL={isRTL} />}
                         {activeTab === 'reports' && <ReportsManager isRTL={isRTL} />}
                         {activeTab === 'devices' && <DeviceManager isRTL={isRTL} />}
                         {activeTab === 'audit' && <AuditLogsManager isRTL={isRTL} />}

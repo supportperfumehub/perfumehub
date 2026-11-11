@@ -82,7 +82,7 @@ const INITIAL_PREVIEW_REVIEWS = [
 const Home = () => {
     const { t } = useTranslation();
     const { isRTL = false } = useOutletContext() || {};
-    const { products, featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading, discoverCampaigns, shops } = useContext(ShopContext);
+    const { products, featuredProducts, newArrivals, perfumeProducts, fashionProducts, jewelleryProducts, giftBoxProducts, loading } = useContext(ShopContext);
     const { activeRegion } = useContext(RegionContext);
     const [showAllNewArrivals, setShowAllNewArrivals] = useState(false);
     const [showAllPerfumes, setShowAllPerfumes] = useState(false);
@@ -220,20 +220,6 @@ const Home = () => {
         return () => { isMounted = false; };
     }, []);
 
-    const scentGenieHeroSlide = {
-        id: 'scent-genie-hero-slide',
-        isScentGenie: true,
-        tagline: isRTL ? 'مستشارك العطري الذكي • AI CONCIERGE' : 'ROYAL AI FRAGRANCE CONCIERGE',
-        title: isRTL ? 'جني العطور الذكي • Scent Genie' : 'Scent Genie AI Advisor',
-        subtitle: isRTL ? 'خوارزمية ذكاء اصطناعي فاخرة' : 'Bespoke Olfactory Matching',
-        description: isRTL 
-            ? 'لست متأكداً من اختيارك؟ دع خوارزمية الذكاء الاصطناعي تحلل ذوقك وترشح لك العطر النيش الأنسب لشخصيتك وأمسيات الدوحة.' 
-            : 'Unsure which fragrance fits your essence? Let our bespoke AI engine analyze your preferences and match you to rare niche perfumes in Qatar.',
-        image: aiAdvisorBg,
-        buttonText: isRTL ? 'اكتشف عطرك بالذكاء الاصطناعي' : 'Launch Scent Genie AI',
-        linkUrl: '/scent-genie'
-    };
-
     // Hero items: active custom hero banners take primary priority
     const heroItems = useMemo(() => {
         if (dbHeroBanners && dbHeroBanners.length > 0) {
@@ -258,12 +244,20 @@ const Home = () => {
             });
         }
 
-        if (discoverCampaigns && discoverCampaigns.length > 0) {
-            return [scentGenieHeroSlide, ...discoverCampaigns];
-        }
-
-        return [scentGenieHeroSlide];
-    }, [dbHeroBanners, products, discoverCampaigns, isRTL]);
+        return [{
+            id: 'scent-genie-hero-slide',
+            isScentGenie: true,
+            tagline: isRTL ? 'مستشارك العطري الذكي • AI CONCIERGE' : 'ROYAL AI FRAGRANCE CONCIERGE',
+            title: isRTL ? 'جني العطور الذكي • Scent Genie' : 'Scent Genie AI Advisor',
+            subtitle: isRTL ? 'خوارزمية ذكاء اصطناعي فاخرة' : 'Bespoke Olfactory Matching',
+            description: isRTL 
+                ? 'لست متأكداً من اختيارك؟ دع خوارزمية الذكاء الاصطناعي تحلل ذوقك وترشح لك العطر النيش الأنسب لشخصيتك وأمسيات الدوحة.' 
+                : 'Unsure which fragrance fits your essence? Let our bespoke AI engine analyze your preferences and match you to rare niche perfumes in Qatar.',
+            image: aiAdvisorBg,
+            buttonText: isRTL ? 'اكتشف عطرك بالذكاء الاصطناعي' : 'Launch Scent Genie AI',
+            linkUrl: '/scent-genie'
+        }];
+    }, [dbHeroBanners, products, isRTL]);
 
     useEffect(() => {
         if (heroItems.length <= 1) return;
@@ -504,18 +498,12 @@ const Home = () => {
                                     );
                                 }
 
-                                const targetProdId = item.product_id || item.product?.id || (isShopCampaign ? null : item.id);
+                                const targetProdId = item.product_id || item.product?.id || item.id;
                                 const liveProd = targetProdId ? products?.find(p => String(p.id) === String(targetProdId)) : null;
                                 const activeProd = liveProd ? { ...item.product, ...liveProd } : (item.product || item);
 
-                                const rawImg = isShopCampaign 
-                                    ? (item.product_id ? activeProd.image : (item.shop?.images?.[0] || item.shop?.logo_url))
-                                    : activeProd.image;
+                                const rawImg = activeProd.image;
                                 const slideImg = Array.isArray(rawImg) ? rawImg[0] : (rawImg || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Item');
-                                const slideBgImg = slideImg;
-
-                                const isProductAd = isShopCampaign && item.product_id;
-                                const slideOpacity = isProductAd ? 1 : (isShopCampaign ? 0.3 : 1);
 
                                 const bestProdVariant = getBestVariant(activeProd);
                                 const displayPrice = bestProdVariant.displayPrice !== undefined && bestProdVariant.displayPrice > 0 ? bestProdVariant.displayPrice : (activeProd.price !== undefined ? activeProd.price : item.price);
@@ -526,79 +514,39 @@ const Home = () => {
 
                                 return (
                                     <div key={item.id} className="featured-slide">
-                                        <div 
-                                            className="featured-slide-dynamic-bg" 
-                                            style={{ backgroundImage: `url(${slideBgImg})`, opacity: slideOpacity }}
+                                        <div
+                                            className="featured-slide-dynamic-bg"
+                                            style={{ backgroundImage: `url(${slideImg})`, opacity: 1 }}
                                         ></div>
                                         <div className="featured-slide-img-container">
-                                            <img 
-                                                src={slideImg} 
-                                                alt={isProductAd ? activeProd.name : (isShopCampaign ? item.shop?.name : activeProd.name)} 
-                                                className="featured-slide-img" 
+                                            <img
+                                                src={slideImg}
+                                                alt={activeProd.name}
+                                                className="featured-slide-img"
                                                 loading="eager"
                                                 decoding="async"
-                                                style={isShopCampaign && !isProductAd ? { objectFit: 'contain', padding: '2rem' } : undefined}
                                             />
                                         </div>
                                         <div className="featured-slide-content">
-                                            {isShopCampaign ? (
-                                                isProductAd ? (
-                                                    <>
-                                                        <span className="featured-slide-brand">{activeProd.brand}</span>
-                                                        <h3 className="featured-slide-title">{activeProd.name}</h3>
-                                                        {activeProd.type && <span className="featured-slide-type">{activeProd.type}</span>}
-                                                        {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
-                                                        <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
-                                                            <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
-                                                                {displayPrice} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
-                                                            </span>
-                                                            {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
-                                                                <span className="featured-slide-old-price">
-                                                                    {Math.round(displayOldPrice)} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
-                                                                </span>
-                                                            ) : null}
-                                                        </div>
-                                                        <div className="featured-slide-actions">
-                                                            <Link to={`/product/${activeProd.id}`} className="btn btn-gold">
-                                                                {isRTL ? 'اكتشف المزيد' : 'Discover More'}
-                                                            </Link>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="featured-slide-brand">Premium Shop {item.placement_slot ? `• ${item.placement_slot}` : ''}</span>
-                                                        <h3 className="featured-slide-title">{item.shop?.name}</h3>
-                                                        <p className="featured-slide-desc" dir="auto">Trust Score: ★ {item.shop?.trust_score}/5</p>
-                                                        <div className="featured-slide-actions" style={{ marginTop: '2rem' }}>
-                                                            <Link to={`/shop?shop_id=${item.shop?.id}`} className="btn btn-gold">
-                                                                Visit Premium Shop
-                                                            </Link>
-                                                        </div>
-                                                    </>
-                                                )
-                                            ) : (
-                                                <>
-                                                    <span className="featured-slide-brand">{activeProd.brand}</span>
-                                                    <h3 className="featured-slide-title">{activeProd.name}</h3>
-                                                    {activeProd.type && <span className="featured-slide-type">{activeProd.type}</span>}
-                                                    {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
-                                                    <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
-                                                        <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
-                                                            {displayPrice} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
-                                                        </span>
-                                                        {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
-                                                            <span className="featured-slide-old-price">
-                                                                {Math.round(displayOldPrice)} {activeRegion?.currency_code || (isRTL ? 'ر.ق' : 'QAR')}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                    <div className="featured-slide-actions">
-                                                        <Link to={`/product/${activeProd.id}`} className="btn btn-gold">
-                                                            {isRTL ? 'اكتشف المزيد' : 'Discover More'}
-                                                        </Link>
-                                                    </div>
-                                                </>
-                                            )}
+                                            <span className="featured-slide-brand">{activeProd.brand}</span>
+                                            <h3 className="featured-slide-title">{activeProd.name}</h3>
+                                            {activeProd.type && <span className="featured-slide-type">{activeProd.type}</span>}
+                                            {activeProd.description && <p className="featured-slide-desc" dir="auto">{activeProd.description}</p>}
+                                            <div className={`featured-slide-price-row ${displayDiscount > 0 ? 'has-discount' : ''}`}>
+                                                <span className={`featured-slide-price ${displayDiscount > 0 ? 'price-sale' : ''}`}>
+                                                    {displayPrice} {activeRegion?.currency_code || (isRTL ? '?.?' : 'QAR')}
+                                                </span>
+                                                {displayOldPrice && Number(displayOldPrice) !== Number(displayPrice) ? (
+                                                    <span className="featured-slide-old-price">
+                                                        {Math.round(displayOldPrice)} {activeRegion?.currency_code || (isRTL ? '?.?' : 'QAR')}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            <div className="featured-slide-actions">
+                                                <Link to={`/product/${activeProd.id}`} className="btn btn-gold">
+                                                    {isRTL ? '????? ??????' : 'Discover More'}
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 );
