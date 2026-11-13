@@ -255,12 +255,10 @@ router.get('/:id', async (req, res) => {
             singleQuery = singleQuery.is('deleted_at', null);
         }
 
-        const { data, error } = await singleQuery.single();
+        const { data, error } = await singleQuery.maybeSingle();
 
-        if (error) {
-            if (error.code === 'PGRST116') return res.status(404).json({ error: 'Product not found' });
-            throw error;
-        }
+        if (error) throw error;
+        if (!data) return res.status(404).json({ error: 'Product not found' });
 
         // Attach boutique inventories for this product
         try {

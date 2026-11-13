@@ -503,7 +503,7 @@ const Home = () => {
                                 const activeProd = liveProd ? { ...item.product, ...liveProd } : (item.product || item);
 
                                 const rawImg = activeProd.image;
-                                const slideImg = Array.isArray(rawImg) ? rawImg[0] : (rawImg || 'https://placehold.co/400x400/1a1a1a/d4af37?text=Premium+Item');
+                                const slideImg = Array.isArray(rawImg) ? rawImg[0] : (rawImg || 'https://placehold.co/400x400/ffffff/d4af37?text=Premium+Item');
 
                                 const bestProdVariant = getBestVariant(activeProd);
                                 const displayPrice = bestProdVariant.displayPrice !== undefined && bestProdVariant.displayPrice > 0 ? bestProdVariant.displayPrice : (activeProd.price !== undefined ? activeProd.price : item.price);

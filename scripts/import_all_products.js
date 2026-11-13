@@ -38,7 +38,7 @@ async function run() {
             const stockCount = parseInt(p.stock, 10);
             const stock = isNaN(stockCount) || stockCount < 0 ? 10 : stockCount;
 
-            const placeholderImg = `https://placehold.co/400x500/1a1a1a/d4af37?text=${encodeURIComponent(cleanBrand + ' ' + cleanName)}`;
+            const placeholderImg = `https://placehold.co/400x500/ffffff/d4af37?text=${encodeURIComponent(cleanBrand + ' ' + cleanName)}`;
 
             return {
                 name: cleanName,

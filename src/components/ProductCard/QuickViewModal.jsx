@@ -89,7 +89,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
     const images = Array.isArray(product.images) && product.images.length > 0
         ? product.images
         : (Array.isArray(product.image) ? product.image : [product.image].filter(Boolean));
-    const currentImg = images[selectedImageIndex] || images[0] || 'https://placehold.co/500x600/1a1a1a/d4af37?text=No+Image';
+    const currentImg = images[selectedImageIndex] || images[0] || 'https://placehold.co/500x600/ffffff/d4af37?text=No+Image';
 
     // Calculate active price based on selected size if defined
     const activeSizeObj = parsedSizes.find(s => s.name === selectedSize);
@@ -147,7 +147,7 @@ const QuickViewModal = ({ product, isOpen, onClose, isRTL }) => {
                                 src={currentImg} 
                                 alt={product.name} 
                                 className="quickview-hero-image"
-                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/500x600/1a1a1a/d4af37?text=No+Image'; }}
+                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/500x600/ffffff/d4af37?text=No+Image'; }}
                             />
                             
                             {/* Badges */}

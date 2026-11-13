@@ -13,6 +13,7 @@ export async function optimizeImageBuffer(buffer, { width = 1080, height = 1080,
     try {
         return await sharp(buffer)
             .rotate() // Auto-orient based on EXIF before stripping
+            .flatten({ background: '#ffffff' }) // Ensure transparent backgrounds become clean white
             .resize({
                 width,
                 height,

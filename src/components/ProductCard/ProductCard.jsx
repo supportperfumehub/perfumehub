@@ -18,12 +18,12 @@ const ImageSwiper = ({ images, name }) => {
     if (!hasMultiple) {
         return (
             <img
-                src={imgArray[0] || 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'}
+                src={imgArray[0] || 'https://placehold.co/400x500/ffffff/d4af37?text=No+Image'}
                 alt={name}
                 className="product-image"
                 loading="lazy"
                 decoding="async"
-                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'; }}
+                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/ffffff/d4af37?text=No+Image'; }}
             />
         );
     }
@@ -66,7 +66,7 @@ const ImageSwiper = ({ images, name }) => {
                         className="product-image swiper-img"
                         loading="lazy"
                         decoding="async"
-                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/1a1a1a/d4af37?text=No+Image'; }}
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x500/ffffff/d4af37?text=No+Image'; }}
                     />
                 ))}
             </div>

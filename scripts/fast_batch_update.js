@@ -85,7 +85,7 @@ async function run() {
                 }
             }
 
-            const placeholderImg = `https://placehold.co/400x500/1a1a1a/d4af37?text=${encodeURIComponent(cleanBrand + ' ' + cleanName)}`;
+            const placeholderImg = `https://placehold.co/400x500/ffffff/d4af37?text=${encodeURIComponent(cleanBrand + ' ' + cleanName)}`;
             const gender = detectGender(cleanName);
             const category = detectCategory(cleanBrand, cleanName);
             const isFeatured = FEATURED_BRANDS.has(cleanBrand);
